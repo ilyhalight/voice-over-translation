@@ -1,7 +1,7 @@
 ﻿import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 
 import type { CacheTranslationSuccess } from "../../types/core/cacheManager";
-import type { VideoData } from "../shared";
+import type { VideoData } from "../../types/videoHandler";
 import type { ActionContext } from "./translationTypes";
 
 export type TranslationAudioResult = {
@@ -68,7 +68,7 @@ export async function requestTranslationAudio(
   };
 }
 
-export function buildTranslationCacheValue(options: {
+function buildTranslationCacheValue(options: {
   videoId: string;
   requestLang: string;
   responseLang: string;

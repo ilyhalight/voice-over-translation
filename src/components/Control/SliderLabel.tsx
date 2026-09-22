@@ -14,6 +14,7 @@ export type SliderLabelDescProps = {
   ref?: (element: HTMLElement) => void;
 };
 
+// fallow-ignore-next-line unused-export
 export function SliderLabelDesc(props: SliderLabelDescProps): JSX.Element {
   return (
     <vot-block ref={props.ref} class="vot-slider-label__text-desc">

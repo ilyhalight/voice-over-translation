@@ -1,6 +1,29 @@
-import { createSignal, onCleanup } from "solid-js";
+import { type Accessor, createSignal, onCleanup, type Setter } from "solid-js";
+
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
 import { ProgressIcon } from "./ProgressIcon";
+
+const PROGRESS_STEP = 0.1;
+const PROGRESS_INTERVAL_MS = 10;
+
+export function startProgressAnimation(
+  progress: Accessor<number>,
+  setProgress: Setter<number>,
+  onComplete?: () => void,
+) {
+  const intervalId = window.setInterval(() => {
+    const nextProgress = Math.min(progress() + PROGRESS_STEP, 100);
+
+    setProgress(nextProgress);
+
+    if (nextProgress === 100) {
+      window.clearInterval(intervalId);
+      onComplete?.();
+    }
+  }, PROGRESS_INTERVAL_MS);
+
+  return intervalId;
+}
 
 const meta = {
   component: ProgressIcon,
@@ -40,15 +63,7 @@ export const ProgressIconChanging: Story = {
   render: () => {
     const [progress, setProgress] = createSignal(0);
 
-    const intervalId = window.setInterval(() => {
-      const nextProgress = Math.min(progress() + 0.1, 100);
-
-      setProgress(nextProgress);
-
-      if (nextProgress === 100) {
-        window.clearInterval(intervalId);
-      }
-    }, 10);
+    const intervalId = startProgressAnimation(progress, setProgress);
 
     onCleanup(() => window.clearInterval(intervalId));
 

@@ -4,6 +4,7 @@ import { serializeProcessedSubtitles } from "../subtitles/standards";
 import type { Status } from "../types/components/votButton";
 import type { StorageData } from "../types/storage";
 import type { OverlayMount, UIManagerProps } from "../types/uiManager";
+import type { VideoData } from "../types/videoHandler";
 import debug from "../utils/debug";
 import { downloadTranslation } from "../utils/download";
 import { GM_fetch } from "../utils/gm";
@@ -15,7 +16,6 @@ import {
   downloadBlob,
 } from "../utils/utils";
 import type { VideoHandler } from "../VideoHandler";
-import type { VideoData } from "../videoHandler/shared";
 import { safeSetPlayerVolume } from "../videoHandler/translationVolume";
 import { applyOverlayMountUpdate } from "./mount";
 import { OverlayController } from "./overlayController";

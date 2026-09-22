@@ -66,7 +66,7 @@ export function findNextCueBoundaryMs(
 }
 
 /** Earliest word-highlight threshold strictly after `timeMs`. */
-export function findNextThresholdMs(
+function findNextThresholdMs(
   timeMs: number,
   thresholds: readonly number[],
 ): number | null {

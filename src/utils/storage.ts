@@ -259,16 +259,25 @@ class VOTStorage {
     return globalThis.localStorage.setItem(name, JSON.stringify(value));
   }
 
+  private async getChangeContext(name: string): Promise<{
+    support: StorageSupport;
+    storageKey: StorageKey;
+    shouldNotify: boolean;
+    oldValue: unknown;
+  }> {
+    const support = this.resolveSupport();
+    const shouldNotify = this.shouldUseSyntheticListeners(support);
+    const oldValue = shouldNotify ? await this.getRaw(name) : undefined;
+
+    return { support, storageKey: name as StorageKey, shouldNotify, oldValue };
+  }
+
   async setRaw<T extends KeysOrDefaultValue = undefined>(
     name: string,
     value: T,
   ): Promise<void> {
-    const support = this.resolveSupport();
-    const storageKey = name as StorageKey;
-    const shouldNotify = this.shouldUseSyntheticListeners(support);
-    const oldValue = shouldNotify
-      ? await this.getRaw<T | undefined>(name)
-      : undefined;
+    const { support, storageKey, shouldNotify, oldValue } =
+      await this.getChangeContext(name);
 
     if (support.promiseSet && GM.setValue) {
       await GM.setValue(name, value);
@@ -298,10 +307,8 @@ class VOTStorage {
   }
 
   async deleteRaw(name: string): Promise<void> {
-    const support = this.resolveSupport();
-    const storageKey = name as StorageKey;
-    const shouldNotify = this.shouldUseSyntheticListeners(support);
-    const oldValue = shouldNotify ? await this.getRaw(name) : undefined;
+    const { support, storageKey, shouldNotify, oldValue } =
+      await this.getChangeContext(name);
 
     if (support.promiseDelete && GM.deleteValue) {
       await GM.deleteValue(name);
@@ -343,15 +350,14 @@ class VOTStorage {
             | ((id: unknown) => unknown)
             | undefined)
         : undefined;
-
-      if (typeof addListener === "function") {
-        const gmListener = this.createTypedListener(listener);
-        const listenerId = addListener(name, gmListener);
-        return () => {
-          if (typeof removeListener === "function") {
-            removeListener(listenerId);
-          }
-        };
+      const unsubscribe = this.registerGMListener(
+        addListener,
+        removeListener,
+        name,
+        listener,
+      );
+      if (unsubscribe) {
+        return unsubscribe;
       }
     }
 
@@ -371,15 +377,14 @@ class VOTStorage {
             }
           ).GM_removeValueChangeListener
         : undefined;
-
-      if (typeof addListener === "function") {
-        const gmListener = this.createTypedListener(listener);
-        const listenerId = addListener(name, gmListener);
-        return () => {
-          if (typeof removeListener === "function") {
-            removeListener(listenerId);
-          }
-        };
+      const unsubscribe = this.registerGMListener(
+        addListener,
+        removeListener,
+        name,
+        listener,
+      );
+      if (unsubscribe) {
+        return unsubscribe;
       }
     }
 
@@ -420,6 +425,29 @@ class VOTStorage {
         newValue as T | undefined,
         remote,
       );
+    };
+  }
+
+  private registerGMListener(
+    addListener:
+      | ((
+          key: string,
+          callback: StorageValueChangeListener<unknown>,
+        ) => unknown)
+      | undefined,
+    removeListener: ((id: unknown) => unknown) | undefined,
+    name: StorageKey,
+    listener: StorageValueChangeListener<unknown>,
+  ): (() => void) | undefined {
+    if (typeof addListener !== "function") {
+      return undefined;
+    }
+
+    const listenerId = addListener(name, this.createTypedListener(listener));
+    return () => {
+      if (typeof removeListener === "function") {
+        removeListener(listenerId);
+      }
     };
   }
 

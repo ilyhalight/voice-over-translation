@@ -11,7 +11,7 @@
 // - Eye-tracking research (Szarkowska et al.) showing that breaking inside a
 //   phrase increases regressions and dwell time.
 
-export type LineBreakLexicon = {
+type LineBreakLexicon = {
   // Words that must not end line 1 (they bind forward to the next word).
   bindsForward: Set<string>;
   // Words that read better at the start of line 2.
@@ -392,7 +392,7 @@ const SCRIPTIO_CONTINUA = new Set([
   "bo",
 ]);
 
-export const getBaseLanguage = (locale?: string): string =>
+const getBaseLanguage = (locale?: string): string =>
   (locale ?? "").toLowerCase().split(/[-_]/u)[0] ?? "";
 
 export const isScriptioContinua = (locale?: string): boolean =>
@@ -400,20 +400,20 @@ export const isScriptioContinua = (locale?: string): boolean =>
 
 const WORD_CHARS_RE = /[^\p{L}\p{N}'\u2019]+/gu;
 
-export const normalizeLexiconWord = (value: string): string =>
+const normalizeLexiconWord = (value: string): string =>
   value.replaceAll(WORD_CHARS_RE, " ").trim().toLowerCase();
 
-export const lastWordOf = (text: string): string => {
+const lastWordOf = (text: string): string => {
   const parts = normalizeLexiconWord(text).split(" ").filter(Boolean);
   return parts.at(-1) ?? "";
 };
 
-export const firstWordOf = (text: string): string => {
+const firstWordOf = (text: string): string => {
   const parts = normalizeLexiconWord(text).split(" ").filter(Boolean);
   return parts[0] ?? "";
 };
 
-export const LINE_BREAK_PENALTY = {
+const LINE_BREAK_PENALTY = {
   bindsForward: 240,
   prefersLineStart: -60,
 } as const;

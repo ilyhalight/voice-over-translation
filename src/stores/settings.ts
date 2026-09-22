@@ -20,7 +20,7 @@ import type { DetectService, TranslateService } from "../types/translateApis";
 import { isSupportGMXhr } from "../utils/gm";
 import { calculatedResLang } from "../utils/localization";
 
-export type SettingsStore = {
+type SettingsStore = {
   // menu
   defaultVolume: number;
   responseLanguage: ResponseLang;
@@ -116,7 +116,3 @@ function createInitialState(): SettingsStore {
 export const [settings, setSettings] = createStore<SettingsStore>(
   createInitialState(),
 );
-
-export function resetSettings() {
-  setSettings(createInitialState());
-}

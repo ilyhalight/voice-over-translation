@@ -10,7 +10,7 @@ export const OUT_TEMP_DIR = path.resolve(DIST_EXT_DIR, "_tmp");
 
 export const EXTENSION_NAME = "vot-extension";
 export const FIREFOX_EXTENSION_NAME = `${EXTENSION_NAME}-firefox`;
-export const CHROME_EXTENSION_NAME = `${EXTENSION_NAME}-chrome`;
+const CHROME_EXTENSION_NAME = `${EXTENSION_NAME}-chrome`;
 
 export const FIREFOX_UPDATES_MANIFEST_FILE = `${FIREFOX_EXTENSION_NAME}-updates.json`;
 export const FIREFOX_UPDATES_MANIFEST_PATH = path.join(
@@ -35,7 +35,7 @@ export function viteCacheDir(name: string): string {
   return path.resolve(ROOT_DIR, "node_modules", ".vite", name);
 }
 
-export const nodeCryptoAlias = {
+const nodeCryptoAlias = {
   "node:crypto": path.resolve(SOURCE_DIR, "shims", "nodeCrypto.ts"),
 } as const;
 

@@ -8,7 +8,7 @@ import {
   getReleaseDownloadBase,
 } from "../paths";
 
-export async function writeChromeUpdatesManifest({
+async function writeChromeUpdatesManifest({
   version,
   extensionId,
 }: {

@@ -9,17 +9,19 @@ import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import { AudioDownloader } from "../audioDownloader";
 import { STREAM_TIMEOUT_MS } from "../audioDownloader/strategies/webAudioBridge";
 import { t } from "../localization/localizationProvider";
+import { deleteAccount } from "../stores/account";
 import type {
   DownloadedAudioData,
   DownloadedPartialAudioData,
 } from "../types/audioDownloader";
+import type { VideoData } from "../types/videoHandler";
 import {
   createAbortableDelay,
   createAbortableWaiter,
   NEVER_ABORTED_SIGNAL,
   throwIfAborted,
 } from "../utils/abort";
-import { deleteAccount, hasAccountToken } from "../utils/account";
+import { hasAccountToken } from "../utils/account";
 import debug from "../utils/debug";
 import {
   getErrorMessage,
@@ -29,7 +31,6 @@ import {
 } from "../utils/errors";
 import type { VideoHandler } from "../VideoHandler";
 import VOTLocalizedError from "../VOTLocalizedError";
-import type { VideoData } from "../videoHandler/shared";
 import { openAuthWindow } from "./auth/window";
 import {
   getTranslationAuthErrorKind,

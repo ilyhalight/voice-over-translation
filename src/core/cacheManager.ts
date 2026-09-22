@@ -6,7 +6,7 @@ import type {
 import { computeExpiresAt } from "../utils/responseCache";
 import { votStorage } from "../utils/storage";
 
-export const YANDEX_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
+const YANDEX_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 const VOT_SESSION_STORAGE_KEY = "VOTSession";
 
 type TimedCacheEntry<T> = {

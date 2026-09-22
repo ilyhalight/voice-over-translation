@@ -54,7 +54,6 @@ import {
 import { account, resetAccount, updateAccount } from "../stores/account";
 import { setLocale } from "../stores/locale";
 import { setSettings } from "../stores/settings";
-import type { SubtitleFormat } from "../subtitles/types";
 import type { Position } from "../types/components/votButton";
 import type {
   Account,
@@ -62,7 +61,7 @@ import type {
   StorageData,
   TranslateProxyStatus,
 } from "../types/storage";
-import type { SubtitleFontFamily } from "../types/subtitles";
+import type { SubtitleFontFamily, SubtitleFormat } from "../types/subtitles";
 import type { TranslateService } from "../types/translateApis";
 import debug from "../utils/debug";
 import { EventImpl } from "../utils/eventImpl";

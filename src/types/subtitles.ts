@@ -41,7 +41,7 @@ export const subtitleFontFamilyCss = {
   barlow: `"Barlow", ${subtitleBaseFontFamilyCSS}`,
 } as const satisfies Record<BuiltInSubtitleFontFamily, string>;
 
-export const subtitlePositionPresets = [
+const subtitlePositionPresets = [
   "bottom-center",
   "center",
   "top-center",

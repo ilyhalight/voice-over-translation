@@ -2,15 +2,13 @@
   localizationProvider,
   t,
 } from "../../localization/localizationProvider";
-import {
-  parseSubtitleDescriptor,
-  type SubtitleDescriptor,
-} from "../../subtitles/types";
+import { parseSubtitleDescriptor } from "../../subtitles/types";
 import {
   AUTO_SUBTITLE_LANGUAGE_VALUE,
   ORIGINAL_SUBTITLE_LANGUAGE_VALUE,
   type ResponseLanguageSubtitles,
 } from "../../types/storage";
+import type { SubtitleDescriptor } from "../../types/subtitles";
 
 export type IndexedSubtitleDescriptor = {
   descriptor: SubtitleDescriptor;

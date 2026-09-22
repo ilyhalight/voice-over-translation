@@ -7,6 +7,7 @@ import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import type { ClientSession, SessionModule } from "@vot.js/shared/types/secure";
 import Chaimu from "chaimu/client";
 import { initAudioContext } from "chaimu/player";
+
 import {
   minLongWaitingCount,
   proxyWorkerHostMode1,
@@ -23,10 +24,11 @@ import { createVideoLifecycleHost } from "./core/videoLifecycleHost";
 import { VOTVideoManager } from "./core/videoManager";
 import { localizationProvider, t } from "./localization/localizationProvider";
 import { Notifier } from "./notify";
-import type { ProcessedSubtitles } from "./subtitles/processor";
 import { SubtitlesWidget } from "./subtitles/widget";
 import type { ResponseLanguageSubtitles, StorageData } from "./types/storage";
+import type { ProcessedSubtitles } from "./types/subtitles";
 import type { OverlayMount } from "./types/uiManager";
+import type { VideoData } from "./types/videoHandler";
 import { UIManager } from "./ui/manager";
 import { isSameOverlayMount } from "./ui/mount";
 import { OverlayVisibilityController } from "./ui/overlayVisibilityController";
@@ -88,7 +90,6 @@ import {
   updateTranslation as updateTranslationImpl,
   validateAudioUrl as validateAudioUrlImpl,
 } from "./videoHandler/modules/translation";
-import type { VideoData } from "./videoHandler/shared";
 import {
   type ApplyVolumeLinkDeltaResult,
   applyVolumeLinkDelta,

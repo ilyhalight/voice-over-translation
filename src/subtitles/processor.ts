@@ -26,15 +26,6 @@ import {
 import { shouldInsertSpaceBetweenTextFragments } from "./textSpacing";
 import { parseSubtitleDescriptor } from "./types";
 
-export type {
-  ProcessedSubtitles,
-  SubtitleDescriptor,
-  SubtitleLine,
-  SubtitlesClient,
-  SubtitleToken,
-  VideoDataForSubtitles,
-} from "../types/subtitles";
-
 type ProcessedSubtitlesInput = Partial<ProcessedSubtitles>;
 
 type YoutubeSubtitleSegment = {

@@ -103,11 +103,6 @@ export function fnv1a32ToKeyPart(str: string): string {
   return (hash >>> 0).toString(36);
 }
 
-export interface DocumentWithFullscreen extends Document {
-  webkitFullscreenElement?: Element | null;
-  webkitExitFullscreen?: () => Promise<void>;
-}
-
 export const isPiPAvailable = () => Boolean(document.pictureInPictureEnabled);
 
 async function writeBlobToHandle(

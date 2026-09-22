@@ -158,3 +158,4 @@ dist/*.proxy.user.js
 
 *storybook.log
 storybook-static
+.fallow/

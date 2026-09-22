@@ -22,13 +22,11 @@ import { GM_fetch } from "../../utils/gm";
 import { votStorage } from "../../utils/storage";
 import { base64UrlEncode } from "../../utils/utils";
 
-export function createCodeVerifier(): string {
+function createCodeVerifier(): string {
   return base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)));
 }
 
-export async function createCodeChallenge(
-  codeVerifier: string,
-): Promise<string> {
+async function createCodeChallenge(codeVerifier: string): Promise<string> {
   const digest = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(codeVerifier),
@@ -37,7 +35,7 @@ export async function createCodeChallenge(
   return base64UrlEncode(new Uint8Array(digest));
 }
 
-export const isTokenError = (data: unknown): data is TokenError => {
+const isTokenError = (data: unknown): data is TokenError => {
   return (
     typeof data === "object" &&
     data !== null &&
@@ -46,7 +44,7 @@ export const isTokenError = (data: unknown): data is TokenError => {
   );
 };
 
-export async function getOAuthTokenByCode(code: string): Promise<TokenInfo> {
+async function getOAuthTokenByCode(code: string): Promise<TokenInfo> {
   const res = await GM_fetch(YANDEX_AUTH_TOKEN_URL, {
     method: "POST",
     headers: {
@@ -70,7 +68,7 @@ export async function getOAuthTokenByCode(code: string): Promise<TokenInfo> {
   return data;
 }
 
-export const isAuthError = (data: unknown): data is AuthError => {
+const isAuthError = (data: unknown): data is AuthError => {
   return (
     typeof data === "object" &&
     data !== null &&
@@ -79,7 +77,7 @@ export const isAuthError = (data: unknown): data is AuthError => {
   );
 };
 
-export async function getUserInfo(token: string): Promise<UserInfo> {
+async function getUserInfo(token: string): Promise<UserInfo> {
   const res = await GM_fetch(`${YANDEX_USER_INFO_URL}?format=json`, {
     method: "GET",
     headers: {

@@ -3,11 +3,11 @@ import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import { isTranslationDownloadHost } from "../../core/hostPolicies";
 import { notifyTranslationFailureIfNeeded } from "../../core/translationErrors";
 import { t } from "../../localization/localizationProvider";
+import type { VideoData } from "../../types/videoHandler";
 import debug from "../../utils/debug";
 import { toErrorMessage } from "../../utils/errors";
 import type { VideoHandler } from "../../VideoHandler";
 import VOTLocalizedError from "../../VOTLocalizedError";
-import type { VideoData } from "../shared";
 import { applyTranslationPlaybackVolume } from "../translationVolume";
 import {
   isYandexAudioUrlOrProxy,

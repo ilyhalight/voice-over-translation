@@ -7,7 +7,7 @@ import {
 import type {
   SubtitleDescriptor,
   VideoDataForSubtitles,
-} from "../../subtitles/types";
+} from "../../types/subtitles";
 import debug from "../../utils/debug";
 import type { VideoHandler } from "../../VideoHandler";
 import { proxifyYandexSubtitlesUrl } from "./proxyShared";

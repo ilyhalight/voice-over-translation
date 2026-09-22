@@ -313,7 +313,7 @@ async function getPlayer(
   );
 }
 
-export function createAudioChunkStream(
+function createAudioChunkStream(
   targetWindow: MseWindow,
   videoId: string,
   signal: AbortSignal,
@@ -842,7 +842,7 @@ async function handleTopRequest(
   ).appendChild(iframe);
 }
 
-export function initMseProxyHandler(): void {
+function initMseProxyHandler(): void {
   const pageWindow = globalThis as unknown as MseWindow;
   if (
     pageWindow[BOOT_KEY] ||

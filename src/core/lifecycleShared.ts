@@ -6,7 +6,7 @@ export type LifecycleTranslationResetHost = {
   resetSubtitlesWidget(): void;
 };
 
-export function resetLifecycleTranslation(
+function resetLifecycleTranslation(
   host: LifecycleTranslationResetHost,
   options: {
     requireVideoData?: boolean;

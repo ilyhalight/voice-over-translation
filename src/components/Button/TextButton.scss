@@ -14,17 +14,5 @@
     $margin: 0 !important
   );
   border: none !important;
-  color: rgb(var(--vot-helper-theme));
-  background-color: transparent;
-  @include button.vot-button-layers(rgb(var(--vot-helper-theme)));
-  @include button.vot-button-layer-hover(0.04);
-  @include button.vot-button-layer-active(0.16);
-
-  &[disabled="true"],
-  &[aria-disabled="true"] {
-    background-color: transparent;
-    color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.38);
-    cursor: initial;
-    @include button.vot-button-layer-reset-disabled;
-  }
+  @include button.vot-button-theme-transparent;
 }

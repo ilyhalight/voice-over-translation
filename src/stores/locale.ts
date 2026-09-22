@@ -1,6 +1,6 @@
 import { createStore } from "solid-js/store";
 
-export type LocaleStore = {
+type LocaleStore = {
   updatedAt: number;
   hash: string;
 };
@@ -15,7 +15,3 @@ function createInitialState(): LocaleStore {
 export const [locale, setLocale] = createStore<LocaleStore>(
   createInitialState(),
 );
-
-export function resetLocale() {
-  setLocale(createInitialState());
-}

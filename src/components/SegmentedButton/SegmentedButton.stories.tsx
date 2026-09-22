@@ -197,6 +197,26 @@ export const SegmentedButtonPrimaryAction: Story = {
   },
 };
 
+const playColumnTouchVoiceSelection = (canvasElement: HTMLElement) => {
+  const translateButton = canvasElement.querySelector<HTMLElement>(
+    ".vot-translate-button",
+  );
+  expect(translateButton).not.toBeNull();
+  if (!translateButton) {
+    return;
+  }
+
+  dispatchPrimaryPointerUp(translateButton, "touch");
+  const popover =
+    canvasElement.ownerDocument.querySelector<HTMLElement>(
+      ".vot-voice-popover",
+    );
+  return {
+    translateButton,
+    popover,
+  };
+};
+
 export const SegmentedButtonColumnTouchVoiceSelection: Story = {
   args: {
     direction: "column",
@@ -204,20 +224,7 @@ export const SegmentedButtonColumnTouchVoiceSelection: Story = {
     onTranslateClick: fn(),
   },
   play: ({ args, canvasElement }) => {
-    const translateButton = canvasElement.querySelector<HTMLElement>(
-      ".vot-translate-button",
-    );
-    expect(translateButton).not.toBeNull();
-    if (!translateButton) {
-      return;
-    }
-
-    dispatchPrimaryPointerUp(translateButton, "touch");
-    const popover =
-      canvasElement.ownerDocument.querySelector<HTMLElement>(
-        ".vot-voice-popover",
-      );
-
+    const { popover } = playColumnTouchVoiceSelection(canvasElement);
     expect(args.onTranslateClick).not.toHaveBeenCalled();
     expect(popover?.hidden).toBe(false);
   },
@@ -231,20 +238,7 @@ export const SegmentedButtonColumnTouchError: Story = {
     status: "error",
   },
   play: ({ args, canvasElement }) => {
-    const translateButton = canvasElement.querySelector<HTMLElement>(
-      ".vot-translate-button",
-    );
-    expect(translateButton).not.toBeNull();
-    if (!translateButton) {
-      return;
-    }
-
-    dispatchPrimaryPointerUp(translateButton, "touch");
-    const popover =
-      canvasElement.ownerDocument.querySelector<HTMLElement>(
-        ".vot-voice-popover",
-      );
-
+    const { popover } = playColumnTouchVoiceSelection(canvasElement);
     expect(args.onTranslateClick).toHaveBeenCalledTimes(1);
     expect(popover?.hidden).not.toBe(false);
   },

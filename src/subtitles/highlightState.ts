@@ -27,7 +27,7 @@ export type HighlightState = {
   applied: Uint8Array;
 };
 
-export const NO_HIGHLIGHT_INDEX = -1;
+const NO_HIGHLIGHT_INDEX = -1;
 const PASSED_CLASS = "passed";
 
 export function createHighlightState(): HighlightState {

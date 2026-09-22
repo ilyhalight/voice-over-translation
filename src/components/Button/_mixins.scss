@@ -82,3 +82,19 @@
     opacity: 0;
   }
 }
+
+@mixin vot-button-theme-transparent {
+  color: rgb(var(--vot-helper-theme));
+  background-color: transparent;
+  @include vot-button-layers(rgb(var(--vot-helper-theme)));
+  @include vot-button-layer-hover(0.04);
+  @include vot-button-layer-active(0.16);
+
+  &[disabled="true"],
+  &[aria-disabled="true"] {
+    background-color: transparent;
+    color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.38);
+    cursor: initial;
+    @include vot-button-layer-reset-disabled;
+  }
+}

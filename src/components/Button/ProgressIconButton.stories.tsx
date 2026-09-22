@@ -1,6 +1,7 @@
 import { createSignal, onCleanup } from "solid-js";
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
 import { DownloadIcon } from "../Icons/DownloadIcon";
+import { startProgressAnimation } from "../Icons/ProgressIcon.stories";
 import { ProgressIconButton } from "./ProgressIconButton";
 
 const meta = {
@@ -40,16 +41,11 @@ export const ProgressIconButtonChanging: Story = {
           onClick={() => {
             setShowProgress(true);
 
-            const intervalId = window.setInterval(() => {
-              const nextProgress = Math.min(progress() + 0.1, 100);
-
-              setProgress(nextProgress);
-
-              if (nextProgress === 100) {
-                window.clearInterval(intervalId);
-                setShowProgress(false);
-              }
-            }, 10);
+            const intervalId = startProgressAnimation(
+              progress,
+              setProgress,
+              () => setShowProgress(false),
+            );
 
             onCleanup(() => window.clearInterval(intervalId));
           }}

@@ -1,16 +1,15 @@
 import { isDocumentHidden } from "./environment";
 
-export type IntervalIdleMode = "active" | "idle" | "hidden";
+type IntervalIdleMode = "active" | "idle" | "hidden";
+type IntervalIdleTickSource = "start" | "interval" | "immediate";
 
-export type IntervalIdleTickSource = "start" | "interval" | "immediate";
-
-export type IntervalIdleTickContext = {
+type IntervalIdleTickContext = {
   nowMs: number;
   mode: IntervalIdleMode;
   source: IntervalIdleTickSource;
 };
 
-export type IntervalIdleProfile = {
+type IntervalIdleProfile = {
   /**
    * Polling interval used by the checker loop.
    * Mirrors the fixed `IDLE_CHECK_INTERVAL_MS` approach from `app.js`.
@@ -35,7 +34,7 @@ export type IntervalIdleProfile = {
 
 type IntervalIdleSubscriber = (ctx: IntervalIdleTickContext) => void;
 
-export type IntervalIdleSubscribeOptions = {
+type IntervalIdleSubscribeOptions = {
   /**
    * Reports whether this subscriber currently has work that a periodic tick
    * could perform. When every subscriber reports `false`, the checker stops its

@@ -21,7 +21,7 @@ export function isProxyClientEnabled(config: ProxyConfig): boolean {
   return Boolean(config.translateProxyEnabled);
 }
 
-export function isProxyRoutingEnabled(config: ProxyConfig): boolean {
+function isProxyRoutingEnabled(config: ProxyConfig): boolean {
   return config.translateProxyEnabled === 2;
 }
 

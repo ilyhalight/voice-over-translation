@@ -45,11 +45,6 @@ export const DEFAULT_AUTO_VOLUME = 15;
 export const DEFAULT_SMART_DUCKING_STRENGTH = 80;
 
 /**
- * Max audio volume percentage (if available)
- */
-export const maxAudioVolume = 900;
-
-/**
  * The number of repeated responses after which the message turns into
  * "translation is delayed, please wait"
  */

@@ -5,7 +5,7 @@ import {
   type AuthMessageData,
 } from "../../types/core/auth/message";
 
-export function createAuthDataMessage(data: AuthMessageData): AuthDataMessage {
+function createAuthDataMessage(data: AuthMessageData): AuthDataMessage {
   return {
     source: AUTH_DATA_MESSAGE_SOURCE,
     type: AUTH_DATA_MESSAGE_TYPE,

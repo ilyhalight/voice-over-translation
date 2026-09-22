@@ -36,7 +36,7 @@ const availableLocales: readonly LangOverride[] = (() => {
     : (["auto", ...locales] as LangOverride[]);
 })();
 
-export function resolveRuntimeLocaleVersion(
+function resolveRuntimeLocaleVersion(
   buildVersion: string,
   scriptVersion: string,
 ) {

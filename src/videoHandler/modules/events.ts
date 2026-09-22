@@ -427,7 +427,7 @@ function bindGlobalDismissAndHotkeys(ctx: ExtraEventsContext): void {
     self.container.draggable = false;
   }
 }
-export function bindPlaybackRefreshOnResume(ctx: ExtraEventsContext): void {
+function bindPlaybackRefreshOnResume(ctx: ExtraEventsContext): void {
   const { self, add } = ctx;
   let wasPausedSinceLastPlay = false;
 

@@ -157,9 +157,7 @@ export type LanguagePairSelectProps = {
   onResponseLanguageSelect?: (lang: ResponseLang) => void | Promise<void>;
   controlsRef?: (controls: LanguagePairSelectControls) => void;
 };
-export function LanguagePairSelect(
-  props: LanguagePairSelectProps,
-): JSX.Element {
+function LanguagePairSelect(props: LanguagePairSelectProps): JSX.Element {
   const fromLangsOptions = genSelectOptionsByLangs(availableLangs);
   const toLangsOptions = genSelectOptionsByLangs(availableTTS);
 

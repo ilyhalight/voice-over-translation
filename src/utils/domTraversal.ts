@@ -3,7 +3,7 @@ export type ComposedTreeNode<T> = {
   getRootNode?: () => Node | null | undefined;
 };
 
-export function getComposedParentElement<T extends object>(
+function getComposedParentElement<T extends object>(
   node: ComposedTreeNode<T> | null | undefined,
 ): T | null {
   if (!node) return null;

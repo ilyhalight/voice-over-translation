@@ -205,7 +205,7 @@ export async function mintPagePoToken(
   }
 }
 
-export function selectGvsPoTokenBinding(
+function selectGvsPoTokenBinding(
   videoId: string,
   options: {
     loggedIn: boolean;
@@ -232,6 +232,28 @@ export function selectGvsPoTokenBinding(
 
 function getConfigValue(config: YouTubeConfig, key: string): unknown {
   return config.get?.(key) ?? config.data_?.[key];
+}
+
+function cloneInnertubeContext(
+  config: YouTubeConfig,
+  unavailableMessage: string,
+): {
+  context: {
+    client?: Record<string, unknown>;
+    thirdParty?: Record<string, unknown>;
+  };
+  client: Record<string, unknown>;
+} {
+  const rawContext = getConfigValue(config, "INNERTUBE_CONTEXT");
+  if (!rawContext || typeof rawContext !== "object") {
+    throw new Error(unavailableMessage);
+  }
+  const context = JSON.parse(JSON.stringify(rawContext)) as {
+    client?: Record<string, unknown>;
+    thirdParty?: Record<string, unknown>;
+  };
+  context.client ??= {};
+  return { context, client: context.client };
 }
 
 function buildContentPlaybackContext(
@@ -274,7 +296,7 @@ function findJsonValueEnd(source: string, start: number): number {
 // The page keeps its config in the ytcfg global, which a sandboxed userscript
 // realm cannot read. Both calling forms carry plain JSON, so the same inline
 // script that builds ytcfg can be replayed from its source text instead.
-export function parseYtcfgData(source: string): Record<string, unknown> {
+function parseYtcfgData(source: string): Record<string, unknown> {
   const data: Record<string, unknown> = {};
   const pattern = /ytcfg\s*\.\s*set\s*\(/g;
   const skipSpaces = (index: number) => {
@@ -334,7 +356,7 @@ function readYtcfgFromDocument(targetWindow: Window): Record<string, unknown> {
   return data;
 }
 
-export async function resolveYtcfg(
+async function resolveYtcfg(
   targetWindow: WebAbrWindow,
   signal: AbortSignal,
 ): Promise<YouTubeConfig> {
@@ -382,17 +404,10 @@ export function buildWebEmbeddedPlayerRequest(
   videoId: string,
   extractedSignatureTimestamp?: number,
 ): Record<string, unknown> {
-  const rawContext = getConfigValue(config, "INNERTUBE_CONTEXT");
-  if (!rawContext || typeof rawContext !== "object") {
-    throw new Error("Audio downloader. web_embedded context is unavailable");
-  }
-
-  const context = JSON.parse(JSON.stringify(rawContext)) as {
-    client?: Record<string, unknown>;
-    thirdParty?: Record<string, unknown>;
-  };
-  context.client ??= {};
-  const client = context.client;
+  const { context, client } = cloneInnertubeContext(
+    config,
+    "Audio downloader. web_embedded context is unavailable",
+  );
   client.clientName = "WEB_EMBEDDED_PLAYER";
   client.clientVersion =
     getConfigValue(config, "INNERTUBE_CLIENT_VERSION") ?? client.clientVersion;
@@ -963,7 +978,7 @@ function buildSolvedUrl(
   return url.toString();
 }
 
-export async function* resolveWebEmbeddedFormatUrl(
+async function* resolveWebEmbeddedFormatUrl(
   targetWindow: WebAbrWindow,
   format: WebEmbeddedFormat,
   playerCode: () => Promise<string | undefined>,
@@ -1111,17 +1126,10 @@ export function buildWebPlayerRequest(
   videoId: string,
   extractedSignatureTimestamp?: number,
 ): Record<string, unknown> {
-  const rawContext = getConfigValue(config, "INNERTUBE_CONTEXT");
-  if (!rawContext || typeof rawContext !== "object") {
-    throw new Error("Audio downloader. web client context is unavailable");
-  }
-
-  const context = JSON.parse(JSON.stringify(rawContext)) as {
-    client?: Record<string, unknown>;
-    thirdParty?: Record<string, unknown>;
-  };
-  context.client ??= {};
-  const client = context.client;
+  const { context, client } = cloneInnertubeContext(
+    config,
+    "Audio downloader. web client context is unavailable",
+  );
   client.clientName = "WEB";
   client.clientVersion =
     getConfigValue(config, "INNERTUBE_CLIENT_VERSION") ?? client.clientVersion;

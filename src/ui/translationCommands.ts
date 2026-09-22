@@ -1,7 +1,7 @@
 import { openAuthWindow } from "../core/auth/window";
 import { t } from "../localization/localizationProvider";
+import { deleteExpiredAccount } from "../stores/account";
 import type { Status } from "../types/components/votButton";
-import { deleteExpiredAccount } from "../utils/account";
 import debug from "../utils/debug";
 import { isAbortError } from "../utils/errors";
 import type { VideoHandler } from "../VideoHandler";
