@@ -252,5 +252,6 @@
   "VOTLiveVoicesSubtitle": "Máxima similitude. Como se todos coñecesen o galego",
   "VOTYandexTokenExpired": "A sesión rematou. Entra de novo",
   "VOTVoiceSelection": "Escoller o doblaxe",
-  "VOTRetryTranslation": "Tentar de novo a tradución"
+  "VOTRetryTranslation": "Tentar de novo a tradución",
+  "VOTYouTubeSignInSuggested": "Inicia sesión en YouTube e volve tentar a tradución"
 }

@@ -252,5 +252,6 @@
   "VOTLiveVoicesSubtitle": "Максимална сличност. Како секој да знае руски",
   "VOTYandexTokenExpired": "Сесијата истече. Пријавете се повторно",
   "VOTVoiceSelection": "Изберете синхронизација",
-  "VOTRetryTranslation": "Обиди се повторно со преводот"
+  "VOTRetryTranslation": "Обиди се повторно со преводот",
+  "VOTYouTubeSignInSuggested": "Најавете се на YouTube и обидете се повторно со преводот"
 }

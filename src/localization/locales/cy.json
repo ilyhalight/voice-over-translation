@@ -252,5 +252,6 @@
   "VOTLiveVoicesSubtitle": "Tebygrwydd mwyaf. Fel pe bai pawb yn gwybod rwsieg",
   "VOTYandexTokenExpired": "Daeth y sesiwn i ben. Mewngofnodi eto",
   "VOTVoiceSelection": "Dewiswch dybio",
-  "VOTRetryTranslation": "Rhoi cynnig arall ar y cyfieithiad"
+  "VOTRetryTranslation": "Rhoi cynnig arall ar y cyfieithiad",
+  "VOTYouTubeSignInSuggested": "Mewngofnodwch i YouTube a rhowch gynnig ar y cyfieithiad eto"
 }

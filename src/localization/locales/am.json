@@ -252,5 +252,6 @@
   "VOTLiveVoicesSubtitle": "ከፍተኛው ተመሳሳይነት. ሁሉም ሰው ሩሲያኛ ያውቃል ከሆነ እንደ",
   "VOTYandexTokenExpired": "ስብሰባው አብቅቷል። እንደገና ይግቡ",
   "VOTVoiceSelection": "ዱባይን ይምረጡ",
-  "VOTRetryTranslation": "ትርጉሙን እንደገና ሞክር"
+  "VOTRetryTranslation": "ትርጉሙን እንደገና ሞክር",
+  "VOTYouTubeSignInSuggested": "ወደ YouTube ይግቡና ትርጉሙን እንደገና ይሞክሩ"
 }

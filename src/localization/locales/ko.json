@@ -252,5 +252,6 @@
   "VOTLiveVoicesSubtitle": "최대 유사성. 모두가 러시아어를 알고있는 것처럼",
   "VOTYandexTokenExpired": "세션이 만료되었습니다. 다시 로그인",
   "VOTVoiceSelection": "더빙 선택",
-  "VOTRetryTranslation": "번역 다시 시도"
+  "VOTRetryTranslation": "번역 다시 시도",
+  "VOTYouTubeSignInSuggested": "YouTube에 로그인한 후 번역을 다시 시도하세요"
 }

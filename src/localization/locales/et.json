@@ -252,5 +252,6 @@
   "VOTLiveVoicesSubtitle": "Maksimaalne sarnasus. Nagu kõik teaksid vene keelt",
   "VOTYandexTokenExpired": "Seanss on aegunud. Logi uuesti sisse",
   "VOTVoiceSelection": "Valige dubleerimine",
-  "VOTRetryTranslation": "Proovi tõlget uuesti"
+  "VOTRetryTranslation": "Proovi tõlget uuesti",
+  "VOTYouTubeSignInSuggested": "Logige YouTube’i sisse ja proovige tõlget uuesti"
 }

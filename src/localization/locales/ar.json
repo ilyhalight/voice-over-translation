@@ -252,5 +252,6 @@
   "VOTLiveVoicesSubtitle": "التشابه الأقصى. كما لو أن الجميع يعرف الروسية",
   "VOTYandexTokenExpired": "انتهت الجلسة. تسجيل الدخول مرة أخرى",
   "VOTVoiceSelection": "اختر الدبلجة",
-  "VOTRetryTranslation": "إعادة محاولة الترجمة"
+  "VOTRetryTranslation": "إعادة محاولة الترجمة",
+  "VOTYouTubeSignInSuggested": "سجّل الدخول إلى YouTube وحاول الترجمة مرة أخرى"
 }

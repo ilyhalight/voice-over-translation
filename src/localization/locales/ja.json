@@ -252,5 +252,6 @@
   "VOTLiveVoicesSubtitle": "最大の類似性。 誰もがロシア語を知っているかのように",
   "VOTYandexTokenExpired": "セッションの有効期限が切れました。 もう一度ログインします",
   "VOTVoiceSelection": "ダビングを選ぶ",
-  "VOTRetryTranslation": "翻訳を再試行"
+  "VOTRetryTranslation": "翻訳を再試行",
+  "VOTYouTubeSignInSuggested": "YouTube にログインして、もう一度翻訳をお試しください"
 }

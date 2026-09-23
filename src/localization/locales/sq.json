@@ -252,5 +252,6 @@
   "VOTLiveVoicesSubtitle": "Ngjashmëria maksimale. Sikur të gjithë e dinë rusisht",
   "VOTYandexTokenExpired": "Seanca skadoi. Hyni përsëri",
   "VOTVoiceSelection": "Zgjidhni dublimin",
-  "VOTRetryTranslation": "Provo përsëri përkthimin"
+  "VOTRetryTranslation": "Provo përsëri përkthimin",
+  "VOTYouTubeSignInSuggested": "Hyni në YouTube dhe provoni përsëri përkthimin"
 }

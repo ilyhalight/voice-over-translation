@@ -252,5 +252,6 @@
   "VOTLiveVoicesSubtitle": "Μέγιστη ομοιότητα. Σαν να γνωρίζουν όλοι ρωσική",
   "VOTYandexTokenExpired": "Η συνεδρία έληξε. Συνδεθείτε ξανά",
   "VOTVoiceSelection": "Επιλέξτε μεταγλώττιση",
-  "VOTRetryTranslation": "Επανάληψη μετάφρασης"
+  "VOTRetryTranslation": "Επανάληψη μετάφρασης",
+  "VOTYouTubeSignInSuggested": "Συνδεθείτε στο YouTube και δοκιμάστε ξανά τη μετάφραση"
 }

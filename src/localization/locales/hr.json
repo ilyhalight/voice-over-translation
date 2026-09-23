@@ -252,5 +252,6 @@
   "VOTLiveVoicesSubtitle": "Maksimalna sličnost. Kao da svi znaju ruski",
   "VOTYandexTokenExpired": "Sesija je istekla. Ponovno se prijavite",
   "VOTVoiceSelection": "Odaberite presnimavanje",
-  "VOTRetryTranslation": "Pokušaj ponovno prevesti"
+  "VOTRetryTranslation": "Pokušaj ponovno prevesti",
+  "VOTYouTubeSignInSuggested": "Prijavite se na YouTube i pokušajte ponovno prevesti"
 }

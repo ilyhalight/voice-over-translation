@@ -252,5 +252,6 @@
   "VOTLiveVoicesSubtitle": "Хамгийн их төстэй. Хэрэв хүн бүр мэддэг орос",
   "VOTYandexTokenExpired": "Хуралдаан дууссан. Дахин нэвтрэх",
   "VOTVoiceSelection": "Дубляж сонгох",
-  "VOTRetryTranslation": "Орчуулгыг дахин оролдох"
+  "VOTRetryTranslation": "Орчуулгыг дахин оролдох",
+  "VOTYouTubeSignInSuggested": "YouTube-д нэвтэрч орчуулгыг дахин оролдоно уу"
 }

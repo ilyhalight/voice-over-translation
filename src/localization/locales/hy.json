@@ -252,5 +252,6 @@
   "VOTLiveVoicesSubtitle": "Առավելագույն նմանություն: Կարծես բոլորը գիտեն ռուսերեն",
   "VOTYandexTokenExpired": "Նիստը լրացավ: Կրկին մուտք գործեք համակարգ",
   "VOTVoiceSelection": "Ընտրեք կրկնօրինակ",
-  "VOTRetryTranslation": "Կրկին փորձել թարգմանությունը"
+  "VOTRetryTranslation": "Կրկին փորձել թարգմանությունը",
+  "VOTYouTubeSignInSuggested": "Մուտք գործեք YouTube և կրկին փորձեք թարգմանությունը"
 }

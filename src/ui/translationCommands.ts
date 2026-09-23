@@ -69,11 +69,15 @@ export async function handleTranslationButtonCommand(
     return;
   }
 
-  if (deps.currentStatus === "error" && !deps.currentLoading) {
+  // A click on an errored, idle button is the retry action: reset the button
+  // and fall through to translation in this same click instead of taking the
+  // stop/abort branch (which would kill background preparation).
+  const isRetry = deps.currentStatus === "error" && !deps.currentLoading;
+  if (isRetry) {
     deps.transformBtn("none", localizationProvider.get("translateVideo"));
   }
 
-  if (deps.currentStatus !== "none" || deps.currentLoading) {
+  if (!isRetry && (deps.currentStatus !== "none" || deps.currentLoading)) {
     debug.log("[handleTranslationBtnClick] translationBtn isn't in none state");
     videoHandler.actionsAbortController.abort();
     await videoHandler.stopTranslation();
@@ -93,7 +97,6 @@ export async function handleTranslationButtonCommand(
       videoHandler.autoSourceLanguageOverrideVideoId !== videoData.videoId
     ) {
       videoHandler.translateFromLang = "auto";
-      videoHandler.autoSourceLanguageOverride = undefined;
       videoHandler.autoSourceLanguageOverrideVideoId = undefined;
       videoHandler.setSelectMenuValues("auto", videoData.responseLanguage);
     }

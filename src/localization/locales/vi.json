@@ -252,5 +252,6 @@
   "VOTLiveVoicesSubtitle": "Sự tương đồng tối đa. Như thể mọi người đều biết tiếng nga",
   "VOTYandexTokenExpired": "Phiên hết hạn. Đăng nhập lại",
   "VOTVoiceSelection": "Chọn lồng tiếng",
-  "VOTRetryTranslation": "Thử dịch lại"
+  "VOTRetryTranslation": "Thử dịch lại",
+  "VOTYouTubeSignInSuggested": "Đăng nhập YouTube và thử dịch lại"
 }

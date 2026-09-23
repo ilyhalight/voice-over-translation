@@ -1,6 +1,11 @@
 import { config } from "@vot.js/shared";
 import { createAbortableDelay } from "../../utils/abort";
 import debug from "../../utils/debug";
+import {
+  getYoutubeAudioFormatLanguage as getAudioFormatLanguage,
+  normalizeAudioLanguageTag as normalizeAudioLanguage,
+  selectSmallestAudioFormat,
+} from "../utils";
 import { type AudioChunk, concatBuffers } from "./audioChunks";
 import { preprocessYouTubePlayer } from "./ytPlayerSolver.js";
 
@@ -82,7 +87,7 @@ async function fetchTvConfig(
 ): Promise<FetchedClientConfig | undefined> {
   try {
     const response = await targetWindow.fetch("https://www.youtube.com/tv", {
-      credentials: "include",
+      credentials: "omit",
       signal,
     });
     if (!response.ok) {
@@ -421,47 +426,6 @@ export function buildWebEmbeddedPlayerRequest(
   };
 }
 
-// YouTube audio track IDs look like "en", "en.4", or "en-US"; prefer the
-// explicit languageCode when present, otherwise strip the dot suffix.
-function normalizeAudioLanguage(value: unknown): string {
-  if (typeof value !== "string") return "";
-  return value.trim().toLowerCase().replaceAll("_", "-");
-}
-
-function getAudioFormatLanguage(format: WebEmbeddedFormat): string {
-  const direct =
-    format.languageCode ??
-    format.language ??
-    format.audioTrack?.languageCode ??
-    format.audioTrack?.language;
-  if (typeof direct === "string" && direct) {
-    return normalizeAudioLanguage(direct);
-  }
-
-  const trackId = format.audioTrack?.id ?? format.audioTrackId;
-  if (typeof trackId === "string" && trackId) {
-    const idLanguage = trackId.split(".")[0];
-    if (idLanguage) return normalizeAudioLanguage(idLanguage);
-  }
-
-  try {
-    const cipher =
-      typeof format.signatureCipher === "string"
-        ? new URLSearchParams(format.signatureCipher)
-        : undefined;
-    const rawUrl = format.url ?? cipher?.get("url");
-    if (rawUrl) {
-      const xtags = new URL(rawUrl).searchParams.get("xtags") ?? "";
-      const match = /(?:^|:)lang=([^:]+)/i.exec(xtags);
-      if (match?.[1]) return normalizeAudioLanguage(match[1]);
-    }
-  } catch {
-    // Optional URL metadata is not required for language selection.
-  }
-
-  return "";
-}
-
 function audioLanguageMatches(
   trackLanguage: string,
   requestedLanguage: string,
@@ -490,7 +454,7 @@ function isDrcAudioFormat(format: WebEmbeddedFormat): boolean {
   }
 }
 
-function selectWebEmbeddedAudioFormat(
+export function selectWebEmbeddedAudioFormat(
   formats: WebEmbeddedFormat[],
   requestedLanguage?: string,
 ): WebEmbeddedFormat {
@@ -502,17 +466,6 @@ function selectWebEmbeddedAudioFormat(
     ({ mimeType }) =>
       mimeType?.includes("audio/") && !mimeType?.includes("video/"),
   );
-
-  const preferredItags = [
-    251, 140, 141, 250, 249, 139, 256, 258, 325, 327, 328, 338, 171, 172,
-  ];
-  const byPreference = (a: WebEmbeddedFormat, b: WebEmbeddedFormat): number => {
-    const rank = (itag?: number): number => {
-      const index = itag === undefined ? -1 : preferredItags.indexOf(itag);
-      return index < 0 ? Number.MAX_SAFE_INTEGER : index;
-    };
-    return rank(a.itag) - rank(b.itag) || (b.bitrate ?? 0) - (a.bitrate ?? 0);
-  };
 
   // If VOT explicitly selected a source language, prefer that YouTube audio
   // track. BCP-47 variants are matched by exact tag first, then base language.
@@ -545,72 +498,18 @@ function selectWebEmbeddedAudioFormat(
       : defaultAudioOnly.length > 0
         ? defaultAudioOnly
         : audioOnly;
-  const selectionMode =
-    requestedLanguageCandidates.length > 0
-      ? "requested-language"
-      : defaultAudioOnly.length > 0
-        ? "audioIsDefault"
-        : "legacy-fallback";
   const nonDrcCandidates = trackCandidates.filter(
     (format) => !isDrcAudioFormat(format),
   );
-  const selected = (
-    nonDrcCandidates.length > 0 ? nonDrcCandidates : trackCandidates
-  ).sort(byPreference)[0];
+  const selected = selectSmallestAudioFormat(
+    nonDrcCandidates.length > 0 ? nonDrcCandidates : trackCandidates,
+  );
 
   if (!selected) {
     throw new Error(
       "Audio downloader. web ABR returned no direct audio-only formats",
     );
   }
-
-  const describeAudioFormat = (format: WebEmbeddedFormat) => ({
-    itag: format.itag,
-    mimeType: format.mimeType,
-    bitrate: format.bitrate,
-    averageBitrate: format.averageBitrate,
-    audioQuality: format.audioQuality,
-    audioSampleRate: format.audioSampleRate,
-    audioChannels: format.audioChannels,
-    audioTrack: format.audioTrack,
-    audioTrackId: format.audioTrackId,
-    language: format.language,
-    languageCode: format.languageCode,
-    resolvedLanguage: getAudioFormatLanguage(format),
-    displayName: format.displayName,
-    xtags: format.xtags,
-    isDrc: isDrcAudioFormat(format),
-    contentLength: format.contentLength,
-    hasUrl: typeof format.url === "string",
-    hasCipher: typeof format.signatureCipher === "string",
-  });
-
-  debug.log(
-    "Audio downloader. AUDIO TRACK TEST",
-    JSON.stringify(
-      {
-        requestedLanguage: normalizedRequestedLanguage || null,
-        selectionMode,
-        selectedLanguage: getAudioFormatLanguage(selected) || null,
-        selectedTrack:
-          selected.audioTrack?.displayName ?? selected.displayName ?? null,
-        selectedTrackId:
-          selected.audioTrack?.id ?? selected.audioTrackId ?? null,
-        selectedIsDefault: selected.audioTrack?.audioIsDefault === true,
-        selectedItag: selected.itag ?? null,
-        selectedBitrate: selected.bitrate ?? null,
-        selectedContentLength: selected.contentLength ?? null,
-        selectedIsDrc: isDrcAudioFormat(selected),
-        selected: describeAudioFormat(selected),
-        audioOnlyCount: audioOnly.length,
-        requestedLanguageCandidates: requestedLanguageCandidates.length,
-        defaultAudioOnlyCount: defaultAudioOnly.length,
-        candidates: audioOnly.map(describeAudioFormat),
-      },
-      null,
-      2,
-    ),
-  );
 
   return selected;
 }
@@ -1292,11 +1191,12 @@ async function postInnertubePlayer(
 ): Promise<WebEmbeddedPlayerResponse> {
   const visitorData = (body.context as { client?: { visitorData?: unknown } })
     ?.client?.visitorData;
+  const authenticated = Boolean(extra.authorization);
   const response = await targetWindow.fetch(
     `https://www.youtube.com/youtubei/v1/player?prettyPrint=false&key=${encodeURIComponent(apiKey)}`,
     {
       method: "POST",
-      credentials: "include",
+      credentials: authenticated ? "include" : "omit",
       signal,
       headers: {
         "content-type": "application/json",
@@ -1305,20 +1205,20 @@ async function postInnertubePlayer(
         ...(typeof visitorData === "string"
           ? { "x-goog-visitor-id": visitorData }
           : {}),
-        ...(extra.authorization
+        ...(authenticated
           ? {
               authorization: extra.authorization,
               "x-origin": "https://www.youtube.com",
               "x-youtube-bootstrap-logged-in": "true",
+              ...(typeof extra.sessionIndex === "number" ||
+              typeof extra.sessionIndex === "string"
+                ? { "x-goog-authuser": String(extra.sessionIndex) }
+                : {}),
+              ...(typeof extra.delegatedSessionId === "string" &&
+              extra.delegatedSessionId
+                ? { "x-goog-pageid": extra.delegatedSessionId }
+                : {}),
             }
-          : {}),
-        ...(typeof extra.sessionIndex === "number" ||
-        typeof extra.sessionIndex === "string"
-          ? { "x-goog-authuser": String(extra.sessionIndex) }
-          : {}),
-        ...(typeof extra.delegatedSessionId === "string" &&
-        extra.delegatedSessionId
-          ? { "x-goog-pageid": extra.delegatedSessionId }
           : {}),
       },
       body: JSON.stringify(body),
@@ -1403,6 +1303,28 @@ const WEB_ABR_RANGE_REFRESH_EVERY_FAILURES = 2;
 const WEB_ABR_RANGE_RETRY_BASE_DELAY_MS = 250;
 const WEB_ABR_RANGE_RETRY_MAX_DELAY_MS = 1500;
 
+// Permanent media HTTP statuses cannot be recovered by retrying the same signed
+// URL or by cycling the transport matrix, so the outer client/strategy fallback
+// must take over. 408/425/429/5xx and network errors stay retryable.
+const WEB_ABR_FATAL_MEDIA_STATUSES = new Set([401, 403, 404, 410]);
+
+class MediaHttpError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "MediaHttpError";
+  }
+}
+
+function isFatalMediaError(error: unknown): boolean {
+  return (
+    error instanceof MediaHttpError &&
+    WEB_ABR_FATAL_MEDIA_STATUSES.has(error.status)
+  );
+}
+
 async function refreshMediaUrl(
   urlState: MediaUrlState,
   refreshUrl: () => Promise<string>,
@@ -1443,6 +1365,7 @@ async function fetchMediaRange(
   requestNumberRef: RequestNumberRef,
 ): Promise<Uint8Array> {
   let lastError: unknown;
+  let refreshedFatal = false;
   for (let attempt = 0; attempt < WEB_ABR_RANGE_MAX_ATTEMPTS; attempt++) {
     signal.throwIfAborted();
     // If another failed range is already refreshing the signed media URL,
@@ -1462,7 +1385,8 @@ async function fetchMediaRange(
         cache: "no-store",
       });
       if (!response.ok)
-        throw new Error(
+        throw new MediaHttpError(
+          response.status,
           `Audio downloader. Media request failed (${response.status}, range ${start}-${end})`,
         );
       const bytes = new Uint8Array(await response.arrayBuffer());
@@ -1495,20 +1419,26 @@ async function fetchMediaRange(
       signal.throwIfAborted();
       lastError = error;
       const failedAttempt = attempt + 1;
+      const fatal = isFatalMediaError(error);
       const hasMoreAttempts = failedAttempt < WEB_ABR_RANGE_MAX_ATTEMPTS;
+      // A permanent status still gets one URL refresh (expired signatures look
+      // like 403), but a second fatal failure or a failed refresh ends this
+      // range so the transport matrix can abort.
       const shouldRefreshUrl =
         hasMoreAttempts &&
-        failedAttempt % WEB_ABR_RANGE_REFRESH_EVERY_FAILURES === 0;
+        (fatal || failedAttempt % WEB_ABR_RANGE_REFRESH_EVERY_FAILURES === 0);
 
       debug.log("Audio downloader. web ABR range request failed", {
         range: `${start}-${end}`,
         attempt: failedAttempt,
         maxAttempts: WEB_ABR_RANGE_MAX_ATTEMPTS,
+        fatal,
         refreshUrl: shouldRefreshUrl,
         error: error instanceof Error ? error.message : String(error),
       });
 
       if (!hasMoreAttempts) break;
+      if (fatal && refreshedFatal) break;
 
       await createAbortableDelay(
         Math.min(
@@ -1524,6 +1454,7 @@ async function fetchMediaRange(
             range: `${start}-${end}`,
             failedAttempt,
           });
+          if (fatal) refreshedFatal = true;
           debug.log(
             "Audio downloader. web ABR media URL refreshed for range retry",
             {
@@ -1534,7 +1465,6 @@ async function fetchMediaRange(
           );
         } catch (refreshError) {
           signal.throwIfAborted();
-          lastError = refreshError;
           debug.log("Audio downloader. web ABR media URL refresh failed", {
             range: `${start}-${end}`,
             nextAttempt: failedAttempt + 1,
@@ -1543,6 +1473,10 @@ async function fetchMediaRange(
                 ? refreshError.message
                 : String(refreshError),
           });
+          // Keep the fatal HTTP error as lastError so the transport matrix
+          // aborts instead of retrying a permanent failure.
+          if (fatal) break;
+          lastError = refreshError;
         }
       }
     }
@@ -1920,6 +1854,13 @@ export async function* downloadMediaRanges(
         elapsedMs: Math.round(performance.now() - startedAt),
         error: error instanceof Error ? error.message : String(error),
       });
+      if (isFatalMediaError(error)) {
+        debug.log("Audio downloader. web ABR transport matrix aborted", {
+          transport,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        throw error;
+      }
     }
   }
   throw lastError instanceof Error
@@ -1976,6 +1917,8 @@ async function* getWebAbrAudioChunksImpl(
   const delegatedSessionId =
     getConfigValue(config, "DELEGATED_SESSION_ID") ??
     (secondSyncId ? firstSyncId : undefined);
+  // Prefer guest playback, but keep the current YouTube session as a fallback
+  // for videos that YouTube itself exposes only to the signed-in account.
   const authorization = await getYouTubeAuthorization(
     targetWindow,
     String(
@@ -1985,6 +1928,12 @@ async function* getWebAbrAudioChunksImpl(
     ) || undefined,
   );
   const loggedIn = getConfigValue(config, "LOGGED_IN") === true;
+  const sessionIndex = getConfigValue(config, "SESSION_INDEX");
+  const authenticatedAuth = {
+    authorization,
+    sessionIndex,
+    delegatedSessionId,
+  };
   const playerContexts = getConfigValue(config, "WEB_PLAYER_CONTEXT_CONFIGS");
   const pageExperimentFlags = Object.values(
     playerContexts && typeof playerContexts === "object" ? playerContexts : {},
@@ -1993,21 +1942,17 @@ async function* getWebAbrAudioChunksImpl(
       ? [entry.serializedExperimentFlags]
       : [],
   );
-  const sessionIndex = getConfigValue(config, "SESSION_INDEX");
   debug.log("Audio downloader. player auth state", {
     videoId,
     host: targetWindow.location.hostname,
+    anonymousFirst: true,
     hasAuthorization: Boolean(authorization),
     sessionIndex: sessionIndex ?? "none",
     hasDelegatedSession: Boolean(delegatedSessionId),
     loggedIn,
   });
-  const auth = {
-    authorization,
-    sessionIndex,
-    delegatedSessionId,
-  };
   let lastError: unknown;
+  let loginRequiredSeen = false;
   let emitted = false;
   for (const name of ["web_embedded", "tv_downgraded", "web", "web_creator"]) {
     signal.throwIfAborted();
@@ -2039,7 +1984,7 @@ async function* getWebAbrAudioChunksImpl(
     if (typeof options.visitorData === "string") {
       candidateContext.client.visitorData = options.visitorData;
     }
-    const requestPlayer = () =>
+    const postPlayer = (authenticated: boolean) =>
       postInnertubePlayer(
         targetWindow,
         signal,
@@ -2053,11 +1998,36 @@ async function* getWebAbrAudioChunksImpl(
               ? "1"
               : "62",
         String(candidateContext.client.clientVersion ?? clientVersion),
-        auth,
+        authenticated ? authenticatedAuth : {},
       );
+    const requestPlayer = async (authenticated = false) => {
+      const response = await postPlayer(authenticated);
+      const status = response.playabilityStatus?.status ?? "";
+      if (status === "LOGIN_REQUIRED") {
+        // Do not stop on the first client: another anonymous YouTube client
+        // may still provide a playable audio stream. Remember the challenge
+        // and only request sign-in after every WebABR client has failed.
+        loginRequiredSeen = true;
+      }
+      if (
+        !authenticated &&
+        authorization &&
+        /LOGIN_REQUIRED|AGE_CHECK_REQUIRED|CONTENT_CHECK_REQUIRED/.test(status)
+      ) {
+        debug.log("Audio downloader. retrying player with YouTube session", {
+          videoId,
+          client: name,
+          status,
+        });
+        return { response: await postPlayer(true), authenticated: true };
+      }
+      return { response, authenticated };
+    };
     const getCode = () => fetchPlayerCode(fetchedConfig?.playerUrl);
     try {
-      const playerResponse = await requestPlayer();
+      const initialPlayer = await requestPlayer();
+      const playerResponse = initialPlayer.response;
+      const requestAuthenticated = initialPlayer.authenticated;
       const formats = [
         ...(playerResponse.streamingData?.adaptiveFormats ?? []),
         ...(playerResponse.streamingData?.formats ?? []),
@@ -2073,7 +2043,7 @@ async function* getWebAbrAudioChunksImpl(
       const format = selectWebEmbeddedAudioFormat(formats, sourceLanguage);
       const fetchedFlags = fetchedConfig?.experimentFlags;
       const poTokenBinding = selectGvsPoTokenBinding(videoId, {
-        loggedIn,
+        loggedIn: requestAuthenticated,
         dataSyncId:
           playerResponse.responseContext?.mainAppWebResponseContext
             ?.datasyncId ||
@@ -2110,7 +2080,8 @@ async function* getWebAbrAudioChunksImpl(
             Number(format.contentLength) ||
             (await probeContentLength(targetWindow, streamUrl, signal));
           const refreshUrl = async () => {
-            const response = await requestPlayer();
+            const refreshedPlayer = await requestPlayer(requestAuthenticated);
+            const response = refreshedPlayer.response;
             const refreshed = [
               ...(response.streamingData?.adaptiveFormats ?? []),
               ...(response.streamingData?.formats ?? []),
@@ -2157,6 +2128,9 @@ async function* getWebAbrAudioChunksImpl(
       }
     } catch (error) {
       signal.throwIfAborted();
+      if (error instanceof Error && error.message === "YOUTUBE_SIGN_IN_SUGGESTED") {
+        throw error;
+      }
       if (emitted) throw error;
       debug.log("Audio downloader. player client format failed", {
         videoId,
@@ -2166,13 +2140,16 @@ async function* getWebAbrAudioChunksImpl(
       lastError = error;
     }
   }
+  if (loginRequiredSeen && !authorization) {
+    throw new Error("YOUTUBE_SIGN_IN_SUGGESTED", { cause: lastError });
+  }
   const fallbackError =
     lastError instanceof Error
       ? lastError
       : new Error("Audio downloader. no playable audio formats");
   if (/LOGIN_REQUIRED|UNPLAYABLE/.test(fallbackError.message)) {
     throw new Error(
-      `${fallbackError.message}. Sign in to YouTube with an age-verified account and retry from the youtube.com watch page`,
+      `${fallbackError.message}. Anonymous playback and the available signed-in YouTube session were both unable to provide a playable audio stream`,
       { cause: fallbackError },
     );
   }

@@ -252,5 +252,6 @@
   "VOTLiveVoicesSubtitle": "Maksimum oxşarlıq. Sanki hamı rus dilini bilir",
   "VOTYandexTokenExpired": "Sessiya bitdi. Yenidən daxil olun",
   "VOTVoiceSelection": "Dublyaj seçin",
-  "VOTRetryTranslation": "Tərcüməni yenidən sınayın"
+  "VOTRetryTranslation": "Tərcüməni yenidən sınayın",
+  "VOTYouTubeSignInSuggested": "YouTube-a daxil olun və tərcüməni yenidən sınayın"
 }

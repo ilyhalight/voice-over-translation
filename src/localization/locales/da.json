@@ -252,5 +252,6 @@
   "VOTLiveVoicesSubtitle": "Maksimal lighed. Som om alle kender russisk",
   "VOTYandexTokenExpired": "Sessionen er udløbet. Log ind igen",
   "VOTVoiceSelection": "Vælg dubbing",
-  "VOTRetryTranslation": "Prøv oversættelsen igen"
+  "VOTRetryTranslation": "Prøv oversættelsen igen",
+  "VOTYouTubeSignInSuggested": "Log ind på YouTube, og prøv oversættelsen igen"
 }

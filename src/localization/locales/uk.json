@@ -252,5 +252,6 @@
   "VOTLiveVoicesSubtitle": "Максимальна схожість. Наче всі знають російську",
   "VOTYandexTokenExpired": "Сеанс закінчився. Увійдіть ще раз",
   "VOTVoiceSelection": "Виберіть дубляж",
-  "VOTRetryTranslation": "Повторити переклад"
+  "VOTRetryTranslation": "Повторити переклад",
+  "VOTYouTubeSignInSuggested": "Увійдіть у YouTube і повторіть переклад"
 }

@@ -3,6 +3,10 @@ import { getVideoData } from "@vot.js/ext/utils/videoData";
 import votConfig from "@vot.js/shared/config";
 import { availableLangs } from "@vot.js/shared/consts";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
+import {
+  getYoutubeAudioFormatLanguage as getYoutubeAudioFormatLanguageTag,
+  selectSmallestAudioFormat,
+} from "../audioDownloader/utils";
 import { localizationProvider } from "../localization/localizationProvider";
 import debug from "../utils/debug";
 import { GM_fetch } from "../utils/gm";
@@ -178,42 +182,9 @@ function isResolvedLanguage(
   return Boolean(value && value !== "auto");
 }
 
-function getYoutubeAudioFormatLanguage(format: any): RequestLang | undefined {
-  const direct =
-    format?.languageCode ??
-    format?.language ??
-    format?.audioTrack?.languageCode ??
-    format?.audioTrack?.language;
-  const normalizedDirect = normalizeToRequestLang(direct);
-  if (normalizedDirect) return normalizedDirect;
-
-  const trackId = format?.audioTrack?.id ?? format?.audioTrackId;
-  if (typeof trackId === "string") {
-    const match = trackId.match(
-      /(?:^|[.;:_-])([a-z]{2,3}(?:-[a-z]{2})?)(?:[.;:_-]|$)/i,
-    );
-    const normalized = normalizeToRequestLang(match?.[1]);
-    if (normalized) return normalized;
-  }
-
-  try {
-    const rawUrl =
-      typeof format?.url === "string"
-        ? format.url
-        : typeof format?.signatureCipher === "string"
-          ? new URLSearchParams(format.signatureCipher).get("url")
-          : undefined;
-    const xtags = rawUrl
-      ? (new URL(rawUrl).searchParams.get("xtags") ?? "")
-      : "";
-    const match = /(?:^|:)lang=([^:]+)/i.exec(xtags);
-    return normalizeToRequestLang(match?.[1]);
-  } catch {
-    return undefined;
-  }
-}
-
-function resolveSupportedYoutubeAudioLanguage(): RequestLang | undefined {
+function resolveSupportedYoutubeAudioLanguage():
+  | ResolvedRequestLang
+  | undefined {
   const response = YoutubeHelper.getPlayerResponse() as any;
   const formats = [
     ...(Array.isArray(response?.streamingData?.adaptiveFormats)
@@ -227,28 +198,27 @@ function resolveSupportedYoutubeAudioLanguage(): RequestLang | undefined {
     return mimeType.includes("audio/") && !mimeType.includes("video/");
   });
 
-  const preferredItags = [
-    251, 140, 141, 250, 249, 139, 256, 258, 325, 327, 328, 338, 171, 172,
-  ];
-  const rank = (format: any) => {
-    const index = preferredItags.indexOf(Number(format?.itag));
-    return index < 0 ? Number.MAX_SAFE_INTEGER : index;
-  };
-
-  return formats
-    .map((format: any) => ({
-      format,
-      language: getYoutubeAudioFormatLanguage(format),
-    }))
+  const candidates = formats
+    .map((format: any) => {
+      const language = normalizeToRequestLang(
+        getYoutubeAudioFormatLanguageTag(format, (value) =>
+          Boolean(normalizeToRequestLang(value)),
+        ),
+      );
+      return {
+        language,
+        contentLength: format?.contentLength,
+        averageBitrate: format?.averageBitrate,
+      };
+    })
     .filter(
-      (item: any) =>
-        item.language && SUPPORTED_TRANSLATION_SOURCE_LANGS.has(item.language),
-    )
-    .sort(
-      (a: any, b: any) =>
-        rank(a.format) - rank(b.format) ||
-        Number(b.format?.bitrate ?? 0) - Number(a.format?.bitrate ?? 0),
-    )[0]?.language;
+      (c) => c.language && SUPPORTED_TRANSLATION_SOURCE_LANGS.has(c.language),
+    );
+
+  const selected = selectSmallestAudioFormat(candidates);
+  return selected?.language && isResolvedLanguage(selected.language)
+    ? selected.language
+    : undefined;
 }
 
 function buildDetectText(title: unknown, description: unknown): string {
@@ -534,7 +504,6 @@ export class VOTVideoManager {
 
     if (this.videoHandler.translateFromLang === "auto") {
       this.videoHandler.translateFromLang = supportedVideoLanguage;
-      this.videoHandler.autoSourceLanguageOverride = supportedVideoLanguage;
       this.videoHandler.autoSourceLanguageOverrideVideoId = videoData.videoId;
       this.videoHandler.setSelectMenuValues(
         supportedVideoLanguage,

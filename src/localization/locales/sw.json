@@ -252,5 +252,6 @@
   "VOTLiveVoicesSubtitle": "Kufanana kwa kiwango cha juu. Kama kila mtu anajua kirusi",
   "VOTYandexTokenExpired": "Kipindi kiliisha. Ingia tena",
   "VOTVoiceSelection": "Chagua dubbing",
-  "VOTRetryTranslation": "Jaribu kutafsiri tena"
+  "VOTRetryTranslation": "Jaribu kutafsiri tena",
+  "VOTYouTubeSignInSuggested": "Ingia kwenye YouTube na ujaribu kutafsiri tena"
 }

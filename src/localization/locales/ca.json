@@ -252,5 +252,6 @@
   "VOTLiveVoicesSubtitle": "Màxima similitud. Com si tothom conegués el rus",
   "VOTYandexTokenExpired": "Sessió expirada. Inicia sessió de nou",
   "VOTVoiceSelection": "Tria doblatge",
-  "VOTRetryTranslation": "Torna a provar la traducció"
+  "VOTRetryTranslation": "Torna a provar la traducció",
+  "VOTYouTubeSignInSuggested": "Inicia la sessió a YouTube i torna a provar la traducció"
 }

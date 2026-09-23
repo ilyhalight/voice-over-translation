@@ -252,5 +252,6 @@
   "VOTLiveVoicesSubtitle": "Maximale Ähnlichkeit. Als ob jeder Russisch kann",
   "VOTYandexTokenExpired": "Sitzung abgelaufen. Erneut anmelden",
   "VOTVoiceSelection": "Wählen Sie Synchronisation",
-  "VOTRetryTranslation": "Übersetzung erneut versuchen"
+  "VOTRetryTranslation": "Übersetzung erneut versuchen",
+  "VOTYouTubeSignInSuggested": "Melde dich bei YouTube an und versuche die Übersetzung erneut"
 }

@@ -18,6 +18,7 @@
   "requestTranslationFailed": "Failed to request video translation",
   "audioNotReceived": "Audio link not received",
   "VOTFailedDownloadAudio": "Failed to download audio",
+  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
   "audioFormatNotSupported": "The audio format is not supported",
   "VOTAutoTranslate": "Translate on open",
   "VOTAutoSubtitles": "Subtitles on open",
