@@ -1207,7 +1207,7 @@ async function postInnertubePlayer(
           : {}),
         ...(authenticated
           ? {
-              authorization: extra.authorization!,
+              authorization: extra.authorization,
               "x-origin": "https://www.youtube.com",
               "x-youtube-bootstrap-logged-in": "true",
               ...(typeof extra.sessionIndex === "number" ||
