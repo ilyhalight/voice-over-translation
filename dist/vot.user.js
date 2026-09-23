@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 配音翻译
 // @namespace      vot
-// @version        1.11.14
+// @version        1.11.15
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    Watch videos in other languages with voice-over translation and subtitles in any browser
 // @description:de Sieh dir Videos in anderen Sprachen mit Voice-over-Übersetzung und Untertiteln in jedem Browser an
@@ -10327,7 +10327,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.14"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
+		return resolveRuntimeLocaleVersion(String("1.11.15"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
 	}
 	var LocalizationProvider = class {
 		/**
@@ -22683,7 +22683,7 @@ var vot = (function(exports) {
 	async function fetchTvConfig(targetWindow, signal, videoId) {
 		try {
 			const response = await targetWindow.fetch("https://www.youtube.com/tv", {
-				credentials: "include",
+				credentials: "omit",
 				signal
 			});
 			if (!response.ok) throw new Error(`Audio downloader. tv config request failed (${response.status})`);
@@ -23310,22 +23310,23 @@ var vot = (function(exports) {
 	}
 	async function postInnertubePlayer(targetWindow, signal, apiKey, body, clientName, clientVersion, extra) {
 		const visitorData = body.context?.client?.visitorData;
+		const authenticated = Boolean(extra.authorization);
 		const response = await targetWindow.fetch(`https://www.youtube.com/youtubei/v1/player?prettyPrint=false&key=${encodeURIComponent(apiKey)}`, {
 			method: "POST",
-			credentials: "include",
+			credentials: authenticated ? "include" : "omit",
 			signal,
 			headers: {
 				"content-type": "application/json",
 				"x-youtube-client-name": clientName,
 				"x-youtube-client-version": clientVersion,
 				...typeof visitorData === "string" ? { "x-goog-visitor-id": visitorData } : {},
-				...extra.authorization ? {
+				...authenticated ? {
 					authorization: extra.authorization,
 					"x-origin": "https://www.youtube.com",
-					"x-youtube-bootstrap-logged-in": "true"
-				} : {},
-				...typeof extra.sessionIndex === "number" || typeof extra.sessionIndex === "string" ? { "x-goog-authuser": String(extra.sessionIndex) } : {},
-				...typeof extra.delegatedSessionId === "string" && extra.delegatedSessionId ? { "x-goog-pageid": extra.delegatedSessionId } : {}
+					"x-youtube-bootstrap-logged-in": "true",
+					...typeof extra.sessionIndex === "number" || typeof extra.sessionIndex === "string" ? { "x-goog-authuser": String(extra.sessionIndex) } : {},
+					...typeof extra.delegatedSessionId === "string" && extra.delegatedSessionId ? { "x-goog-pageid": extra.delegatedSessionId } : {}
+				} : {}
 			},
 			body: JSON.stringify(body)
 		});
@@ -23717,22 +23718,23 @@ var vot = (function(exports) {
 		const delegatedSessionId = getConfigValue(config, "DELEGATED_SESSION_ID") ?? (secondSyncId ? firstSyncId : void 0);
 		const authorization = await getYouTubeAuthorization(targetWindow, String(getConfigValue(config, "USER_SESSION_ID") ?? (secondSyncId || firstSyncId) ?? "") || void 0);
 		const loggedIn = getConfigValue(config, "LOGGED_IN") === true;
+		const sessionIndex = getConfigValue(config, "SESSION_INDEX");
+		const authenticatedAuth = {
+			authorization,
+			sessionIndex,
+			delegatedSessionId
+		};
 		const playerContexts = getConfigValue(config, "WEB_PLAYER_CONTEXT_CONFIGS");
 		const pageExperimentFlags = Object.values(playerContexts && typeof playerContexts === "object" ? playerContexts : {}).flatMap((entry) => typeof entry?.serializedExperimentFlags === "string" ? [entry.serializedExperimentFlags] : []);
-		const sessionIndex = getConfigValue(config, "SESSION_INDEX");
 		debug.log("Audio downloader. player auth state", {
 			videoId,
 			host: targetWindow.location.hostname,
+			anonymousFirst: true,
 			hasAuthorization: Boolean(authorization),
 			sessionIndex: sessionIndex ?? "none",
 			hasDelegatedSession: Boolean(delegatedSessionId),
 			loggedIn
 		});
-		const auth = {
-			authorization,
-			sessionIndex,
-			delegatedSessionId
-		};
 		let lastError;
 		let emitted = false;
 		for (const name of [
@@ -23755,10 +23757,31 @@ var vot = (function(exports) {
 			const candidateBody = name === "web_embedded" ? body : name === "tv_downgraded" ? buildTvDowngradedPlayerRequest(videoId, options) : name === "web" ? buildWebPlayerRequest(config, videoId, sts) : buildWebCreatorPlayerRequest(videoId, options);
 			const candidateContext = candidateBody.context;
 			if (typeof options.visitorData === "string") candidateContext.client.visitorData = options.visitorData;
-			const requestPlayer = () => postInnertubePlayer(targetWindow, signal, fetchedConfig?.apiKey ?? apiKey, candidateBody, name === "web_embedded" ? "56" : name === "tv_downgraded" ? "7" : name === "web" ? "1" : "62", String(candidateContext.client.clientVersion ?? clientVersion), auth);
+			const postPlayer = (authenticated) => postInnertubePlayer(targetWindow, signal, fetchedConfig?.apiKey ?? apiKey, candidateBody, name === "web_embedded" ? "56" : name === "tv_downgraded" ? "7" : name === "web" ? "1" : "62", String(candidateContext.client.clientVersion ?? clientVersion), authenticated ? authenticatedAuth : {});
+			const requestPlayer = async (authenticated = false) => {
+				const response = await postPlayer(authenticated);
+				const status = response.playabilityStatus?.status ?? "";
+				if (!authenticated && authorization && /LOGIN_REQUIRED|AGE_CHECK_REQUIRED|CONTENT_CHECK_REQUIRED/.test(status)) {
+					debug.log("Audio downloader. retrying player with YouTube session", {
+						videoId,
+						client: name,
+						status
+					});
+					return {
+						response: await postPlayer(true),
+						authenticated: true
+					};
+				}
+				return {
+					response,
+					authenticated
+				};
+			};
 			const getCode = () => fetchPlayerCode(fetchedConfig?.playerUrl);
 			try {
-				const playerResponse = await requestPlayer();
+				const initialPlayer = await requestPlayer();
+				const playerResponse = initialPlayer.response;
+				const requestAuthenticated = initialPlayer.authenticated;
 				const formats = [...playerResponse.streamingData?.adaptiveFormats ?? [], ...playerResponse.streamingData?.formats ?? []];
 				if (!formats.length) {
 					const status = playerResponse.playabilityStatus;
@@ -23767,7 +23790,7 @@ var vot = (function(exports) {
 				const format = selectWebEmbeddedAudioFormat(formats, sourceLanguage);
 				const fetchedFlags = fetchedConfig?.experimentFlags;
 				const poTokenBinding = selectGvsPoTokenBinding(videoId, {
-					loggedIn,
+					loggedIn: requestAuthenticated,
 					dataSyncId: playerResponse.responseContext?.mainAppWebResponseContext?.datasyncId || dataSyncId || fetchedConfig?.dataSyncId,
 					visitorData: candidateContext.client.visitorData ?? visitorData,
 					experimentFlags: fetchedFlags?.length ? fetchedFlags : pageExperimentFlags
@@ -23786,7 +23809,7 @@ var vot = (function(exports) {
 					const streamUrl = await authorizeUrl(solvedUrl);
 					const contentLength = Number(format.contentLength) || await probeContentLength(targetWindow, streamUrl, signal);
 					const refreshUrl = async () => {
-						const response = await requestPlayer();
+						const response = (await requestPlayer(requestAuthenticated)).response;
 						const refreshed = [...response.streamingData?.adaptiveFormats ?? [], ...response.streamingData?.formats ?? []].find((entry) => entry.itag === format.itag && entry.mimeType === format.mimeType && Number(entry.contentLength) === contentLength && entry.lastModified === format.lastModified);
 						if (!refreshed) throw new Error("Audio downloader. Refreshed audio format changed");
 						for await (const url of resolveWebEmbeddedFormatUrl(targetWindow, refreshed, getCode, signal)) return await authorizeUrl(url);
@@ -23814,7 +23837,7 @@ var vot = (function(exports) {
 			}
 		}
 		const fallbackError = lastError instanceof Error ? lastError : /* @__PURE__ */ new Error("Audio downloader. no playable audio formats");
-		if (/LOGIN_REQUIRED|UNPLAYABLE/.test(fallbackError.message)) throw new Error(`${fallbackError.message}. Sign in to YouTube with an age-verified account and retry from the youtube.com watch page`, { cause: fallbackError });
+		if (/LOGIN_REQUIRED|UNPLAYABLE/.test(fallbackError.message)) throw new Error(`${fallbackError.message}. Anonymous playback and the available signed-in YouTube session were both unable to provide a playable audio stream`, { cause: fallbackError });
 		throw fallbackError;
 	}
 	var WEB_ABR_DOWNLOAD_QUEUE = /* @__PURE__ */ new Map();

@@ -87,7 +87,7 @@ async function fetchTvConfig(
 ): Promise<FetchedClientConfig | undefined> {
   try {
     const response = await targetWindow.fetch("https://www.youtube.com/tv", {
-      credentials: "include",
+      credentials: "omit",
       signal,
     });
     if (!response.ok) {
@@ -1191,11 +1191,12 @@ async function postInnertubePlayer(
 ): Promise<WebEmbeddedPlayerResponse> {
   const visitorData = (body.context as { client?: { visitorData?: unknown } })
     ?.client?.visitorData;
+  const authenticated = Boolean(extra.authorization);
   const response = await targetWindow.fetch(
     `https://www.youtube.com/youtubei/v1/player?prettyPrint=false&key=${encodeURIComponent(apiKey)}`,
     {
       method: "POST",
-      credentials: "include",
+      credentials: authenticated ? "include" : "omit",
       signal,
       headers: {
         "content-type": "application/json",
@@ -1204,20 +1205,20 @@ async function postInnertubePlayer(
         ...(typeof visitorData === "string"
           ? { "x-goog-visitor-id": visitorData }
           : {}),
-        ...(extra.authorization
+        ...(authenticated
           ? {
-              authorization: extra.authorization,
+              authorization: extra.authorization!,
               "x-origin": "https://www.youtube.com",
               "x-youtube-bootstrap-logged-in": "true",
+              ...(typeof extra.sessionIndex === "number" ||
+              typeof extra.sessionIndex === "string"
+                ? { "x-goog-authuser": String(extra.sessionIndex) }
+                : {}),
+              ...(typeof extra.delegatedSessionId === "string" &&
+              extra.delegatedSessionId
+                ? { "x-goog-pageid": extra.delegatedSessionId }
+                : {}),
             }
-          : {}),
-        ...(typeof extra.sessionIndex === "number" ||
-        typeof extra.sessionIndex === "string"
-          ? { "x-goog-authuser": String(extra.sessionIndex) }
-          : {}),
-        ...(typeof extra.delegatedSessionId === "string" &&
-        extra.delegatedSessionId
-          ? { "x-goog-pageid": extra.delegatedSessionId }
           : {}),
       },
       body: JSON.stringify(body),
@@ -1916,6 +1917,8 @@ async function* getWebAbrAudioChunksImpl(
   const delegatedSessionId =
     getConfigValue(config, "DELEGATED_SESSION_ID") ??
     (secondSyncId ? firstSyncId : undefined);
+  // Prefer guest playback, but keep the current YouTube session as a fallback
+  // for videos that YouTube itself exposes only to the signed-in account.
   const authorization = await getYouTubeAuthorization(
     targetWindow,
     String(
@@ -1925,6 +1928,12 @@ async function* getWebAbrAudioChunksImpl(
     ) || undefined,
   );
   const loggedIn = getConfigValue(config, "LOGGED_IN") === true;
+  const sessionIndex = getConfigValue(config, "SESSION_INDEX");
+  const authenticatedAuth = {
+    authorization,
+    sessionIndex,
+    delegatedSessionId,
+  };
   const playerContexts = getConfigValue(config, "WEB_PLAYER_CONTEXT_CONFIGS");
   const pageExperimentFlags = Object.values(
     playerContexts && typeof playerContexts === "object" ? playerContexts : {},
@@ -1933,20 +1942,15 @@ async function* getWebAbrAudioChunksImpl(
       ? [entry.serializedExperimentFlags]
       : [],
   );
-  const sessionIndex = getConfigValue(config, "SESSION_INDEX");
   debug.log("Audio downloader. player auth state", {
     videoId,
     host: targetWindow.location.hostname,
+    anonymousFirst: true,
     hasAuthorization: Boolean(authorization),
     sessionIndex: sessionIndex ?? "none",
     hasDelegatedSession: Boolean(delegatedSessionId),
     loggedIn,
   });
-  const auth = {
-    authorization,
-    sessionIndex,
-    delegatedSessionId,
-  };
   let lastError: unknown;
   let emitted = false;
   for (const name of ["web_embedded", "tv_downgraded", "web", "web_creator"]) {
@@ -1979,7 +1983,7 @@ async function* getWebAbrAudioChunksImpl(
     if (typeof options.visitorData === "string") {
       candidateContext.client.visitorData = options.visitorData;
     }
-    const requestPlayer = () =>
+    const postPlayer = (authenticated: boolean) =>
       postInnertubePlayer(
         targetWindow,
         signal,
@@ -1993,11 +1997,30 @@ async function* getWebAbrAudioChunksImpl(
               ? "1"
               : "62",
         String(candidateContext.client.clientVersion ?? clientVersion),
-        auth,
+        authenticated ? authenticatedAuth : {},
       );
+    const requestPlayer = async (authenticated = false) => {
+      const response = await postPlayer(authenticated);
+      const status = response.playabilityStatus?.status ?? "";
+      if (
+        !authenticated &&
+        authorization &&
+        /LOGIN_REQUIRED|AGE_CHECK_REQUIRED|CONTENT_CHECK_REQUIRED/.test(status)
+      ) {
+        debug.log("Audio downloader. retrying player with YouTube session", {
+          videoId,
+          client: name,
+          status,
+        });
+        return { response: await postPlayer(true), authenticated: true };
+      }
+      return { response, authenticated };
+    };
     const getCode = () => fetchPlayerCode(fetchedConfig?.playerUrl);
     try {
-      const playerResponse = await requestPlayer();
+      const initialPlayer = await requestPlayer();
+      const playerResponse = initialPlayer.response;
+      const requestAuthenticated = initialPlayer.authenticated;
       const formats = [
         ...(playerResponse.streamingData?.adaptiveFormats ?? []),
         ...(playerResponse.streamingData?.formats ?? []),
@@ -2013,7 +2036,7 @@ async function* getWebAbrAudioChunksImpl(
       const format = selectWebEmbeddedAudioFormat(formats, sourceLanguage);
       const fetchedFlags = fetchedConfig?.experimentFlags;
       const poTokenBinding = selectGvsPoTokenBinding(videoId, {
-        loggedIn,
+        loggedIn: requestAuthenticated,
         dataSyncId:
           playerResponse.responseContext?.mainAppWebResponseContext
             ?.datasyncId ||
@@ -2050,7 +2073,8 @@ async function* getWebAbrAudioChunksImpl(
             Number(format.contentLength) ||
             (await probeContentLength(targetWindow, streamUrl, signal));
           const refreshUrl = async () => {
-            const response = await requestPlayer();
+            const refreshedPlayer = await requestPlayer(requestAuthenticated);
+            const response = refreshedPlayer.response;
             const refreshed = [
               ...(response.streamingData?.adaptiveFormats ?? []),
               ...(response.streamingData?.formats ?? []),
@@ -2112,7 +2136,7 @@ async function* getWebAbrAudioChunksImpl(
       : new Error("Audio downloader. no playable audio formats");
   if (/LOGIN_REQUIRED|UNPLAYABLE/.test(fallbackError.message)) {
     throw new Error(
-      `${fallbackError.message}. Sign in to YouTube with an age-verified account and retry from the youtube.com watch page`,
+      `${fallbackError.message}. Anonymous playback and the available signed-in YouTube session were both unable to provide a playable audio stream`,
       { cause: fallbackError },
     );
   }
