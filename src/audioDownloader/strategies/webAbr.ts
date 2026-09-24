@@ -1303,9 +1303,10 @@ const WEB_ABR_RANGE_REFRESH_EVERY_FAILURES = 2;
 const WEB_ABR_RANGE_RETRY_BASE_DELAY_MS = 250;
 const WEB_ABR_RANGE_RETRY_MAX_DELAY_MS = 1500;
 
-// Permanent media HTTP statuses cannot be recovered by retrying the same signed
-// URL or by cycling the transport matrix, so the outer client/strategy fallback
-// must take over. 408/425/429/5xx and network errors stay retryable.
+// Permanent media HTTP statuses should not be retried repeatedly by the same
+// range request. After one signed URL refresh, fail the current transport and
+// let the transport matrix try the remaining alternatives.
+// 408/425/429/5xx and network errors stay retryable.
 const WEB_ABR_FATAL_MEDIA_STATUSES = new Set([401, 403, 404, 410]);
 
 class MediaHttpError extends Error {
@@ -1423,7 +1424,7 @@ async function fetchMediaRange(
       const hasMoreAttempts = failedAttempt < WEB_ABR_RANGE_MAX_ATTEMPTS;
       // A permanent status still gets one URL refresh (expired signatures look
       // like 403), but a second fatal failure or a failed refresh ends this
-      // range so the transport matrix can abort.
+      // range so the current transport can fail and the matrix can continue.
       const shouldRefreshUrl =
         hasMoreAttempts &&
         (fatal || failedAttempt % WEB_ABR_RANGE_REFRESH_EVERY_FAILURES === 0);
@@ -1473,8 +1474,8 @@ async function fetchMediaRange(
                 ? refreshError.message
                 : String(refreshError),
           });
-          // Keep the fatal HTTP error as lastError so the transport matrix
-          // aborts instead of retrying a permanent failure.
+          // Keep the fatal HTTP error as lastError so the current transport
+          // stops instead of retrying the same permanent failure.
           if (fatal) break;
           lastError = refreshError;
         }
@@ -1854,13 +1855,8 @@ export async function* downloadMediaRanges(
         elapsedMs: Math.round(performance.now() - startedAt),
         error: error instanceof Error ? error.message : String(error),
       });
-      if (isFatalMediaError(error)) {
-        debug.log("Audio downloader. web ABR transport matrix aborted", {
-          transport,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        throw error;
-      }
+      // A fatal media status only ends the current transport. Other transports
+      // use different request shapes and may still succeed with the same media.
     }
   }
   throw lastError instanceof Error
