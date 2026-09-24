@@ -549,19 +549,32 @@ export function createAudioChunkStream(
 
             if (finished) return;
             const { buffered } = event.sourceBuffer;
-            const bufferedEnd =
-              buffered.length > 0
-                ? Math.floor(buffered.end(buffered.length - 1))
-                : 0;
-            clearTimeout(seekTimeout);
-            if (bufferedEnd > 0) {
+
+            if (buffered.length > 0) {
+              const rangeIndex = buffered.length - 1;
+              const bufferedStart = buffered.start(rangeIndex);
+              const bufferedEnd = buffered.end(rangeIndex);
+              const seekTarget = Math.max(bufferedStart, bufferedEnd - 0.25);
+
+              clearTimeout(seekTimeout);
               seekTimeout = setTimeout(() => {
+                if (finished || signal.aborted) return;
+
                 try {
-                  player.seekTo(bufferedEnd, true);
+                  debug.log("Audio downloader. MSE seek advance", {
+                    videoId,
+                    bufferedStart,
+                    bufferedEnd,
+                    seekTarget,
+                    ranges: buffered.length,
+                    totalSize,
+                  });
+
+                  player.seekTo(seekTarget, true);
                 } catch (error) {
                   void onMseError(error);
                 }
-              }, 1000);
+              }, 250);
             }
           } catch (error) {
             void onMseError(error);

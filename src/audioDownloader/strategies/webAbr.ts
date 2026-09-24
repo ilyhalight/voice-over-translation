@@ -1236,11 +1236,15 @@ async function probeContentLength(
   targetWindow: Window,
   streamUrl: string,
   signal: AbortSignal,
+  authenticated: boolean,
 ): Promise<number> {
   const url = new URL(streamUrl);
   url.searchParams.set("range", "0-0");
   url.searchParams.delete("ump");
-  const response = await targetWindow.fetch(url, { signal });
+  const response = await targetWindow.fetch(url, {
+    signal,
+    credentials: authenticated ? "include" : "omit",
+  });
   if (!response.ok) {
     throw new Error(
       `Audio downloader. web ABR media probe failed (${response.status})`,
@@ -1274,14 +1278,11 @@ type WebAbrTransport =
   | "original";
 
 const WEB_ABR_TRANSPORTS: WebAbrTransport[] = [
-  "parallel_4",
   "4mb",
-  "parallel_8",
-  "8mb",
-  "parallel_2",
   "2mb",
   "stream",
   "original",
+  "8mb"
 ];
 
 function makeFixedRanges(
@@ -1364,6 +1365,7 @@ async function fetchMediaRange(
   signal: AbortSignal,
   refreshUrl: () => Promise<string>,
   requestNumberRef: RequestNumberRef,
+  authenticated: boolean,
 ): Promise<Uint8Array> {
   let lastError: unknown;
   let refreshedFatal = false;
@@ -1384,12 +1386,25 @@ async function fetchMediaRange(
       const response = await targetWindow.fetch(url, {
         signal,
         cache: "no-store",
+        credentials: authenticated ? "include" : "omit",
       });
-      if (!response.ok)
+      if (!response.ok) {
+        debug.log("Audio downloader. web ABR media HTTP failure", {
+          status: response.status,
+          range: `${start}-${end}`,
+          urlVersion,
+          host: url.hostname,
+          hasPoToken: url.searchParams.has("pot"),
+          hasN: url.searchParams.has("n"),
+          hasSignature:
+            url.searchParams.has("sig") || url.searchParams.has("signature"),
+          expire: url.searchParams.get("expire") ?? "none",
+        });
         throw new MediaHttpError(
           response.status,
           `Audio downloader. Media request failed (${response.status}, range ${start}-${end})`,
         );
+      }
       const bytes = new Uint8Array(await response.arrayBuffer());
       signal.throwIfAborted();
       if (bytes.byteLength === end - start + 1) {
@@ -1528,6 +1543,7 @@ async function* downloadRangesSequential(
   signal: AbortSignal,
   refreshUrl: () => Promise<string>,
   ranges: MediaRange[],
+  authenticated: boolean,
 ): AsyncGenerator<AudioChunk> {
   const urlState: MediaUrlState = {
     value: streamUrl,
@@ -1546,6 +1562,7 @@ async function* downloadRangesSequential(
       signal,
       refreshUrl,
       requestNumberRef,
+      authenticated,
     );
     for await (const chunk of emitOrderedBuffers(
       [buffer],
@@ -1563,6 +1580,7 @@ async function* downloadRangesParallel(
   signal: AbortSignal,
   refreshUrl: () => Promise<string>,
   concurrency: number,
+  authenticated: boolean,
 ): AsyncGenerator<AudioChunk> {
   const ranges = makeFixedRanges(contentLength, 4 * 1024 * 1024);
   const urlState: MediaUrlState = {
@@ -1586,6 +1604,7 @@ async function* downloadRangesParallel(
           signal,
           refreshUrl,
           requestNumberRef,
+          authenticated,
         ),
       ),
     );
@@ -1602,12 +1621,16 @@ async function* downloadStream(
   targetWindow: Window,
   streamUrl: string,
   signal: AbortSignal,
+  authenticated: boolean,
 ): AsyncGenerator<AudioChunk> {
   const url = new URL(streamUrl);
   url.searchParams.delete("range");
   url.searchParams.delete("rn");
   url.searchParams.delete("ump");
-  const response = await targetWindow.fetch(url, { signal });
+  const response = await targetWindow.fetch(url, {
+    signal,
+    credentials: authenticated ? "include" : "omit",
+  });
   if (!response.ok)
     throw new Error(
       `Audio downloader. Stream request failed (${response.status})`,
@@ -1678,6 +1701,7 @@ async function* downloadWithTransport(
   contentLength: number,
   signal: AbortSignal,
   refreshUrl: () => Promise<string>,
+  authenticated: boolean,
 ): AsyncGenerator<AudioChunk> {
   switch (transport) {
     case "parallel_4":
@@ -1688,6 +1712,7 @@ async function* downloadWithTransport(
         signal,
         refreshUrl,
         4,
+        authenticated,
       );
       return;
     case "parallel_2":
@@ -1698,6 +1723,7 @@ async function* downloadWithTransport(
         signal,
         refreshUrl,
         2,
+        authenticated,
       );
       return;
     case "parallel_8":
@@ -1708,10 +1734,11 @@ async function* downloadWithTransport(
         signal,
         refreshUrl,
         8,
+        authenticated,
       );
       return;
     case "stream":
-      yield* downloadStream(targetWindow, streamUrl, signal);
+      yield* downloadStream(targetWindow, streamUrl, signal, authenticated);
       return;
     case "8mb":
       yield* downloadRangesSequential(
@@ -1721,6 +1748,7 @@ async function* downloadWithTransport(
         signal,
         refreshUrl,
         makeFixedRanges(contentLength, 8 * 1024 * 1024),
+        authenticated,
       );
       return;
     case "4mb":
@@ -1731,6 +1759,7 @@ async function* downloadWithTransport(
         signal,
         refreshUrl,
         makeFixedRanges(contentLength, 4 * 1024 * 1024),
+        authenticated,
       );
       return;
     case "2mb":
@@ -1741,6 +1770,7 @@ async function* downloadWithTransport(
         signal,
         refreshUrl,
         makeFixedRanges(contentLength, 2 * 1024 * 1024),
+        authenticated,
       );
       return;
     case "original":
@@ -1751,6 +1781,7 @@ async function* downloadWithTransport(
         signal,
         refreshUrl,
         buildMediaRanges(contentLength),
+        authenticated,
       );
       return;
     default:
@@ -1766,6 +1797,7 @@ export async function* downloadMediaRanges(
   contentLength: number,
   signal: AbortSignal,
   refreshUrl: () => Promise<string>,
+  authenticated: boolean,
 ): AsyncGenerator<AudioChunk> {
   if (!Number.isSafeInteger(contentLength) || contentLength < 1)
     throw new Error("Audio downloader. Invalid media content length");
@@ -1800,6 +1832,7 @@ export async function* downloadMediaRanges(
         contentLength,
         signal,
         refreshUrl,
+        authenticated,
       )) {
         if (!chunk?.buffer?.byteLength) {
           throw new Error(
@@ -2060,8 +2093,32 @@ async function* getWebAbrAudioChunksImpl(
             signal,
           );
           const token = await poToken;
-          if (token) url.searchParams.set("pot", token);
+          if (token) {
+            url.searchParams.set("pot", token);
+          } else {
+            // Do not cache a failed mint forever. The page minter may become
+            // ready later, especially after a media URL refresh.
+            poToken = undefined;
+            debug.log("Audio downloader. web ABR GVS PO token unavailable", {
+              videoId,
+              client: name,
+              authenticated: requestAuthenticated,
+              bindingKind: poTokenBinding.kind,
+            });
+          }
         }
+        debug.log("Audio downloader. web ABR media URL authorization", {
+          videoId,
+          client: name,
+          authenticated: requestAuthenticated,
+          hasPoTokenBinding: Boolean(poTokenBinding),
+          poTokenBindingKind: poTokenBinding?.kind ?? "none",
+          hasPoToken: url.searchParams.has("pot"),
+          hasN: url.searchParams.has("n"),
+          hasSignature:
+            url.searchParams.has("sig") || url.searchParams.has("signature"),
+          host: url.hostname,
+        });
         return url.toString();
       };
       for await (const solvedUrl of resolveWebEmbeddedFormatUrl(
@@ -2074,7 +2131,12 @@ async function* getWebAbrAudioChunksImpl(
           const streamUrl = await authorizeUrl(solvedUrl);
           const contentLength =
             Number(format.contentLength) ||
-            (await probeContentLength(targetWindow, streamUrl, signal));
+            (await probeContentLength(
+              targetWindow,
+              streamUrl,
+              signal,
+              requestAuthenticated,
+            ));
           const refreshUrl = async () => {
             const refreshedPlayer = await requestPlayer(requestAuthenticated);
             const response = refreshedPlayer.response;
@@ -2110,6 +2172,7 @@ async function* getWebAbrAudioChunksImpl(
             contentLength,
             signal,
             refreshUrl,
+            requestAuthenticated,
           )) {
             emitted = true;
             yield chunk;
