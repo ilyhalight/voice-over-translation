@@ -129,7 +129,7 @@ export function createShadowMount({
     styles: hostStyles,
   });
 
-  const shadowRoot = host.attachShadow({
+  const shadowRoot = Element.prototype.attachShadow.call(host, {
     mode: "open",
     delegatesFocus,
   });

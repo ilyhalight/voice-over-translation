@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 配音翻译
 // @namespace      vot
-// @version        1.11.14
+// @version        1.11.15
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    Watch videos in other languages with voice-over translation and subtitles in any browser
 // @description:de Sieh dir Videos in anderen Sprachen mit Voice-over-Übersetzung und Untertiteln in jedem Browser an
@@ -9491,11 +9491,18 @@ var vot = (function(exports) {
 			if (support.legacySet) return GM_setValue(name, value);
 			return globalThis.localStorage.setItem(name, JSON.stringify(value));
 		}
-		async setRaw(name, value) {
+		async getChangeContext(name) {
 			const support = this.resolveSupport();
-			const storageKey = name;
 			const shouldNotify = this.shouldUseSyntheticListeners(support);
-			const oldValue = shouldNotify ? await this.getRaw(name) : void 0;
+			return {
+				support,
+				storageKey: name,
+				shouldNotify,
+				oldValue: shouldNotify ? await this.getRaw(name) : void 0
+			};
+		}
+		async setRaw(name, value) {
+			const { support, storageKey, shouldNotify, oldValue } = await this.getChangeContext(name);
 			if (support.promiseSet && GM.setValue) {
 				await GM.setValue(name, value);
 				if (shouldNotify) this.notifyLocalStorageListeners(storageKey, oldValue, value, false);
@@ -9513,10 +9520,7 @@ var vot = (function(exports) {
 			return globalThis.localStorage.removeItem(name);
 		}
 		async deleteRaw(name) {
-			const support = this.resolveSupport();
-			const storageKey = name;
-			const shouldNotify = this.shouldUseSyntheticListeners(support);
-			const oldValue = shouldNotify ? await this.getRaw(name) : void 0;
+			const { support, storageKey, shouldNotify, oldValue } = await this.getChangeContext(name);
 			if (support.promiseDelete && GM.deleteValue) {
 				await GM.deleteValue(name);
 				if (shouldNotify) this.notifyLocalStorageListeners(storageKey, oldValue, void 0, false);
@@ -9535,22 +9539,14 @@ var vot = (function(exports) {
 			if (support.promiseAddValueChangeListener) {
 				const addListener = gm?.addValueChangeListener;
 				const removeListener = support.promiseRemoveValueChangeListener ? gm?.removeValueChangeListener : void 0;
-				if (typeof addListener === "function") {
-					const listenerId = addListener(name, this.createTypedListener(listener));
-					return () => {
-						if (typeof removeListener === "function") removeListener(listenerId);
-					};
-				}
+				const unsubscribe = this.registerGMListener(addListener, removeListener, name, listener);
+				if (unsubscribe) return unsubscribe;
 			}
 			if (support.legacyAddValueChangeListener) {
 				const addListener = globalThis.GM_addValueChangeListener;
 				const removeListener = support.legacyRemoveValueChangeListener ? globalThis.GM_removeValueChangeListener : void 0;
-				if (typeof addListener === "function") {
-					const listenerId = addListener(name, this.createTypedListener(listener));
-					return () => {
-						if (typeof removeListener === "function") removeListener(listenerId);
-					};
-				}
+				const unsubscribe = this.registerGMListener(addListener, removeListener, name, listener);
+				if (unsubscribe) return unsubscribe;
 			}
 			const listeners = this.getLocalStorageListeners(name);
 			const typedListener = listener;
@@ -9569,6 +9565,13 @@ var vot = (function(exports) {
 		createTypedListener(listener) {
 			return (key, oldValue, newValue, remote) => {
 				listener(key, oldValue, newValue, remote);
+			};
+		}
+		registerGMListener(addListener, removeListener, name, listener) {
+			if (typeof addListener !== "function") return;
+			const listenerId = addListener(name, this.createTypedListener(listener));
+			return () => {
+				if (typeof removeListener === "function") removeListener(listenerId);
 			};
 		}
 		getLocalStorageListeners(name) {
@@ -10020,7 +10023,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.14"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
+		return resolveRuntimeLocaleVersion(String("1.11.15"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
 	}
 	var LocalizationProvider = class {
 		lang;
@@ -22317,7 +22320,7 @@ var vot = (function(exports) {
 	async function fetchTvConfig(targetWindow, signal, videoId) {
 		try {
 			const response = await targetWindow.fetch("https://www.youtube.com/tv", {
-				credentials: "include",
+				credentials: "omit",
 				signal
 			});
 			if (!response.ok) throw new Error(`Audio downloader. tv config request failed (${response.status})`);
@@ -22422,6 +22425,16 @@ var vot = (function(exports) {
 	}
 	function getConfigValue(config, key) {
 		return config.get?.(key) ?? config.data_?.[key];
+	}
+	function cloneInnertubeContext(config, unavailableMessage) {
+		const rawContext = getConfigValue(config, "INNERTUBE_CONTEXT");
+		if (!rawContext || typeof rawContext !== "object") throw new Error(unavailableMessage);
+		const context = JSON.parse(JSON.stringify(rawContext));
+		context.client ??= {};
+		return {
+			context,
+			client: context.client
+		};
 	}
 	function buildContentPlaybackContext(signatureTimestamp) {
 		const context = { html5Preference: "HTML5_PREF_WANTS" };
@@ -22530,11 +22543,7 @@ var vot = (function(exports) {
 		return { data_: data };
 	}
 	function buildWebEmbeddedPlayerRequest(config, videoId, extractedSignatureTimestamp) {
-		const rawContext = getConfigValue(config, "INNERTUBE_CONTEXT");
-		if (!rawContext || typeof rawContext !== "object") throw new Error("Audio downloader. web_embedded context is unavailable");
-		const context = JSON.parse(JSON.stringify(rawContext));
-		context.client ??= {};
-		const client = context.client;
+		const { context, client } = cloneInnertubeContext(config, "Audio downloader. web_embedded context is unavailable");
 		client.clientName = "WEB_EMBEDDED_PLAYER";
 		client.clientVersion = getConfigValue(config, "INNERTUBE_CLIENT_VERSION") ?? client.clientVersion;
 		client.originalUrl = `https://www.youtube.com/embed/${videoId}?html5=1`;
@@ -22907,11 +22916,7 @@ var vot = (function(exports) {
 		};
 	}
 	function buildWebPlayerRequest(config, videoId, extractedSignatureTimestamp) {
-		const rawContext = getConfigValue(config, "INNERTUBE_CONTEXT");
-		if (!rawContext || typeof rawContext !== "object") throw new Error("Audio downloader. web client context is unavailable");
-		const context = JSON.parse(JSON.stringify(rawContext));
-		context.client ??= {};
-		const client = context.client;
+		const { context, client } = cloneInnertubeContext(config, "Audio downloader. web client context is unavailable");
 		client.clientName = "WEB";
 		client.clientVersion = getConfigValue(config, "INNERTUBE_CLIENT_VERSION") ?? client.clientVersion;
 		client.originalUrl = `https://www.youtube.com/watch?v=${videoId}`;
@@ -22944,22 +22949,23 @@ var vot = (function(exports) {
 	}
 	async function postInnertubePlayer(targetWindow, signal, apiKey, body, clientName, clientVersion, extra) {
 		const visitorData = body.context?.client?.visitorData;
+		const authenticated = Boolean(extra.authorization);
 		const response = await targetWindow.fetch(`https://www.youtube.com/youtubei/v1/player?prettyPrint=false&key=${encodeURIComponent(apiKey)}`, {
 			method: "POST",
-			credentials: "include",
+			credentials: authenticated ? "include" : "omit",
 			signal,
 			headers: {
 				"content-type": "application/json",
 				"x-youtube-client-name": clientName,
 				"x-youtube-client-version": clientVersion,
 				...typeof visitorData === "string" ? { "x-goog-visitor-id": visitorData } : {},
-				...extra.authorization ? {
+				...authenticated ? {
 					authorization: extra.authorization,
 					"x-origin": "https://www.youtube.com",
-					"x-youtube-bootstrap-logged-in": "true"
-				} : {},
-				...typeof extra.sessionIndex === "number" || typeof extra.sessionIndex === "string" ? { "x-goog-authuser": String(extra.sessionIndex) } : {},
-				...typeof extra.delegatedSessionId === "string" && extra.delegatedSessionId ? { "x-goog-pageid": extra.delegatedSessionId } : {}
+					"x-youtube-bootstrap-logged-in": "true",
+					...typeof extra.sessionIndex === "number" || typeof extra.sessionIndex === "string" ? { "x-goog-authuser": String(extra.sessionIndex) } : {},
+					...typeof extra.delegatedSessionId === "string" && extra.delegatedSessionId ? { "x-goog-pageid": extra.delegatedSessionId } : {}
+				} : {}
 			},
 			body: JSON.stringify(body)
 		});
@@ -23351,22 +23357,23 @@ var vot = (function(exports) {
 		const delegatedSessionId = getConfigValue(config, "DELEGATED_SESSION_ID") ?? (secondSyncId ? firstSyncId : void 0);
 		const authorization = await getYouTubeAuthorization(targetWindow, String(getConfigValue(config, "USER_SESSION_ID") ?? (secondSyncId || firstSyncId) ?? "") || void 0);
 		const loggedIn = getConfigValue(config, "LOGGED_IN") === true;
+		const sessionIndex = getConfigValue(config, "SESSION_INDEX");
+		const authenticatedAuth = {
+			authorization,
+			sessionIndex,
+			delegatedSessionId
+		};
 		const playerContexts = getConfigValue(config, "WEB_PLAYER_CONTEXT_CONFIGS");
 		const pageExperimentFlags = Object.values(playerContexts && typeof playerContexts === "object" ? playerContexts : {}).flatMap((entry) => typeof entry?.serializedExperimentFlags === "string" ? [entry.serializedExperimentFlags] : []);
-		const sessionIndex = getConfigValue(config, "SESSION_INDEX");
 		debug.log("Audio downloader. player auth state", {
 			videoId,
 			host: targetWindow.location.hostname,
+			anonymousFirst: true,
 			hasAuthorization: Boolean(authorization),
 			sessionIndex: sessionIndex ?? "none",
 			hasDelegatedSession: Boolean(delegatedSessionId),
 			loggedIn
 		});
-		const auth = {
-			authorization,
-			sessionIndex,
-			delegatedSessionId
-		};
 		let lastError;
 		let emitted = false;
 		for (const name of [
@@ -23389,10 +23396,31 @@ var vot = (function(exports) {
 			const candidateBody = name === "web_embedded" ? body : name === "tv_downgraded" ? buildTvDowngradedPlayerRequest(videoId, options) : name === "web" ? buildWebPlayerRequest(config, videoId, sts) : buildWebCreatorPlayerRequest(videoId, options);
 			const candidateContext = candidateBody.context;
 			if (typeof options.visitorData === "string") candidateContext.client.visitorData = options.visitorData;
-			const requestPlayer = () => postInnertubePlayer(targetWindow, signal, fetchedConfig?.apiKey ?? apiKey, candidateBody, name === "web_embedded" ? "56" : name === "tv_downgraded" ? "7" : name === "web" ? "1" : "62", String(candidateContext.client.clientVersion ?? clientVersion), auth);
+			const postPlayer = (authenticated) => postInnertubePlayer(targetWindow, signal, fetchedConfig?.apiKey ?? apiKey, candidateBody, name === "web_embedded" ? "56" : name === "tv_downgraded" ? "7" : name === "web" ? "1" : "62", String(candidateContext.client.clientVersion ?? clientVersion), authenticated ? authenticatedAuth : {});
+			const requestPlayer = async (authenticated = false) => {
+				const response = await postPlayer(authenticated);
+				const status = response.playabilityStatus?.status ?? "";
+				if (!authenticated && authorization && /LOGIN_REQUIRED|AGE_CHECK_REQUIRED|CONTENT_CHECK_REQUIRED/.test(status)) {
+					debug.log("Audio downloader. retrying player with YouTube session", {
+						videoId,
+						client: name,
+						status
+					});
+					return {
+						response: await postPlayer(true),
+						authenticated: true
+					};
+				}
+				return {
+					response,
+					authenticated
+				};
+			};
 			const getCode = () => fetchPlayerCode(fetchedConfig?.playerUrl);
 			try {
-				const playerResponse = await requestPlayer();
+				const initialPlayer = await requestPlayer();
+				const playerResponse = initialPlayer.response;
+				const requestAuthenticated = initialPlayer.authenticated;
 				const formats = [...playerResponse.streamingData?.adaptiveFormats ?? [], ...playerResponse.streamingData?.formats ?? []];
 				if (!formats.length) {
 					const status = playerResponse.playabilityStatus;
@@ -23401,7 +23429,7 @@ var vot = (function(exports) {
 				const format = selectWebEmbeddedAudioFormat(formats, sourceLanguage);
 				const fetchedFlags = fetchedConfig?.experimentFlags;
 				const poTokenBinding = selectGvsPoTokenBinding(videoId, {
-					loggedIn,
+					loggedIn: requestAuthenticated,
 					dataSyncId: playerResponse.responseContext?.mainAppWebResponseContext?.datasyncId || dataSyncId || fetchedConfig?.dataSyncId,
 					visitorData: candidateContext.client.visitorData ?? visitorData,
 					experimentFlags: fetchedFlags?.length ? fetchedFlags : pageExperimentFlags
@@ -23420,7 +23448,7 @@ var vot = (function(exports) {
 					const streamUrl = await authorizeUrl(solvedUrl);
 					const contentLength = Number(format.contentLength) || await probeContentLength(targetWindow, streamUrl, signal);
 					const refreshUrl = async () => {
-						const response = await requestPlayer();
+						const response = (await requestPlayer(requestAuthenticated)).response;
 						const refreshed = [...response.streamingData?.adaptiveFormats ?? [], ...response.streamingData?.formats ?? []].find((entry) => entry.itag === format.itag && entry.mimeType === format.mimeType && Number(entry.contentLength) === contentLength && entry.lastModified === format.lastModified);
 						if (!refreshed) throw new Error("Audio downloader. Refreshed audio format changed");
 						for await (const url of resolveWebEmbeddedFormatUrl(targetWindow, refreshed, getCode, signal)) return await authorizeUrl(url);
@@ -23448,7 +23476,7 @@ var vot = (function(exports) {
 			}
 		}
 		const fallbackError = lastError instanceof Error ? lastError : new Error("Audio downloader. no playable audio formats");
-		if (/LOGIN_REQUIRED|UNPLAYABLE/.test(fallbackError.message)) throw new Error(`${fallbackError.message}. Sign in to YouTube with an age-verified account and retry from the youtube.com watch page`, { cause: fallbackError });
+		if (/LOGIN_REQUIRED|UNPLAYABLE/.test(fallbackError.message)) throw new Error(`${fallbackError.message}. Anonymous playback and the available signed-in YouTube session were both unable to provide a playable audio stream`, { cause: fallbackError });
 		throw fallbackError;
 	}
 	var WEB_ABR_DOWNLOAD_QUEUE = new Map();
@@ -24303,42 +24331,6 @@ var vot = (function(exports) {
 				case "downloadAudioError": this.onDownloadAudioError.removeListener(listener);
 			}
 			return this;
-		}
-	};
-	//#endregion
-	//#region src/utils/account.ts
-	function hasAccountToken(account) {
-		return typeof account?.token === "string" && account.token.length > 0;
-	}
-	function isAccountExpired(account, now = Date.now()) {
-		return hasAccountToken(account) && typeof account?.expires === "number" && Number.isFinite(account.expires) && account.expires <= now;
-	}
-	function hasValidAccountToken(account, now = Date.now()) {
-		return hasAccountToken(account) && !isAccountExpired(account, now);
-	}
-	function clearAccountState(owner) {
-		if (owner?.data) owner.data.account = {};
-		if (owner?.votClient) owner.votClient.provider.apiToken = void 0;
-	}
-	async function deleteAccount(owner) {
-		clearAccountState(owner);
-		await votStorage.delete("account");
-	}
-	async function deleteExpiredAccount(owner, now = Date.now()) {
-		if (!isAccountExpired(owner?.data?.account, now)) return false;
-		await deleteAccount(owner);
-		return true;
-	}
-	//#endregion
-	//#region src/VOTLocalizedError.ts
-	var VOTLocalizedError = class extends Error {
-		name = "VOTLocalizedError";
-		unlocalizedMessage;
-		localizedMessage;
-		constructor(message) {
-			super(localizationProvider.getDefault(message));
-			this.unlocalizedMessage = message;
-			this.localizedMessage = t$1(message);
 		}
 	};
 	//#endregion
@@ -25521,6 +25513,17 @@ var vot = (function(exports) {
 		};
 	}
 	//#endregion
+	//#region src/utils/account.ts
+	function hasAccountToken(account) {
+		return typeof account?.token === "string" && account.token.length > 0;
+	}
+	function isAccountExpired(account, now = Date.now()) {
+		return hasAccountToken(account) && typeof account?.expires === "number" && Number.isFinite(account.expires) && account.expires <= now;
+	}
+	function hasValidAccountToken(account, now = Date.now()) {
+		return hasAccountToken(account) && !isAccountExpired(account, now);
+	}
+	//#endregion
 	//#region src/stores/account.ts
 	function createInitialState$2() {
 		return {
@@ -25546,6 +25549,32 @@ var vot = (function(exports) {
 	async function updateAccountFromStorage() {
 		updateAccount(await votStorage.get("account", {}));
 	}
+	function clearAccountState(owner) {
+		if (owner?.data) owner.data.account = {};
+		if (owner?.votClient) owner.votClient.provider.apiToken = void 0;
+	}
+	async function deleteAccount(owner) {
+		clearAccountState(owner);
+		await votStorage.delete("account");
+		resetAccount();
+	}
+	async function deleteExpiredAccount(owner, now = Date.now()) {
+		if (!isAccountExpired(owner?.data?.account, now)) return false;
+		await deleteAccount(owner);
+		return true;
+	}
+	//#endregion
+	//#region src/VOTLocalizedError.ts
+	var VOTLocalizedError = class extends Error {
+		name = "VOTLocalizedError";
+		unlocalizedMessage;
+		localizedMessage;
+		constructor(message) {
+			super(localizationProvider.getDefault(message));
+			this.unlocalizedMessage = message;
+			this.localizedMessage = t$1(message);
+		}
+	};
 	//#endregion
 	//#region src/core/auth/yandex.ts
 	function createCodeVerifier() {
@@ -28019,9 +28048,6 @@ var vot = (function(exports) {
 		updateContainer(container) {
 			this.container = container;
 		}
-		getWidgetParentElement() {
-			return this.container;
-		}
 		getLayoutRootElement() {
 			return this.container instanceof ShadowRoot ? this.container.host : this.container;
 		}
@@ -28032,6 +28058,9 @@ var vot = (function(exports) {
 		}
 		release() {}
 	};
+	//#endregion
+	//#region src/subtitles/highlightState.ts
+	var NO_HIGHLIGHT_INDEX = -1;
 	var PASSED_CLASS = "passed";
 	function createHighlightState() {
 		return {
@@ -28050,7 +28079,7 @@ var vot = (function(exports) {
 			const element = elements[i];
 			const raw = element.dataset.votHighlightIndex;
 			const parsed = raw === void 0 ? NaN : Number.parseInt(raw, 10);
-			indices[i] = Number.isInteger(parsed) && parsed >= 0 ? parsed : -1;
+			indices[i] = Number.isInteger(parsed) && parsed >= 0 ? parsed : NO_HIGHLIGHT_INDEX;
 			applied[i] = element.classList.contains(PASSED_CLASS) ? 1 : 0;
 		}
 		return state;
@@ -29865,7 +29894,7 @@ var vot = (function(exports) {
 			classes: hostClasses,
 			styles: hostStyles
 		});
-		const shadowRoot = host.attachShadow({
+		const shadowRoot = Element.prototype.attachShadow.call(host, {
 			mode: "open",
 			delegatesFocus
 		});
@@ -31709,12 +31738,17 @@ var vot = (function(exports) {
 			styledSpans
 		};
 	};
+	var prepareDisplayText = (text) => {
+		const normalized = text.replaceAll("\xA0", " ");
+		const leadingTrim = normalized.length - normalized.trimStart().length;
+		const trimmedEnd = Math.max(leadingTrim, normalized.trimEnd().length);
+		return {
+			text: normalized.slice(leadingTrim, trimmedEnd),
+			leadingTrim
+		};
+	};
 	var trimStyledDisplayResult = (text, styledSpans) => {
-		const normalizedText = text.replaceAll("\xA0", " ");
-		const leadingTrim = normalizedText.length - normalizedText.trimStart().length;
-		const trailingTrim = normalizedText.length - normalizedText.trimEnd().length;
-		const trimmedEnd = Math.max(leadingTrim, normalizedText.length - trailingTrim);
-		const finalText = normalizedText.slice(leadingTrim, trimmedEnd);
+		const { text: finalText, leadingTrim } = prepareDisplayText(text);
 		return {
 			text: finalText,
 			styledSpans: styledSpans.map((span) => ({
@@ -31728,11 +31762,8 @@ var vot = (function(exports) {
 		};
 	};
 	var trimPlainDisplayText = (text) => {
-		const normalizedText = text.replaceAll("\xA0", " ");
-		const leadingTrim = normalizedText.length - normalizedText.trimStart().length;
-		const trailingTrim = normalizedText.length - normalizedText.trimEnd().length;
-		const trimmedEnd = Math.max(leadingTrim, normalizedText.length - trailingTrim);
-		return normalizedText.slice(leadingTrim, trimmedEnd);
+		const { text: trimmed } = prepareDisplayText(text);
+		return trimmed;
 	};
 	var buildPlainDisplayModel = (rawText) => ({
 		text: trimPlainDisplayText(normalizeAttachedWordNumberExpression(rawText.replace(LEADING_SPEAKER_MARKER_RE, "$1").replaceAll(ATTACHED_TIME_WORD_RE, "$1 "))),
