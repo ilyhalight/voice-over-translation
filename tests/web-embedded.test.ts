@@ -10,8 +10,9 @@ const {
   buildWebEmbeddedPlayerRequest,
   buildWebPlayerRequest,
   collectPageSolutions,
+  downloadMediaRanges,
   mintPagePoToken,
-  selectAudioFormat: selectSabrAudioFormat,
+  selectWebEmbeddedAudioFormat,
 } = await import("../src/audioDownloader/strategies/webAbr");
 
 test("builds YouTube's ramped media ranges", () => {
@@ -246,294 +247,325 @@ test("solves sig/n through the page player without eval", () => {
   ).toBe(20702);
 });
 
-test("selects SABR audio by smallest contentLength, bitrate, then first", () => {
-  // Smallest valid contentLength wins regardless of array order; zero is skipped.
-  expect(
-    selectSabrAudioFormat([
-      {
-        itag: 251,
-        url: "https://example.com/251",
-        audioQuality: "AUDIO_QUALITY_MEDIUM",
-        contentLength: "200",
-      },
-      {
-        itag: 140,
-        url: "https://example.com/140",
-        audioQuality: "AUDIO_QUALITY_LOW",
-        contentLength: 100,
-      },
-      {
-        itag: 249,
-        url: "https://example.com/249",
-        audioQuality: "AUDIO_QUALITY_LOW",
-        contentLength: "0",
-      },
-    ]).itag,
-  ).toBe(140);
-
-  // No usable contentLength -> smallest averageBitrate.
-  expect(
-    selectSabrAudioFormat([
-      {
-        itag: 251,
-        url: "https://example.com/251",
-        audioQuality: "AUDIO_QUALITY_MEDIUM",
-        averageBitrate: 90_000,
-      },
-      {
-        itag: 140,
-        url: "https://example.com/140",
-        audioQuality: "AUDIO_QUALITY_LOW",
-        averageBitrate: 70_000,
-      },
-    ]).itag,
-  ).toBe(140);
-
-  // No contentLength or bitrate -> first remaining format.
-  expect(
-    selectSabrAudioFormat([
-      {
-        itag: 251,
-        url: "https://example.com/251",
-        audioQuality: "AUDIO_QUALITY_MEDIUM",
-      },
-      {
-        itag: 140,
-        url: "https://example.com/140",
-        audioQuality: "AUDIO_QUALITY_LOW",
-      },
-    ]).itag,
-  ).toBe(251);
-});
-
-test("wires SABR eligibility to direct URLs and content length priority", () => {
-  // A format without url/signatureCipher is not eligible.
-  expect(
-    selectSabrAudioFormat([
-      { itag: 251, audioQuality: "AUDIO_QUALITY_MEDIUM", averageBitrate: 10 },
-      {
-        itag: 140,
-        url: "https://example.com/140",
-        audioQuality: "AUDIO_QUALITY_LOW",
-        averageBitrate: 999,
-      },
-    ]).itag,
-  ).toBe(140);
-
-  // signatureCipher also makes a format eligible.
-  expect(
-    selectSabrAudioFormat([
-      {
-        itag: 251,
-        signatureCipher: "url=https%3A%2F%2Fexample.com%2F251",
-        audioQuality: "AUDIO_QUALITY_MEDIUM",
-      },
-    ]).itag,
-  ).toBe(251);
-});
-
-test("prefers dedicated audio over a smaller muxed format", () => {
-  // Muxed itag 18 is smaller, but audio-only adaptive formats win outright.
-  expect(
-    selectSabrAudioFormat([
-      {
-        itag: 18,
-        url: "https://example.com/18",
-        mimeType: 'video/mp4; codecs="avc1.42001E, mp4a.40.2"',
-        contentLength: 50,
-      },
-      {
-        itag: 140,
-        url: "https://example.com/140",
-        mimeType: "audio/mp4",
-        contentLength: "200",
-      },
-    ]).itag,
-  ).toBe(140);
-});
-
-test("falls back to regular/muxed formats without dedicated audio", () => {
-  // itag 18 wins over a smaller video-only regular format.
-  expect(
-    selectSabrAudioFormat([
-      {
-        itag: 137,
-        url: "https://example.com/137",
-        mimeType: 'video/mp4; codecs="avc1.640028"',
-        contentLength: 10,
-      },
-      {
-        itag: 18,
-        url: "https://example.com/18",
-        mimeType: 'video/mp4; codecs="avc1.42001E, mp4a.40.2"',
-        contentLength: "300",
-      },
-    ]).itag,
-  ).toBe(18);
-
-  // Otherwise the lowest-bitrate mp4a/opus regular format wins.
-  expect(
-    selectSabrAudioFormat([
-      {
-        itag: 22,
-        url: "https://example.com/22",
-        mimeType: 'video/mp4; codecs="avc1.64001F, mp4a.40.2"',
-        bitrate: 500_000,
-      },
-      {
-        itag: 37,
-        url: "https://example.com/37",
-        mimeType: 'video/mp4; codecs="avc1.64001F, mp4a.40.2"',
-        bitrate: 300_000,
-      },
-    ]).itag,
-  ).toBe(37);
-});
-
-test("throws on empty or unusable formats", () => {
-  expect(() => selectSabrAudioFormat([])).toThrow("Empty adaptive formats");
-  expect(() =>
-    selectSabrAudioFormat([{ itag: 18, mimeType: "video/mp4" }]),
-  ).toThrow("web ABR returned no direct audio formats");
-});
-
-test("prefers the requested source language over other tracks", () => {
+// WEB_EMBEDDED selection intentionally differs from SABR: it never falls back
+// to muxed formats and deprioritizes DRC tracks.
+test("web_embedded selects only dedicated audio formats", () => {
   const base = {
     url: "https://example.com/audio",
     audioQuality: "AUDIO_QUALITY_LOW",
   };
-  // Source language beats English and a smaller size.
+  // Muxed format is ignored even when it is smaller/preferred.
   expect(
-    selectSabrAudioFormat(
+    selectWebEmbeddedAudioFormat([
+      {
+        ...base,
+        itag: 18,
+        mimeType: 'video/mp4; codecs="avc1.42001E, mp4a.40.2"',
+        contentLength: 50,
+      },
+      { ...base, itag: 140, mimeType: "audio/mp4", contentLength: 200 },
+    ]).itag,
+  ).toBe(140);
+  // Video-only and no-url formats are unusable -> throws, never muxed fallback.
+  expect(() =>
+    selectWebEmbeddedAudioFormat([
+      {
+        ...base,
+        itag: 137,
+        mimeType: 'video/mp4; codecs="avc1.640028"',
+        contentLength: 10,
+      },
+      {
+        ...base,
+        itag: 251,
+        mimeType: "audio/webm",
+        contentLength: 100,
+        url: undefined,
+      },
+    ]),
+  ).toThrow("no direct audio-only formats");
+  expect(() =>
+    selectWebEmbeddedAudioFormat([
+      { ...base, itag: 251, mimeType: "audio/webm", url: undefined },
+    ]),
+  ).toThrow("no direct audio-only formats");
+});
+
+test("web_embedded deprioritizes DRC tracks", () => {
+  const base = {
+    url: "https://example.com/audio",
+    audioQuality: "AUDIO_QUALITY_LOW",
+  };
+  expect(
+    selectWebEmbeddedAudioFormat([
+      {
+        ...base,
+        itag: 251,
+        mimeType: "audio/webm",
+        xtags: "drc=1",
+        contentLength: 10,
+      },
+      { ...base, itag: 140, mimeType: "audio/mp4", contentLength: 500 },
+    ]).itag,
+  ).toBe(140);
+  expect(
+    selectWebEmbeddedAudioFormat([
+      {
+        ...base,
+        itag: 251,
+        mimeType: "audio/webm",
+        url: "https://example.com/audio?xtags=drc%3D1",
+        contentLength: 10,
+      },
+      { ...base, itag: 140, mimeType: "audio/mp4", contentLength: 500 },
+    ]).itag,
+  ).toBe(140);
+  expect(
+    selectWebEmbeddedAudioFormat([
+      { ...base, itag: 251, mimeType: "audio/webm", xtags: "drc=1" },
+      { ...base, itag: 140, mimeType: "audio/mp4", xtags: "drc=1" },
+    ]).itag,
+  ).toBe(251);
+});
+
+test("web_embedded prefers requested and base languages", () => {
+  const base = {
+    url: "https://example.com/audio",
+    audioQuality: "AUDIO_QUALITY_LOW",
+  };
+  expect(
+    selectWebEmbeddedAudioFormat(
       [
-        { ...base, itag: 140, contentLength: 200, audioTrack: { id: "en-US" } },
-        { ...base, itag: 251, contentLength: 100, audioTrack: { id: "ru" } },
+        {
+          ...base,
+          itag: 251,
+          mimeType: "audio/webm",
+          audioTrack: { id: "en" },
+        },
+        { ...base, itag: 140, mimeType: "audio/mp4", audioTrack: { id: "ru" } },
+      ],
+      "ru",
+    ).itag,
+  ).toBe(140);
+  expect(
+    selectWebEmbeddedAudioFormat(
+      [
+        { ...base, itag: 140, mimeType: "audio/mp4", audioTrack: { id: "ru" } },
+        {
+          ...base,
+          itag: 251,
+          mimeType: "audio/webm",
+          audioTrack: { id: "en" },
+        },
+      ],
+      "en-US",
+    ).itag,
+  ).toBe(251);
+  expect(
+    selectWebEmbeddedAudioFormat(
+      [
+        { ...base, itag: 140, mimeType: "audio/mp4", audioTrack: { id: "ru" } },
+        {
+          ...base,
+          itag: 249,
+          mimeType: "audio/webm",
+          audioTrack: { id: "en.4" },
+        },
+      ],
+      "en",
+    ).itag,
+  ).toBe(249);
+  expect(
+    selectWebEmbeddedAudioFormat(
+      [
+        {
+          ...base,
+          itag: 251,
+          mimeType: "audio/webm",
+          audioTrack: { id: "ru" },
+        },
+        {
+          ...base,
+          itag: 140,
+          mimeType: "audio/mp4",
+          audioTrack: { id: "de", audioIsDefault: true },
+        },
       ],
       "ru",
     ).itag,
   ).toBe(251);
-  // Explicit languageCode field is honored.
   expect(
-    selectSabrAudioFormat(
+    selectWebEmbeddedAudioFormat(
       [
         {
           ...base,
           itag: 140,
-          contentLength: 100,
+          mimeType: "audio/mp4",
           audioTrack: { languageCode: "en" },
         },
         {
           ...base,
           itag: 251,
-          contentLength: 200,
+          mimeType: "audio/webm",
           audioTrack: { languageCode: "ru" },
         },
       ],
       "ru",
     ).itag,
   ).toBe(251);
-  // Normalized en-US request matches an en track.
-  expect(
-    selectSabrAudioFormat(
-      [
-        { ...base, itag: 140, contentLength: 100, audioTrack: { id: "ru" } },
-        { ...base, itag: 251, contentLength: 200, audioTrack: { id: "en" } },
-      ],
-      "en-US",
-    ).itag,
-  ).toBe(251);
-  // en.4 track id matches an en request.
-  expect(
-    selectSabrAudioFormat(
-      [
-        { ...base, itag: 140, contentLength: 100, audioTrack: { id: "ru" } },
-        { ...base, itag: 249, contentLength: 200, audioTrack: { id: "en.4" } },
-      ],
-      "en",
-    ).itag,
-  ).toBe(249);
-  // Within source-language matches, the default track wins.
-  expect(
-    selectSabrAudioFormat(
-      [
-        { ...base, itag: 251, contentLength: 100, audioTrack: { id: "ru" } },
-        {
-          ...base,
-          itag: 140,
-          contentLength: 200,
-          audioTrack: { id: "ru", audioIsDefault: true },
-        },
-      ],
-      "ru",
-    ).itag,
-  ).toBe(140);
 });
 
-test("falls back to default tracks and legacy selection", () => {
+test("web_embedded falls back to default tracks then smallest metadata", () => {
   const base = {
     url: "https://example.com/audio",
     audioQuality: "AUDIO_QUALITY_LOW",
   };
-  // No language match -> default track wins over a smaller one.
   expect(
-    selectSabrAudioFormat(
+    selectWebEmbeddedAudioFormat(
       [
-        { ...base, itag: 251, contentLength: 100, audioTrack: { id: "ru" } },
+        {
+          ...base,
+          itag: 251,
+          mimeType: "audio/webm",
+          audioTrack: { id: "ru" },
+          contentLength: 100,
+        },
         {
           ...base,
           itag: 140,
-          contentLength: 200,
+          mimeType: "audio/mp4",
           audioTrack: { id: "de", audioIsDefault: true },
+          contentLength: 500,
         },
       ],
       "fr",
     ).itag,
   ).toBe(140);
-  // Missing source language -> default track wins.
+});
+
+test("web_embedded ranks by smallest contentLength, bitrate, then first", () => {
+  const base = {
+    url: "https://example.com/audio",
+    audioQuality: "AUDIO_QUALITY_LOW",
+  };
   expect(
-    selectSabrAudioFormat([
-      { ...base, itag: 251, contentLength: 100, audioTrack: { id: "ru" } },
+    selectWebEmbeddedAudioFormat([
+      { ...base, mimeType: "audio/mp4", contentLength: "200" },
+      { ...base, mimeType: "audio/webm", contentLength: 100 },
+      { ...base, mimeType: "audio/webm", contentLength: 0 },
+      { ...base, mimeType: "audio/webm", contentLength: -5 },
+      { ...base, mimeType: "audio/webm", contentLength: "abc" },
       {
         ...base,
-        itag: 140,
-        contentLength: 200,
-        audioTrack: { id: "de", audioIsDefault: true },
+        mimeType: "audio/webm",
+        contentLength: Number.POSITIVE_INFINITY,
       },
+    ]).contentLength,
+  ).toBe(100);
+  expect(
+    selectWebEmbeddedAudioFormat([
+      { ...base, mimeType: "audio/webm", averageBitrate: 90_000 },
+      { ...base, mimeType: "audio/mp4", averageBitrate: "70000" },
+      { ...base, mimeType: "audio/mp4", averageBitrate: 0 },
+      { ...base, mimeType: "audio/mp4" },
+    ]).averageBitrate,
+  ).toBe("70000");
+  expect(
+    selectWebEmbeddedAudioFormat([
+      { ...base, mimeType: "audio/webm" },
+      { ...base, mimeType: "audio/mp4" },
+    ]).mimeType,
+  ).toBe("audio/webm");
+  expect(
+    selectWebEmbeddedAudioFormat([
+      { ...base, itag: 251, mimeType: "audio/webm", contentLength: 100 },
+      { ...base, itag: 140, mimeType: "audio/mp4", contentLength: 100 },
     ]).itag,
-  ).toBe(140);
-  // "auto" is not a usable source language -> default track wins.
-  expect(
-    selectSabrAudioFormat(
-      [
-        { ...base, itag: 251, contentLength: 100, audioTrack: { id: "ru" } },
-        {
-          ...base,
-          itag: 140,
-          contentLength: 200,
-          audioTrack: { id: "de", audioIsDefault: true },
-        },
-      ],
-      "auto",
-    ).itag,
-  ).toBe(140);
-  // No track metadata -> existing size selection.
-  expect(
-    selectSabrAudioFormat(
-      [
-        { ...base, itag: 251, contentLength: 100 },
-        { ...base, itag: 140, contentLength: 200 },
-      ],
-      "ru",
-    ).itag,
   ).toBe(251);
-  // No match and no defaults -> smallest wins (legacy fallback).
   expect(
-    selectSabrAudioFormat(
-      [
-        { ...base, itag: 251, contentLength: 200, audioTrack: { id: "ru" } },
-        { ...base, itag: 140, contentLength: 100, audioTrack: { id: "de" } },
-      ],
-      "fr",
-    ).itag,
-  ).toBe(140);
+    selectWebEmbeddedAudioFormat([
+      { ...base, itag: 251, mimeType: "audio/webm", averageBitrate: 10_000 },
+      { ...base, itag: 140, mimeType: "audio/mp4", averageBitrate: 10_000 },
+    ]).itag,
+  ).toBe(251);
+});
+
+const mediaResponse = (status: number, size = 0) => ({
+  ok: status >= 200 && status < 300,
+  status,
+  arrayBuffer: async () => new ArrayBuffer(size),
+});
+
+async function drainMediaRanges(
+  gen: AsyncGenerator<{ buffer: Uint8Array }>,
+): Promise<{ bytes: number; error: unknown }> {
+  let bytes = 0;
+  try {
+    for await (const chunk of gen) bytes += chunk.buffer.byteLength;
+    return { bytes, error: undefined };
+  } catch (error) {
+    return { bytes, error };
+  }
+}
+
+test("fatal media statuses refresh once then abort the transport matrix", async () => {
+  for (const status of [401, 403, 404, 410]) {
+    let fetches = 0;
+    let refreshes = 0;
+    const targetWindow = {
+      fetch: async () => {
+        fetches++;
+        return mediaResponse(status);
+      },
+    } as unknown as Window;
+    const { error } = await drainMediaRanges(
+      downloadMediaRanges(
+        targetWindow,
+        "https://example.com/audio",
+        4,
+        new AbortController().signal,
+        async () => {
+          refreshes++;
+          return "https://example.com/refreshed";
+        },
+      ),
+    );
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toContain(`(${status},`);
+    // One signed-URL refresh, then the matrix stops instead of trying the
+    // remaining transports on a permanent failure.
+    expect(refreshes).toBe(1);
+    expect(fetches).toBe(2);
+  }
+});
+
+test("transient media failures keep retrying until success", async () => {
+  const failures = [
+    () => mediaResponse(503),
+    () => mediaResponse(429),
+    () => {
+      throw new TypeError("Failed to fetch");
+    },
+  ];
+  for (const failOnce of failures) {
+    let fetches = 0;
+    const targetWindow = {
+      fetch: async () => {
+        fetches++;
+        return fetches === 1 ? failOnce() : mediaResponse(200, 4);
+      },
+    } as unknown as Window;
+    const { bytes, error } = await drainMediaRanges(
+      downloadMediaRanges(
+        targetWindow,
+        "https://example.com/audio",
+        4,
+        new AbortController().signal,
+        async () => "https://example.com/refreshed",
+      ),
+    );
+    expect(error).toBeUndefined();
+    expect(fetches).toBe(2);
+    expect(bytes).toBe(4);
+  }
 });

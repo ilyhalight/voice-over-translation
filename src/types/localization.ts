@@ -87,6 +87,7 @@ export type Phrase =
   | "requestTranslationFailed"
   | "audioNotReceived"
   | "VOTFailedDownloadAudio"
+  | "VOTRetryTranslation"
   | "audioFormatNotSupported"
   | "VOTAutoTranslate"
   | "VOTAutoSubtitles"
@@ -337,6 +338,7 @@ export type Phrases = {
   requestTranslationFailed: string;
   audioNotReceived: string;
   VOTFailedDownloadAudio: string;
+  VOTRetryTranslation: string;
   audioFormatNotSupported: string;
   VOTAutoTranslate: string;
   VOTAutoSubtitles: string;

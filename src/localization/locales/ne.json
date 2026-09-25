@@ -251,5 +251,6 @@
   "VOTLiveVoicesTitle": "प्रत्यक्ष आवाजहरू",
   "VOTLiveVoicesSubtitle": "अधिकतम समानता मानौं सबैलाई रुसी भाषा थाहा छ",
   "VOTYandexTokenExpired": "सत्र समाप्त भयो ।  फेरि लग इन गर्नुहोस्",
-  "VOTVoiceSelection": "डबिंग रोज्नुहोस्"
+  "VOTVoiceSelection": "डबिंग रोज्नुहोस्",
+  "VOTRetryTranslation": "अनुवाद पुन: प्रयास गर्नुहोस्"
 }
