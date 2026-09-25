@@ -21,6 +21,13 @@
     overflow: hidden;
     border-radius: 50%;
 
+    &--failed {
+      background: var(--vot-account-label-color);
+      & > .vot-account-info__avatar-img {
+        display: none;
+      }
+    }
+
     &-img {
       width: 36px;
       height: 36px;

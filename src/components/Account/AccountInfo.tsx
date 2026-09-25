@@ -18,7 +18,12 @@ export function AccountInfo(props: AccountInfoProps): JSX.Element {
           <img
             class="vot-account-info__avatar-img"
             src={props.avatarUrl}
-            alt={`Avatar of ${props.username}`}
+            alt=""
+            onerror={(e) => {
+              e.currentTarget.parentElement?.classList.add(
+                "vot-account-info__avatar--failed",
+              );
+            }}
           ></img>
         </vot-block>
         <vot-block class="vot-account-info__content">
