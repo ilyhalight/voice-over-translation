@@ -69,10 +69,10 @@ export async function handleTranslationButtonCommand(
     return;
   }
 
-  // A click on an errored, idle button only clears the error and stops translation.
-  // Starting a new translation must be a separate, deliberate click.
+  // A click on an errored, idle button only clears the error.
   if (deps.currentStatus === "error" && !deps.currentLoading) {
     deps.transformBtn("none", t("translateVideo"));
+    return;
   }
 
   if (deps.currentStatus !== "none" || deps.currentLoading) {
