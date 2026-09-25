@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 配音翻译
 // @namespace      vot
-// @version        1.11.15
+// @version        1.11.16
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    Watch videos in other languages with voice-over translation and subtitles in any browser
 // @description:de Sieh dir Videos in anderen Sprachen mit Voice-over-Übersetzung und Untertiteln in jedem Browser an
@@ -10327,7 +10327,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.15"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
+		return resolveRuntimeLocaleVersion(String("1.11.16"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
 	}
 	var LocalizationProvider = class {
 		/**
@@ -27340,7 +27340,7 @@ var vot = (function(exports) {
 			classes: hostClasses,
 			styles: hostStyles
 		});
-		const shadowRoot = host.attachShadow({
+		const shadowRoot = Element.prototype.attachShadow.call(host, {
 			mode: "open",
 			delegatesFocus
 		});
@@ -31037,10 +31037,8 @@ var vot = (function(exports) {
 			await videoHandler.stopTranslation();
 			return;
 		}
-		const isRetry = deps.currentStatus === "error" && !deps.currentLoading;
-		if (isRetry) deps.transformBtn("none", localizationProvider.get("translateVideo"));
-		if (!isRetry && (deps.currentStatus !== "none" || deps.currentLoading)) {
-			debug.log("[handleTranslationBtnClick] translationBtn isn't in none state");
+		if (deps.currentStatus === "error" && !deps.currentLoading) deps.transformBtn("none", localizationProvider.get("translateVideo"));
+		if (deps.currentStatus !== "none" || deps.currentLoading) {
 			videoHandler.actionsAbortController.abort();
 			await videoHandler.stopTranslation();
 			return;
