@@ -69,16 +69,13 @@ export async function handleTranslationButtonCommand(
     return;
   }
 
-  // A click on an errored, idle button is the retry action: reset the button
-  // and fall through to translation in this same click instead of taking the
-  // stop/abort branch (which would kill background preparation).
-  const isRetry = deps.currentStatus === "error" && !deps.currentLoading;
-  if (isRetry) {
+  // A click on an errored, idle button only clears the error and stops translation.
+  // Starting a new translation must be a separate, deliberate click.
+  if (deps.currentStatus === "error" && !deps.currentLoading) {
     deps.transformBtn("none", t("translateVideo"));
   }
 
-  if (!isRetry && (deps.currentStatus !== "none" || deps.currentLoading)) {
-    debug.log("[handleTranslationBtnClick] translationBtn isn't in none state");
+  if (deps.currentStatus !== "none" || deps.currentLoading) {
     videoHandler.actionsAbortController.abort();
     await videoHandler.stopTranslation();
     return;
