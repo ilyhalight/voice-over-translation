@@ -277,6 +277,7 @@ export class OverlayController {
           onDetectedLanguageSelect: (language) => {
             if (this.videoHandler?.videoData) {
               this.videoHandler.videoData.detectedLanguage = language;
+              this.videoHandler.translateFromLang = language;
               this.videoHandler.videoManager.rememberUserLanguageSelection(
                 this.videoHandler.videoData.videoId,
                 language,
