@@ -604,6 +604,8 @@ export class VOTTranslationHandler {
 
     try {
       throwIfAborted(signal);
+      await this.videoHandler.ensureProxySettingsResolved();
+      throwIfAborted(signal);
 
       const livelyVoiceAllowed = this.videoHandler.isLivelyVoiceAllowed(
         requestLangForApi,

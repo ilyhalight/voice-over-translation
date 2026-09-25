@@ -320,7 +320,12 @@ export class UIManager {
           return;
         }
 
-        this.videoHandler.votClient.provider.apiToken = account?.token;
+        if (this.videoHandler.data) {
+          this.videoHandler.data.account = account;
+        }
+        if (this.videoHandler.votClient) {
+          this.videoHandler.votClient.provider.apiToken = account?.token;
+        }
       })
       .addEventListener("change:autoTranslate", async (checked) => {
         const videoHandler = this.videoHandler;

@@ -171,6 +171,9 @@ export async function changeSubtitlesLang(
     return clearSelectedSubtitles(this, overlayView);
   }
 
+  await this.ensureProxySettingsResolved();
+  if (!isCurrentSubtitlesSelectionRequest(this, requestVersion)) return this;
+
   let subtitlesObj: SubtitleDescriptor = { ...descriptor };
   const proxiedSubtitlesUrl = proxifyYandexSubtitlesUrl(subtitlesObj.url, {
     translateProxyEnabled: this.data?.translateProxyEnabled,
@@ -353,6 +356,7 @@ export async function loadSubtitles(this: VideoHandler) {
   try {
     let cachedSubs = this.cacheManager.getSubtitles(cacheKey);
     if (!cachedSubs) {
+      await this.ensureProxySettingsResolved();
       // Deduplicate concurrent requests for the same key (e.g. when user spams
       // the subtitles hotkey before the first request resolves).
       let inflight = this.subtitlesLoadPromises.get(cacheKey);

@@ -411,6 +411,7 @@ export class SettingsController {
           onTranslateProxyStatusSelect: async (option) => {
             const value = option.value as TranslateProxyStatus;
             this.data.translateProxyEnabled = value;
+            this.data.translateProxyEnabledDefault = false;
             setSettings(
               "translateProxyEnabled",
               this.data.translateProxyEnabled,

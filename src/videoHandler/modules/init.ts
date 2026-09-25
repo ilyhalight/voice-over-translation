@@ -6,7 +6,6 @@ import {
   DEFAULT_SMART_DUCKING_STRENGTH,
   DEFAULT_TRANSLATION_SERVICE,
   m3u8ProxyHost,
-  PROXY_ONLY_COUNTRIES,
   PROXY_WORKER_HOST,
 } from "../../config/config";
 import { updateAccountFromStorage } from "../../stores/account";
@@ -16,43 +15,10 @@ import type { LanguageSelectKey } from "../../types/components/select";
 import { AUTO_SUBTITLE_LANGUAGE_VALUE } from "../../types/storage";
 import { normalizeButtonPosition } from "../../ui/buttonPlacement";
 import debug from "../../utils/debug";
-import {
-  GM_fetch,
-  IS_PROXY_ONLY_EXTENSION,
-  isSupportGMXhr,
-} from "../../utils/gm";
+import { IS_PROXY_ONLY_EXTENSION, isSupportGMXhr } from "../../utils/gm";
 import { updateConfig, votStorage } from "../../utils/storage";
 import { calculatedResLang } from "../../utils/utils";
 import type { VideoHandler } from "../../VideoHandler";
-import { getCountryCode, setCountryCode } from "../shared";
-
-let countryCodeRequestInFlight: Promise<void> | null = null;
-
-async function ensureCountryCode(): Promise<void> {
-  if (getCountryCode()) {
-    return;
-  }
-
-  countryCodeRequestInFlight ??= (async () => {
-    try {
-      const response = await GM_fetch(
-        "https://cloudflare-dns.com/cdn-cgi/trace",
-        {
-          timeout: 7000,
-        },
-      );
-      const trace = await response.text();
-      const loc = trace.split("\n").find((line) => line.startsWith("loc="));
-      setCountryCode(loc?.slice(4, 6).toUpperCase());
-    } catch (err) {
-      console.error("[VOT] Error getting country:", err);
-    }
-  })().finally(() => {
-    countryCodeRequestInFlight = null;
-  });
-
-  await countryCodeRequestInFlight;
-}
 
 export async function init(this: VideoHandler) {
   if (this.initialized) return;
@@ -190,31 +156,16 @@ export async function init(this: VideoHandler) {
   if (!this.data.translateProxyEnabled && IS_PROXY_ONLY_EXTENSION) {
     this.data.translateProxyEnabled = 1;
   }
-  // Determine country for proxy purposes
-  await ensureCountryCode();
-
-  const countryCode = getCountryCode();
-  if (
-    countryCode !== null &&
-    PROXY_ONLY_COUNTRIES.includes(countryCode) &&
-    this.data.translateProxyEnabledDefault
-  ) {
-    this.data.translateProxyEnabled = 2;
-  }
-
-  debug.log(
-    "translateProxyEnabled",
-    this.data.translateProxyEnabled,
-    this.data.translateProxyEnabledDefault,
-  );
   debug.log("Extension compatibility passed...");
-
-  await this.initVOTClient();
 
   // Initialize UI elements and events.
   this.uiManager.initUI();
   this.uiManager.initUIEvents();
   this.uiManager.votOverlayView.overlayViewControls?.setButtonHidden(true);
+
+  void this.ensureProxySettingsResolved().catch((err) => {
+    console.error("[VOT] Failed to initialize translation client:", err);
+  });
 
   // Get video data and create player.
   this.createPlayer();

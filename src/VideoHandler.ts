@@ -10,6 +10,7 @@ import { initAudioContext } from "chaimu/player";
 
 import {
   minLongWaitingCount,
+  PROXY_ONLY_COUNTRIES,
   proxyWorkerHostMode1,
   workerHost,
 } from "./config/config";
@@ -24,6 +25,7 @@ import { createVideoLifecycleHost } from "./core/videoLifecycleHost";
 import { VOTVideoManager } from "./core/videoManager";
 import { localizationProvider, t } from "./localization/localizationProvider";
 import { Notifier } from "./notify";
+import { setSettings } from "./stores/settings";
 import { SubtitlesWidget } from "./subtitles/widget";
 import type { ResponseLanguageSubtitles, StorageData } from "./types/storage";
 import type { ProcessedSubtitles } from "./types/subtitles";
@@ -90,6 +92,7 @@ import {
   updateTranslation as updateTranslationImpl,
   validateAudioUrl as validateAudioUrlImpl,
 } from "./videoHandler/modules/translation";
+import { ensureCountryCode, getCountryCode } from "./videoHandler/shared";
 import {
   type ApplyVolumeLinkDeltaResult,
   applyVolumeLinkDelta,
@@ -150,6 +153,11 @@ export class VideoHandler {
   audioContext?: AudioContext;
 
   votClient!: VOTClient;
+  /** Coalesces concurrent VOT client initializations into a single run. */
+  private votClientInitPromise?: Promise<this>;
+  /** Proxy-relevant settings the current client was built with. */
+  private votClientProxyKey?: string;
+  private proxyReadyPromise?: Promise<this>;
   audioPlayer!: Chaimu;
 
   abortController!: AbortController;
@@ -717,11 +725,36 @@ export class VideoHandler {
     return initVideoHandler.call(this);
   }
 
-  /**
-   * Initializes the VOT client.
-   * @returns {VideoHandler} This instance.
-   */
+  /** Initializes the VOT client. */
   async initVOTClient() {
+    while (this.votClientInitPromise) {
+      await this.votClientInitPromise.catch(() => undefined);
+    }
+
+    const proxyKey = this.getVOTClientProxyKey();
+    if (this.votClient && this.votClientProxyKey === proxyKey) {
+      return this;
+    }
+
+    const initPromise = this.buildVOTClient();
+    this.votClientInitPromise = initPromise;
+    try {
+      await initPromise;
+      this.votClientProxyKey = proxyKey;
+    } finally {
+      if (this.votClientInitPromise === initPromise) {
+        this.votClientInitPromise = undefined;
+      }
+    }
+
+    return this;
+  }
+
+  private getVOTClientProxyKey(): string {
+    return `${this.data?.translateProxyEnabled ?? 0}|${this.data?.proxyWorkerHost ?? ""}`;
+  }
+
+  private async buildVOTClient() {
     const proxyClientEnabled = isProxyClientEnabled(this.data ?? {});
     let transportHost = workerHost;
     if (this.data?.translateProxyEnabled === 1) {
@@ -765,6 +798,27 @@ export class VideoHandler {
     };
 
     return this;
+  }
+
+  async ensureProxySettingsResolved(): Promise<this> {
+    this.proxyReadyPromise ??= (async () => {
+      await ensureCountryCode();
+      if (
+        this.data?.translateProxyEnabledDefault &&
+        PROXY_ONLY_COUNTRIES.includes(getCountryCode() ?? "")
+      ) {
+        this.data.translateProxyEnabled = 2;
+        setSettings("translateProxyEnabled", 2);
+      }
+      await this.initVOTClient();
+      return this;
+    })();
+    try {
+      return await this.proxyReadyPromise;
+    } catch (err) {
+      this.proxyReadyPromise = undefined;
+      throw err;
+    }
   }
 
   /**
