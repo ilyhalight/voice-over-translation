@@ -44,7 +44,6 @@ type OverlayControllerEventMap = {
 };
 
 export class OverlayController {
-  private static readonly BIG_CONTAINER_WIDTH_PX = 550;
   private resizeObserver?: ResizeObserver;
   private readonly fullscreenHelper: FullscreenHelper;
 
@@ -223,7 +222,6 @@ export class OverlayController {
           controlsRef: (controls) => {
             this.overlayViewControls = controls;
           },
-          isBigContainer: this.isBigContainer,
           detectedLanguage: this.videoHandler?.videoData?.detectedLanguage,
           responseLanguage: this.data.responseLanguage,
           videoVolume,
@@ -494,12 +492,6 @@ export class OverlayController {
 
     this.initialized = false;
     return this;
-  }
-
-  get isBigContainer() {
-    return this.fullscreenHelper.isBigContainer(
-      OverlayController.BIG_CONTAINER_WIDTH_PX,
-    );
   }
 
   private setupResizeObserver(): void {

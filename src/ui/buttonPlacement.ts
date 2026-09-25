@@ -67,7 +67,6 @@ export function resolveButtonPositionFromPointer(
   clientX: number,
   clientY: number,
   containerRect: DOMRect,
-  isBigContainer: boolean,
 ): Position {
   const width = containerRect.width;
   const height = containerRect.height;
@@ -77,10 +76,6 @@ export function resolveButtonPositionFromPointer(
 
   const x = clampNumber(clientX - containerRect.left, 0, width);
   const y = clampNumber(clientY - containerRect.top, 0, height);
-  if (!isBigContainer) {
-    return "default";
-  }
-
   const sideEdge = getEdgeSize(
     width,
     SIDE_EDGE_FRACTION,

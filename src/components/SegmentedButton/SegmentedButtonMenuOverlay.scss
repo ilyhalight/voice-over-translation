@@ -9,8 +9,8 @@
     calc(env(safe-area-inset-right, 0px) + 64px)
   );
   --vot-menu-side-top-offset: max(
-    clamp(56px, 12.5vh, 136px),
-    calc(env(safe-area-inset-top, 0px) + 8px)
+    clamp(48px, 12.5vh, 128px),
+    env(safe-area-inset-top, 0px)
   );
 
   @media (pointer: coarse) {
@@ -22,10 +22,6 @@
     --vot-menu-side-offset-right: max(
       64px,
       calc(env(safe-area-inset-right, 0px) + 54px)
-    );
-    --vot-menu-side-top-offset: max(
-      clamp(50px, 12.5vh, 120px),
-      calc(env(safe-area-inset-top, 0px) + 8px)
     );
   }
 
@@ -39,6 +35,23 @@
 
   &[aria-hidden="true"] {
     transform: translate(-50%, -4px) scale(0.98);
+  }
+
+  &[data-position="left"],
+  &[data-position="right"] {
+    .vot-menu {
+      max-height: calc(
+        var(--vot-container-height, 75vh) -
+          var(--vot-menu-side-top-offset, 48px) - 16px
+      );
+    }
+  }
+
+  &[data-position="leftCenter"],
+  &[data-position="rightCenter"] {
+    .vot-menu {
+      max-height: calc(var(--vot-container-height, 75vh) - 16px);
+    }
   }
 
   &[data-position="left"] {
@@ -73,13 +86,38 @@
     transform: translateY(-50%) scale(1);
   }
 
+  // In compact players a top-aligned menu can't get tall enough, so left/right
+  // switch to the centered geometry: the menu grows symmetrically around the
+  // player center (near the button) instead of floating high above it.
+  &[data-compact][data-position="left"] {
+    top: 50%;
+    transform-origin: left;
+    transform: translateY(-50%) scale(1);
+
+    .vot-menu {
+      max-height: calc(var(--vot-container-height, 75vh) - 16px);
+    }
+  }
+
+  &[data-compact][data-position="right"] {
+    top: 50%;
+    transform-origin: right;
+    transform: translateY(-50%) scale(1);
+
+    .vot-menu {
+      max-height: calc(var(--vot-container-height, 75vh) - 16px);
+    }
+  }
+
   &[data-position="left"][aria-hidden="true"],
   &[data-position="right"][aria-hidden="true"] {
     transform: translateY(-4px) scale(0.98);
   }
 
   &[data-position="leftCenter"][aria-hidden="true"],
-  &[data-position="rightCenter"][aria-hidden="true"] {
+  &[data-position="rightCenter"][aria-hidden="true"],
+  &[data-compact][data-position="left"][aria-hidden="true"],
+  &[data-compact][data-position="right"][aria-hidden="true"] {
     transform: translateY(calc(-50% - 4px)) scale(0.98);
   }
 }

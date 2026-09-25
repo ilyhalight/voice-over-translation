@@ -122,27 +122,6 @@ export class FullscreenHelper {
   }
 
   /**
-   * Checks if the current container should be considered "big" for button positioning
-   * Takes into account fullscreen state and ShadowDOM
-   */
-  isBigContainer(threshold: number = 550): boolean {
-    const target = this.getResizeObserverTarget();
-    const rect = target.getBoundingClientRect();
-    const videoRect = this.video?.getBoundingClientRect();
-
-    // Use video rect if available and smaller than container
-    let width = target.clientWidth;
-    if (rect.width > 0) {
-      width = rect.width;
-    }
-    if (videoRect && videoRect.width < rect.width) {
-      width = videoRect.width;
-    }
-
-    return width > threshold;
-  }
-
-  /**
    * Adds a listener for fullscreen changes
    */
   addFullscreenChangeListener(listener: () => void): void {
