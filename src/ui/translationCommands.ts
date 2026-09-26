@@ -72,7 +72,6 @@ export async function handleTranslationButtonCommand(
   // A click on an errored, idle button only clears the error.
   if (deps.currentStatus === "error" && !deps.currentLoading) {
     deps.transformBtn("none", t("translateVideo"));
-    return;
   }
 
   if (deps.currentStatus !== "none" || deps.currentLoading) {
