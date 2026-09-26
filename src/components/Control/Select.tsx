@@ -62,6 +62,7 @@ export type BaseSelectProps = {
   controlsRef?: (controls: SelectControls) => void;
   onOpen?: () => void;
   searchItemsProvider?: SearchItemsProvider;
+  mount?: () => HTMLElement | ShadowRoot | undefined;
 };
 
 export type SingleSelectProps = BaseSelectProps & {
@@ -204,6 +205,7 @@ export function Select(props: SelectProps): JSX.Element {
     anchor: () => outerRef,
     popup: () => innerRef,
     isOpen,
+    mount: finalProps.mount,
     onOutsideScroll: () => closeSelect(),
     stablePlacementWhileOpen: Boolean(
       finalProps.search || finalProps.searchItemsProvider,

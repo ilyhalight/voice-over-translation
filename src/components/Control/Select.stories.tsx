@@ -148,6 +148,68 @@ export const SelectNearViewportBottom: Story = {
   },
 };
 
+export const SelectInShadowPortal: Story = {
+  args: {
+    title: "Select something",
+    isOpen: true,
+    options: selectOptions,
+  },
+  render: (args) => {
+    const portalHost = document.createElement("vot-select-portal");
+    const portal = portalHost.attachShadow({ mode: "open" });
+    const style = document.createElement("style");
+    style.textContent = `
+      .vot-select-inner { position: fixed; display: block; padding: 8px; background: white; color: black; }
+      .vot-select-inner__option { display: block; padding: 8px; }
+    `;
+    portal.append(style);
+
+    return (
+      <vot-block style="display: flex; gap: 16px; align-items: start;">
+        <vot-block
+          class="portal-clipped"
+          style="height: 36px; width: 180px; overflow: hidden; contain: paint; border: 1px solid;"
+        >
+          <Select {...args} mount={() => portal} />
+        </vot-block>
+        {portalHost}
+      </vot-block>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const trigger =
+      canvasElement.querySelector<HTMLElement>(".vot-select-outer");
+    await expect(trigger).not.toBeNull();
+    if (!trigger) return;
+
+    const popupId = trigger.getAttribute("aria-controls");
+    const portal = canvasElement.querySelector("vot-select-portal")?.shadowRoot;
+    const popup = popupId ? portal?.getElementById(popupId) : null;
+    await expect(popup).not.toBeNull();
+    if (!popup) return;
+
+    const option = popup.querySelector<HTMLElement>(
+      ".vot-select-inner__option",
+    );
+    await expect(option).toHaveTextContent("Option 1");
+    const clippedContainer =
+      canvasElement.querySelector<HTMLElement>(".portal-clipped");
+    await expect(clippedContainer).not.toBeNull();
+    if (!option || !clippedContainer) return;
+
+    await waitFor(() => {
+      expect(popup.getRootNode()).toBe(portal);
+      const optionRect = option.getBoundingClientRect();
+      expect(optionRect.height).toBeGreaterThan(0);
+      expect(optionRect.top).toBeGreaterThanOrEqual(0);
+      expect(optionRect.bottom).toBeLessThanOrEqual(window.innerHeight);
+      expect(optionRect.top).toBeGreaterThan(
+        clippedContainer.getBoundingClientRect().bottom,
+      );
+    });
+  },
+};
+
 export const SelectWithSearch: Story = {
   args: {
     title: "Select something",

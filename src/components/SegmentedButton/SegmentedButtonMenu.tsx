@@ -156,6 +156,7 @@ export type LanguagePairSelectProps = {
   onDetectedLanguageSelect?: (lang: RequestLang) => void | Promise<void>;
   onResponseLanguageSelect?: (lang: ResponseLang) => void | Promise<void>;
   controlsRef?: (controls: LanguagePairSelectControls) => void;
+  selectMount?: () => HTMLElement | ShadowRoot | undefined;
 };
 function LanguagePairSelect(props: LanguagePairSelectProps): JSX.Element {
   const fromLangsOptions = genSelectOptionsByLangs(availableLangs);
@@ -178,6 +179,7 @@ function LanguagePairSelect(props: LanguagePairSelectProps): JSX.Element {
         title={t("videoLanguage")}
         options={fromLangsOptions}
         selectedValue={props.detectedLanguage}
+        mount={props.selectMount}
         controlsRef={(controls) => (videoControlsRef = controls)}
         onSelect={async (option) =>
           await props.onDetectedLanguageSelect?.(option.value as RequestLang)
@@ -190,6 +192,7 @@ function LanguagePairSelect(props: LanguagePairSelectProps): JSX.Element {
         title={t("translationLanguage")}
         options={toLangsOptions}
         selectedValue={props.responseLanguage}
+        mount={props.selectMount}
         controlsRef={(controls) => (translationControlsRef = controls)}
         onSelect={async (option) =>
           await props.onResponseLanguageSelect?.(option.value as ResponseLang)
@@ -311,6 +314,7 @@ export function SegmentedButtonMenu(
         detectedLanguage={finalProps.detectedLanguage}
         onDetectedLanguageSelect={finalProps.onDetectedLanguageSelect}
         responseLanguage={settings.responseLanguage}
+        selectMount={finalProps.selectMount}
         onResponseLanguageSelect={(lang) => {
           const prevResponseLanguage = settings.responseLanguage;
           setSettings("responseLanguage", lang);
@@ -332,6 +336,7 @@ export function SegmentedButtonMenu(
         selectedValue={finalProps.selectedSubtitles}
         search
         loading={finalProps.subtitlesLoading}
+        mount={finalProps.selectMount}
         controlsRef={(controls) => (subtitlesSelectControls = controls)}
         onOpen={finalProps.onSubtitlesOpen}
         onSelect={(option) =>

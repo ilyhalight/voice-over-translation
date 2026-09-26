@@ -26,6 +26,7 @@ type OverlayControllerProps = {
   data?: Partial<StorageData>;
   videoHandler?: VideoHandler;
   intervalIdleChecker: IntervalIdleChecker;
+  globalPortal?: HTMLElement;
 };
 
 type OverlayControllerEventMap = {
@@ -55,6 +56,7 @@ export class OverlayController {
   private readonly data: Partial<StorageData>;
   private readonly videoHandler?: VideoHandler;
   private readonly intervalIdleChecker: IntervalIdleChecker;
+  private readonly globalPortal?: HTMLElement;
   private overlayMount?: ShadowMount;
   overlayViewControls?: OverlayViewControls;
   private disposeOverlay?: () => void;
@@ -105,11 +107,13 @@ export class OverlayController {
     data = {},
     videoHandler,
     intervalIdleChecker,
+    globalPortal,
   }: OverlayControllerProps) {
     this.mount = mount;
     this.data = data;
     this.videoHandler = videoHandler;
     this.intervalIdleChecker = intervalIdleChecker;
+    this.globalPortal = globalPortal;
 
     this.fullscreenHelper = new FullscreenHelper({
       container: videoHandler?.container || (mount.root as HTMLElement),
@@ -225,6 +229,10 @@ export class OverlayController {
           detectedLanguage: this.videoHandler?.videoData?.detectedLanguage,
           responseLanguage: this.data.responseLanguage,
           videoVolume,
+          selectMount: this.globalPortal
+            ? () =>
+                this.globalPortal?.isConnected ? this.globalPortal : undefined
+            : undefined,
           onButtonDragActivity: (source) =>
             this.intervalIdleChecker.markActivity(source),
           onButtonDragEnd: () => this.queueButtonAutoHideAfterInteraction(),

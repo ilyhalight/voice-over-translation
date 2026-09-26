@@ -120,6 +120,7 @@ export class UIManager {
       data: this.data,
       videoHandler: this.videoHandler,
       intervalIdleChecker: this.intervalIdleChecker,
+      globalPortal: globalPortalMount.root,
     });
     // Preserve the user's last chosen button position across UI reloads
     // (e.g. when changing the menu language).

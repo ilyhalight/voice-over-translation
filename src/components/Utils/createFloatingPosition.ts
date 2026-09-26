@@ -4,6 +4,7 @@ import { effect } from "solid-js/web";
 const DEFAULT_GAP = 8;
 const DEFAULT_VIEWPORT_MARGIN = 8;
 const AVAILABLE_HEIGHT_PROPERTY = "--vot-floating-available-height";
+const FIXED_PROBE_PX = 10;
 
 export type FloatingPositionOptions = {
   anchor: () => HTMLElement;
@@ -28,6 +29,35 @@ export type FloatingPositionContext = {
 export type FloatingPositionController = {
   update: () => void;
 };
+
+// A fixed popup is positioned against its containing block, which stops being
+// the viewport once an ancestor of the mount creates one via
+// transform/filter/contain. Probing where 0px and Npx land in viewport space
+// reveals that block's origin and scale without enumerating CSS properties,
+// and works across shadow DOM/fullscreen since rects stay viewport-relative.
+// offsetParent is null for fixed elements, so it cannot locate the block.
+export function mapViewportToFixedContainingBlock(
+  popup: HTMLElement,
+  viewportLeft: number,
+  viewportTop: number,
+): { left: number; top: number } {
+  popup.style.left = "0px";
+  popup.style.top = "0px";
+  const origin = popup.getBoundingClientRect();
+  popup.style.left = `${FIXED_PROBE_PX}px`;
+  popup.style.top = `${FIXED_PROBE_PX}px`;
+  const shifted = popup.getBoundingClientRect();
+  const scaleX = (shifted.left - origin.left) / FIXED_PROBE_PX;
+  const scaleY = (shifted.top - origin.top) / FIXED_PROBE_PX;
+  const safeScaleX =
+    Number.isFinite(scaleX) && Math.abs(scaleX) > 1e-6 ? scaleX : 1;
+  const safeScaleY =
+    Number.isFinite(scaleY) && Math.abs(scaleY) > 1e-6 ? scaleY : 1;
+  return {
+    left: (viewportLeft - origin.left) / safeScaleX,
+    top: (viewportTop - origin.top) / safeScaleY,
+  };
+}
 
 function getPopupMount(
   anchor: HTMLElement,
@@ -147,8 +177,9 @@ export function createFloatingPosition(
       ? anchorRect.bottom + gap
       : anchorRect.top - gap - popupRect.height;
 
-    popup.style.left = `${left}px`;
-    popup.style.top = `${top}px`;
+    const fixedCoords = mapViewportToFixedContainingBlock(popup, left, top);
+    popup.style.left = `${fixedCoords.left}px`;
+    popup.style.top = `${fixedCoords.top}px`;
   };
 
   const schedulePositionUpdate = () => {
