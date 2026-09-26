@@ -585,28 +585,6 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
     });
     rootElement.addEventListener("keydown", onEscHandle);
 
-    const selectMount = finalProps.selectMount?.();
-    if (selectMount) {
-      const onEscPortalHandle = (event: KeyboardEvent) => {
-        if (
-          !event
-            .composedPath()
-            .some(
-              (element) =>
-                element instanceof HTMLElement &&
-                element.classList.contains("vot-select-inner"),
-            )
-        ) {
-          return;
-        }
-        onEscHandle(event);
-      };
-      selectMount.addEventListener("keydown", onEscPortalHandle);
-      onCleanup(() => {
-        selectMount.removeEventListener("keydown", onEscPortalHandle);
-      });
-    }
-
     onCleanup(() => {
       document.removeEventListener("pointerdown", onOutsideClickHandle, {
         capture: true,

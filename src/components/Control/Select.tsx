@@ -225,15 +225,33 @@ export function Select(props: SelectProps): JSX.Element {
         }
       };
 
+      const handleKeyDown = (event: KeyboardEvent) => {
+        if (
+          event.key !== "Escape" ||
+          !event
+            .composedPath()
+            .some((element) => element === innerRef || element === outerRef)
+        ) {
+          return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        closeSelect();
+        outerRef.focus();
+      };
+
       window.addEventListener("pointerdown", handlePointerDown, {
         capture: true,
         passive: true,
       });
+      window.addEventListener("keydown", handleKeyDown, true);
 
       onCleanup(() => {
         window.removeEventListener("pointerdown", handlePointerDown, {
           capture: true,
         });
+        window.removeEventListener("keydown", handleKeyDown, true);
       });
     });
   });

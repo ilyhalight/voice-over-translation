@@ -2,6 +2,7 @@ import { createSignal } from "solid-js";
 import { expect, userEvent, waitFor } from "storybook/test";
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
 
+import { Dialog } from "../Dialog/Dialog";
 import { Select, type SelectOption } from "./Select";
 
 const meta = {
@@ -215,6 +216,56 @@ export const SelectWithSearch: Story = {
     title: "Select something",
     options: selectOptions,
     search: true,
+  },
+};
+
+export const SelectEscapeInDialog: Story = {
+  args: {
+    title: "Select something",
+    options: selectOptions,
+  },
+  render: () => {
+    const [isDialogOpen, setIsDialogOpen] = createSignal(true);
+
+    return (
+      <Dialog
+        title="Select Escape regression"
+        isOpen={isDialogOpen()}
+        onClose={() => setIsDialogOpen(false)}
+      >
+        <Select title="Select something" options={selectOptions} search />
+      </Dialog>
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const dialog = canvasElement.querySelector<HTMLElement>(
+      ".vot-dialog-container",
+    );
+    const trigger =
+      canvasElement.querySelector<HTMLElement>(".vot-select-outer");
+    await expect(dialog).not.toBeNull();
+    await expect(trigger).not.toBeNull();
+    if (!dialog || !trigger) return;
+
+    await userEvent.click(trigger);
+    const popup = dialog.querySelector<HTMLElement>(".vot-select-inner");
+    const search = popup?.querySelector<HTMLInputElement>("input");
+    await expect(popup).not.toBeNull();
+    await expect(search).not.toBeNull();
+    if (!popup || !search) return;
+
+    search.focus();
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(popup).toHaveAttribute("hidden");
+    });
+    await expect(dialog).not.toHaveAttribute("aria-hidden", "true");
+    await expect(document.activeElement).toBe(trigger);
+
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(dialog).toHaveAttribute("aria-hidden", "true");
+    });
   },
 };
 
