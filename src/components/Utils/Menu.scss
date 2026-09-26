@@ -22,7 +22,8 @@
   max-width: min(90vw, 560px);
   min-height: 100px;
   max-height: calc(
-    var(--vot-container-height, 75vh) - (5rem + 32px + 16px) * 2
+    var(--vot-container-height, 75vh) - var(--vot-overlay-default-top, 0px) -
+      16px
   );
   overflow: auto;
 
