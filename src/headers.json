@@ -100,7 +100,6 @@
     "*://*.bunkr.cat/*",
     "*://*.bunkr.media/*",
     "*://*.bunkr.red/*",
-    "*://*.bunkr.site/*",
     "*://*.bunkr.ws/*",
     "*://*.bunkr.org/*",
     "*://*.bunkr.sk/*",
@@ -119,7 +118,6 @@
     "*://*.bunkr.ac/*",
     "*://*.bunkr.ax/*",
     "*://web.telegram.org/k/*",
-    "*://rust-server-531j.onrender.com/*",
     "*://mylearn.oracle.com/*",
     "*://learn.deeplearning.ai/*",
     "*://learn-staging.deeplearning.ai/*",
@@ -138,6 +136,7 @@
     "*://projector.datacamp.com/*",
     "*://hot.noodlemagazine.com/*",
     "*://fast.wistia.net/*",
+    "*://oauth.yandex.ru/verification_code*",
     "*://*.the-joi-database.com/*",
     "*://*/*.mp4*",
     "*://*/*.webm*"
@@ -153,6 +152,8 @@
   ],
   "connect": [
     "yandex.ru",
+    "oauth.yandex.ru",
+    "login.yandex.ru",
     "disk.yandex.kz",
     "disk.yandex.com",
     "disk.yandex.com.am",
@@ -181,6 +182,8 @@
     "cloudflare-dns.com",
     "porntn.com",
     "youtube.com",
-    "googlevideo.com"
+    "googlevideo.com",
+    "fonts.google.com",
+    "fonts.googleapis.com"
   ]
 }

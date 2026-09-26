@@ -14,24 +14,26 @@ const localizationProvider = {
   get: (message: keyof typeof locales) => locales[message] ?? message,
 };
 
+const t = localizationProvider.get;
+
 function secsToStrTime(secs: number) {
-  return formatTranslationEta(secs, (key) => localizationProvider.get(key));
+  return formatTranslationEta(secs, (key) => t(key));
 }
 
 describe("secs to str time", () => {
   test("30 sec", () => {
     const result = secsToStrTime(30);
-    const expected = localizationProvider.get("translationTakeAboutMinute");
+    const expected = t("translationTakeAboutMinute");
     expect(result).toBe(expected);
   });
   test("60 sec", () => {
     const result = secsToStrTime(60);
-    const expected = localizationProvider.get("translationTakeAboutMinute");
+    const expected = t("translationTakeAboutMinute");
     expect(result).toBe(expected);
   });
   test("90 sec", () => {
     const result = secsToStrTime(90);
-    const expected = localizationProvider.get("translationTakeAboutMinute");
+    const expected = t("translationTakeAboutMinute");
     expect(result).toBe(expected);
   });
   test("100 sec", () => {
@@ -64,7 +66,7 @@ describe("secs to str time", () => {
   });
   test("3587 sec", () => {
     const result = secsToStrTime(3587);
-    const expected = localizationProvider.get("translationTakeMoreThanHour");
+    const expected = t("translationTakeMoreThanHour");
     expect(result).toBe(expected);
   });
   test("1240 sec", () => {

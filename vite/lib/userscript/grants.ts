@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import fsPromises from "node:fs/promises";
 import path from "node:path";
-import ts from "typescript";
-import { srcDir } from "../paths";
+import * as ts from "typescript";
+import { SOURCE_DIR } from "../paths.ts";
 
 const analyzableCodeExtensions = new Set([
   ".js",
@@ -61,9 +61,9 @@ function readJsonFile<T>(filePath: string): T {
 }
 
 export function getHeaders<T = UserscriptHeader>(lang?: string): T {
-  const localesDir = path.resolve(srcDir, "localization", "locales");
+  const localesDir = path.resolve(SOURCE_DIR, "localization", "locales");
   const localeHeadersDir = path.resolve(localesDir, "headers");
-  const metaHeadersPath = path.resolve(srcDir, "headers.json");
+  const metaHeadersPath = path.resolve(SOURCE_DIR, "headers.json");
   const headersPath = lang
     ? path.resolve(localeHeadersDir, `${lang}.json`)
     : metaHeadersPath;
@@ -268,9 +268,6 @@ export async function collectUsedUserscriptGrantsFromEntry(
   const pendingFiles = [path.resolve(entryFilePath)];
   const visitedFiles = new Set<string>();
   const detectedGrants = new Set<string>();
-
-  // Touch GetAltMatchPatternsFn for signature symmetry with the old API (reserved hook).
-  // void (undefined as GetAltMatchPatternsFn | undefined);
 
   while (pendingFiles.length > 0) {
     const currentFilePath = pendingFiles.pop();

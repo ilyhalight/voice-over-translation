@@ -15,8 +15,6 @@ export type SmartLayoutResult = {
   maxWidthPx: number | null;
 };
 
-const roundToInt = (value: number): number => Math.round(value);
-
 const resolveAspectBand = (
   aspect: number,
 ): {
@@ -126,6 +124,6 @@ export function computeSmartLayoutForBox(
 
   return {
     fontSizePx,
-    maxWidthPx: roundToInt(resolvedMaxWidthPx),
+    maxWidthPx: Math.round(resolvedMaxWidthPx),
   };
 }

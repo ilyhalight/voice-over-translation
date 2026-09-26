@@ -1,8 +1,8 @@
 import type { BaseProviderType } from "@toil/translate/types";
 
 import {
-  defaultDetectService,
-  defaultTranslationService,
+  DEFAULT_DETECT_SERVICE,
+  DEFAULT_TRANSLATION_SERVICE,
   detectRustServerUrl,
   foswlyTranslateUrl,
 } from "../config/config";
@@ -33,7 +33,7 @@ async function getTranslationServiceCached(): Promise<string> {
 
   const service = await votStorage.get(
     "translationService",
-    defaultTranslationService,
+    DEFAULT_TRANSLATION_SERVICE,
   );
   cachedTranslationService = String(service);
   cachedTranslationServiceAt = now;
@@ -49,7 +49,7 @@ async function getDetectServiceCached(): Promise<string> {
     return cachedDetectService;
   }
 
-  const service = await votStorage.get("detectService", defaultDetectService);
+  const service = await votStorage.get("detectService", DEFAULT_DETECT_SERVICE);
   cachedDetectService = String(service);
   cachedDetectServiceAt = now;
   return cachedDetectService;

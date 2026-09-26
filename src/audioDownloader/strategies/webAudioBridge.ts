@@ -1,4 +1,4 @@
-import type { AudioDownloadType } from "@vot.js/core/types/yandex";
+import type { AudioDownloadType } from "@vot.js/core/types/providers/yandex";
 
 import type { GetAudioFromAPIOptions } from "../../types/audioDownloader";
 import debug from "../../utils/debug";
@@ -9,7 +9,7 @@ const MESSAGE_TYPE = "get-audio-chunks-by-mse-in-main-world";
 export const STREAM_TIMEOUT_MS = 30 * 60_000;
 const MESSAGE_TIMEOUT_MS = 5 * 60_000;
 
-export function parseAudioBridgeChunk(payload: unknown): AudioChunk {
+function parseAudioBridgeChunk(payload: unknown): AudioChunk {
   if (!payload || typeof payload !== "object" || !("buffer" in payload)) {
     throw new Error("Audio downloader. Invalid audio bridge chunk");
   }

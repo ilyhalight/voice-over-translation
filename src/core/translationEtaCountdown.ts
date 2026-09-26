@@ -1,4 +1,4 @@
-import { localizationProvider } from "../localization/localizationProvider";
+import { t } from "../localization/localizationProvider";
 import { formatTranslationEta } from "../utils/timeFormatting";
 import VOTLocalizedError from "../VOTLocalizedError";
 
@@ -45,9 +45,7 @@ function createEtaMessage(
     return new VOTLocalizedError("TranslationDelayed");
   }
 
-  return formatTranslationEta(remainingSeconds, (key) =>
-    localizationProvider.get(key),
-  );
+  return formatTranslationEta(remainingSeconds, (key) => t(key));
 }
 
 function getMessageIdentity(message: TranslationEtaCountdownMessage): string {

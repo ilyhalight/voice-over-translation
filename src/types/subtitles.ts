@@ -1,10 +1,11 @@
-import type { VideoService } from "@vot.js/core/types/service";
 import type {
-  GetSubtitlesResponse,
-  VideoSubtitlesOpts,
-} from "@vot.js/core/types/yandex";
+  BaseGetSubtitlesResponse,
+  BaseVideoSubtitlesOpts,
+} from "@vot.js/core/types/providers/base";
+import type { VideoService } from "@vot.js/core/types/service";
+import { subtitlesFormats as votjsSubtitlesFormats } from "@vot.js/shared/consts";
 
-export const subtitleFormats = ["srt", "vtt", "ass", "json"] as const;
+export const subtitleFormats = [...votjsSubtitlesFormats, "ass"] as const;
 export type SubtitleFormat = (typeof subtitleFormats)[number];
 
 export const subtitleFontFamilies = [
@@ -25,20 +26,22 @@ export type SubtitleFontFamily =
   | BuiltInSubtitleFontFamily
   | GoogleSubtitleFontFamily;
 
+const subtitleBaseFontFamilyCSS = `"Segoe UI", system-ui, sans-serif`;
+
 export const subtitleFontFamilyCss = {
-  "default-sans": `"Roboto", "Segoe UI", system-ui, sans-serif`,
+  "default-sans": `"Roboto", ${subtitleBaseFontFamilyCSS}`,
   arial: `Arial, "Helvetica Neue", Helvetica, sans-serif`,
   helvetica: `"Helvetica Neue", Helvetica, Arial, sans-serif`,
-  roboto: `"Roboto", "Segoe UI", system-ui, sans-serif`,
+  roboto: `"Roboto", ${subtitleBaseFontFamilyCSS}`,
   verdana: `Verdana, Geneva, sans-serif`,
-  "open-sans": `"Open Sans", "Segoe UI", system-ui, sans-serif`,
-  poppins: `"Poppins", "Segoe UI", system-ui, sans-serif`,
-  lato: `"Lato", "Segoe UI", system-ui, sans-serif`,
-  montserrat: `"Montserrat", "Segoe UI", system-ui, sans-serif`,
-  barlow: `"Barlow", "Segoe UI", system-ui, sans-serif`,
+  "open-sans": `"Open Sans", ${subtitleBaseFontFamilyCSS}`,
+  poppins: `"Poppins", ${subtitleBaseFontFamilyCSS}`,
+  lato: `"Lato", ${subtitleBaseFontFamilyCSS}`,
+  montserrat: `"Montserrat", ${subtitleBaseFontFamilyCSS}`,
+  barlow: `"Barlow", ${subtitleBaseFontFamilyCSS}`,
 } as const satisfies Record<BuiltInSubtitleFontFamily, string>;
 
-export const subtitlePositionPresets = [
+const subtitlePositionPresets = [
   "bottom-center",
   "center",
   "top-center",
@@ -159,8 +162,8 @@ export type VideoDataForSubtitles = {
   subtitles?: SubtitleDescriptor[];
 };
 
-export type SubtitlesRequestPayload = VideoSubtitlesOpts<VideoService>;
-export type SubtitlesResponsePayload = GetSubtitlesResponse;
+export type SubtitlesRequestPayload = BaseVideoSubtitlesOpts<VideoService>;
+export type SubtitlesResponsePayload = BaseGetSubtitlesResponse;
 
 export interface SubtitlesClient {
   getSubtitles(

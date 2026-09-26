@@ -38,7 +38,7 @@ function runTick(
     rms: 0,
     currentVideoVolume: state.currentVolume,
     hostVideoActive: true,
-    duckingTarget01: 0.15,
+    duckingStrength01: 0.5,
     volumeOnStart: 0.8,
     ...overrides,
   };
@@ -55,6 +55,53 @@ function runTick(
     state.runtime = decision.runtime;
   }
   return decision;
+}
+
+function createAudioSettingsHandler(data: Record<string, unknown>) {
+  const volumeWrites: Array<{
+    volume: number;
+    preserveStorage: boolean | undefined;
+  }> = [];
+  const muteWrites: Array<{
+    muted: boolean;
+    preserveStorage: boolean | undefined;
+  }> = [];
+  let currentVolume = 0.7;
+  let currentMuted = false;
+
+  const handler = {
+    data: {
+      enabledAutoVolume: true,
+      syncVolume: false,
+      ...data,
+    },
+    audioPlayer: { player: { volume: 1 } },
+    hasActiveSource: () => true,
+    getVideoVolume: () => currentVolume,
+    isMuted: () => currentMuted,
+    setVideoVolume: (
+      volume: number,
+      options?: { preserveYoutubeVolumeStorage?: boolean },
+    ) => {
+      currentVolume = volume;
+      volumeWrites.push({
+        volume,
+        preserveStorage: options?.preserveYoutubeVolumeStorage,
+      });
+    },
+    setVideoMuted: (
+      muted: boolean,
+      options?: { preserveYoutubeVolumeStorage?: boolean },
+    ) => {
+      currentMuted = muted;
+      muteWrites.push({
+        muted,
+        preserveStorage: options?.preserveYoutubeVolumeStorage,
+      });
+    },
+  } as any;
+
+  return { handler, volumeWrites, muteWrites };
 }
 
 describe("smart ducking engine", () => {
@@ -139,26 +186,24 @@ describe("smart ducking engine", () => {
     runTick(state, { rms: undefined }, config);
     expect(state.runtime.speechGateOpen).toBe(true);
     expect(state.runtime.isDucked).toBe(true);
-    expect(state.currentVolume).toBe(0.15);
+    expect(state.currentVolume).toBe(0.35);
   });
 
-  test("duck target never raises volume above baseline", () => {
-    const state: TickState = {
-      nowMs: 0,
-      currentVolume: 0.2,
-      runtime: initSmartDuckingRuntime(0.2),
+  test("relative ducking strength scales the target against baseline", () => {
+    const duck = (baseline: number, strength: number) => {
+      const state: TickState = {
+        nowMs: 0,
+        currentVolume: baseline,
+        runtime: initSmartDuckingRuntime(baseline),
+      };
+
+      runTick(state, { smartEnabled: false, duckingStrength01: strength });
+      return state.currentVolume;
     };
 
-    runTick(
-      state,
-      {
-        smartEnabled: false,
-        duckingTarget01: 0.8,
-      },
-      INSTANT_CONFIG,
-    );
-
-    expect(state.currentVolume).toBe(0.2);
+    expect(duck(0.8, 0.5)).toBe(0.4);
+    expect(duck(0.8, 0)).toBe(0.8);
+    expect(duck(0.8, 1)).toBe(0);
   });
 
   test("quantize + slew converges to exact desired step", () => {
@@ -173,17 +218,17 @@ describe("smart ducking engine", () => {
         state,
         {
           smartEnabled: false,
-          duckingTarget01: 0.15,
+          duckingStrength01: 0.5,
         },
         SMART_DUCKING_DEFAULT_CONFIG,
       );
       state.nowMs += 50;
     }
 
-    expect(state.currentVolume).toBe(0.15);
+    expect(state.currentVolume).toBe(0.4);
   });
 
-  test("autoVolume target change is applied on next tick", () => {
+  test("ducking strength change is applied on next tick", () => {
     const state: TickState = {
       nowMs: 0,
       currentVolume: 0.8,
@@ -194,76 +239,38 @@ describe("smart ducking engine", () => {
       state,
       {
         smartEnabled: false,
-        duckingTarget01: 0.2,
+        duckingStrength01: 0.5,
       },
       INSTANT_CONFIG,
     );
-    expect(state.currentVolume).toBe(0.2);
+    expect(state.currentVolume).toBe(0.4);
 
     state.nowMs += 50;
     runTick(
       state,
       {
         smartEnabled: false,
-        duckingTarget01: 0.1,
+        duckingStrength01: 0,
       },
       INSTANT_CONFIG,
     );
-    expect(state.currentVolume).toBe(0.1);
+    expect(state.currentVolume).toBe(0.8);
   });
 
-  test("zero auto-volume mutes the original track and restores mute state", async () => {
+  test("classic zero auto-volume mutes the original track and restores mute state", async () => {
     (globalThis as unknown as { DEBUG_MODE: boolean }).DEBUG_MODE = false;
     const { setupAudioSettings, stopSmartVolumeDucking } = await import(
       "../src/videoHandler/modules/smartDuckingRuntime.ts"
     );
-    const volumeWrites: Array<{
-      volume: number;
-      preserveStorage: boolean | undefined;
-    }> = [];
-    const muteWrites: Array<{
-      muted: boolean;
-      preserveStorage: boolean | undefined;
-    }> = [];
-    let currentVolume = 0.7;
-    let currentMuted = false;
-    const handler = {
-      data: {
-        autoVolume: 0,
-        enabledAutoVolume: true,
-        enabledSmartDucking: true,
-        syncVolume: false,
-      },
-      audioPlayer: { player: { volume: 1 } },
-      hasActiveSource: () => true,
-      getVideoVolume: () => currentVolume,
-      isMuted: () => currentMuted,
-      setVideoVolume: (
-        volume: number,
-        options?: { preserveYoutubeVolumeStorage?: boolean },
-      ) => {
-        currentVolume = volume;
-        volumeWrites.push({
-          volume,
-          preserveStorage: options?.preserveYoutubeVolumeStorage,
-        });
-      },
-      setVideoMuted: (
-        muted: boolean,
-        options?: { preserveYoutubeVolumeStorage?: boolean },
-      ) => {
-        currentMuted = muted;
-        muteWrites.push({
-          muted,
-          preserveStorage: options?.preserveYoutubeVolumeStorage,
-        });
-      },
-    } as any;
+    const { handler, volumeWrites, muteWrites } = createAudioSettingsHandler({
+      autoVolume: 0,
+      enabledSmartDucking: false,
+    });
 
     setupAudioSettings.call(handler);
 
     expect(volumeWrites).toEqual([{ volume: 0, preserveStorage: true }]);
-    expect(muteWrites).toEqual([{ muted: true, preserveStorage: true }]);
+    expect(muteWrites).toEqual([{ muted: true, preserveStorage: undefined }]);
     expect(handler.smartVolumeDuckingBaseline).toBe(0.7);
     expect(handler.autoVolumeMutedOnStart).toBe(false);
 
@@ -279,6 +286,27 @@ describe("smart ducking engine", () => {
     });
   });
 
+  test("smart ducking ignores classic zero auto-volume", async () => {
+    (globalThis as unknown as { DEBUG_MODE: boolean }).DEBUG_MODE = false;
+    const { setupAudioSettings, stopSmartVolumeDucking } = await import(
+      "../src/videoHandler/modules/smartDuckingRuntime.ts"
+    );
+    const { handler, volumeWrites, muteWrites } = createAudioSettingsHandler({
+      autoVolume: 0,
+      enabledSmartDucking: true,
+      smartDuckingStrength: 50,
+    });
+
+    setupAudioSettings.call(handler);
+
+    expect(volumeWrites).toEqual([]);
+    expect(muteWrites).toEqual([]);
+    expect(handler.smartVolumeDuckingInterval).toBeDefined();
+
+    stopSmartVolumeDucking(handler);
+    expect(handler.smartVolumeDuckingInterval).toBeUndefined();
+  });
+
   test("stop decision returns restore volume from baseline or volumeOnStart", () => {
     const withBaseline = computeSmartDuckingStep(
       {
@@ -290,7 +318,7 @@ describe("smart ducking engine", () => {
         rms: 0,
         currentVideoVolume: 0.5,
         hostVideoActive: true,
-        duckingTarget01: 0.15,
+        duckingStrength01: 0.5,
         volumeOnStart: 0.6,
       },
       initSmartDuckingRuntime(0.7),
@@ -311,7 +339,7 @@ describe("smart ducking engine", () => {
         rms: 0,
         currentVideoVolume: 0.5,
         hostVideoActive: true,
-        duckingTarget01: 0.15,
+        duckingStrength01: 0.5,
         volumeOnStart: 0.6,
       },
       initSmartDuckingRuntime(),

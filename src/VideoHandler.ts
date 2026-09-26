@@ -7,8 +7,10 @@ import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import type { ClientSession, SessionModule } from "@vot.js/shared/types/secure";
 import Chaimu from "chaimu/client";
 import { initAudioContext } from "chaimu/player";
+
 import {
   minLongWaitingCount,
+  PROXY_ONLY_COUNTRIES,
   proxyWorkerHostMode1,
   workerHost,
 } from "./config/config";
@@ -21,12 +23,14 @@ import { TranslationOrchestrator } from "./core/translationOrchestrator";
 import { VideoLifecycleController } from "./core/videoLifecycleController";
 import { createVideoLifecycleHost } from "./core/videoLifecycleHost";
 import { VOTVideoManager } from "./core/videoManager";
-import { localizationProvider } from "./localization/localizationProvider";
+import { localizationProvider, t } from "./localization/localizationProvider";
 import { Notifier } from "./notify";
-import type { ProcessedSubtitles } from "./subtitles/processor";
+import { setSettings } from "./stores/settings";
 import { SubtitlesWidget } from "./subtitles/widget";
 import type { ResponseLanguageSubtitles, StorageData } from "./types/storage";
+import type { ProcessedSubtitles } from "./types/subtitles";
 import type { OverlayMount } from "./types/uiManager";
+import type { VideoData } from "./types/videoHandler";
 import { UIManager } from "./ui/manager";
 import { isSameOverlayMount } from "./ui/mount";
 import { OverlayVisibilityController } from "./ui/overlayVisibilityController";
@@ -88,7 +92,7 @@ import {
   updateTranslation as updateTranslationImpl,
   validateAudioUrl as validateAudioUrlImpl,
 } from "./videoHandler/modules/translation";
-import type { VideoData } from "./videoHandler/shared";
+import { ensureCountryCode, getCountryCode } from "./videoHandler/shared";
 import {
   type ApplyVolumeLinkDeltaResult,
   applyVolumeLinkDelta,
@@ -149,6 +153,11 @@ export class VideoHandler {
   audioContext?: AudioContext;
 
   votClient!: VOTClient;
+  /** Coalesces concurrent VOT client initializations into a single run. */
+  private votClientInitPromise?: Promise<this>;
+  /** Proxy-relevant settings the current client was built with. */
+  private votClientProxyKey?: string;
+  private proxyReadyPromise?: Promise<this>;
   audioPlayer!: Chaimu;
 
   abortController!: AbortController;
@@ -223,6 +232,13 @@ export class VideoHandler {
   longWaitingResCount = 0;
   hadAsyncWait = false;
 
+  /**
+   * Set to `true` when the video was programmatically paused while waiting for
+   * translation audio to be prepared (autoPauseOnTranslate feature).
+   * Reset when translation finishes or when the user manually starts playback.
+   */
+  pausedByTranslation = false;
+
   // Available subtitle tracks for the current video. The subtitles UI widget
   // maintains its own internal line/token representation.
   subtitles: any[] = [];
@@ -250,7 +266,6 @@ export class VideoHandler {
   yandexSubtitles: ProcessedSubtitles | null = null;
 
   // Observers / listeners
-  resizeObserver?: ResizeObserver;
   syncVolumeObserver?: MutationObserver;
 
   // Init guard
@@ -710,11 +725,36 @@ export class VideoHandler {
     return initVideoHandler.call(this);
   }
 
-  /**
-   * Initializes the VOT client.
-   * @returns {VideoHandler} This instance.
-   */
+  /** Initializes the VOT client. */
   async initVOTClient() {
+    while (this.votClientInitPromise) {
+      await this.votClientInitPromise.catch(() => undefined);
+    }
+
+    const proxyKey = this.getVOTClientProxyKey();
+    if (this.votClient && this.votClientProxyKey === proxyKey) {
+      return this;
+    }
+
+    const initPromise = this.buildVOTClient();
+    this.votClientInitPromise = initPromise;
+    try {
+      await initPromise;
+      this.votClientProxyKey = proxyKey;
+    } finally {
+      if (this.votClientInitPromise === initPromise) {
+        this.votClientInitPromise = undefined;
+      }
+    }
+
+    return this;
+  }
+
+  private getVOTClientProxyKey(): string {
+    return `${this.data?.translateProxyEnabled ?? 0}|${this.data?.proxyWorkerHost ?? ""}`;
+  }
+
+  private async buildVOTClient() {
     const proxyClientEnabled = isProxyClientEnabled(this.data ?? {});
     let transportHost = workerHost;
     if (this.data?.translateProxyEnabled === 1) {
@@ -760,16 +800,34 @@ export class VideoHandler {
     return this;
   }
 
+  async ensureProxySettingsResolved(): Promise<this> {
+    this.proxyReadyPromise ??= (async () => {
+      await ensureCountryCode();
+      if (
+        this.data?.translateProxyEnabledDefault &&
+        PROXY_ONLY_COUNTRIES.includes(getCountryCode() ?? "")
+      ) {
+        this.data.translateProxyEnabled = 2;
+        setSettings("translateProxyEnabled", 2);
+      }
+      await this.initVOTClient();
+      return this;
+    })();
+    try {
+      return await this.proxyReadyPromise;
+    } catch (err) {
+      this.proxyReadyPromise = undefined;
+      throw err;
+    }
+  }
+
   /**
    * Sets the translation button state and text.
    * @param {string} status The new status.
    * @param {string} text The text to display.
    * @returns {VideoHandler} This instance.
    */
-  transformBtn(
-    status: "none" | "loading" | "success" | "error",
-    text: string,
-  ): this {
+  transformBtn(status: "none" | "success" | "error", text: string): this {
     this.uiManager.transformBtn(status, text);
     return this;
   }
@@ -1050,15 +1108,9 @@ export class VideoHandler {
     fromType: "translation" | "video",
     newVolume: number,
   ): ApplyVolumeLinkDeltaResult | undefined {
-    const overlayView = this.uiManager.votOverlayView;
-    if (!overlayView?.isInitialized()) {
-      return undefined;
-    }
-
-    const videoSlider = overlayView.videoVolumeSlider;
-    const translationSlider = overlayView.translationVolumeSlider;
-
-    if (!videoSlider || !translationSlider) {
+    const overlayViewControls =
+      this.uiManager.votOverlayView?.overlayViewControls;
+    if (!overlayViewControls) {
       return undefined;
     }
 
@@ -1066,21 +1118,21 @@ export class VideoHandler {
       state: this.volumeLinkState,
       fromType,
       newVolume,
-      currentVideo: Number(videoSlider.value),
-      currentTranslation: Number(translationSlider.value),
-      translationMin: translationSlider.min,
-      translationMax: translationSlider.max,
+      currentVideo: overlayViewControls.getVideoVolume(),
+      currentTranslation: overlayViewControls.getTranslationVolume(),
+      translationMin: 0,
+      translationMax: overlayViewControls.getMaxTranslationVolume(),
     });
 
     const { nextVideo, nextTranslation } = result;
 
     if (typeof nextTranslation === "number") {
-      translationSlider.value = nextTranslation;
+      overlayViewControls.setTranslationVolume(nextTranslation);
       return result;
     }
 
     if (typeof nextVideo === "number") {
-      videoSlider.value = nextVideo;
+      overlayViewControls.setVideoVolume(nextVideo);
       this.setVideoVolume(nextVideo / 100);
     }
 
@@ -1119,21 +1171,14 @@ export class VideoHandler {
         debug.log("audioPlayer after stopTranslate", this.audioPlayer);
       }
       this.activeTranslation = null;
-      const overlayView = this.uiManager.votOverlayView;
-      if (overlayView) {
-        for (const control of [
-          overlayView.videoVolumeSlider,
-          overlayView.translationVolumeSlider,
-          overlayView.downloadTranslationButton,
-        ]) {
-          if (control) control.hidden = true;
-        }
-      }
+      this.uiManager.votOverlayView?.overlayViewControls?.setShowDownloadTranslation(
+        false,
+      );
       this.downloadTranslation = null;
       this.longWaitingResCount = 0;
       this.hadAsyncWait = false;
       this.translationHandler?.stopTranslationEtaCountdown();
-      this.transformBtn("none", localizationProvider.get("translateVideo"));
+      this.transformBtn("none", t("translateVideo"));
       debug.log(`Volume on start: ${this.volumeOnStart}`);
 
       const restoreVolume =
@@ -1177,11 +1222,11 @@ export class VideoHandler {
     if (signal?.aborted) {
       return;
     }
-    const translationTake = localizationProvider.get("translationTake");
+    const translationTake = t("translationTake");
     const lang = localizationProvider.lang;
     if (options.countLongWait !== false) {
       this.longWaitingResCount =
-        errorMessage === localizationProvider.get("translationTakeAboutMinute")
+        errorMessage === t("translationTakeAboutMinute")
           ? this.longWaitingResCount + 1
           : 0;
       debug.log("longWaitingResCount", this.longWaitingResCount);
@@ -1205,9 +1250,7 @@ export class VideoHandler {
       return;
     }
     if (TRANSLATION_LOADING_MESSAGES.has(errorMessage)) {
-      if (this.uiManager.votOverlayView?.votButton) {
-        this.uiManager.votOverlayView.votButton.loading = true;
-      }
+      this.uiManager.votOverlayView.overlayViewControls?.setIsLoading(true);
     }
   }
 
@@ -1257,7 +1300,7 @@ export class VideoHandler {
     signal?: AbortSignal,
   ): Promise<string | null> {
     const overlayView = this.uiManager.votOverlayView;
-    if (!overlayView?.votButton) {
+    if (!overlayView?.overlayViewControls) {
       return null;
     }
 
@@ -1270,7 +1313,7 @@ export class VideoHandler {
       return cached;
     }
 
-    overlayView.votButton.loading = true;
+    overlayView.overlayViewControls?.setIsLoading(true);
     const translatedMessage = await translate(messageStr, "ru", lang);
     if (signal?.aborted) {
       return null;
@@ -1301,32 +1344,20 @@ export class VideoHandler {
    */
   afterUpdateTranslation(audioUrl) {
     const overlayView = this.uiManager.votOverlayView;
-    if (!overlayView?.votButton) {
-      return;
-    }
-    const isSuccess =
-      overlayView.votButton.container.dataset.status === "success";
-    if (overlayView.videoVolumeSlider) {
-      overlayView.videoVolumeSlider.hidden =
-        !this.data?.showVideoSlider || !isSuccess;
-    }
-    if (overlayView.translationVolumeSlider) {
-      overlayView.translationVolumeSlider.hidden = !isSuccess;
-    }
-
-    if (overlayView.videoVolumeSlider && overlayView.translationVolumeSlider) {
+    const overlayViewControls = overlayView?.overlayViewControls;
+    const isSuccess = overlayViewControls?.getStatus() === "success";
+    if (overlayViewControls) {
+      overlayViewControls.setShowTranslationVolume(isSuccess);
       this.resetVolumeLinkState(
-        Number(overlayView.videoVolumeSlider.value),
-        Number(overlayView.translationVolumeSlider.value),
+        overlayViewControls.getVideoVolume(),
+        overlayViewControls.getTranslationVolume(),
       );
     } else {
       this.volumeLinkState.initialized = false;
     }
 
     if (this.videoData && !this.videoData.isStream) {
-      if (overlayView.downloadTranslationButton) {
-        overlayView.downloadTranslationButton.hidden = false;
-      }
+      overlayViewControls?.setShowDownloadTranslation(true);
       this.downloadTranslation = {
         url: audioUrl,
         videoId: this.videoData.videoId,

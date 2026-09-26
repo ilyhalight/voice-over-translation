@@ -7,9 +7,7 @@ export type BootstrapPolicyInput = {
   authOrigin: string;
 };
 
-export function shouldSkipIframeBootstrap(
-  input: BootstrapPolicyInput,
-): boolean {
+function shouldSkipIframeBootstrap(input: BootstrapPolicyInput): boolean {
   if (!input.isIframe) return false;
   return (
     input.href === "about:blank" ||

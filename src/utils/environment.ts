@@ -26,15 +26,17 @@ export function getEnvironmentInfo(): EnvironmentInfo {
     browserInfo.browser?.name,
     browserInfo.browser?.version,
   );
+
+  const safeGMInfo = typeof GM_info === "undefined" ? undefined : GM_info;
   const loader = (() => {
-    const handler = GM_info?.scriptHandler;
-    const version = GM_info?.version;
+    const handler = safeGMInfo?.scriptHandler;
+    const version = safeGMInfo?.version;
     if (handler && version) return `${handler} v${version}`;
     return handler || version || UNKNOWN_VALUE;
   })();
 
-  const scriptVersion = GM_info?.script?.version ?? UNKNOWN_VALUE;
-  const scriptName = GM_info?.script?.name ?? UNKNOWN_VALUE;
+  const scriptVersion = safeGMInfo?.script?.version ?? UNKNOWN_VALUE;
+  const scriptName = safeGMInfo?.script?.name ?? UNKNOWN_VALUE;
   const url = globalThis?.location?.href ?? UNKNOWN_VALUE;
 
   return {

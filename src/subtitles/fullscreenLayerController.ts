@@ -13,10 +13,6 @@ export class FullscreenLayerController {
     this.container = container;
   }
 
-  getWidgetParentElement(): HTMLElement | ShadowRoot {
-    return this.container;
-  }
-
   getLayoutRootElement(): HTMLElement {
     return this.container instanceof ShadowRoot
       ? (this.container.host as HTMLElement)
