@@ -77,7 +77,7 @@
     border-radius: 0.75em;
     background: rgb(var(--vot-secondary-rgb, 43, 44, 48));
     color: rgba(var(--vot-onsurface-rgb), 0.87);
-    max-width: 300px;
+    max-width: min(300px, 100%);
     max-height: min(85vh, 350px, var(--vot-floating-available-height, 100vh));
     overflow: hidden;
     pointer-events: auto;

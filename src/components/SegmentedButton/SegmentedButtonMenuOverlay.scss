@@ -41,8 +41,11 @@
   &[data-position="right"] {
     .vot-menu {
       max-height: calc(
-        var(--vot-container-height, 75vh) -
-          var(--vot-menu-side-top-offset, 48px) - 16px
+        var(--vot-container-height, 75vh) - var(
+            --vot-menu-side-top-offset,
+            48px
+          ) -
+          16px
       );
     }
   }
@@ -119,5 +122,32 @@
   &[data-compact][data-position="left"][aria-hidden="true"],
   &[data-compact][data-position="right"][aria-hidden="true"] {
     transform: translateY(calc(-50% - 4px)) scale(0.98);
+  }
+
+  &[data-vertical]:not([data-position="default"]) {
+    > .vot-menu {
+      .vot-menu__body {
+        max-height: 275px;
+      }
+
+      .vot-langpair-select {
+        flex-direction: column;
+        gap: var(--vot-space-1);
+        &__icon {
+          transform: rotate(90deg);
+        }
+      }
+      .vot-select {
+        width: 100%;
+        justify-content: start;
+        flex-direction: column;
+        gap: var(--vot-space-1);
+        align-items: start;
+        &-outer {
+          width: 100%;
+          max-width: 100%;
+        }
+      }
+    }
   }
 }

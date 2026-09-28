@@ -194,13 +194,18 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
     setButtonHiddenState(hidden);
   };
 
-  const setContainerSize = (_width: number, height: number) => {
+  const setContainerSize = (width: number, height: number) => {
     const menuHeight = height > 200 ? height : globalThis.innerHeight * 0.75;
     menuOverlay?.style.setProperty("--vot-container-height", `${menuHeight}px`);
     if (menuHeight > 386) {
       menuOverlay?.removeAttribute("data-compact");
     } else {
       menuOverlay?.setAttribute("data-compact", "");
+    }
+    if (width < 300) {
+      menuOverlay?.setAttribute("data-vertical", "");
+    } else {
+      menuOverlay?.removeAttribute("data-vertical");
     }
   };
 
