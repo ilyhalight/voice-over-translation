@@ -59,6 +59,8 @@ ALWAYS write commit messages in English. You MUST use the semantic commits forma
 
 NEVER make push or pull requests without ASK an user!
 
+**Never delete untracked files.** They may contain work-in-progress notes, scratch pads, or local context that is not recoverable from git. Always ask before removing any untracked file.
+
 ## GM API
 
 Never use `unsafeWindow`!
