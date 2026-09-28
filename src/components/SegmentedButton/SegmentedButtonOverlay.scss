@@ -12,6 +12,7 @@
   left: 50%;
   pointer-events: auto;
   touch-action: none;
+  max-width: 100%;
 
   &[data-dragging="true"] {
     left: 0 !important;

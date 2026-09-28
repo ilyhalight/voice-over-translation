@@ -21,6 +21,8 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   width: max-content;
   max-width: calc(100vw - 10px);
+  overflow-wrap: anywhere;
+  white-space: normal;
   height: max-content;
   padding: 4px 8px !important;
   opacity: 0;

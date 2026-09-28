@@ -183,7 +183,7 @@ export function Tooltip(props: TooltipProps): JSX.Element {
       bottom: window.innerHeight - y,
     };
 
-    if (mode() !== "follow" || !usesPortalCoordinates()) {
+    if (!usesPortalCoordinates()) {
       return fallback;
     }
 
@@ -195,10 +195,14 @@ export function Tooltip(props: TooltipProps): JSX.Element {
     }
 
     return {
-      left: rect.left,
-      right: rect.right,
-      top: rect.top,
-      bottom: rect.bottom,
+      left: Math.max(fallback.left, rect.left),
+      right: Math.min(fallback.right, rect.right),
+      top:
+        mode() === "follow" ? Math.max(fallback.top, rect.top) : fallback.top,
+      bottom:
+        mode() === "follow"
+          ? Math.min(fallback.bottom, rect.bottom)
+          : fallback.bottom,
     };
   }
 
@@ -292,25 +296,46 @@ export function Tooltip(props: TooltipProps): JSX.Element {
 
   function updatePosition(element: HTMLElement): void {
     const { x } = offset();
-    const availableWidth = Math.max(0, window.innerWidth - x * 2);
-    const maxWidth = clamp(
-      finalProps.maxWidth ?? availableWidth,
+    const widthBoundary = getPositionBoundary();
+    const anchorBox = getAnchorBox();
+    const availableWidth = Math.max(
       0,
-      availableWidth,
+      widthBoundary.right - widthBoundary.left - x * 2,
+    );
+    const preferred = normalizePosition(finalProps.position);
+    const availableOnSide = (position: "left" | "right") =>
+      Math.max(
+        0,
+        position === "left"
+          ? anchorBox.left - widthBoundary.left - x
+          : widthBoundary.right - anchorBox.right - x,
+      );
+    const maxAvailableWidth =
+      !finalProps.autoLayout && (preferred === "left" || preferred === "right")
+        ? availableOnSide(preferred)
+        : availableWidth;
+    const maxWidth = clamp(
+      finalProps.maxWidth ?? maxAvailableWidth,
+      0,
+      maxAvailableWidth,
     );
     element.style.maxWidth = `${maxWidth}px`;
 
-    const anchorBox = getAnchorBox();
     const tooltipRect = element.getBoundingClientRect();
     const tooltipSize = {
       width: tooltipRect.width || 100,
       height: tooltipRect.height || 40,
     };
     const boundary = getPositionBoundary();
-    const preferred = normalizePosition(finalProps.position);
     const position = finalProps.autoLayout
       ? resolvePosition(anchorBox, tooltipSize, boundary, preferred)
       : preferred;
+    if (position === "left" || position === "right") {
+      element.style.maxWidth = `${Math.min(maxWidth, availableOnSide(position))}px`;
+      const rect = element.getBoundingClientRect();
+      tooltipSize.width = rect.width;
+      tooltipSize.height = rect.height;
+    }
     const coordinates = getCoordinates(anchorBox, tooltipSize, position);
     const viewportOffset = getPortalViewportOffset();
     const top = clamp(
