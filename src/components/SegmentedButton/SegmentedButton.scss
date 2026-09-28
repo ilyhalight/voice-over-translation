@@ -40,7 +40,7 @@
   }
 
   &[data-status="error"] .vot-translate-button {
-    color: #f28b82;
+    color: rgb(var(--vot-error-rgb, 242, 139, 130));
   }
 
   &[data-status="success"] .vot-translate-button {
