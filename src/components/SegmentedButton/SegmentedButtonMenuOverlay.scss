@@ -126,6 +126,13 @@
 
   &[data-vertical]:not([data-position="default"]) {
     > .vot-menu {
+      .vot-menu__header {
+        flex-wrap: wrap;
+        .vot-segmented-button__menu-header:has(> :nth-child(2)) {
+          margin-left: inherit;
+        }
+      }
+
       .vot-menu__body {
         max-height: 275px;
       }
@@ -146,6 +153,11 @@
         &-outer {
           width: 100%;
           max-width: 100%;
+          justify-content: space-around;
+          &__title {
+            min-width: 0;
+            max-width: 120px;
+          }
         }
       }
     }
