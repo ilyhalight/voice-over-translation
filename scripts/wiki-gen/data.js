@@ -286,6 +286,9 @@ const siteData = {
   niconico: {
     paths: ["/watch/VIDEO_ID"],
   },
+  dropout: {
+    domains: ["watch.dropout.tv"],
+  },
   directlink: {
     paths: ["/*.mp4", "/*.webm"],
     limits: [locales.noLocalLinks],

@@ -139,6 +139,8 @@
     "*://hot.noodlemagazine.com/*",
     "*://fast.wistia.net/*",
     "*://*.the-joi-database.com/*",
+    "*://watch.dropout.tv/*",
+    "*://*.vhx.tv/*",
     "*://*/*.mp4*",
     "*://*/*.webm*"
   ],
@@ -174,6 +176,7 @@
     "timeweb.cloud",
     "raw.githubusercontent.com",
     "vimeo.com",
+    "vhx.tv",
     "toil.cc",
     "onrender.com",
     "workers.dev",
