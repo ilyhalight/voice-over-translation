@@ -1,5 +1,6 @@
 import YoutubeHelper from "@vot.js/ext/helpers/youtube";
 import { localizationProvider } from "../../localization/localizationProvider";
+import { getTranslatedDropoutSubtitles } from "../../subtitles/dropoutTranslation";
 import { SubtitlesProcessor } from "../../subtitles/processor";
 import type {
   SubtitleDescriptor,
@@ -123,6 +124,32 @@ function enrichYoutubeSubtitlesForPreference(
     subtitles: dedupeSubtitles([
       ...(Array.isArray(videoData.subtitles) ? videoData.subtitles : []),
       ...preferredYoutubeSubtitles,
+    ]),
+  };
+}
+
+async function enrichDropoutSubtitlesForPreference(
+  handler: VideoHandler,
+  subtitleLanguage: string,
+  videoData: VideoDataForSubtitles,
+): Promise<VideoDataForSubtitles> {
+  if (handler.site.host !== "dropout" || !subtitleLanguage) {
+    return videoData;
+  }
+
+  const translatedSubtitles = await getTranslatedDropoutSubtitles(
+    videoData,
+    subtitleLanguage,
+  );
+  if (!translatedSubtitles) {
+    return videoData;
+  }
+
+  return {
+    ...videoData,
+    subtitles: dedupeSubtitles([
+      ...(Array.isArray(videoData.subtitles) ? videoData.subtitles : []),
+      translatedSubtitles,
     ]),
   };
 }
@@ -374,9 +401,12 @@ export async function loadSubtitles(this: VideoHandler) {
           this,
           subtitleLanguage,
         );
-        inflight = SubtitlesProcessor.getSubtitles(
-          this.votClient,
+        inflight = enrichDropoutSubtitlesForPreference(
+          this,
+          subtitleLanguage,
           videoDataForSubtitles,
+        ).then((videoData) =>
+          SubtitlesProcessor.getSubtitles(this.votClient, videoData),
         );
         this.subtitlesLoadPromises.set(cacheKey, inflight);
       }
