@@ -24,6 +24,7 @@ import { VideoLifecycleController } from "./core/videoLifecycleController";
 import { createVideoLifecycleHost } from "./core/videoLifecycleHost";
 import { VOTVideoManager } from "./core/videoManager";
 import { localizationProvider, t } from "./localization/localizationProvider";
+import { HotkeyController } from "./modules/hotkeys/controller";
 import { Notifier } from "./notify";
 import { setSettings } from "./stores/settings";
 import { SubtitlesWidget } from "./subtitles/widget";
@@ -261,6 +262,7 @@ export class VideoHandler {
   lifecycleController!: VideoLifecycleController;
   translationHandler!: VOTTranslationHandler;
   videoManager!: VOTVideoManager;
+  hotkeyController: HotkeyController;
 
   // Subtitles received directly from API (Yandex) when available
   yandexSubtitles: ProcessedSubtitles | null = null;
@@ -525,6 +527,7 @@ export class VideoHandler {
     );
     this.translationHandler = new VOTTranslationHandler(this);
     this.videoManager = new VOTVideoManager(this);
+    this.hotkeyController = new HotkeyController();
 
     this.fullscreenHelper = new FullscreenHelper({
       container: this.container,

@@ -102,3 +102,11 @@ function walkCrossShadow(
 
   return walkCrossShadow(getNextCrossShadowTarget(current), selector, origin);
 }
+
+export function isInputElement(element: HTMLElement | null): boolean {
+  const activeTag = element?.tagName?.toLowerCase?.() ?? "";
+  return (
+    ["input", "textarea"].includes(activeTag) ||
+    Boolean(element?.isContentEditable)
+  );
+}

@@ -256,6 +256,33 @@ export class SettingsController {
     if (this.isInitialized()) {
       throw new Error("[VOT] SettingsController is already initialized");
     }
+
+    const self = this;
+    this.videoHandler.hotkeyController.actions = [
+      {
+        action: () => this.videoHandler.uiManager.handleTranslationBtnClick(),
+        get hotkey() {
+          return self.data.translationHotkey;
+        },
+        localizationPhrase: "translateVideo",
+        settingsKey: "translationHotkey",
+        onchange: this.createPersistedSettingHandler({
+          storageKey: "translationHotkey",
+        }),
+      },
+      {
+        action: () => this.videoHandler.toggleSubtitlesForCurrentLangPair(),
+        get hotkey() {
+          return self.data.subtitlesHotkey;
+        },
+        localizationPhrase: "VOTSubtitles",
+        settingsKey: "subtitlesHotkey",
+        onchange: this.createPersistedSettingHandler({
+          storageKey: "subtitlesHotkey",
+        }),
+      },
+    ];
+
     this.disposeSettingsDialog = render(() => {
       const [isOpen, setIsOpen] = createSignal(false);
       this.dialogOpen = isOpen;
@@ -348,12 +375,7 @@ export class SettingsController {
           }),
         },
         hotkeys: {
-          onTranslationHotkeyChange: this.createPersistedSettingHandler({
-            storageKey: "translationHotkey",
-          }),
-          onSubtitlesHotkeyChange: this.createPersistedSettingHandler({
-            storageKey: "subtitlesHotkey",
-          }),
+          hotkeyController: this.videoHandler.hotkeyController,
         },
         subtitles: {
           onResponseLanguageSubtitlesSelect: (option) =>
@@ -518,6 +540,7 @@ export class SettingsController {
     this.dialogOpen = undefined;
     this.setDialogOpen = undefined;
     this.root = undefined;
+    this.videoHandler.hotkeyController.actions = [];
   }
   private doReleaseUIEvents(): void {
     this.accountStorageListenerCleanup?.();
@@ -527,7 +550,10 @@ export class SettingsController {
     for (const event of Object.values(this.events)) event.clear();
   }
   release() {
-    if (!this.isInitialized()) return this;
+    if (!this.isInitialized()) {
+      return this;
+    }
+
     this.doReleaseUIEvents();
     this.doReleaseUI();
     this.initialized = false;

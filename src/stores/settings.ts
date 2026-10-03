@@ -20,7 +20,7 @@ import type { DetectService, TranslateService } from "../types/translateApis";
 import { isSupportGMXhr } from "../utils/gm";
 import { calculatedResLang } from "../utils/localization";
 
-type SettingsStore = {
+export type SettingsStore = {
   // menu
   defaultVolume: number;
   responseLanguage: ResponseLang;

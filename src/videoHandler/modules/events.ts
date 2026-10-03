@@ -11,7 +11,7 @@ import {
 import { resetAndHideLifecycle } from "../../core/lifecycleShared";
 import { getPlatformEventConfig } from "../../core/platformEvents";
 import debug from "../../utils/debug";
-import { containsCrossShadow, getDeepActiveElement } from "../../utils/dom";
+import { containsCrossShadow } from "../../utils/dom";
 import { GM_fetch } from "../../utils/gm";
 import { isIframe } from "../../utils/iframeConnector";
 import { clampPercentInt } from "../../utils/volume";
@@ -119,48 +119,7 @@ function syncAudioTranslationVolumeFromVideo(
   if (self.isLikelyInternalVideoVolumeChange(videoPercent)) return;
   self.syncVolumeWrapper("video", videoPercent);
 }
-type ParsedHotkey = {
-  parts: readonly string[];
-  partsSet: ReadonlySet<string>;
-};
-function normalizeHotkeyPart(value: string): string {
-  return value.replace("Key", "").replace("Digit", "");
-}
-function buildPressedHotkeyPartsSet(
-  userPressedKeys: Iterable<string>,
-): Set<string> {
-  const pressedParts = new Set<string>();
-  for (const key of userPressedKeys) {
-    pressedParts.add(normalizeHotkeyPart(key));
-  }
-  return pressedParts;
-}
-function getParsedHotkey(
-  hotkey: string | null | undefined,
-  cache: Map<string, ParsedHotkey>,
-): ParsedHotkey | null {
-  if (!hotkey) return null;
-  const cached = cache.get(hotkey);
-  if (cached) return cached;
-  const parts = hotkey.split("+").filter(Boolean).map(normalizeHotkeyPart);
-  const parsed: ParsedHotkey = {
-    parts,
-    partsSet: new Set(parts),
-  };
-  cache.set(hotkey, parsed);
-  return parsed;
-}
-function isHotkeyMatch(
-  pressedParts: ReadonlySet<string>,
-  hotkey: ParsedHotkey | null,
-): boolean {
-  if (!hotkey) return false;
-  if (pressedParts.size !== hotkey.parts.length) return false;
-  for (const key of hotkey.partsSet) {
-    if (!pressedParts.has(key)) return false;
-  }
-  return true;
-}
+
 function bindOverlayMountEvents(ctx: ExtraEventsContext): void {
   const { self } = ctx;
   self.refreshOverlayMount();
@@ -277,7 +236,7 @@ function bindAudioTrackLanguageSync(ctx: ExtraEventsContext): void {
     { once: true },
   );
 }
-function bindGlobalDismissAndHotkeys(ctx: ExtraEventsContext): void {
+function bindGlobalDismiss(ctx: ExtraEventsContext): void {
   const { self, overlayView, add, addMany, platformConfig } = ctx;
   const dismissFloatingUI = () => {
     const controls = overlayView.overlayViewControls;
@@ -327,62 +286,6 @@ function bindGlobalDismissAndHotkeys(ctx: ExtraEventsContext): void {
     addMany(self.video, ["play", "pause", "seeking"], dismissFloatingUI);
   }
 
-  const userPressedKeys = new Set<string>();
-  const hotkeyCache = new Map<string, ParsedHotkey>();
-  const clearUserPressedKeys = () => userPressedKeys.clear();
-  const runHotkeyAction = (
-    action: () => Promise<unknown>,
-    actionName: string,
-  ) => {
-    void action().catch((error) => {
-      debug.log(`[VOT] ${actionName} hotkey action failed`, error);
-    });
-  };
-  add(document, "keydown", (event) => {
-    const keyboardEvent = event as KeyboardEvent;
-    if (keyboardEvent.repeat) return;
-    userPressedKeys.add(keyboardEvent.code);
-    const activeElement = getDeepActiveElement(document) as HTMLElement | null;
-    const activeTag = activeElement?.tagName?.toLowerCase?.() ?? "";
-    const isInputElement =
-      ["input", "textarea"].includes(activeTag) ||
-      Boolean(activeElement?.isContentEditable);
-    if (isInputElement) return;
-    const pressedParts = buildPressedHotkeyPartsSet(userPressedKeys);
-    if (
-      isHotkeyMatch(
-        pressedParts,
-        getParsedHotkey(self.data?.translationHotkey, hotkeyCache),
-      )
-    ) {
-      clearUserPressedKeys();
-      runHotkeyAction(
-        () => self.uiManager.handleTranslationBtnClick(),
-        "Translation",
-      );
-      return;
-    }
-    if (
-      isHotkeyMatch(
-        pressedParts,
-        getParsedHotkey(self.data?.subtitlesHotkey, hotkeyCache),
-      )
-    ) {
-      clearUserPressedKeys();
-      runHotkeyAction(
-        () => self.toggleSubtitlesForCurrentLangPair(),
-        "Subtitles",
-      );
-    }
-  });
-  add(document, "keyup", (event) =>
-    userPressedKeys.delete((event as KeyboardEvent).code),
-  );
-  add(document, "blur", clearUserPressedKeys);
-  add(document, "visibilitychange", () => {
-    if (document.hidden) clearUserPressedKeys();
-  });
-  add(globalThis, "blur", clearUserPressedKeys);
   const eventContainer = self.getEventContainer();
   if (eventContainer) {
     const useWindowEvents = isIframe() && globalThis.window !== undefined;
@@ -528,9 +431,29 @@ function bindVideoLifecycleEvents(ctx: ExtraEventsContext): void {
     });
   }
 }
+
+function bindGlobalHotkeyActions(ctx: ExtraEventsContext): void {
+  const { self, add } = ctx;
+
+  add(document, "keydown", (event: KeyboardEvent) =>
+    self.hotkeyController.keydownHandler(event),
+  );
+  add(document, "keyup", (event: KeyboardEvent) =>
+    self.hotkeyController.keyupHandler(event),
+  );
+  add(document, "blur", () => self.hotkeyController.blurHandler());
+  add(document, "visibilitychange", () =>
+    self.hotkeyController.visibilitychangeHandler(),
+  );
+  add(globalThis, "blur", () => self.hotkeyController.blurHandler());
+}
+
 export function initExtraEvents(this: VideoHandler) {
   const overlayView = this.uiManager.votOverlayView;
-  if (!overlayView?.overlayViewControls) return;
+  if (!overlayView?.overlayViewControls) {
+    return;
+  }
+
   const { add, addMany } = createScopedListeners(this.abortController.signal);
   const ctx: ExtraEventsContext = {
     self: this,
@@ -543,7 +466,8 @@ export function initExtraEvents(this: VideoHandler) {
   bindOverlayMountEvents(ctx);
   bindYouTubeVolumeSync(ctx);
   bindAudioTrackLanguageSync(ctx);
-  bindGlobalDismissAndHotkeys(ctx);
+  bindGlobalDismiss(ctx);
+  bindGlobalHotkeyActions(ctx);
   bindVideoLifecycleEvents(ctx);
 }
 export function rebindOverlayVisibilityTargets(this: VideoHandler) {
