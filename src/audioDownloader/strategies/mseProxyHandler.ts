@@ -1,8 +1,7 @@
 import { AudioDownloadType } from "@vot.js/core/types/providers/yandex";
 import { config } from "@vot.js/shared";
-
+import { isAbortError, toErrorMessage } from "#utils/errors.ts";
 import debug from "../../utils/debug";
-import { isAbortError } from "../../utils/errors";
 import { type AudioChunk, concatBuffers } from "./audioChunks";
 import { getWebAbrAudioChunks } from "./webAbr";
 
@@ -595,7 +594,7 @@ function createAudioChunkStream(
       } catch (error) {
         debug.error("Audio downloader. MSE iframe stream failed", {
           videoId,
-          error: error instanceof Error ? error.message : String(error),
+          error: toErrorMessage(error),
         });
         onMseError(error);
       }
@@ -711,13 +710,13 @@ async function handleIframeRequest(
     settled = true;
     debug.error("Audio downloader. iframe request failed", {
       messageId: message.messageId,
-      error: error instanceof Error ? error.message : String(error),
+      error: toErrorMessage(error),
     });
     postResponse(source, event.origin, {
       ...message,
       messageDirection: "response",
       payload: undefined,
-      error: error instanceof Error ? error.message : String(error),
+      error: toErrorMessage(error),
       isAborted: controller.signal.aborted || isAbortError(error),
     });
   } finally {

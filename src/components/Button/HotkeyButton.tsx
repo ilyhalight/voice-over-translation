@@ -2,77 +2,12 @@ import { createSignal, type JSX, mergeProps, Show, splitProps } from "solid-js";
 
 import "./HotkeyButton.scss";
 import { effect } from "solid-js/web";
+import {
+  formatKeysCombo,
+  formatKeysComboDisplay,
+} from "#modules/hotkeys/utils.ts";
 import { t } from "../../localization/localizationProvider";
 import { RawButton, type RawButtonProps } from "./RawButton";
-
-function formatKeysCombo(keys: Set<string> | string[]): string {
-  const keysArray = Array.isArray(keys) ? keys : Array.from(keys);
-
-  return keysArray
-    .map((code) => code.replace("Key", "").replace("Digit", ""))
-    .join("+");
-}
-
-function formatKeysComboDisplay(keys: Set<string> | string[] | string): string {
-  let parts: string[];
-  if (typeof keys === "string") {
-    parts = keys.split("+").filter(Boolean);
-  } else if (Array.isArray(keys)) {
-    parts = keys;
-  } else {
-    parts = Array.from(keys);
-  }
-
-  const mapKey = (k: string) => {
-    // Stored keys may have removed "Key" / "Digit" already.
-    switch (k) {
-      case "ControlLeft":
-      case "ControlRight":
-      case "Control":
-        return "Ctrl";
-      case "ShiftLeft":
-      case "ShiftRight":
-      case "Shift":
-        return "Shift";
-      case "AltLeft":
-      case "AltRight":
-      case "Alt":
-        return "Alt";
-      case "MetaLeft":
-      case "MetaRight":
-      case "Meta":
-        return "Meta";
-      case "Space":
-        return "Space";
-      case "ArrowUp":
-        return "↑";
-      case "ArrowDown":
-        return "↓";
-      case "ArrowLeft":
-        return "←";
-      case "ArrowRight":
-        return "→";
-      default:
-        return k.replace("Key", "").replace("Digit", "");
-    }
-  };
-
-  // Show modifiers first, then the rest.
-  const priority = (k: string) => {
-    const m = mapKey(k);
-    if (m === "Ctrl") return 0;
-    if (m === "Alt") return 1;
-    if (m === "Shift") return 2;
-    if (m === "Meta") return 3;
-    return 10;
-  };
-
-  return parts
-    .slice()
-    .sort((a, b) => priority(a) - priority(b))
-    .map(mapKey)
-    .join("+");
-}
 
 export type HotkeyButtonProps = Omit<
   RawButtonProps,

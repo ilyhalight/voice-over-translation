@@ -1,3 +1,4 @@
+import { toErrorMessage } from "#utils/errors.ts";
 import debug from "../../utils/debug";
 import {
   BG_MSG_NOTIFICATION,
@@ -10,7 +11,6 @@ import {
   TYPE_XHR_START,
 } from "../shared/constants";
 import { isSameWindowBridgeEvent, postToPage } from "../shared/transport";
-import { asErrorMessage } from "../shared/utils";
 import { ext, runtimeSendMessage } from "../shared/webext";
 import { handleBridgeRequest } from "./request-handler";
 import { abortBridgeXhr, startBridgeXhr } from "./xhr-bridge";
@@ -109,7 +109,7 @@ function bootstrapExtensionBridge(): void {
           String(data.id ?? ""),
           false,
           undefined,
-          asErrorMessage(err),
+          toErrorMessage(err),
         );
       } else {
         console.error("[VOT Extension] bridge error", err);

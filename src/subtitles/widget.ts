@@ -43,6 +43,8 @@ import { TokenLayoutProcessor } from "./tokenLayoutProcessor";
 import { TokenTooltipController } from "./tokenTooltipController";
 import { computeNextWakeMs } from "./wakeSchedule";
 import "../shims/rvfc-polyfill";
+import { getHostElement } from "#utils/dom.ts";
+import { isDocumentHidden } from "#utils/environment.ts";
 
 type LayoutMetrics = {
   w: number;
@@ -66,9 +68,6 @@ type DraggingState = {
   startClientY: number;
   offset: { x: number; y: number };
 };
-function isDocumentHidden(): boolean {
-  return typeof document !== "undefined" && document.hidden === true;
-}
 
 export class SubtitlesWidget {
   private readonly video?: HTMLVideoElement;
@@ -497,10 +496,7 @@ export class SubtitlesWidget {
     );
   }
   private syncResizeTarget(): void {
-    const nextTarget =
-      this.container instanceof ShadowRoot
-        ? this.container.host
-        : this.container;
+    const nextTarget = getHostElement(this.container);
     if (nextTarget === this.resizeTarget) return;
     if (this.resizeTarget) this.resizeObserver?.unobserve(this.resizeTarget);
     this.resizeTarget = nextTarget;

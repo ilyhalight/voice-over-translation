@@ -12,6 +12,7 @@ import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
 import { votStorage } from "../utils/storage";
 import {
   clearFileName,
+  clickDownloadAnchor,
   type DownloadBlobOptions,
   downloadBlob,
 } from "../utils/utils";
@@ -542,7 +543,11 @@ export class UIManager {
       );
     } catch (err) {
       console.error("[VOT] Download translation failed:", err);
-      if (!this.triggerUrlDownload(downloadUrl, `${filename}.mp3`)) {
+      if (
+        !clickDownloadAnchor(downloadUrl, `${filename}.mp3`, {
+          stopPropagation: false,
+        })
+      ) {
         globalThis.open(downloadUrl, "_blank")?.focus();
       }
     } finally {
@@ -780,25 +785,6 @@ export class UIManager {
     void task.catch((err) => {
       debug.warn(`[VOT] ${errorMessage}`, err);
     });
-  }
-
-  private triggerUrlDownload(url: string, filename: string): boolean {
-    try {
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      // Cross-origin downloads can ignore `download`; keep navigation off the
-      // current tab in that case.
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      a.style.display = "none";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      return true;
-    } catch {
-      return false;
-    }
   }
 
   private isLikelyMobileDownloadContext(): boolean {

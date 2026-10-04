@@ -1,8 +1,3 @@
-import { toErrorMessage } from "../../utils/errors";
-
-export function asErrorMessage(err: unknown): string {
-  return toErrorMessage(err);
-}
 export function callXhrCallback(fn: unknown, arg: unknown): void {
   try {
     if (typeof fn === "function") {

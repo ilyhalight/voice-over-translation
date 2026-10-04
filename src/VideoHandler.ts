@@ -13,6 +13,7 @@ import {
 } from "#modules/cache/manager.ts";
 import { FullscreenHelper } from "#modules/fullscreen/helper.ts";
 import { translate } from "#modules/translateText/service.ts";
+import { getHostElement } from "#utils/dom.ts";
 import {
   minLongWaitingCount,
   PROXY_ONLY_COUNTRIES,
@@ -607,7 +608,7 @@ export class VideoHandler {
    */
   get uiRoot(): HTMLElement {
     const root = this.getOverlayMountPoints().root;
-    return root instanceof ShadowRoot ? (root.host as HTMLElement) : root;
+    return getHostElement(root);
   }
 
   /**

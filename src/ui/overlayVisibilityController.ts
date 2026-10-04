@@ -1,3 +1,4 @@
+import { getNowMs } from "#utils/environment.ts";
 import debug from "../utils/debug";
 import { containsCrossShadow, getDeepActiveElement } from "../utils/dom";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
@@ -282,9 +283,6 @@ export class OverlayVisibilityController {
     if (this.deps.nowMs) {
       return this.deps.nowMs();
     }
-    return typeof performance !== "undefined" &&
-      typeof performance.now === "function"
-      ? performance.now()
-      : Date.now();
+    return getNowMs();
   }
 }

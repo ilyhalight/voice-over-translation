@@ -20,6 +20,16 @@ export function isDocumentHidden(): boolean {
   return typeof document !== "undefined" && document.hidden;
 }
 
+export function getNowMs(): number {
+  if (
+    typeof performance !== "undefined" &&
+    typeof performance.now === "function"
+  ) {
+    return performance.now();
+  }
+  return Date.now();
+}
+
 export function getEnvironmentInfo(): EnvironmentInfo {
   const os = joinParts(browserInfo.os?.name, browserInfo.os?.version);
   const browser = joinParts(

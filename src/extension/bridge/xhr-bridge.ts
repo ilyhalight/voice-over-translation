@@ -1,3 +1,4 @@
+import { createTerminalXhrError } from "#extension/shared/xhr.ts";
 import debug from "../../utils/debug";
 import { toErrorMessage } from "../../utils/errors";
 import {
@@ -205,19 +206,6 @@ function postXhrEvent(requestId: string, payload: AnyObject): void {
   });
 }
 
-function makeBridgeXhrError(details: AnyObject, error: string): AnyObject {
-  return {
-    finalUrl: String(details?.url || ""),
-    readyState: 4,
-    status: 0,
-    statusText: "",
-    responseHeaders: "",
-    response: null,
-    responseText: "",
-    error,
-  };
-}
-
 function resolveBinaryResponseBuffer(
   directResponse: unknown,
   chunks: ArrayBuffer[],
@@ -381,8 +369,8 @@ function handleBridgePortDisconnect(
   settleXhrPort(requestId, st);
   postXhrEvent(requestId, {
     type: "error",
-    error: makeBridgeXhrError(
-      safeDetails,
+    error: createTerminalXhrError(
+      String(safeDetails?.url || ""),
       "Bridge port disconnected before response",
     ),
   });
@@ -470,7 +458,10 @@ function handleStartXhrError(
   if (requestKey) {
     postXhrEvent(requestKey, {
       type: "error",
-      error: makeBridgeXhrError(safeDetails, errorMessage),
+      error: createTerminalXhrError(
+        String(safeDetails?.url || ""),
+        errorMessage,
+      ),
     });
   }
 }

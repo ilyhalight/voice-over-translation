@@ -1,4 +1,5 @@
 import { config } from "@vot.js/shared";
+import { toErrorMessage } from "#utils/errors.ts";
 import { createAbortableDelay } from "../../utils/abort";
 import debug from "../../utils/debug";
 import {
@@ -130,7 +131,7 @@ async function fetchTvConfig(
     debug.log("Audio downloader. client config unavailable", {
       videoId,
       client: "tv",
-      error: error instanceof Error ? error.message : String(error),
+      error: toErrorMessage(error),
     });
   }
 }
@@ -384,7 +385,7 @@ async function resolveYtcfg(
     } catch (error) {
       signal.throwIfAborted();
       debug.log("Audio downloader. web ABR config request failed", {
-        error: error instanceof Error ? error.message : String(error),
+        error: toErrorMessage(error),
       });
     }
   }
@@ -943,7 +944,7 @@ function solveYouTubeChallenges(
     // player code from leaking into the page.
     return runChallengeSolver(targetWindow, preparedPlayer, signature, n);
   } catch (error) {
-    errors.push(error instanceof Error ? error.message : String(error));
+    errors.push(toErrorMessage(error));
   }
   const sandbox = targetWindow.document.createElement("iframe");
   sandbox.style.display = "none";
@@ -957,7 +958,7 @@ function solveYouTubeChallenges(
     if (!realm) throw new Error("Challenge solver sandbox is unavailable");
     return runChallengeSolver(realm, preparedPlayer, signature, n);
   } catch (error) {
-    errors.push(error instanceof Error ? error.message : String(error));
+    errors.push(toErrorMessage(error));
   } finally {
     sandbox.remove();
   }
@@ -1057,7 +1058,7 @@ async function* resolveWebEmbeddedFormatUrl(
       }
     } catch (error) {
       signal.throwIfAborted();
-      errors.push(error instanceof Error ? error.message : String(error));
+      errors.push(toErrorMessage(error));
       continue;
     }
     signal.throwIfAborted();
@@ -1074,7 +1075,7 @@ async function* resolveWebEmbeddedFormatUrl(
     solved = await solve(signature, n);
   } catch (error) {
     signal.throwIfAborted();
-    errors.push(error instanceof Error ? error.message : String(error));
+    errors.push(toErrorMessage(error));
     throw new Error(
       `Audio downloader. challenge solve failed (${errors.join(" | ")})`,
     );
@@ -1442,7 +1443,7 @@ async function fetchMediaRange(
         maxAttempts: WEB_ABR_RANGE_MAX_ATTEMPTS,
         fatal,
         refreshUrl: shouldRefreshUrl,
-        error: error instanceof Error ? error.message : String(error),
+        error: toErrorMessage(error),
       });
 
       if (!hasMoreAttempts) break;
@@ -1860,12 +1861,12 @@ export async function* downloadMediaRanges(
         emitted: false,
         bufferBeforeEmit: true,
         elapsedMs: Math.round(performance.now() - startedAt),
-        error: error instanceof Error ? error.message : String(error),
+        error: toErrorMessage(error),
       });
       if (isFatalMediaError(error)) {
         debug.log("Audio downloader. web ABR transport matrix aborted", {
           transport,
-          error: error instanceof Error ? error.message : String(error),
+          error: toErrorMessage(error),
         });
         throw error;
       }
@@ -2133,7 +2134,7 @@ async function* getWebAbrAudioChunksImpl(
       debug.log("Audio downloader. player client format failed", {
         videoId,
         client: name,
-        error: error instanceof Error ? error.message : String(error),
+        error: toErrorMessage(error),
       });
       lastError = error;
     }

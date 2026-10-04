@@ -11,6 +11,7 @@ import { createTimeoutSignal } from "./abort";
 import { browserInfo } from "./browserInfo";
 import debug from "./debug";
 import { getErrorMessage, isAbortError, makeAbortError } from "./errors";
+import { normalizeHttpMethod } from "./http";
 import { executeWithResponseCache } from "./responseCache";
 import { getHeaders } from "./utils";
 
@@ -133,13 +134,9 @@ function toRequestUrl(url: RequestUrlLike): string {
 }
 
 function resolveRequestMethod(url: RequestUrlLike, method?: string): string {
-  if (method) {
-    return method.toUpperCase();
-  }
-  if (url instanceof Request) {
-    return (url.method || "GET").toUpperCase();
-  }
-  return "GET";
+  return normalizeHttpMethod(
+    method ?? (url instanceof Request ? url.method : undefined),
+  );
 }
 
 function parseResponseHeaders(rawHeaders: unknown): Record<string, string> {
@@ -375,7 +372,7 @@ async function gmXhrFetch(
   fetchOptions: Omit<FetchOpts, "timeout">,
 ): Promise<Response> {
   const headers = getHeaders(fetchOptions.headers);
-  const method = (fetchOptions.method || "GET").toUpperCase();
+  const method = normalizeHttpMethod(fetchOptions.method);
   debug.log("[GM_fetch] GM_xmlhttpRequest start", {
     url: urlStr,
     method,

@@ -94,6 +94,14 @@ function trySendViaUserscriptApi(details: GMNotificationOptions): boolean {
   return false;
 }
 
+function focusWindowSafely() {
+  try {
+    globalThis.focus();
+  } catch {
+    // the browser may block focus() without user activation
+  }
+}
+
 /**
  * Notification helper with dedupe/rate-limit and safe fallbacks.
  */
@@ -137,17 +145,10 @@ export class Notifier {
     this.send(
       {
         text,
-        title: getScriptTitle(),
         timeout: 5000,
         silent: true,
         tag: "VOTTranslationCompleted",
-        onclick: () => {
-          try {
-            globalThis.focus();
-          } catch {
-            /* ignore */
-          }
-        },
+        onclick: () => focusWindowSafely(),
       },
       { key: `translation_completed_${host}`, cooldownMs: 10_000 },
     );
@@ -159,23 +160,15 @@ export class Notifier {
     if (isAbortError(message)) return;
 
     const msg = resolveLocalizedErrorMessage(message);
-    const title = getScriptTitle();
 
     this.send(
       {
         text: msg,
-        title,
         timeout: 8000,
         silent: true,
         // Keep legacy tag casing so existing notification replacement/dedupe continues to work.
         tag: `VOTtranslationFailed_${videoId || "unknown"}`,
-        onclick: () => {
-          try {
-            globalThis.focus();
-          } catch {
-            /* ignore */
-          }
-        },
+        onclick: () => focusWindowSafely(),
       },
       // Errors can loop while polling; keep these non-spammy.
       { key: `translation_failed_${videoId || "unknown"}`, cooldownMs: 30_000 },

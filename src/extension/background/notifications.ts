@@ -1,7 +1,8 @@
+import { toErrorMessage } from "#utils/errors.ts";
 import { EXT_NAME_FALLBACK } from "../../config/config";
 import debug from "../../utils/debug";
 import { BG_MSG_NOTIFICATION } from "../shared/constants";
-import { asErrorMessage, sendBridgeResponse } from "../shared/utils";
+import { sendBridgeResponse } from "../shared/utils";
 import {
   ext,
   notificationsClear,
@@ -142,7 +143,7 @@ export function registerBackgroundNotifications(): void {
           );
           sendBridgeResponse(sendResponse, {
             ok: false,
-            error: asErrorMessage(error),
+            error: toErrorMessage(error),
           });
         }
       })();

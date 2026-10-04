@@ -1,3 +1,4 @@
+import { isAbortError } from "./errors";
 import { clampNumberWithSortedBounds } from "./number";
 
 export { calculatedResLang } from "./localization";
@@ -148,7 +149,7 @@ async function shareBlob(
     await nav.share({ files: [file], title: filename });
     return "shared";
   } catch (err) {
-    if (err instanceof DOMException && err.name === "AbortError") {
+    if (isAbortError(err)) {
       // Treat user cancellation as a completed interaction.
       return "shared";
     }
@@ -157,32 +158,50 @@ async function shareBlob(
   }
 }
 
-function triggerBlobDownload(blob: Blob, filename: string): boolean {
-  const url = URL.createObjectURL(blob);
+type DownloadAnchorOptions = {
+  stopPropagation?: boolean;
+};
+
+export function clickDownloadAnchor(
+  href: string,
+  filename: string,
+  { stopPropagation = true }: DownloadAnchorOptions = {},
+): boolean {
   const anchor = document.createElement("a");
-  anchor.href = url;
+  anchor.href = href;
   anchor.download = filename;
-  anchor.rel = "noopener noreferrer";
+  // Cross-origin downloads can ignore `download`; keep navigation off the
+  // current tab in that case.
   anchor.target = "_blank";
-  anchor.style.position = "fixed";
-  anchor.style.left = "-9999px";
-  anchor.style.top = "0";
-  anchor.addEventListener(
-    "click",
-    (event) => {
-      event.stopPropagation();
-    },
-    { once: true },
-  );
-  (document.body ?? document.documentElement).append(anchor);
+  anchor.rel = "noopener noreferrer";
+  anchor.style.display = "none";
+
+  if (stopPropagation) {
+    anchor.addEventListener(
+      "click",
+      (event) => {
+        event.stopPropagation();
+      },
+      { once: true },
+    );
+  }
 
   try {
+    (document.body ?? document.documentElement).append(anchor);
     anchor.click();
     return true;
   } catch {
     return false;
   } finally {
     anchor.remove();
+  }
+}
+
+function triggerBlobDownload(blob: Blob, filename: string): boolean {
+  const url = URL.createObjectURL(blob);
+  try {
+    return clickDownloadAnchor(url, filename);
+  } finally {
     revokeObjectUrlLater(url);
   }
 }

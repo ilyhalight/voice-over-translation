@@ -110,3 +110,7 @@ export function isInputElement(element: HTMLElement | null): boolean {
     Boolean(element?.isContentEditable)
   );
 }
+
+export function getHostElement(root: ShadowRoot | HTMLElement): HTMLElement {
+  return root instanceof ShadowRoot ? (root.host as HTMLElement) : root;
+}

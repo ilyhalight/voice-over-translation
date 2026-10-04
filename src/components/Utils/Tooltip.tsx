@@ -11,6 +11,7 @@ import {
 
 import "./Tooltip.scss";
 
+import { getHostElement } from "#utils/dom.ts";
 import {
   type PagePosition,
   type Position,
@@ -150,14 +151,18 @@ export function Tooltip(props: TooltipProps): JSX.Element {
     return true;
   }
 
+  function getPortalRect() {
+    const mount = portal();
+    const element = getHostElement(mount);
+    return element.getBoundingClientRect();
+  }
+
   function getPortalViewportOffset(): PagePosition {
     if (!usesPortalCoordinates()) {
       return { top: 0, left: 0 };
     }
 
-    const mount = portal();
-    const element = mount instanceof ShadowRoot ? mount.host : mount;
-    const rect = element.getBoundingClientRect();
+    const rect = getPortalRect();
     return { top: rect.top, left: rect.left };
   }
 
@@ -187,9 +192,7 @@ export function Tooltip(props: TooltipProps): JSX.Element {
       return fallback;
     }
 
-    const mount = portal();
-    const element = mount instanceof ShadowRoot ? mount.host : mount;
-    const rect = element.getBoundingClientRect();
+    const rect = getPortalRect();
     if (!rect.width || !rect.height) {
       return fallback;
     }

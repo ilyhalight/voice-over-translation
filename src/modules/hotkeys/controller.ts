@@ -1,6 +1,8 @@
 import debug from "#utils/debug.ts";
 import { getDeepActiveElement, isInputElement } from "#utils/dom.ts";
+import { isDocumentHidden } from "#utils/environment.ts";
 import type { HotkeyActionItem, ParsedHotkey, RawHotkey } from "./types";
+import { normalizeHotkeyPart } from "./utils";
 
 export class HotkeyController {
   private userPressedKeys = new Set<string>();
@@ -13,10 +15,6 @@ export class HotkeyController {
 
   clearUserPressedKeys() {
     this.userPressedKeys.clear();
-  }
-
-  normalizeHotkeyPart(key: string): string {
-    return key.replace("Key", "").replace("Digit", "");
   }
 
   isHotkeyMatch(
@@ -53,7 +51,7 @@ export class HotkeyController {
     const parts = hotkey
       .split("+")
       .filter(Boolean)
-      .map<string>(this.normalizeHotkeyPart.bind(this));
+      .map<string>(normalizeHotkeyPart);
     const parsed: ParsedHotkey = {
       parts,
       partsSet: new Set(parts),
@@ -65,7 +63,7 @@ export class HotkeyController {
   get normalizedUserPressedKeys(): Set<string> {
     const pressedParts = new Set<string>();
     for (const key of this.userPressedKeys) {
-      pressedParts.add(this.normalizeHotkeyPart(key));
+      pressedParts.add(normalizeHotkeyPart(key));
     }
 
     return pressedParts;
@@ -106,7 +104,7 @@ export class HotkeyController {
   }
 
   visibilitychangeHandler() {
-    if (document.hidden) {
+    if (isDocumentHidden()) {
       this.clearUserPressedKeys();
     }
   }

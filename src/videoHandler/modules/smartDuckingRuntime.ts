@@ -1,3 +1,4 @@
+import { getNowMs } from "#utils/environment.ts";
 import {
   DEFAULT_AUTO_VOLUME,
   DEFAULT_SMART_DUCKING_STRENGTH,
@@ -55,13 +56,6 @@ function getPlayerMediaElement(
   player?: AudioPlayerLike,
 ): HTMLMediaElement | undefined {
   return player?.audio ?? player?.audioElement;
-}
-
-function getNowMs(): number {
-  return typeof performance !== "undefined" &&
-    typeof performance.now === "function"
-    ? performance.now()
-    : Date.now();
 }
 
 function getAutoVolumeMode(handler: VideoHandler): AutoVolumeMode {

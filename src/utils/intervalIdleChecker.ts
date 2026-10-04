@@ -1,4 +1,4 @@
-import { isDocumentHidden } from "./environment";
+import { getNowMs, isDocumentHidden } from "./environment";
 
 type IntervalIdleMode = "active" | "idle" | "hidden";
 type IntervalIdleTickSource = "start" | "interval" | "immediate";
@@ -129,11 +129,7 @@ function normalizeProfile(
 
 function getDefaultRuntime(): IntervalIdleRuntime {
   return {
-    nowMs: () =>
-      typeof performance !== "undefined" &&
-      typeof performance.now === "function"
-        ? performance.now()
-        : Date.now(),
+    nowMs: () => getNowMs(),
     setInterval: globalThis.setInterval.bind(globalThis),
     clearInterval: globalThis.clearInterval.bind(globalThis),
     queueMicrotask: (fn) => {

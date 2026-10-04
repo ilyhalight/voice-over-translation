@@ -1,3 +1,4 @@
+import { isAbortError, makeAbortError, toErrorMessage } from "#utils/errors.ts";
 import type {
   AudioDownloadRequestOptions,
   DownloadedAudioData,
@@ -5,7 +6,6 @@ import type {
 } from "../types/audioDownloader";
 import { throwIfAborted } from "../utils/abort";
 import debug from "../utils/debug";
-import { isAbortError, makeAbortError } from "../utils/errors";
 import { EventImpl } from "../utils/eventImpl";
 
 import {
@@ -163,6 +163,15 @@ async function acquireAudioDownloadSlot(
   return resolveOwn;
 }
 
+type AudioDownloaderEventMap = {
+  downloadedAudio: [translationId: string, data: DownloadedAudioData];
+  downloadedPartialAudio: [
+    translationId: string,
+    data: DownloadedPartialAudioData,
+  ];
+  downloadAudioError: [translationId: string, videoId: string];
+};
+
 export class AudioDownloader {
   // Only the most recent completed download is kept so a failed upload can
   // resume the same video without re-downloading. Completing a different
@@ -180,6 +189,14 @@ export class AudioDownloader {
     [string, DownloadedPartialAudioData]
   >();
   onDownloadAudioError = new EventImpl<[string, string]>();
+
+  private readonly events: {
+    [K in keyof AudioDownloaderEventMap]: EventImpl<AudioDownloaderEventMap[K]>;
+  } = {
+    downloadedAudio: this.onDownloadedAudio,
+    downloadedPartialAudio: this.onDownloadedPartialAudio,
+    downloadAudioError: this.onDownloadAudioError,
+  };
 
   strategy: AvailableAudioDownloadType;
 
@@ -313,7 +330,7 @@ export class AudioDownloader {
           debug.error("Audio downloader. Strategy failed", {
             videoId,
             audioDownloadType: attemptedStrategy,
-            error: error instanceof Error ? error.message : String(error),
+            error: toErrorMessage(error),
           });
         }
       }
@@ -346,18 +363,7 @@ export class AudioDownloader {
     type: "downloadedAudio" | "downloadedPartialAudio" | "downloadAudioError",
     listener: (...data: any[]) => void,
   ): this {
-    switch (type) {
-      case "downloadedAudio":
-        this.onDownloadedAudio.addListener(listener);
-        break;
-      case "downloadedPartialAudio":
-        this.onDownloadedPartialAudio.addListener(listener);
-        break;
-      case "downloadAudioError":
-        this.onDownloadAudioError.addListener(listener);
-        break;
-    }
-
+    this.events[type].addListener(listener);
     return this;
   }
 
@@ -377,18 +383,7 @@ export class AudioDownloader {
     type: "downloadedAudio" | "downloadedPartialAudio" | "downloadAudioError",
     listener: (...data: any[]) => void,
   ): this {
-    switch (type) {
-      case "downloadedAudio":
-        this.onDownloadedAudio.removeListener(listener);
-        break;
-      case "downloadedPartialAudio":
-        this.onDownloadedPartialAudio.removeListener(listener);
-        break;
-      case "downloadAudioError":
-        this.onDownloadAudioError.removeListener(listener);
-        break;
-    }
-
+    this.events[type].removeListener(listener);
     return this;
   }
 }
