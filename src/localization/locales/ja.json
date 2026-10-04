@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "翻訳には約{0}分かかります",
   "requestTranslationFailed": "動画の翻訳リクエストに失敗しました",
   "audioNotReceived": "音声リンクが受信されませんでした",
+  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
   "audioFormatNotSupported": "音声形式がサポートされていません",
   "VOTAutoTranslate": "開いたときに翻訳する",
   "VOTDontTranslateYourLang": "自分の言語からは翻訳しない",

@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "പരിഭാഷ ഏകദേശം {0} മിനിറ്റ് എടുക്കും",
   "requestTranslationFailed": "വീഡിയോ പരിഭാഷ ആവശ്യപ്പെടുന്നതില് പരാജയം",
   "audioNotReceived": "ഓഡിയോ ലിങ്ക് ലഭ്യമല്ല",
+  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
   "audioFormatNotSupported": "ഓഡിയോ ഫോർമാറ്റ് പിന്തുണയ്ക്കുന്നില്ല",
   "VOTAutoTranslate": "ഓപ്പണിൽ വിവർത്തനം ചെയ്യുക",
   "VOTDontTranslateYourLang": "എന്റെ ഭാഷയിൽ നിന്ന് വിവർത്തനം ചെയ്യരുത്",

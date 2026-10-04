@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "{0} मिनट के बारे में अनुवाद लगेगा",
   "requestTranslationFailed": "वीडियो अनुवाद का अनुरोध विफल रहा",
   "audioNotReceived": "ऑडियो का लिंक प्राप्त नहीं हुआ",
+  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
   "audioFormatNotSupported": "ऑडियो फ़ॉर्मेट समर्थित नहीं है",
   "VOTAutoTranslate": "खोलने पर अनुवाद करें",
   "VOTDontTranslateYourLang": "अपनी भाषा से अनुवाद न करें",

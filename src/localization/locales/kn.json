@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "ಅನುವಾದವು ಸರಿಸುಮಾರು {0} ನಿಮಿಷಗಳನ್ನು ತೆಗೆದುಕೊಳ್ಳುತ್ತದೆ",
   "requestTranslationFailed": "ವೀಡಿಯೊ ಅನುವಾದವನ್ನು ಕೋರಲು ವಿಫಲಗೊಂಡಿದೆ",
   "audioNotReceived": "ಆಡಿಯೋ ಲಿಂಕ್ ಬಂದಿಲ್ಲ",
+  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
   "audioFormatNotSupported": "ಆಡಿಯೋ ಸ್ವರೂಪ ಬೆಂಬಲವಿಲ್ಲ",
   "VOTAutoTranslate": "ತೆರೆದ ಮೇಲೆ ಭಾಷಾಂತರಿಸಿ",
   "VOTDontTranslateYourLang": "'ನನ್ನ ಭಾಷೆಯಿಂದ ಭಾಷಾಂತರಿಸಬೇಡಿ'",

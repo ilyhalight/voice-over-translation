@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "Թարգմանությունը կտեւի մոտավորապես {0} րոպե",
   "requestTranslationFailed": "Չհաջողվեց պահանջել տեսանյութի թարգմանություն",
   "audioNotReceived": "Աուդիո հաղորդակցություն չի ստացվել",
+  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
   "audioFormatNotSupported": "Աուդիո Ձևաչափը չի ապահովվում",
   "VOTAutoTranslate": "Թարգմանել բաց",
   "VOTDontTranslateYourLang": "Մի թարգմանիր իմ լեզվից",

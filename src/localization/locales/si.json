@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "පරිවර්තනය සඳහා ආසන්න වශයෙන් {0} විනාඩි ගතවනු ඇත",
   "requestTranslationFailed": "වීඩියෝ පරිවර්තනය ඉල්ලා සිටීමට අසමත්",
   "audioNotReceived": "ශ්රව්ය සබැඳිය ලැබී නැත",
+  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
   "audioFormatNotSupported": "ශ් රව් ය ආකෘතිය සහාය නොදක්වයි",
   "VOTAutoTranslate": "විවෘත මත පරිවර්තනය කරන්න",
   "VOTDontTranslateYourLang": "මගේ භාෂාවෙන් පරිවර්තනය කරන්න එපා",

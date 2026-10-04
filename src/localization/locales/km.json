@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "ការបកប្រែនេះនឹងចំណាយពេលប្រមាណ{0}នាទី",
   "requestTranslationFailed": "បរាជ័យក្នុងការស្នើសុំបកប្រែវីដេអូ",
   "audioNotReceived": "មិនបានទទួលតំណអូឌីយ៉ូ",
+  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
   "audioFormatNotSupported": "ទ្រង់ទ្រាយអូឌីយ៉ូមិនត្រូវបានគាំទ្រទេ",
   "VOTAutoTranslate": "បកប្រែបើក",
   "VOTDontTranslateYourLang": "កុំបកប្រែពីភាសារបស់ខ្ញុំ",

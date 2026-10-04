@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "Përkthimi do të zgjasë afërsisht {0} minuta",
   "requestTranslationFailed": "Nuk arriti të kërkojë përkthim video",
   "audioNotReceived": "Lidhja Audio nuk është marrë",
+  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
   "audioFormatNotSupported": "Formati audio nuk mbështetet",
   "VOTAutoTranslate": "Përktheni në open",
   "VOTDontTranslateYourLang": "Mos përktheni nga gjuha ime",

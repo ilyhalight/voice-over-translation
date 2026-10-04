@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "Tərcümə təxminən {0} dəqiqə çəkəcək",
   "requestTranslationFailed": "Videonun tərcüməsini tələb etmək mümkün olmadı",
   "audioNotReceived": "Səs bağlantısı alınmadı",
+  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
   "audioFormatNotSupported": "Audio format dəstəklənmir",
   "VOTAutoTranslate": "Açıq tərcümə",
   "VOTDontTranslateYourLang": "Dilimdən tərcümə etmə",

@@ -3,7 +3,7 @@ import { config } from "@vot.js/shared";
 import debug from "../../utils/debug";
 import { isAbortError } from "../../utils/errors";
 import { type AudioChunk, concatBuffers } from "./audioChunks";
-import { getWebAbrAudioChunks } from "./webAbr";
+import { getWebAbrAudioChunks } from "./youtubeWebAbr";
 
 const MESSAGE_TYPE = "get-audio-chunks-by-mse-in-main-world";
 const READY_MESSAGE_TYPE = "vot-mse-proxy-ready";

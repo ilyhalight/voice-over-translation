@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "Preklad bude trvať približne {0} minút",
   "requestTranslationFailed": "Nepodarilo sa požiadať o preklad videa",
   "audioNotReceived": "Audio odkaz nebol prijatý",
+  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
   "audioFormatNotSupported": "Formát zvuku nie je podporovaný",
   "VOTAutoTranslate": "Preložiť na open",
   "VOTDontTranslateYourLang": "Neprekladajte z môjho jazyka",

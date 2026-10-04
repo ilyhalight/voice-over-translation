@@ -179,7 +179,7 @@ export class AudioDownloader {
   onDownloadedPartialAudio = new EventImpl<
     [string, DownloadedPartialAudioData]
   >();
-  onDownloadAudioError = new EventImpl<[string, string]>();
+  onDownloadAudioError = new EventImpl<[string, string, boolean]>();
 
   strategy: AvailableAudioDownloadType;
 
@@ -267,7 +267,7 @@ export class AudioDownloader {
       debug.error("Audio downloader. All audio download strategies failed", {
         videoId,
       });
-      this.onDownloadAudioError.dispatch(translationId, videoId);
+      this.onDownloadAudioError.dispatch(translationId, videoId, false);
       return;
     }
 
@@ -310,6 +310,14 @@ export class AudioDownloader {
             });
             return;
           }
+          if (
+            attemptedStrategy === WEB_ABR_STRATEGY &&
+            error instanceof Error &&
+            error.message.includes("YOUTUBE_SIGN_IN_SUGGESTED")
+          ) {
+            this.onDownloadAudioError.dispatch(translationId, videoId, true);
+            return;
+          }
           debug.error("Audio downloader. Strategy failed", {
             videoId,
             audioDownloadType: attemptedStrategy,
@@ -321,7 +329,7 @@ export class AudioDownloader {
       debug.error("Audio downloader. All audio download strategies failed", {
         videoId,
       });
-      this.onDownloadAudioError.dispatch(translationId, videoId);
+      this.onDownloadAudioError.dispatch(translationId, videoId, false);
     } finally {
       if (collecting && this.collectingChunks.get(videoId) === collecting) {
         this.collectingChunks.delete(videoId);
@@ -340,7 +348,11 @@ export class AudioDownloader {
   ): this;
   addEventListener(
     type: "downloadAudioError",
-    listener: (translationId: string, videoId: string) => void,
+    listener: (
+      translationId: string,
+      videoId: string,
+      signInSuggested: boolean,
+    ) => void,
   ): this;
   addEventListener(
     type: "downloadedAudio" | "downloadedPartialAudio" | "downloadAudioError",
@@ -371,7 +383,11 @@ export class AudioDownloader {
   ): this;
   removeEventListener(
     type: "downloadAudioError",
-    listener: (translationId: string, videoId: string) => void,
+    listener: (
+      translationId: string,
+      videoId: string,
+      signInSuggested: boolean,
+    ) => void,
   ): this;
   removeEventListener(
     type: "downloadedAudio" | "downloadedPartialAudio" | "downloadAudioError",

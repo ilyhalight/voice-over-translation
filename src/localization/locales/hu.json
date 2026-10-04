@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "A fordítás körülbelül {0} percet vesz igénybe",
   "requestTranslationFailed": "Nem sikerült a videó fordítását kérni",
   "audioNotReceived": "Az Audio link nem érkezett meg",
+  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
   "audioFormatNotSupported": "Az audio formátum nem támogatott",
   "VOTAutoTranslate": "Fordítás nyitva",
   "VOTDontTranslateYourLang": "Ne fordítson az én nyelvemről",

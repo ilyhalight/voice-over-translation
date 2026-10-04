@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "De vertaling duurt ongeveer {0} minuten",
   "requestTranslationFailed": "Verzoek om videovertaling is mislukt",
   "audioNotReceived": "Audioverbinding niet ontvangen",
+  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
   "audioFormatNotSupported": "Het audioformaat wordt niet ondersteund",
   "VOTAutoTranslate": "Vertalen op open",
   "VOTDontTranslateYourLang": "Niet vertalen vanuit mijn taal",

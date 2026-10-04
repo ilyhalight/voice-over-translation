@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "ትርጉሙ በግምት ይወስዳል {0} ደቂቃዎች",
   "requestTranslationFailed": "የቪዲዮ ትርጉም መጠየቅ አልተሳካም",
   "audioNotReceived": "የድምፅ አገናኝ አልተቀበለም",
+  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
   "audioFormatNotSupported": "የድምጽ ቅርጸት አይደገፍም",
   "VOTAutoTranslate": "ክፈት ላይ መተርጎም",
   "VOTDontTranslateYourLang": "ከቋንቋዬ አትበል",
