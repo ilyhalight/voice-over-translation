@@ -2,7 +2,7 @@ import { type JSX, mergeProps } from "solid-js";
 import { produce } from "solid-js/store";
 import "./AccountLogin.scss";
 
-import { YANDEX_TOKEN_DEFAULT_LIFETIME } from "../../config/auth";
+import { YANDEX_TOKEN_DEFAULT_LIFETIME } from "#modules/auth/consts.ts";
 import { t } from "../../localization/localizationProvider";
 import { setAccount } from "../../stores/account";
 import { votStorage } from "../../utils/storage";

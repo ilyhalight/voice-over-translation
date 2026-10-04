@@ -1,4 +1,4 @@
-import type { EventHandler } from "../types/core/eventImpl";
+import type { EventHandler } from "#types/utils/eventImpl.ts";
 
 export class EventImpl<Args extends unknown[] = unknown[]> {
   private readonly listeners = new Set<EventHandler<Args>>();

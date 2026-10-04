@@ -1,4 +1,4 @@
-import { YANDEX_AUTH_ORIGIN } from "../config/auth";
+import { YANDEX_AUTH_ORIGIN } from "#modules/auth/consts.ts";
 import {
   ensureLocalizationProviderReady,
   localizationProvider,

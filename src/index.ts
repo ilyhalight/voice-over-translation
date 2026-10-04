@@ -1,10 +1,10 @@
 import type { ServiceConf } from "@vot.js/ext/types/service";
 import { getService } from "@vot.js/ext/utils/videoData";
+import { YANDEX_AUTH_ORIGIN } from "#modules/auth/consts.ts";
 import { getOrCreateBootState } from "./bootstrap/bootState";
 import { initIframeInteractor } from "./bootstrap/iframeInteractor";
 import { ensureRuntimeActivated } from "./bootstrap/runtimeActivation";
 import { bindObserverListeners } from "./bootstrap/videoObserverBinding";
-import { YANDEX_AUTH_ORIGIN } from "./config/auth";
 import { resolveBootstrapMode } from "./core/bootstrapPolicy";
 import { findConnectedContainerBySelector } from "./core/containerResolution";
 import debug from "./utils/debug";

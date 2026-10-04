@@ -1,17 +1,16 @@
 import { getUUID } from "@vot.js/shared/secure";
-
+import { setAccount, updateAccount } from "#stores/account.ts";
+import type { Account } from "#types/storage.ts";
+import { GM_fetch } from "#utils/gm.ts";
+import { votStorage } from "#utils/storage.ts";
+import { base64UrlEncode } from "#utils/utils.ts";
 import {
   YANDEX_AUTH_CLIENT_ID,
   YANDEX_AUTH_REDIRECT_URI,
   YANDEX_AUTH_TOKEN_URL,
   YANDEX_AUTH_URL,
   YANDEX_USER_INFO_URL,
-} from "#config/auth.ts";
-import { setAccount, updateAccount } from "#stores/account.ts";
-import type { Account } from "#types/storage.ts";
-import { GM_fetch } from "#utils/gm.ts";
-import { votStorage } from "#utils/storage.ts";
-import { base64UrlEncode } from "#utils/utils.ts";
+} from "./consts";
 import type { AuthMessageData } from "./types/message";
 import type {
   AuthError,
