@@ -58,6 +58,7 @@ export async function init(this: VideoHandler) {
     detectService: DEFAULT_DETECT_SERVICE,
     translationHotkey: null,
     subtitlesHotkey: null,
+    pipHotkey: null,
     m3u8ProxyHost,
     proxyWorkerHost: PROXY_WORKER_HOST,
     translateProxyEnabled: 0,
@@ -117,6 +118,7 @@ export async function init(this: VideoHandler) {
     // hotkeys
     translationHotkey: this.data.translationHotkey,
     subtitlesHotkey: this.data.subtitlesHotkey,
+    pipHotkey: this.data.pipHotkey,
     // subtitles
     responseLanguageSubtitles: this.data.responseLanguageSubtitles,
     subtitlesDownloadFormat: this.data.subtitlesDownloadFormat,

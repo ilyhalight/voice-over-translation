@@ -1,4 +1,5 @@
 import type { ResponseLang } from "@vot.js/shared/types/data";
+import type { RawHotkey } from "../modules/hotkeys/types";
 import type { SubtitleFontFamily, SubtitleFormat } from "../types/subtitles";
 import type { LanguageSelectKey } from "./components/select";
 import type { Position } from "./components/votButton";
@@ -54,6 +55,7 @@ export const storageKeys = [
   "detectService",
   "translationHotkey",
   "subtitlesHotkey",
+  "pipHotkey",
   "m3u8ProxyHost",
   "proxyWorkerHost",
   "translateProxyEnabled",
@@ -136,8 +138,11 @@ export type StorageData = {
   translateAPIErrors: boolean;
   translationService: TranslateService;
   detectService: DetectService;
-  translationHotkey: null | string;
-  subtitlesHotkey: null | string;
+  // hotkey block
+  translationHotkey: RawHotkey;
+  subtitlesHotkey: RawHotkey;
+  pipHotkey: RawHotkey;
+  // other
   m3u8ProxyHost: string;
   proxyWorkerHost: string;
   translateProxyEnabled: TranslateProxyStatus;

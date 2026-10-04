@@ -51,6 +51,7 @@ import {
   type LangOverride,
   localizationProvider,
 } from "../localization/localizationProvider";
+import type { HotkeyActionItem } from "../modules/hotkeys/types";
 import { account, resetAccount, updateAccount } from "../stores/account";
 import { setLocale } from "../stores/locale";
 import { setSettings } from "../stores/settings";
@@ -66,6 +67,7 @@ import type { TranslateService } from "../types/translateApis";
 import debug from "../utils/debug";
 import { EventImpl } from "../utils/eventImpl";
 import { votStorage } from "../utils/storage";
+import { isPiPAvailable } from "../utils/utils";
 import type { VideoHandler } from "../VideoHandler";
 import { render } from "./solid/renderer";
 
@@ -281,6 +283,22 @@ export class SettingsController {
           storageKey: "subtitlesHotkey",
         }),
       },
+      ...(isPiPAvailable()
+        ? [
+            {
+              action: () =>
+                this.videoHandler.uiManager.togglePictureInPicture(),
+              get hotkey() {
+                return self.data.pipHotkey;
+              },
+              localizationPhrase: "VOTPiP",
+              settingsKey: "pipHotkey",
+              onchange: this.createPersistedSettingHandler({
+                storageKey: "pipHotkey",
+              }),
+            } satisfies HotkeyActionItem,
+          ]
+        : []),
     ];
 
     this.disposeSettingsDialog = render(() => {

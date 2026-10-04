@@ -179,6 +179,23 @@ export class UIManager {
     this.bindSettingsViewEvents();
   }
 
+  async togglePictureInPicture() {
+    if (!this.videoHandler) {
+      return;
+    }
+
+    try {
+      const inPiP = document.pictureInPictureElement != null;
+      if (inPiP) {
+        await document.exitPictureInPicture();
+      } else {
+        await this.videoHandler.video.requestPictureInPicture();
+      }
+    } catch (err) {
+      debug.warn("[VOT] Failed to toggle Picture-in-Picture", err);
+    }
+  }
+
   private bindOverlayViewEvents() {
     const overlayView = this.votOverlayView;
     if (!overlayView) {
@@ -190,20 +207,7 @@ export class UIManager {
         await this.handleTranslationBtnClick();
       })
       .addEventListener("click:pip", async () => {
-        if (!this.videoHandler) {
-          return;
-        }
-
-        try {
-          const inPiP = document.pictureInPictureElement != null;
-          if (inPiP) {
-            await document.exitPictureInPicture();
-          } else {
-            await this.videoHandler.video.requestPictureInPicture();
-          }
-        } catch (err) {
-          debug.warn("[VOT] Failed to toggle Picture-in-Picture", err);
-        }
+        await this.togglePictureInPicture();
       })
       .addEventListener("click:subtitles", async () => {
         if (!this.videoHandler) {

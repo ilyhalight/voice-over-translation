@@ -8,6 +8,7 @@ import {
   DEFAULT_TRANSLATION_SERVICE,
   PROXY_WORKER_HOST,
 } from "../config/config";
+import type { RawHotkey } from "../modules/hotkeys/types";
 import type { LanguageSelectKey } from "../types/components/select";
 import type { Position } from "../types/components/votButton";
 import {
@@ -52,8 +53,9 @@ export type SettingsStore = {
   proxyWorkerHost: string;
   translateProxyEnabled: TranslateProxyStatus;
   // hotkeys
-  translationHotkey: string | null;
-  subtitlesHotkey: string | null;
+  translationHotkey: RawHotkey;
+  subtitlesHotkey: RawHotkey;
+  pipHotkey: RawHotkey;
   // subtitles
   responseLanguageSubtitles: ResponseLanguageSubtitles;
   highlightWords: boolean;
@@ -101,6 +103,7 @@ function createInitialState(): SettingsStore {
     // hotkeys
     translationHotkey: null,
     subtitlesHotkey: null,
+    pipHotkey: null,
     // subtitles
     responseLanguageSubtitles: AUTO_SUBTITLE_LANGUAGE_VALUE,
     subtitlesDownloadFormat: "srt",
