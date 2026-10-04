@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "Bydd y cyfieithiad yn cymryd oddeutu {0} munud",
   "requestTranslationFailed": "Methu gofyn am gyfieithiad fideo",
   "audioNotReceived": "Ni dderbyniwyd y cyswllt sain",
+  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
   "audioFormatNotSupported": "Ni chynhelir y fformat sain",
   "VOTAutoTranslate": "Cyfieithu ar agor",
   "VOTDontTranslateYourLang": "Peidiwch â chyfieithu o fy iaith",

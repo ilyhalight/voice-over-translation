@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "It-traduzzjoni tieħu madwar {0} minuti",
   "requestTranslationFailed": "Naqas milli jitlob traduzzjoni bil-vidjo",
   "audioNotReceived": "Link awdjo mhux riċevut",
+  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
   "audioFormatNotSupported": "Il-format tal-awdjo mhuwiex appoġġjat",
   "VOTAutoTranslate": "Ittraduċi fuq miftuħ",
   "VOTDontTranslateYourLang": "Tittraduċix mil lingwa tiegħi",

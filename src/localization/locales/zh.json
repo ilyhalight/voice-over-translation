@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "翻译大约需要{0}分钟",
   "requestTranslationFailed": "请求视频翻译失败",
   "audioNotReceived": "未收到音频链接",
+  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
   "audioFormatNotSupported": "不支持音频格式",
   "VOTAutoTranslate": "打开翻译",
   "VOTDontTranslateYourLang": "不要从我的语言翻译",

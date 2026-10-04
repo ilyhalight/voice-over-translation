@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "Tłumaczenie zajmie około {0} minut",
   "requestTranslationFailed": "Nie udało się poprosić o tłumaczenie wideo",
   "audioNotReceived": "Łącze Audio nie zostało odebrane",
+  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
   "audioFormatNotSupported": "Format audio nie jest obsługiwany",
   "VOTAutoTranslate": "Translate on open",
   "VOTDontTranslateYourLang": "Nie tłumacz z mojego języka",

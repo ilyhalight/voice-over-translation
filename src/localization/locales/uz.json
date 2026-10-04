@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "Tarjima taxminan {0} daqiqa davom etadi",
   "requestTranslationFailed": "Video tarjimasini talab qilib bo'lmadi",
   "audioNotReceived": "Audio havola qabul qilinmadi",
+  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
   "audioFormatNotSupported": "Audio format mavjud emas",
   "VOTAutoTranslate": "Ochiq tarjima qiling",
   "VOTDontTranslateYourLang": "Mening tilimdan tarjima qilmang",

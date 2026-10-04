@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "Перевод займёт примерно {0} минуты",
   "requestTranslationFailed": "Не удалось запросить перевод видео",
   "audioNotReceived": "Не получена ссылка на аудио",
+  "VOTYouTubeSignInSuggested": "Войдите в YouTube и повторите перевод",
   "audioFormatNotSupported": "Формат аудио не поддерживается",
   "VOTAutoTranslate": "Переводить при открытии",
   "VOTAutoSubtitles": "Субтитры при открытии",
