@@ -16,7 +16,7 @@
   "translationTakeApproximatelyMinute": "Çeviri yaklaşık {0} dakika sürecek",
   "requestTranslationFailed": "Video çevirisi isteği başarısız oldu",
   "audioNotReceived": "Ses bağlantısı alınamadı",
-  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
+  "VOTYouTubeSignInSuggested": "YouTube’da oturum açın ve çeviriyi tekrar deneyin",
   "audioFormatNotSupported": "Ses formatı desteklenmiyor",
   "VOTAutoTranslate": "Açılışta çevir",
   "VOTDontTranslateYourLang": "Ana dilinizden çevirme",

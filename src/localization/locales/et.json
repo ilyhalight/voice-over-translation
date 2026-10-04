@@ -16,7 +16,7 @@
   "translationTakeApproximatelyMinute": "Tõlge võtab umbes {0} minutit",
   "requestTranslationFailed": "Videotõlke taotlemine nurjus",
   "audioNotReceived": "Audio link ei saanud",
-  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
+  "VOTYouTubeSignInSuggested": "Logige YouTube’i sisse ja proovige tõlget uuesti",
   "audioFormatNotSupported": "Helivormingut ei toetata",
   "VOTAutoTranslate": "Tõlgi avatud",
   "VOTDontTranslateYourLang": "Ära tõlgi minu keelest",

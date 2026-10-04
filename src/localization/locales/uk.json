@@ -16,7 +16,7 @@
   "translationTakeApproximatelyMinute": "Переклад займе приблизно {0} хвилини",
   "requestTranslationFailed": "Не вдалося запросити Переклад відео",
   "audioNotReceived": "Аудіосвязь не отримана",
-  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
+  "VOTYouTubeSignInSuggested": "Увійдіть у YouTube і повторіть переклад",
   "audioFormatNotSupported": "Аудіоформат не підтримується",
   "VOTAutoTranslate": "Перевести на відкритий",
   "VOTDontTranslateYourLang": "Не перекладайте з моєї мови",

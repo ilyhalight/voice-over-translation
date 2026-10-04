@@ -16,7 +16,7 @@
   "translationTakeApproximatelyMinute": "Превод ће трајати приближно {0} минута",
   "requestTranslationFailed": "Захтев за превод видео записа није успео",
   "audioNotReceived": "Аудио комуникација није примљена",
-  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
+  "VOTYouTubeSignInSuggested": "Пријавите се на YouTube и покушајте поново са преводом",
   "audioFormatNotSupported": "Аудио формат није подржан",
   "VOTAutoTranslate": "Преведи на отворено",
   "VOTDontTranslateYourLang": "Не преводите са мог језика",

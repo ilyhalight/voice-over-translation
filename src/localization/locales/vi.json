@@ -16,7 +16,7 @@
   "translationTakeApproximatelyMinute": "Dịch sẽ mất khoảng {0} phút",
   "requestTranslationFailed": "Không thể yêu cầu dịch video",
   "audioNotReceived": "Không nhận được liên kết âm thanh",
-  "VOTYouTubeSignInSuggested": "Sign in to YouTube and try translation again",
+  "VOTYouTubeSignInSuggested": "Đăng nhập vào YouTube và thử dịch lại",
   "audioFormatNotSupported": "Định dạng âm thanh không được hỗ trợ",
   "VOTAutoTranslate": "Tự động dịch khi mở",
   "VOTDontTranslateYourLang": "Không dịch từ ngôn ngữ gốc của bạn",
