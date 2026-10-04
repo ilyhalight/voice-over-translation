@@ -1,3 +1,4 @@
+import { matchesMedia } from "#utils/inputDevice.ts";
 import { actualCompatVersion, repositoryUrl } from "../config/config";
 import { t } from "../localization/localizationProvider";
 import { serializeProcessedSubtitles } from "../subtitles/standards";
@@ -792,10 +793,7 @@ export class UIManager {
       return true;
     }
 
-    return (
-      typeof matchMedia === "function" &&
-      matchMedia("(pointer: coarse)").matches
-    );
+    return matchesMedia("(pointer: coarse)");
   }
 
   private async restartAudioPlayer() {

@@ -141,7 +141,7 @@
     "*://*/*.mp4*",
     "*://*/*.webm*"
   ],
-  "grant": ["window.focus"],
+  "grant": ["window.focus", "GM.xmlHttpRequest"],
   "exclude": [
     "file://*/*.mp4*",
     "file://*/*.webm*",

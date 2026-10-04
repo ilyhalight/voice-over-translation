@@ -2,20 +2,11 @@
  * Small error helpers used across the project.
  */
 
+import { stringifyCircularSafe } from "./json";
+
 function stringifyUnknownObject(value: object): string | null {
-  const seen = new WeakSet<object>();
   try {
-    const serialized = JSON.stringify(value, (_key, currentValue) => {
-      if (typeof currentValue !== "object" || currentValue === null) {
-        return currentValue;
-      }
-      if (seen.has(currentValue)) {
-        return "[Circular]";
-      }
-      seen.add(currentValue);
-      return currentValue;
-    });
-    return serialized ?? null;
+    return stringifyCircularSafe(value) ?? null;
   } catch {
     return null;
   }

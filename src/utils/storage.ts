@@ -5,7 +5,7 @@ import {
   storageKeys,
 } from "../types/storage";
 import debug from "./debug";
-import { isGM4Supported } from "./gm";
+import { getGMRuntime, isGM4Supported } from "./gm";
 
 // Minimal "GM storage" value union. We intentionally keep this wide because
 // userscript managers store arbitrary JSON-like values.
@@ -25,15 +25,18 @@ type StorageValueChangeListener<T = unknown> = (
   remote: boolean,
 ) => void;
 
-function parseStoredValue(rawValue: string | null): unknown {
+function parseStoredValue<T = unknown>(
+  rawValue: string | null,
+  fallback?: T,
+): T | undefined {
   if (rawValue === null) {
-    return undefined;
+    return fallback;
   }
 
   try {
     return JSON.parse(rawValue);
   } catch {
-    return undefined;
+    return fallback;
   }
 }
 
@@ -114,37 +117,21 @@ class VOTStorage {
     );
   }
 
-  private getGMRuntime(): Record<string, unknown> | undefined {
-    if (typeof GM !== "undefined") {
-      return GM as unknown as Record<string, unknown>;
-    }
-
-    return (globalThis as { GM?: Record<string, unknown> }).GM;
-  }
-
   private resolveSupport(): StorageSupport {
     if (this.support) {
       return this.support;
     }
 
-    const gm = this.getGMRuntime();
+    const gm = getGMRuntime();
     const support: StorageSupport = {
       legacyGet: typeof GM_getValue === "function",
       legacySet: typeof GM_setValue === "function",
       legacyDelete: typeof GM_deleteValue === "function",
       legacyList: typeof GM_listValues === "function",
       legacyAddValueChangeListener:
-        typeof (
-          globalThis as {
-            GM_addValueChangeListener?: unknown;
-          }
-        ).GM_addValueChangeListener === "function",
+        typeof GM_addValueChangeListener === "function",
       legacyRemoveValueChangeListener:
-        typeof (
-          globalThis as {
-            GM_removeValueChangeListener?: unknown;
-          }
-        ).GM_removeValueChangeListener === "function",
+        typeof GM_removeValueChangeListener === "function",
       promiseGet: isGM4Supported && typeof gm?.getValue === "function",
       promiseGetValues: isGM4Supported && typeof gm?.getValues === "function",
       promiseSet: isGM4Supported && typeof gm?.setValue === "function",
@@ -192,21 +179,13 @@ class VOTStorage {
     }
 
     const val = globalThis.localStorage.getItem(name);
-    if (val === null) {
-      return def;
-    }
-
-    try {
-      return JSON.parse(val);
-    } catch {
-      return def;
-    }
+    return parseStoredValue<T>(val, def);
   }
 
   async getRaw<T = unknown>(name: string, def?: T): Promise<T> {
     const support = this.resolveSupport();
     if (support.promiseGet && GM.getValue) {
-      return await GM.getValue(name, def);
+      return await GM.getValue<T>(name, def);
     }
 
     return this.syncGetByName<T>(name, def, support);
@@ -224,11 +203,10 @@ class VOTStorage {
   >(data: T): Promise<T> {
     const support = this.resolveSupport();
     if (support.promiseGetValues && GM.getValues) {
-      return await GM.getValues(data);
+      return await GM.getValues<T>(data);
     }
 
-    const entries = Object.entries(data as Record<string, KeysOrDefaultValue>);
-
+    const entries = Object.entries(data);
     if (support.promiseGet && GM.getValue) {
       const values = await Promise.all(
         entries.map(async ([key, value]) => {
@@ -280,7 +258,7 @@ class VOTStorage {
       await this.getChangeContext(name);
 
     if (support.promiseSet && GM.setValue) {
-      await GM.setValue(name, value);
+      await GM.setValue<T>(name, value);
       if (shouldNotify) {
         this.notifyLocalStorageListeners(storageKey, oldValue, value, false);
       }
@@ -295,7 +273,7 @@ class VOTStorage {
     name: StorageKey,
     value: T,
   ): Promise<void> {
-    return this.setRaw(name, value);
+    return this.setRaw<T>(name, value);
   }
 
   private syncDeleteByName(name: string, support: StorageSupport) {
@@ -336,19 +314,12 @@ class VOTStorage {
     listener: StorageValueChangeListener<T>,
   ): () => void {
     const support = this.resolveSupport();
-    const gm = this.getGMRuntime();
+    const gm = getGMRuntime();
 
     if (support.promiseAddValueChangeListener) {
-      const addListener = gm?.addValueChangeListener as
-        | ((
-            key: string,
-            callback: StorageValueChangeListener<unknown>,
-          ) => unknown)
-        | undefined;
+      const addListener = gm?.addValueChangeListener;
       const removeListener = support.promiseRemoveValueChangeListener
-        ? (gm?.removeValueChangeListener as
-            | ((id: unknown) => unknown)
-            | undefined)
+        ? gm?.removeValueChangeListener
         : undefined;
       const unsubscribe = this.registerGMListener(
         addListener,
@@ -362,20 +333,9 @@ class VOTStorage {
     }
 
     if (support.legacyAddValueChangeListener) {
-      const addListener = (
-        globalThis as unknown as {
-          GM_addValueChangeListener?: (
-            key: string,
-            callback: StorageValueChangeListener<unknown>,
-          ) => unknown;
-        }
-      ).GM_addValueChangeListener;
+      const addListener = GM_addValueChangeListener;
       const removeListener = support.legacyRemoveValueChangeListener
-        ? (
-            globalThis as {
-              GM_removeValueChangeListener?: (id: unknown) => unknown;
-            }
-          ).GM_removeValueChangeListener
+        ? GM_removeValueChangeListener
         : undefined;
       const unsubscribe = this.registerGMListener(
         addListener,

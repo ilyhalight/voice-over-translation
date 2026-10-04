@@ -1,3 +1,4 @@
+import { isRecord } from "#utils/guards.ts";
 import type { SubtitleDescriptor } from "../types/subtitles";
 import {
   type BuiltInSubtitleFontFamily,
@@ -12,10 +13,6 @@ function isSubtitleFormat(value: unknown): value is SubtitleFormat {
   return (
     typeof value === "string" && subtitleFormatsSet.has(value as SubtitleFormat)
   );
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object";
 }
 
 export function parseSubtitleDescriptor(

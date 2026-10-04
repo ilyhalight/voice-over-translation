@@ -22,23 +22,17 @@ export class FullscreenHelper {
   /**
    * Gets the current fullscreen element with proper ShadowDOM support
    */
-  getFullscreenElement(): HTMLElement | null {
+  static getFullscreenElement(): Element | null {
     const doc = document as DocumentWithFullscreen;
-    const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
-    if (!(fullscreenEl instanceof HTMLElement)) {
-      return null;
-    }
-
-    return fullscreenEl;
+    return doc.fullscreenElement ?? doc.webkitFullscreenElement ?? null;
   }
 
   /**
    * Gets comprehensive fullscreen information including ShadowDOM details
    */
   getFullscreenInfo(): FullscreenElementInfo {
-    const element = this.getFullscreenElement();
-    const isFullscreen = Boolean(element);
-
+    const fullscreenEl = FullscreenHelper.getFullscreenElement();
+    const element = fullscreenEl instanceof HTMLElement ? fullscreenEl : null;
     if (!element) {
       return {
         element: null,
@@ -54,7 +48,7 @@ export class FullscreenHelper {
     return {
       element,
       shadowRoot,
-      isFullscreen,
+      isFullscreen: true,
       belongsToCurrentVideo,
     };
   }

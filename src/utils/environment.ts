@@ -1,4 +1,5 @@
 import { browserInfo } from "./browserInfo";
+import { getGMInfo } from "./gm";
 
 export type EnvironmentInfo = {
   os: string;
@@ -37,7 +38,7 @@ export function getEnvironmentInfo(): EnvironmentInfo {
     browserInfo.browser?.version,
   );
 
-  const safeGMInfo = typeof GM_info === "undefined" ? undefined : GM_info;
+  const safeGMInfo = getGMInfo();
   const loader = (() => {
     const handler = safeGMInfo?.scriptHandler;
     const version = safeGMInfo?.version;

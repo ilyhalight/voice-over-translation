@@ -46,11 +46,8 @@ import {
   createIntervalIdleChecker,
   type IntervalIdleChecker,
 } from "./utils/intervalIdleChecker";
-import {
-  calculatedResLang,
-  fnv1a32ToKeyPart,
-  stableStringify,
-} from "./utils/utils";
+import { stringifyCircularSafe } from "./utils/json";
+import { calculatedResLang, fnv1a32ToKeyPart } from "./utils/utils";
 import {
   clampPercentInt,
   snapVolume01,
@@ -381,7 +378,7 @@ export class VideoHandler {
     const helpStr =
       translationHelp === undefined || translationHelp === null
         ? ""
-        : stableStringify(translationHelp);
+        : stringifyCircularSafe(translationHelp, { sortKeys: true });
     const helpHash = helpStr ? fnv1a32ToKeyPart(helpStr) : "0";
     return `${videoId}_${requestLangForApi}_${to}_${useLivelyVoice}_${helpHash}`;
   }

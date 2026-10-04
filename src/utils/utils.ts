@@ -26,7 +26,6 @@ const trimFilenameEdgeChars = (value: string): string => {
   return value.slice(startIndex, endIndex);
 };
 
-type PlainRecord = Record<string, unknown>;
 type NavigatorWithShare = Navigator & {
   canShare?: (data?: ShareData) => boolean;
 };
@@ -49,40 +48,6 @@ function getDateFallbackFilename(): string {
 
 function stripAsciiControlChars(value: string): string {
   return value.replace(ASCII_CONTROL_CHARS_RE, "");
-}
-
-/**
- * Creates a stable JSON string representation for consistent hashing
- * @param value The value to stringify
- * @returns A stable JSON string
- */
-export function stableStringify(value: unknown): string {
-  const seen = new WeakSet<object>();
-
-  return JSON.stringify(value, (_key, val) => {
-    if (val && typeof val === "object") {
-      if (seen.has(val)) {
-        return "[Circular]";
-      }
-
-      seen.add(val);
-      if (Array.isArray(val)) {
-        return val;
-      }
-
-      const sorted: PlainRecord = {};
-      const keys = Object.keys(val as PlainRecord).sort((a, b) =>
-        a.localeCompare(b),
-      );
-      for (const key of keys) {
-        sorted[key] = (val as PlainRecord)[key];
-      }
-
-      return sorted;
-    }
-
-    return val;
-  });
 }
 
 /**

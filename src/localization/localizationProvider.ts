@@ -2,7 +2,7 @@ import { contentUrl } from "../config/config";
 import type { FlatPhrases, Locale, Phrase } from "../types/localization";
 import type { LocaleStorageKey } from "../types/storage";
 import debug from "../utils/debug";
-import { GM_fetch } from "../utils/gm";
+import { GM_fetch, getGMInfo } from "../utils/gm";
 import { lang } from "../utils/localization";
 import { votStorage } from "../utils/storage";
 import { getTimestamp, toFlatObj } from "../utils/utils";
@@ -46,10 +46,7 @@ function resolveRuntimeLocaleVersion(
 function getRuntimeLocaleVersion() {
   const buildVersion =
     typeof VOT_VERSION === "undefined" ? "" : String(VOT_VERSION || "");
-  const scriptVersion =
-    typeof GM_info === "undefined"
-      ? ""
-      : String(GM_info?.script?.version || "");
+  const scriptVersion = String(getGMInfo()?.script?.version || "");
 
   return resolveRuntimeLocaleVersion(buildVersion, scriptVersion);
 }

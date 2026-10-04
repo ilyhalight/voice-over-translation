@@ -43,8 +43,10 @@ import { TokenLayoutProcessor } from "./tokenLayoutProcessor";
 import { TokenTooltipController } from "./tokenTooltipController";
 import { computeNextWakeMs } from "./wakeSchedule";
 import "../shims/rvfc-polyfill";
+import { FullscreenHelper } from "#modules/fullscreen/helper.ts";
 import { getHostElement } from "#utils/dom.ts";
 import { isDocumentHidden } from "#utils/environment.ts";
+import { matchesMedia } from "#utils/inputDevice.ts";
 
 type LayoutMetrics = {
   w: number;
@@ -772,16 +774,10 @@ export class SubtitlesWidget {
     this.insetCacheReady = true;
   }
   private isMobileViewport(): boolean {
-    return (
-      globalThis.matchMedia?.("(max-width: 900px) and (pointer: coarse)")
-        ?.matches ?? false
-    );
+    return matchesMedia("(max-width: 900px) and (pointer: coarse)");
   }
   private getBottomInsetPreset() {
-    const doc = document as Document & {
-      webkitFullscreenElement?: Element | null;
-    };
-    const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
+    const fullscreenEl = FullscreenHelper.getFullscreenElement();
     if (!(fullscreenEl instanceof Element)) {
       return this.bottomInsetByMode.normal;
     }

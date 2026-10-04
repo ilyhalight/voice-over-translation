@@ -4,6 +4,7 @@ import type { JSX } from "solid-js";
 import { AboutItem } from "./AboutItem";
 import "./AboutSection.scss";
 
+import { getGMInfo } from "#utils/gm.ts";
 import {
   localizationProvider,
   t,
@@ -19,7 +20,7 @@ export type AboutSectionProps = {
 
 export function AboutSection(props: AboutSectionProps): JSX.Element {
   const envInfo = getEnvironmentInfo();
-  const safeGMInfo = typeof GM_info === "undefined" ? undefined : GM_info;
+  const safeGMInfo = getGMInfo();
   const scriptVersion =
     envInfo.scriptVersion === "unknown"
       ? safeGMInfo?.script?.version || t("notFound")

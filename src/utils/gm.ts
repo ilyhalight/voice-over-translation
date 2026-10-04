@@ -30,21 +30,21 @@ type GmXhrPromiseApi = (
   details: GMXmlHttpRequestDetails,
 ) => Promise<GmXhrResponse> & { abort?: () => void };
 
-const scriptHandler =
-  typeof GM_info === "undefined" ? undefined : GM_info?.scriptHandler;
+const scriptHandler = getGMInfo()?.scriptHandler;
 
 export function getScriptTitle(): string {
-  if (typeof GM_info === "undefined") {
+  const safeGMInfo = getGMInfo();
+  if (!safeGMInfo) {
     return EXT_NAME_FALLBACK;
   }
 
-  return GM_info?.script?.name || EXT_NAME_FALLBACK;
+  return safeGMInfo?.script?.name || EXT_NAME_FALLBACK;
 }
 
 function getCallbackGmXhr<T extends XHResponseType = "text">():
   | GmXhrCallbackApi<T>
   | undefined {
-  const gmXhr =
+  const gmXhr: GmXhrCallbackApi<T> =
     typeof GM_xmlhttpRequest === "undefined"
       ? (globalThis as any).GM_xmlhttpRequest
       : GM_xmlhttpRequest;
@@ -52,9 +52,18 @@ function getCallbackGmXhr<T extends XHResponseType = "text">():
   return typeof gmXhr === "function" ? gmXhr : undefined;
 }
 
+export function getGMRuntime(): typeof GM | undefined {
+  if (typeof GM !== "undefined") {
+    return GM;
+  }
+
+  return globalThis.GM;
+}
+
 function getPromiseGmXhr(): GmXhrPromiseApi | undefined {
-  const gm = typeof GM === "undefined" ? globalThis.GM : GM;
-  const gmXhr = gm?.xmlHttpRequest ?? (gm as any)?.xmlhttpRequest;
+  const gm = getGMRuntime();
+  const gmXhr: GmXhrPromiseApi =
+    gm?.xmlHttpRequest ?? (gm as any)?.xmlhttpRequest;
 
   return typeof gmXhr === "function" ? gmXhr.bind(gm) : undefined;
 }
@@ -76,8 +85,7 @@ export const IS_PROXY_ONLY_EXTENSION =
  * - Firefox: the bridge injects prelude.module.js before content.module.js.
  * - Userscript managers inject GM before the script runs.
  */
-export const isGM4Supported: boolean =
-  typeof GM !== "undefined" || (globalThis as any).GM !== undefined;
+export const isGM4Supported: boolean = Boolean(getGMRuntime());
 
 export const isSupportGMXhr =
   (typeof IS_EXTENSION !== "undefined" && IS_EXTENSION) || hasSupportedGmXhr();
@@ -228,8 +236,8 @@ async function executeCallbackGmXhr(
     const request = gmXhr({
       method: method as HttpMethod,
       url: urlStr,
-      responseType: "blob" as any,
-      data: fetchOptions.body as any,
+      responseType: "blob",
+      data: fetchOptions.body,
       timeout,
       headers,
       ...(redirectMode && { redirect: redirectMode }),
@@ -319,8 +327,8 @@ async function executePromiseGmXhr(
   const request = gmXhr({
     method: method as HttpMethod,
     url: urlStr,
-    responseType: "blob" as any,
-    data: fetchOptions.body as any,
+    responseType: "blob",
+    data: fetchOptions.body,
     timeout,
     headers,
     ...(redirectMode && { redirect: redirectMode }),
@@ -348,7 +356,7 @@ async function executePromiseGmXhr(
       }
     });
 
-    const resp = (await Promise.race([request, abortPromise])) as GmXhrResponse;
+    const resp = await Promise.race([request, abortPromise]);
 
     const response = buildResponse(resp, urlStr);
 
@@ -536,4 +544,8 @@ export async function GM_fetch(
     responseCache,
     performRequest,
   );
+}
+
+export function getGMInfo() {
+  return typeof GM_info === "undefined" ? undefined : GM_info;
 }
