@@ -42,6 +42,7 @@ function createSettingsEvents(): {
 }
 
 import { type Accessor, createSignal, type Setter } from "solid-js";
+import type { TranslateTextService } from "#modules/translateText/types.ts";
 import { SettingsDialog } from "../components/Settings/SettingsDialog";
 import { PROXY_WORKER_HOST } from "../config/config";
 import {
@@ -63,7 +64,6 @@ import type {
   TranslateProxyStatus,
 } from "../types/storage";
 import type { SubtitleFontFamily, SubtitleFormat } from "../types/subtitles";
-import type { TranslateService } from "../types/translateApis";
 import debug from "../utils/debug";
 import { EventImpl } from "../utils/eventImpl";
 import { votStorage } from "../utils/storage";
@@ -99,7 +99,7 @@ type SettingsControllerEventMap = {
   "input:subtitlesBackgroundOpacity": [value: number];
   "input:autoHideButtonDelay": [value: number];
   "select:proxyTranslationStatus": [item: TranslateProxyStatus];
-  "select:translationTextService": [item: TranslateService];
+  "select:translationTextService": [item: TranslateTextService];
   "select:menuLanguage": [item: LangOverride];
 };
 

@@ -3,7 +3,7 @@ import { getVideoData } from "@vot.js/ext/utils/videoData";
 import votConfig from "@vot.js/shared/config";
 import { availableLangs } from "@vot.js/shared/consts";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
-
+import { detect } from "#modules/translateText/service.ts";
 import {
   getYoutubeAudioFormatLanguage as getYoutubeAudioFormatLanguageTag,
   selectSmallestAudioFormat,
@@ -22,7 +22,6 @@ import {
 import type { VideoHandler } from "../VideoHandler";
 import VOTLocalizedError from "../VOTLocalizedError";
 import { isExternalVolumeHost } from "./hostPolicies";
-import { detect } from "./translateApis";
 
 const FORCED_DETECTED_LANGUAGE_BY_HOST: Record<string, RequestLang> = {
   rutube: "ru",

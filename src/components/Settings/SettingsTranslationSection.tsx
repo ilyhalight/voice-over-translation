@@ -2,17 +2,20 @@ import { availableLangs } from "@vot.js/shared/consts";
 import { createSignal, type JSX, mergeProps } from "solid-js";
 import { effect } from "solid-js/web";
 
-import { detectServices, translateServices } from "../../core/translateApis";
+import {
+  DETECT_SERVICES,
+  TRANSLATE_TEXT_SERVICES,
+} from "#modules/translateText/consts.ts";
+import type {
+  DetectService,
+  TranslateTextService,
+} from "#modules/translateText/types.ts";
 import {
   localizationProvider,
   t,
 } from "../../localization/localizationProvider";
 import { setSettings, settings } from "../../stores/settings";
 import type { LanguageSelectKey } from "../../types/components/select";
-import type {
-  DetectService,
-  TranslateService,
-} from "../../types/translateApis";
 import { isSupportGMXhr } from "../../utils/gm";
 import {
   genSelectOptionsByLangs,
@@ -44,7 +47,7 @@ export type SettingsTranslationSectionProps = {
   onDownloadWithNameChange?: (checked: boolean) => void;
   onSendNotifyOnCompleteChange?: (checked: boolean) => void;
   onUseAudioDownloadChange?: (checked: boolean) => void;
-  onTranslationServiceSelect?: (service: TranslateService) => void;
+  onTranslationServiceSelect?: (service: TranslateTextService) => void;
   onDetectServiceSelect?: (service: DetectService) => void;
 };
 
@@ -59,14 +62,13 @@ export function SettingsTranslationSection(
   );
 
   const dontTranslateLanguagesOptions = genSelectOptionsByLangs(availableLangs);
-  const translationTextServiceOptions = translateServices.map<SelectOption>(
-    (service) => ({
+  const translationTextServiceOptions =
+    TRANSLATE_TEXT_SERVICES.map<SelectOption>((service) => ({
       label: t(`services.${service}`),
       value: service,
-    }),
-  );
+    }));
 
-  const detectServiceOptions = detectServices.map<SelectOption>((service) => ({
+  const detectServiceOptions = DETECT_SERVICES.map<SelectOption>((service) => ({
     label: t(`services.${service}`),
     value: service,
   }));
@@ -244,7 +246,7 @@ export function SettingsTranslationSection(
         options={translationTextServiceOptions}
         selectedValue={settings.translationService}
         onSelect={(option) => {
-          const value = option.value as TranslateService;
+          const value = option.value as TranslateTextService;
           setSettings("translationService", value);
           finalProps.onTranslationServiceSelect?.(value);
         }}

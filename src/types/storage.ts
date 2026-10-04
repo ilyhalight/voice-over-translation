@@ -1,9 +1,12 @@
 import type { ResponseLang } from "@vot.js/shared/types/data";
+import type {
+  DetectService,
+  TranslateTextService,
+} from "#modules/translateText/types.ts";
 import type { RawHotkey } from "../modules/hotkeys/types";
 import type { SubtitleFontFamily, SubtitleFormat } from "../types/subtitles";
 import type { LanguageSelectKey } from "./components/select";
 import type { Position } from "./components/votButton";
-import type { DetectService, TranslateService } from "./translateApis";
 
 export type LocaleStorageKey =
   | "localePhrases"
@@ -136,7 +139,7 @@ export type StorageData = {
   newAudioPlayer: boolean;
   showPiPButton: boolean;
   translateAPIErrors: boolean;
-  translationService: TranslateService;
+  translationService: TranslateTextService;
   detectService: DetectService;
   // hotkey block
   translationHotkey: RawHotkey;

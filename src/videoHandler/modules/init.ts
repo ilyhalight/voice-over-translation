@@ -1,10 +1,12 @@
 import {
+  DEFAULT_DETECT_SERVICE,
+  DEFAULT_TRANSLATION_SERVICE,
+} from "#modules/translateText/consts.ts";
+import {
   actualCompatVersion,
   DEFAULT_AUTO_HIDE_DELAY,
   DEFAULT_AUTO_VOLUME,
-  DEFAULT_DETECT_SERVICE,
   DEFAULT_SMART_DUCKING_STRENGTH,
-  DEFAULT_TRANSLATION_SERVICE,
   m3u8ProxyHost,
   PROXY_WORKER_HOST,
 } from "../../config/config";

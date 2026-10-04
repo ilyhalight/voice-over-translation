@@ -1,7 +1,6 @@
 // CONFIGURATION
 
 import type { CompatibilityVersion } from "../types/storage";
-import type { DetectService, TranslateService } from "../types/translateApis";
 
 export const EXT_NAME_FALLBACK = "VOT";
 
@@ -19,14 +18,6 @@ export const m3u8ProxyHost = "media-proxy.toil.cc/v1/proxy/m3u8";
  */
 export const proxyWorkerHostMode1 = "vot-worker.vtrans.eu.cc";
 export const PROXY_WORKER_HOST = "vot-worker.eu.cc"; // vot-worker.toil.cc
-
-/**
- * @see https://github.com/FOSWLY/translate-backend
- */
-export const foswlyTranslateUrl = "https://translate-backend.transly.eu.cc/v2"; // "https://translate.toil.cc/v2"
-
-export const detectRustServerUrl =
-  "https://rust-server-531j.onrender.com/detect";
 
 const repoPath = "ilyhalight/voice-over-translation";
 export const contentUrl = `https://raw.githubusercontent.com/${repoPath}`;
@@ -49,9 +40,6 @@ export const DEFAULT_SMART_DUCKING_STRENGTH = 80;
  * "translation is delayed, please wait"
  */
 export const minLongWaitingCount = 5;
-
-export const DEFAULT_TRANSLATION_SERVICE: TranslateService = "yandexbrowser";
-export const DEFAULT_DETECT_SERVICE: DetectService = "yandexbrowser";
 
 export const PROXY_ONLY_COUNTRIES: string[] = ["UA", "LV", "LT"];
 

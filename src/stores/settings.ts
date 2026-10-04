@@ -1,11 +1,17 @@
 import type { ResponseLang } from "@vot.js/shared/types/data";
 import { createStore } from "solid-js/store";
 import {
+  DEFAULT_DETECT_SERVICE,
+  DEFAULT_TRANSLATION_SERVICE,
+} from "#modules/translateText/consts.ts";
+import type {
+  DetectService,
+  TranslateTextService,
+} from "#modules/translateText/types.ts";
+import {
   DEFAULT_AUTO_HIDE_DELAY,
   DEFAULT_AUTO_VOLUME,
-  DEFAULT_DETECT_SERVICE,
   DEFAULT_SMART_DUCKING_STRENGTH,
-  DEFAULT_TRANSLATION_SERVICE,
   PROXY_WORKER_HOST,
 } from "../config/config";
 import type { RawHotkey } from "../modules/hotkeys/types";
@@ -17,7 +23,6 @@ import {
   type TranslateProxyStatus,
 } from "../types/storage";
 import type { SubtitleFontFamily, SubtitleFormat } from "../types/subtitles";
-import type { DetectService, TranslateService } from "../types/translateApis";
 import { isSupportGMXhr } from "../utils/gm";
 import { calculatedResLang } from "../utils/localization";
 
@@ -41,7 +46,7 @@ export type SettingsStore = {
   downloadWithName: boolean;
   sendNotifyOnComplete: boolean;
   useAudioDownload: boolean;
-  translationService: TranslateService;
+  translationService: TranslateTextService;
   detectService: DetectService;
   // other
   translateAPIErrors: boolean;

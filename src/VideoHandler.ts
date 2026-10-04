@@ -12,6 +12,7 @@ import {
   VOTSessionStorageCache,
 } from "#modules/cache/manager.ts";
 import { FullscreenHelper } from "#modules/fullscreen/helper.ts";
+import { translate } from "#modules/translateText/service.ts";
 import {
   minLongWaitingCount,
   PROXY_ONLY_COUNTRIES,
@@ -19,7 +20,6 @@ import {
   workerHost,
 } from "./config/config";
 import { resolveOverlayMountTargets } from "./core/overlayMountTargets";
-import { translate } from "./core/translateApis";
 import { VOTTranslationHandler } from "./core/translationHandler";
 import { TranslationOrchestrator } from "./core/translationOrchestrator";
 import { VideoLifecycleController } from "./core/videoLifecycleController";

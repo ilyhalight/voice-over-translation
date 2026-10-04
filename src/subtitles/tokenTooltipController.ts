@@ -1,9 +1,9 @@
+import { DEFAULT_TRANSLATION_SERVICE } from "#modules/translateText/consts.ts";
+import { translate } from "#modules/translateText/service.ts";
 import {
   mountSubtitleTokenTooltip,
   type SubtitleTokenTooltipHandle,
 } from "../components/SubtitlesWidget/SubtitleTokenTooltip";
-import { DEFAULT_TRANSLATION_SERVICE } from "../config/config";
-import { translate } from "../core/translateApis";
 import { localizationProvider, t } from "../localization/localizationProvider";
 import {
   createShadowMount,
