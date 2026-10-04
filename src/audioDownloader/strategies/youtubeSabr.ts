@@ -747,11 +747,22 @@ export async function* trySabrAudioChunks(
         });
         return await targetWindow.fetch(rewrittenRequest);
       } catch (nativeError) {
-        const gm = (
-          globalThis as typeof globalThis & {
-            GM_xmlhttpRequest?: (details: Record<string, unknown>) => unknown;
-          }
-        ).GM_xmlhttpRequest;
+        const gmGlobal = globalThis as typeof globalThis & {
+          GM_xmlhttpRequest?: (details: Record<string, unknown>) => unknown;
+          GM?: {
+            xmlHttpRequest?: (details: Record<string, unknown>) => unknown;
+            xmlhttpRequest?: (details: Record<string, unknown>) => unknown;
+          };
+        };
+        const callbackGm = gmGlobal.GM_xmlhttpRequest;
+        const promiseGm =
+          gmGlobal.GM?.xmlHttpRequest ?? gmGlobal.GM?.xmlhttpRequest;
+        const gm =
+          typeof callbackGm === "function"
+            ? callbackGm
+            : typeof promiseGm === "function"
+              ? promiseGm.bind(gmGlobal.GM)
+              : undefined;
         if (typeof gm !== "function") throw nativeError;
 
         let gmBody: string | ArrayBuffer | Blob | undefined;
@@ -814,6 +825,30 @@ export async function* trySabrAudioChunks(
             return result;
           };
 
+          type GmSabrResponse = {
+            status?: number;
+            statusText?: string;
+            response?: ArrayBuffer;
+            responseHeaders?: string;
+            finalUrl?: string;
+          };
+
+          const finishResolve = (gmResponse: GmSabrResponse) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            const responseHeaders = parseHeaders(gmResponse.responseHeaders);
+            const response = new fetchRealm.Response(
+              gmResponse.response ?? new ArrayBuffer(0),
+              {
+                status: gmResponse.status || 200,
+                statusText: gmResponse.statusText ?? "",
+                headers: responseHeaders,
+              },
+            );
+            resolve(response);
+          };
+
           const details: Record<string, unknown> = {
             method,
             url: url.toString(),
@@ -821,27 +856,7 @@ export async function* trySabrAudioChunks(
             data: gmBody,
             responseType: "arraybuffer",
             anonymous: false,
-            onload: (gmResponse: {
-              status?: number;
-              statusText?: string;
-              response?: ArrayBuffer;
-              responseHeaders?: string;
-              finalUrl?: string;
-            }) => {
-              if (settled) return;
-              settled = true;
-              cleanup();
-              const responseHeaders = parseHeaders(gmResponse.responseHeaders);
-              const response = new fetchRealm.Response(
-                gmResponse.response ?? new ArrayBuffer(0),
-                {
-                  status: gmResponse.status || 200,
-                  statusText: gmResponse.statusText ?? "",
-                  headers: responseHeaders,
-                },
-              );
-              resolve(response);
-            },
+            onload: finishResolve,
             onerror: (gmError: unknown) =>
               finishReject(
                 gmError instanceof Error
@@ -862,9 +877,13 @@ export async function* trySabrAudioChunks(
             requestHandle = gm(details);
             if (
               requestHandle &&
-              typeof (requestHandle as Promise<unknown>).then === "function"
+              typeof (requestHandle as Promise<GmSabrResponse>).then ===
+                "function"
             ) {
-              (requestHandle as Promise<unknown>).catch(finishReject);
+              (requestHandle as Promise<GmSabrResponse>).then(
+                finishResolve,
+                finishReject,
+              );
             }
           } catch (gmError) {
             finishReject(gmError);
