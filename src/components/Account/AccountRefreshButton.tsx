@@ -1,6 +1,6 @@
 import type { JSX } from "solid-js";
-import { updateAccountInfo } from "../../core/auth/yandex";
 import { t } from "../../localization/localizationProvider";
+import { updateAccountInfo } from "../../modules/auth/yandex";
 import { account, updateAccountFromStorage } from "../../stores/account";
 import { IconButton } from "../Button/IconButton";
 import { RefreshIcon } from "../Icons/RefreshIcon";

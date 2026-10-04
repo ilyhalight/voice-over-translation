@@ -13,7 +13,8 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
-    "rewriteRelativeImportExtensions": true
+    "noEmit": true
+    // "rewriteRelativeImportExtensions": true
   },
   "include": ["scripts/**/*.ts", "vite/**/*.ts", "tests/**/*.ts"]
 }

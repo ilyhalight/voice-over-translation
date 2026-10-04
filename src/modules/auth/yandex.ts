@@ -6,9 +6,13 @@ import {
   YANDEX_AUTH_TOKEN_URL,
   YANDEX_AUTH_URL,
   YANDEX_USER_INFO_URL,
-} from "../../config/auth";
-import { setAccount, updateAccount } from "../../stores/account";
-import type { AuthMessageData } from "../../types/core/auth/message";
+} from "#config/auth.ts";
+import { setAccount, updateAccount } from "#stores/account.ts";
+import type { Account } from "#types/storage.ts";
+import { GM_fetch } from "#utils/gm.ts";
+import { votStorage } from "#utils/storage.ts";
+import { base64UrlEncode } from "#utils/utils.ts";
+import type { AuthMessageData } from "./types/message";
 import type {
   AuthError,
   TokenError,
@@ -16,11 +20,7 @@ import type {
   TokenResponse,
   UserInfo,
   UserInfoResponse,
-} from "../../types/core/auth/yandex";
-import type { Account } from "../../types/storage";
-import { GM_fetch } from "../../utils/gm";
-import { votStorage } from "../../utils/storage";
-import { base64UrlEncode } from "../../utils/utils";
+} from "./types/yandex";
 
 function createCodeVerifier(): string {
   return base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)));
@@ -107,16 +107,13 @@ export async function updateAccountInfo() {
     const userInfo = await getUserInfo(account.token);
     username = userInfo.login;
     avatarId = userInfo.default_avatar_id;
-    await votStorage.set<Account>("account", {
+    const updatedAccount: Account = {
       ...account,
       username,
       avatarId,
-    });
-    updateAccount({
-      ...account,
-      token: account.token,
-      expires: account.expires,
-    });
+    };
+    await votStorage.set<Account>("account", updatedAccount);
+    updateAccount(updatedAccount);
   } catch (err) {
     console.error("[VOT] Failed to fetch user info:", err);
   } finally {

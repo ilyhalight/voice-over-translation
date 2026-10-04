@@ -1,5 +1,5 @@
-import type { SettingsStore } from "../../stores/settings";
-import type { Phrase } from "../../types/localization";
+import type { SettingsStore } from "#stores/settings.ts";
+import type { Phrase } from "#types/localization.ts";
 
 export type ParsedHotkey = {
   parts: readonly string[];

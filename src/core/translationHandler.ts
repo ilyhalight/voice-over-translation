@@ -9,6 +9,7 @@ import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import { AudioDownloader } from "../audioDownloader";
 import { STREAM_TIMEOUT_MS } from "../audioDownloader/strategies/webAudioBridge";
 import { t } from "../localization/localizationProvider";
+import { openAuthWindow } from "../modules/auth/window";
 import { deleteAccount } from "../stores/account";
 import type {
   DownloadedAudioData,
@@ -31,7 +32,6 @@ import {
 } from "../utils/errors";
 import type { VideoHandler } from "../VideoHandler";
 import VOTLocalizedError from "../VOTLocalizedError";
-import { openAuthWindow } from "./auth/window";
 import {
   getTranslationAuthErrorKind,
   getTranslationServerErrorMessage,

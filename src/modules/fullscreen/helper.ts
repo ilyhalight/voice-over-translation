@@ -1,21 +1,9 @@
-import { containsCrossShadow } from "../utils/dom";
-
-interface DocumentWithFullscreen extends Document {
-  webkitFullscreenElement?: Element | null;
-  webkitExitFullscreen?: () => Promise<void>;
-}
-
-export interface FullscreenElementInfo {
-  element: HTMLElement | null;
-  shadowRoot: ShadowRoot | null;
-  isFullscreen: boolean;
-  belongsToCurrentVideo: boolean;
-}
-
-export interface FullscreenHelperOptions {
-  container: HTMLElement;
-  video?: HTMLVideoElement;
-}
+import { containsCrossShadow } from "#utils/dom.ts";
+import type {
+  DocumentWithFullscreen,
+  FullscreenElementInfo,
+  FullscreenHelperOptions,
+} from "./types";
 
 export class FullscreenHelper {
   private container: HTMLElement;
@@ -37,7 +25,6 @@ export class FullscreenHelper {
   getFullscreenElement(): HTMLElement | null {
     const doc = document as DocumentWithFullscreen;
     const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
-
     if (!(fullscreenEl instanceof HTMLElement)) {
       return null;
     }

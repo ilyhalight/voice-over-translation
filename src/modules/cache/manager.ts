@@ -1,28 +1,17 @@
 import type { ClientSession, SessionModule } from "@vot.js/shared/types/secure";
+import { computeExpiresAt } from "#utils/responseCache.ts";
+import { votStorage } from "#utils/storage.ts";
+import { getTimestamp } from "#utils/utils.ts";
 import type {
   CacheSubtitle,
   CacheTranslationSuccess,
-} from "../types/core/cacheManager";
-import { computeExpiresAt } from "../utils/responseCache";
-import { votStorage } from "../utils/storage";
+  TimedCacheEntry,
+  VOTSessionStorage,
+  VOTSessions,
+} from "./types";
 
 const YANDEX_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 const VOT_SESSION_STORAGE_KEY = "VOTSession";
-
-type TimedCacheEntry<T> = {
-  expiresAt: number;
-  value: T;
-};
-
-type VOTSessions = Partial<Record<SessionModule, ClientSession>>;
-type VOTSessionStorage = Pick<
-  typeof votStorage,
-  "getRaw" | "setRaw" | "deleteRaw"
->;
-
-function getCurrentUnixTimestampSeconds(): number {
-  return Math.floor(Date.now() / 1000);
-}
 
 function isClientSession(value: unknown): value is ClientSession {
   if (!value || typeof value !== "object") {
@@ -53,7 +42,7 @@ function sanitizeVOTSessions(value: unknown): VOTSessions {
     return {};
   }
 
-  const now = getCurrentUnixTimestampSeconds();
+  const now = getTimestamp();
   const entries = Object.entries(value as Record<string, unknown>).flatMap(
     ([module, session]) => {
       if (!isClientSession(session)) {

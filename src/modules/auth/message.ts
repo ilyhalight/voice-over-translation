@@ -3,7 +3,7 @@ import {
   AUTH_DATA_MESSAGE_TYPE,
   type AuthDataMessage,
   type AuthMessageData,
-} from "../../types/core/auth/message";
+} from "./types/message";
 
 function createAuthDataMessage(data: AuthMessageData): AuthDataMessage {
   return {

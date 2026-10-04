@@ -1,9 +1,9 @@
 import { YANDEX_AUTH_ORIGIN } from "../config/auth";
-import { handleAuthCallbackPage } from "../core/auth/message";
 import {
   ensureLocalizationProviderReady,
   localizationProvider,
 } from "../localization/localizationProvider";
+import { handleAuthCallbackPage } from "../modules/auth/message";
 import debug from "../utils/debug";
 import { isIframe } from "../utils/iframeConnector";
 

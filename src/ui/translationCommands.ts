@@ -1,5 +1,5 @@
-import { openAuthWindow } from "../core/auth/window";
 import { t } from "../localization/localizationProvider";
+import { openAuthWindow } from "../modules/auth/window";
 import { deleteExpiredAccount } from "../stores/account";
 import type { Status } from "../types/components/votButton";
 import debug from "../utils/debug";

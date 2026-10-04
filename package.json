@@ -14,6 +14,15 @@
     "vot",
     "voice-over-translation"
   ],
+  "imports": {
+    "#modules/*": "./src/modules/*",
+    "#core/*": "./src/core/*",
+    "#utils/*": "./src/utils/*",
+    "#types/*": "./src/types/*",
+    "#config/*": "./src/config/*",
+    "#stores/*": "./src/stores/*",
+    "#components/*": "./src/components/*"
+  },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
     "@crxjs/vite-plugin": "^2.7.1",

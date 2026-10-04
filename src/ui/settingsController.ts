@@ -44,13 +44,13 @@ function createSettingsEvents(): {
 import { type Accessor, createSignal, type Setter } from "solid-js";
 import { SettingsDialog } from "../components/Settings/SettingsDialog";
 import { PROXY_WORKER_HOST } from "../config/config";
-import { isAuthDataMessage } from "../core/auth/message";
-import { openAuthWindow } from "../core/auth/window";
-import { updateAccountByCallbackData } from "../core/auth/yandex";
 import {
   type LangOverride,
   localizationProvider,
 } from "../localization/localizationProvider";
+import { isAuthDataMessage } from "../modules/auth/message";
+import { openAuthWindow } from "../modules/auth/window";
+import { updateAccountByCallbackData } from "../modules/auth/yandex";
 import type { HotkeyActionItem } from "../modules/hotkeys/types";
 import { account, resetAccount, updateAccount } from "../stores/account";
 import { setLocale } from "../stores/locale";

@@ -1,5 +1,5 @@
-import debug from "../../utils/debug";
-import { getDeepActiveElement, isInputElement } from "../../utils/dom";
+import debug from "#utils/debug.ts";
+import { getDeepActiveElement, isInputElement } from "#utils/dom.ts";
 import type { HotkeyActionItem, ParsedHotkey, RawHotkey } from "./types";
 
 export class HotkeyController {

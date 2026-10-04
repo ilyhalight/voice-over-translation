@@ -1,8 +1,8 @@
+import { FullscreenHelper } from "#modules/fullscreen/helper.ts";
 import {
   OverlayView as OverlayViewComponent,
   type OverlayViewControls,
 } from "../components/OverlayView/OverlayView";
-import { FullscreenHelper } from "../core/fullscreenHelper";
 import { setSettings } from "../stores/settings";
 import type { LanguageSelectKey } from "../types/components/select";
 import type { StorageData } from "../types/storage";

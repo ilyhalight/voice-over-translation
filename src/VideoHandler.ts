@@ -7,15 +7,17 @@ import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import type { ClientSession, SessionModule } from "@vot.js/shared/types/secure";
 import Chaimu from "chaimu/client";
 import { initAudioContext } from "chaimu/player";
-
+import {
+  CacheManager,
+  VOTSessionStorageCache,
+} from "#modules/cache/manager.ts";
+import { FullscreenHelper } from "#modules/fullscreen/helper.ts";
 import {
   minLongWaitingCount,
   PROXY_ONLY_COUNTRIES,
   proxyWorkerHostMode1,
   workerHost,
 } from "./config/config";
-import { CacheManager, VOTSessionStorageCache } from "./core/cacheManager";
-import { FullscreenHelper } from "./core/fullscreenHelper";
 import { resolveOverlayMountTargets } from "./core/overlayMountTargets";
 import { translate } from "./core/translateApis";
 import { VOTTranslationHandler } from "./core/translationHandler";

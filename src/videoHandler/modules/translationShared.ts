@@ -1,6 +1,6 @@
 ﻿import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 
-import type { CacheTranslationSuccess } from "../../types/core/cacheManager";
+import type { CacheTranslationSuccess } from "#modules/cache/types.ts";
 import type { VideoData } from "../../types/videoHandler";
 import type { ActionContext } from "./translationTypes";
 
