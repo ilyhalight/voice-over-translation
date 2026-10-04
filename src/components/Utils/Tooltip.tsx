@@ -12,6 +12,7 @@ import {
 import "./Tooltip.scss";
 
 import { getHostElement } from "#utils/dom.ts";
+import { clamp } from "#utils/number.ts";
 import {
   type PagePosition,
   type Position,
@@ -23,7 +24,6 @@ import {
   triggers,
 } from "../../types/components/tooltip";
 import { render } from "../../ui/solid/renderer";
-import { clamp } from "../../utils/utils";
 import { createFloatingPosition } from "./createFloatingPosition";
 
 type AnchorBox = {
@@ -341,15 +341,18 @@ export function Tooltip(props: TooltipProps): JSX.Element {
     }
     const coordinates = getCoordinates(anchorBox, tooltipSize, position);
     const viewportOffset = getPortalViewportOffset();
+    const maxTop = boundary.bottom - tooltipSize.height;
+    const maxLeft = boundary.right - tooltipSize.width;
+    // Bounds are reversed when the tooltip is larger than the boundary.
     const top = clamp(
       coordinates.top,
-      boundary.top,
-      boundary.bottom - tooltipSize.height,
+      Math.min(boundary.top, maxTop),
+      Math.max(boundary.top, maxTop),
     );
     const left = clamp(
       coordinates.left,
-      boundary.left,
-      boundary.right - tooltipSize.width,
+      Math.min(boundary.left, maxLeft),
+      Math.max(boundary.left, maxLeft),
     );
 
     element.style.transform = `translate(${left - viewportOffset.left}px, ${

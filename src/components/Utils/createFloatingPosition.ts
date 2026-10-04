@@ -1,5 +1,6 @@
 import { type Accessor, onCleanup, onMount } from "solid-js";
 import { effect } from "solid-js/web";
+import { clamp } from "#utils/number.ts";
 
 const DEFAULT_GAP = 8;
 const DEFAULT_VIEWPORT_MARGIN = 8;
@@ -169,10 +170,7 @@ export function createFloatingPosition(
       minLeft,
       window.innerWidth - viewportMargin - popupRect.width,
     );
-    const left = Math.min(
-      Math.max(anchorRect.right - popupRect.width, minLeft),
-      maxLeft,
-    );
+    const left = clamp(anchorRect.right - popupRect.width, minLeft, maxLeft);
     const top = opensBelow
       ? anchorRect.bottom + gap
       : anchorRect.top - gap - popupRect.height;

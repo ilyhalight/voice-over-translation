@@ -1,10 +1,10 @@
 import { getNowMs } from "#utils/environment.ts";
+import { clamp } from "#utils/number.ts";
 import {
   DEFAULT_AUTO_VOLUME,
   DEFAULT_SMART_DUCKING_STRENGTH,
 } from "../../config/config";
 import debug from "../../utils/debug";
-import { clamp } from "../../utils/utils";
 import { snapVolume01 } from "../../utils/volume";
 import type { VideoHandler } from "../../VideoHandler";
 import { safeSetPlayerVolume } from "../translationVolume";
@@ -404,7 +404,9 @@ function getTranslatedAudioRms(
       for (const value of floatData) {
         sum += value * value;
       }
-      return clamp(Math.sqrt(sum / floatData.length), 0, 1);
+      const rms = Math.sqrt(sum / floatData.length);
+      // NaN (corrupt samples) means "no measurement", not silence.
+      return Number.isNaN(rms) ? undefined : clamp(rms, 0, 1);
     }
 
     let data = state.analyserData;
@@ -515,8 +517,11 @@ export function setupAudioSettings(this: VideoHandler) {
     return;
   }
 
-  const targetVolume =
-    clamp(this.data.autoVolume ?? DEFAULT_AUTO_VOLUME, 0, 100) / 100;
+  const autoVolume = this.data.autoVolume ?? DEFAULT_AUTO_VOLUME;
+  // A NaN setting must not enter the zero-volume branch below, which mutes the video.
+  const targetVolume = Number.isNaN(autoVolume)
+    ? Number.NaN
+    : clamp(autoVolume, 0, 100) / 100;
 
   if (targetVolume === 0) {
     if (this.smartVolumeDuckingInterval !== undefined) {

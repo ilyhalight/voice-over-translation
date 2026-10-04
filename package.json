@@ -21,7 +21,8 @@
     "#types/*": "./src/types/*",
     "#config/*": "./src/config/*",
     "#stores/*": "./src/stores/*",
-    "#components/*": "./src/components/*"
+    "#components/*": "./src/components/*",
+    "#extension/*": "./src/extension/*"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",

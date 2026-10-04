@@ -286,6 +286,23 @@ describe("smart ducking engine", () => {
     });
   });
 
+  test("classic NaN auto-volume does not take the mute branch", async () => {
+    (globalThis as unknown as { DEBUG_MODE: boolean }).DEBUG_MODE = false;
+    const { setupAudioSettings } = await import(
+      "../src/videoHandler/modules/smartDuckingRuntime.ts"
+    );
+    const { handler, volumeWrites, muteWrites } = createAudioSettingsHandler({
+      autoVolume: Number.NaN,
+      enabledSmartDucking: false,
+    });
+
+    setupAudioSettings.call(handler);
+
+    expect(volumeWrites).toHaveLength(1);
+    expect(volumeWrites[0]?.volume).toBeNaN();
+    expect(muteWrites).toEqual([]);
+  });
+
   test("smart ducking ignores classic zero auto-volume", async () => {
     (globalThis as unknown as { DEBUG_MODE: boolean }).DEBUG_MODE = false;
     const { setupAudioSettings, stopSmartVolumeDucking } = await import(

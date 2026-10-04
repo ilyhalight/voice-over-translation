@@ -6,13 +6,14 @@ import { getVideoID } from "@vot.js/ext/utils/videoData";
 import { availableLangs, availableTTS } from "@vot.js/shared/consts";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import { effect } from "solid-js/web";
+import { clamp } from "#utils/number.ts";
 import { AudioDownloader } from "../../audioDownloader";
 import { t } from "../../localization/localizationProvider";
 import { setSettings, settings } from "../../stores/settings";
 import type { Status } from "../../types/components/votButton";
 import debug from "../../utils/debug";
 import { GM_fetch } from "../../utils/gm";
-import { clamp, downloadBlob } from "../../utils/utils";
+import { downloadBlob } from "../../utils/utils";
 import { IconButton } from "../Button/IconButton";
 import { ProgressIconButton } from "../Button/ProgressIconButton";
 import {

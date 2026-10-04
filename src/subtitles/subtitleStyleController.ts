@@ -1,4 +1,5 @@
 import type { SubtitleFontFamily } from "../types/subtitles";
+import { clamp } from "../utils/number";
 import {
   ensureGoogleSubtitleFontLoaded,
   getSubtitleFontFamilyCssValue,
@@ -107,7 +108,7 @@ export class SubtitleStyleController {
   setOpacity(rate: number): void {
     const numericRate = Number(rate);
     const clampedRate = Number.isFinite(numericRate)
-      ? Math.min(100, Math.max(0, numericRate))
+      ? clamp(numericRate, 0, 100)
       : 0;
     this.opacity = ((100 - clampedRate) / 100).toFixed(2);
     this.setVariable("--vot-subtitles-opacity", this.opacity);

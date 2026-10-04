@@ -1,5 +1,4 @@
 import { isAbortError } from "./errors";
-import { clampNumberWithSortedBounds } from "./number";
 
 export { calculatedResLang } from "./localization";
 
@@ -257,10 +256,6 @@ export const getTimestamp = () => Math.floor(Date.now() / 1000);
 
 export const getHeaders = (headers?: HeadersInit): Record<string, string> =>
   headers ? Object.fromEntries(new Headers(headers)) : {};
-
-export function clamp(value: number, min = 0, max = 100): number {
-  return clampNumberWithSortedBounds(value, min, max);
-}
 
 export function toFlatObj<T extends Record<string, unknown>>(
   data: Record<string, unknown>,

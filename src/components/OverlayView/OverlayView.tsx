@@ -17,6 +17,7 @@ import {
   normalizeButtonPosition,
   resolveButtonPositionFromPointer,
 } from "../../ui/buttonPlacement";
+import { clamp } from "../../utils/number";
 import { votStorage } from "../../utils/storage";
 import { isPiPAvailable } from "../../utils/utils";
 import type { SelectOption } from "../Control/Select";
@@ -301,13 +302,15 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
     const rootRect = getLayoutRoot().getBoundingClientRect();
     const maxLeft = Math.max(0, rootRect.width - state.buttonWidth);
     const maxTop = Math.max(0, rootRect.height - state.buttonHeight);
-    const nextLeft = Math.max(
+    const nextLeft = clamp(
+      state.clientX - rootRect.left - state.grabOffsetX,
       0,
-      Math.min(state.clientX - rootRect.left - state.grabOffsetX, maxLeft),
+      maxLeft,
     );
-    const nextTop = Math.max(
+    const nextTop = clamp(
+      state.clientY - rootRect.top - state.grabOffsetY,
       0,
-      Math.min(state.clientY - rootRect.top - state.grabOffsetY, maxTop),
+      maxTop,
     );
 
     buttonOverlay.style.setProperty("--vot-button-drag-left", `${nextLeft}px`);

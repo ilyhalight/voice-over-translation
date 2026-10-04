@@ -1,8 +1,7 @@
 import { createSignal, type JSX, mergeProps } from "solid-js";
 import "./Slider.scss";
 import { effect } from "solid-js/web";
-import { clampNumber } from "../../utils/number";
-import { clamp } from "../../utils/utils";
+import { clamp } from "#utils/number.ts";
 
 export type SliderProps = {
   min?: number;
@@ -39,7 +38,7 @@ export function Slider(props: SliderProps): JSX.Element {
   const progress = () => {
     const range = finalProps.max - finalProps.min;
     const raw = range <= 0 ? 0 : (value() - finalProps.min) / range;
-    return clampNumber(raw, 0, 1);
+    return clamp(raw, 0, 1);
   };
 
   effect(() => {

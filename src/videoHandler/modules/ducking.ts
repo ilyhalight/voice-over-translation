@@ -1,4 +1,4 @@
-import { clamp } from "../../utils/utils";
+import { clamp } from "#utils/number.ts";
 import { snapVolume01Towards, VIDEO_VOLUME_STEP_01 } from "../../utils/volume";
 
 const VOLUME_MIN_01 = 0;

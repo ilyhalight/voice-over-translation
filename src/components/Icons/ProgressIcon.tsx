@@ -1,7 +1,7 @@
 import { type JSX, mergeProps } from "solid-js";
 
 import "./ProgressIcon.scss";
-import { clampNumber } from "../../utils/number";
+import { clamp } from "../../utils/number";
 
 export type ProgressIconProps = {
   progress?: number;
@@ -13,7 +13,7 @@ export function ProgressIcon(props: ProgressIconProps): JSX.Element {
     props,
   );
 
-  const progress = () => clampNumber(finalProps.progress, 0, 100);
+  const progress = () => clamp(finalProps.progress, 0, 100);
 
   return (
     <svg width="1em" height="100%" viewBox="0 0 24 24" fill="currentColor">

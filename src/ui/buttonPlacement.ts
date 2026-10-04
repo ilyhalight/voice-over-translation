@@ -1,5 +1,5 @@
-﻿import type { Direction, Position } from "../types/components/votButton";
-import { clampNumber } from "../utils/number";
+import type { Direction, Position } from "../types/components/votButton";
+import { clamp } from "../utils/number";
 
 const SIDE_EDGE_FRACTION = 0.18;
 const SIDE_TOP_FRACTION = 0.36;
@@ -43,7 +43,7 @@ function getEdgeSize(
   minPx: number,
   maxPx: number,
 ): number {
-  return clampNumber(size * fraction, minPx, maxPx);
+  return clamp(size * fraction, minPx, maxPx);
 }
 
 function resolveSideVerticalPosition(
@@ -74,8 +74,8 @@ export function resolveButtonPositionFromPointer(
     return "default";
   }
 
-  const x = clampNumber(clientX - containerRect.left, 0, width);
-  const y = clampNumber(clientY - containerRect.top, 0, height);
+  const x = clamp(clientX - containerRect.left, 0, width);
+  const y = clamp(clientY - containerRect.top, 0, height);
   const sideEdge = getEdgeSize(
     width,
     SIDE_EDGE_FRACTION,

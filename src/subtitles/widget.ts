@@ -11,6 +11,7 @@ import type {
   SubtitleToken,
 } from "../types/subtitles";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
+import { clamp } from "../utils/number";
 import { buildActiveSubtitleRenderLine } from "./activeCues";
 import { FullscreenLayerController } from "./fullscreenLayerController";
 import {
@@ -24,7 +25,6 @@ import {
   type CapturedVerticalAnchorState,
   captureCustomVerticalAnchorState,
   clampAnchorWithinBox,
-  clampToRange,
   hasDragThresholdBeenExceeded,
   resolveCustomVerticalAnchor,
   snapValueToNearestCandidate,
@@ -808,7 +808,7 @@ export class SubtitlesWidget {
     preset = this.getBottomInsetPreset(),
   ): number {
     const raw = anchorBoxH * preset.ratio;
-    return clampToRange(raw, preset.minPx, preset.maxPx);
+    return clamp(raw, preset.minPx, preset.maxPx);
   }
   private refreshBottomInsetNow(layout = this.getLayoutSize()): void {
     this.refreshInsetCache();
@@ -1137,9 +1137,8 @@ export class SubtitlesWidget {
     let topPx = anchorY - elementHeight;
     const maxLeftPx = layout.w - elementWidth;
     const maxTopPx = layout.h - bottomInset - elementHeight;
-    leftPx =
-      maxLeftPx >= 0 ? clampToRange(leftPx, 0, maxLeftPx) : maxLeftPx / 2;
-    topPx = maxTopPx >= 0 ? clampToRange(topPx, 0, maxTopPx) : 0;
+    leftPx = maxLeftPx >= 0 ? clamp(leftPx, 0, maxLeftPx) : maxLeftPx / 2;
+    topPx = maxTopPx >= 0 ? clamp(topPx, 0, maxTopPx) : 0;
 
     return {
       anchorX: leftPx + elementWidth / 2,
@@ -1261,7 +1260,7 @@ export class SubtitlesWidget {
     );
     const fontSizePx = this.subtitleStyleController.fontSizeOverridden
       ? this.subtitleStyleController.fontSize
-      : Math.min(24, Math.max(14, globalThis.innerWidth * 0.016));
+      : clamp(globalThis.innerWidth * 0.016, 14, 24);
     const fontKey = `normal normal 500 ${fontSizePx}px ${this.subtitleStyleController.fontFamilyCssValue}`;
     ctx.font = fontKey;
     return {

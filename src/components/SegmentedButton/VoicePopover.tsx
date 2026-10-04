@@ -11,6 +11,7 @@ import "./VoicePopover.scss";
 
 import { t } from "../../localization/localizationProvider";
 import { render } from "../../ui/solid/renderer";
+import { clamp } from "../../utils/number";
 import { LiveVoiceIcon } from "../Icons/LiveVoiceIcon";
 import { StandardVoiceIcon } from "../Icons/StandartVoiceIcon";
 import { createFloatingPosition } from "../Utils/createFloatingPosition";
@@ -259,8 +260,8 @@ export function VoicePopover(props: VoicePopoverProps): JSX.Element {
       minTop,
       rootRect.bottom - popoverRect.height - POPOVER_GAP,
     );
-    left = Math.min(Math.max(left, minLeft), maxLeft) - rootRect.left;
-    top = Math.min(Math.max(top, minTop), maxTop) - rootRect.top;
+    left = clamp(left, minLeft, maxLeft) - rootRect.left;
+    top = clamp(top, minTop, maxTop) - rootRect.top;
 
     element.dataset.placement = placement;
     element.style.left = `${left}px`;
