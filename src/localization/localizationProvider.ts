@@ -1,5 +1,5 @@
 import { contentUrl } from "../config/config";
-import type { FlatPhrases, LangOverride, Phrase } from "../types/localization";
+import type { FlatPhrases, Locale, Phrase } from "../types/localization";
 import type { LocaleStorageKey } from "../types/storage";
 import debug from "../utils/debug";
 import { GM_fetch } from "../utils/gm";
@@ -8,7 +8,7 @@ import { votStorage } from "../utils/storage";
 import { getTimestamp, toFlatObj } from "../utils/utils";
 import rawDefaultLocale from "./locales/en.json";
 
-export type { LangOverride } from "../types/localization";
+export type LangOverride = Locale | "auto";
 
 const LOCALE_STORAGE_KEYS: readonly LocaleStorageKey[] = [
   "localePhrases",
@@ -36,7 +36,7 @@ const availableLocales: readonly LangOverride[] = (() => {
     : (["auto", ...locales] as LangOverride[]);
 })();
 
-export function resolveRuntimeLocaleVersion(
+function resolveRuntimeLocaleVersion(
   buildVersion: string,
   scriptVersion: string,
 ) {
@@ -249,7 +249,7 @@ class LocalizationProvider {
     locale: Partial<FlatPhrases>,
     key: Phrase,
     source: "default" | "locale",
-  ) {
+  ): undefined {
     const warningKey = `${source}:${key}`;
     if (this.warnedMissingKeys.has(warningKey)) {
       return undefined;
@@ -286,6 +286,7 @@ class LocalizationProvider {
 }
 
 export const localizationProvider = new LocalizationProvider();
+export const t = localizationProvider.get.bind(localizationProvider);
 /**
  * In the userscript build, SystemJS wrapping allowed a top-level await.
  * For the extension build we bootstrap through loader scripts and keep the

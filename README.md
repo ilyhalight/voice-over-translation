@@ -23,7 +23,7 @@
 
 <!-- Install / Build -->
 
-[vot-dist]: https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist/vot.user.js
+[vot-dist]: https://github.com/ilyhalight/voice-over-translation/releases/latest/download/vot.user.js
 [vot-releases]: https://github.com/ilyhalight/voice-over-translation/releases
 [nodejs-link]: https://nodejs.org
 [bun-link]: https://bun.sh/
@@ -128,7 +128,7 @@
 - Умное расположение субтитров: адаптация длины строк и размера текста под размер плеера
 - Отображение субтитров, сгенерированных нейросетью
 - Отображение субтитров с сайта (например, автопереведенные субтитры YouTube)
-- Сохранение субтитров в форматах `.srt`, `.vtt`, `.json`
+- Сохранение субтитров в форматах `.srt`, `.vtt`, `.ass`, `.json`
 - Сохранение аудиодорожки перевода в формате `.mp3`
 - Отдельные ползунки громкости для оригинального и переведённого звука
 - Адаптивная громкость: приглушение оригинала, когда звучит перевод

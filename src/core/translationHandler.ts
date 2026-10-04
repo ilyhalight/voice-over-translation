@@ -1,24 +1,27 @@
 import {
   type TranslatedVideoTranslationResponse,
-  type TranslationHelp,
+  type VideoTranslationHelp,
   type VideoTranslationResponse,
   VideoTranslationStatus,
-} from "@vot.js/core/types/yandex";
+} from "@vot.js/core/types/providers/yandex";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
+
 import { AudioDownloader } from "../audioDownloader";
 import { STREAM_TIMEOUT_MS } from "../audioDownloader/strategies/webAudioBridge";
-import { localizationProvider } from "../localization/localizationProvider";
+import { t } from "../localization/localizationProvider";
+import { deleteAccount } from "../stores/account";
 import type {
   DownloadedAudioData,
   DownloadedPartialAudioData,
 } from "../types/audioDownloader";
+import type { VideoData } from "../types/videoHandler";
 import {
   createAbortableDelay,
   createAbortableWaiter,
   NEVER_ABORTED_SIGNAL,
   throwIfAborted,
 } from "../utils/abort";
-import { deleteAccount, hasAccountToken } from "../utils/account";
+import { hasAccountToken } from "../utils/account";
 import debug from "../utils/debug";
 import {
   getErrorMessage,
@@ -28,8 +31,7 @@ import {
 } from "../utils/errors";
 import type { VideoHandler } from "../VideoHandler";
 import VOTLocalizedError from "../VOTLocalizedError";
-import type { VideoData } from "../videoHandler/shared";
-import { openAuthWindow } from "./authWindow";
+import { openAuthWindow } from "./auth/window";
 import {
   getTranslationAuthErrorKind,
   getTranslationServerErrorMessage,
@@ -100,6 +102,8 @@ function mapVotClientErrorForUi(
 type TranslateVideoImplOptions = {
   disableLivelyVoice?: boolean;
   retryAttempt?: number;
+  /** Called after the backend confirms the translation is still preparing. */
+  onTranslationWaiting?: () => void;
 };
 
 function summarizeTranslationResponse(
@@ -555,9 +559,9 @@ export class VOTTranslationHandler {
 
     if (uiError.unlocalizedMessage === "VOTYandexTokenExpired") {
       await deleteAccount(this.videoHandler);
-      openAuthWindow();
+      await openAuthWindow();
     } else if (uiError.unlocalizedMessage === "VOTAccountRequired") {
-      openAuthWindow();
+      await openAuthWindow();
     }
   }
 
@@ -565,7 +569,7 @@ export class VOTTranslationHandler {
     videoData: VideoData,
     requestLang: RequestLang,
     responseLang: ResponseLang,
-    translationHelp: TranslationHelp[] | null = null,
+    translationHelp: VideoTranslationHelp[] | null = null,
     shouldSendFailedAudio = false,
     signal = NEVER_ABORTED_SIGNAL,
     options: TranslateVideoImplOptions = {},
@@ -599,6 +603,8 @@ export class VOTTranslationHandler {
     let translationResponse: VideoTranslationResponse | undefined;
 
     try {
+      throwIfAborted(signal);
+      await this.videoHandler.ensureProxySettingsResolved();
       throwIfAborted(signal);
 
       const livelyVoiceAllowed = this.videoHandler.isLivelyVoiceAllowed(
@@ -652,8 +658,7 @@ export class VOTTranslationHandler {
         return { ...res, usedLivelyVoice: useLivelyVoice };
       }
 
-      const message =
-        res.message ?? localizationProvider.get("translationTakeFewMinutes");
+      const message = res.message ?? t("translationTakeFewMinutes");
       debug.log("[Translation] translation still processing", {
         videoId: videoData.videoId,
         useLivelyVoice,
@@ -661,6 +666,10 @@ export class VOTTranslationHandler {
         message,
       });
       if (res.remainingTime > 0) {
+        // Backend confirmed the translation is not ready yet. Notify the caller
+        // now (after the real response) so it can pause, instead of doing it
+        // before the first request.
+        options.onTranslationWaiting?.();
         await this.etaCountdown.sync(res.remainingTime, signal, {
           countLongWaitOnFirstRender: true,
         });
@@ -726,6 +735,7 @@ export class VOTTranslationHandler {
           {
             disableLivelyVoice: livelyDisabled,
             retryAttempt,
+            onTranslationWaiting: options.onTranslationWaiting,
           },
         );
       }
@@ -803,6 +813,7 @@ export class VOTTranslationHandler {
           {
             disableLivelyVoice: livelyDisabled,
             retryAttempt: retryAttempt + 1,
+            onTranslationWaiting: options.onTranslationWaiting,
           },
         ),
       retryDelayMs,
@@ -826,7 +837,7 @@ export class VOTTranslationHandler {
     videoData: VideoData;
     requestLangForApi: RequestLang;
     responseLang: ResponseLang;
-    translationHelp: TranslationHelp[] | null;
+    translationHelp: VideoTranslationHelp[] | null;
     shouldSendFailedAudio: boolean;
     livelyDisabled: boolean;
     livelyVoiceAllowed: boolean;

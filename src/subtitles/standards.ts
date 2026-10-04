@@ -1060,9 +1060,7 @@ export const sortProcessedSubtitles = (
   ),
 });
 
-export const toSubtitlesData = (
-  processed: ProcessedSubtitles,
-): SubtitlesData => {
+const toSubtitlesData = (processed: ProcessedSubtitles): SubtitlesData => {
   const subtitles = processed.subtitles.map((line) => ({
     text: line.text,
     startMs: line.startMs,

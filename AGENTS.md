@@ -1,0 +1,74 @@
+# AGENTS.md
+
+## IMPORTANT
+
+you MUST NOT use `autobuild:signed` or `sign:firefox` commands in your local environment. These commands are only for the CI/CD pipeline and will not work on your local machine.
+
+## Code style
+
+Avoid overusing comments in code. Prefer clear naming, simple structure, and self-explanatory code over comments that merely restate what the code does.
+
+Add comments only when they provide information that is not obvious from the code itself, such as:
+
+- explaining complex or non-obvious logic;
+- documenting important assumptions, constraints, edge cases, or workarounds;
+- explaining why a particular approach was chosen when the reason is not apparent;
+- warning about behavior that could easily be misunderstood or accidentally broken.
+
+Do not add comments for trivial operations, obvious control flow, variable assignments, function calls, or code whose intent is already clear from its names and structure.
+
+Prefer comments that explain **why**, not **what**. If a comment can be removed by making the code clearer, improve the code instead.
+
+## User Interface Component
+
+You MUST prefer use `vot-block` instead of `div`, `span`, `p` and etc for unified styles on every websites.
+
+You MUST place all components inside `src/components/*` folder. You MUST use `solid-js` for creating components. All styles SHOULD BE in separated `.scss` files.
+
+Each component MUST follow this structure:
+
+```text
+src/components/**
+  ├── ComponentName.tsx
+  └── ComponentName.scss
+```
+
+You SHOULD prefer using Material You (Material Design 3) like design system for creating components. You MUSTN'T use any external UI libraries (like Material UI, Ant Design, etc.) for creating components
+
+You SHOULD be careful with `!important;` CSS rules as they might have been set for a reason and could be important for one of the supported websites.
+
+You SHOULD use `em` or `px` instead of `rem`.
+
+## Localization
+
+You MUST use `t("key")` for all user-facing localized strings.
+
+Do NOT hardcode localized text directly in the source code.
+
+If a required localization key does not exist, do NOT modify localization files manually. Ask the user to add the new string by running:
+
+```bash
+bun localize
+```
+
+Only use the new localization key after it has been added through this command.
+
+## Commits
+
+ALWAYS write commit messages in English. You MUST use the semantic commits format. NEVER use `src/localization/locales/*` files to write commit messages, except in the case where these are the only changes.
+
+NEVER make push or pull requests without ASK an user!
+
+## GM API
+
+Never use `unsafeWindow`!
+
+## Browser
+
+### Minimal versions
+
+Before use new JS features check that it's supported by the Firefox 106 and Chrome 106. You can check it on [caniuse.com](https://caniuse.com/).
+
+### YouTube API
+
+You can check static fields of `YoutubeHelper` from `@vot.js/ext/helpers/youtube` package to get some useful typed methods instead of reimplement it yourself.

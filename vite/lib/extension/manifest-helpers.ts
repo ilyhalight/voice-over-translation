@@ -45,7 +45,7 @@ function normalizeHostPermission(
   return `*://*.${value}/*`;
 }
 
-export function normalizeHostPermissions(list: string[] = []): string[] {
+function normalizeHostPermissions(list: string[] = []): string[] {
   const normalized = list
     .map((item) => normalizeHostPermission(item))
     .filter((value): value is string => Boolean(value));
@@ -87,7 +87,7 @@ function normalizeWebAccessibleResourceMatches(
   ];
 }
 
-export function createWebAccessibleResources(
+function createWebAccessibleResources(
   matches: string[],
 ): Array<Record<string, unknown>> {
   const normalizedMatches = normalizeWebAccessibleResourceMatches(matches);
@@ -107,7 +107,7 @@ export function createWebAccessibleResources(
 // Match splitting (origin-fallback vs direct)
 // ----------------------------------------------------------------
 
-export function splitMatchesForOriginFallback(matches: string[] = []): {
+function splitMatchesForOriginFallback(matches: string[] = []): {
   originFallbackMatches: string[];
   directMatches: string[];
 } {
@@ -130,19 +130,6 @@ export function splitMatchesForOriginFallback(matches: string[] = []): {
 }
 
 // ----------------------------------------------------------------
-// Icons
-// ----------------------------------------------------------------
-
-export function buildIconsMap(
-  sizes: readonly number[] = EXTENSION_ICON_SIZES,
-  pathPrefix: string = "icons",
-): Record<number, string> {
-  return Object.fromEntries(
-    sizes.map((size) => [size, `${pathPrefix}/icon-${size}.png`]),
-  ) as Record<number, string>;
-}
-
-// ----------------------------------------------------------------
 // Content scripts
 // ----------------------------------------------------------------
 
@@ -152,7 +139,7 @@ export interface ManifestPathStrategy {
   background?: Record<string, unknown>;
 }
 
-export function createContentScriptEntries({
+function createContentScriptEntries({
   matches,
   excludeMatches,
   includeWorld,

@@ -1,6 +1,6 @@
 import { containsCrossShadow } from "../utils/dom";
 
-export interface DocumentWithFullscreen extends Document {
+interface DocumentWithFullscreen extends Document {
   webkitFullscreenElement?: Element | null;
   webkitExitFullscreen?: () => Promise<void>;
 }
@@ -119,27 +119,6 @@ export class FullscreenHelper {
 
     // Not in fullscreen or doesn't belong to current video - watch container
     return this.container;
-  }
-
-  /**
-   * Checks if the current container should be considered "big" for button positioning
-   * Takes into account fullscreen state and ShadowDOM
-   */
-  isBigContainer(threshold: number = 550): boolean {
-    const target = this.getResizeObserverTarget();
-    const rect = target.getBoundingClientRect();
-    const videoRect = this.video?.getBoundingClientRect();
-
-    // Use video rect if available and smaller than container
-    let width = target.clientWidth;
-    if (rect.width > 0) {
-      width = rect.width;
-    }
-    if (videoRect && videoRect.width < rect.width) {
-      width = videoRect.width;
-    }
-
-    return width > threshold;
   }
 
   /**

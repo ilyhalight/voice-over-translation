@@ -60,3 +60,13 @@ export function toPageMessage(payload: AnyObject): {
     transfer: getTransferables(payload),
   };
 }
+
+export function postToPage(payload: AnyObject): void {
+  const { message, transfer } = toPageMessage(payload);
+  const targetOrigin = getSameWindowPostMessageTargetOrigin();
+  if (transfer.length) {
+    globalThis.postMessage(message, targetOrigin, transfer);
+    return;
+  }
+  globalThis.postMessage(message, targetOrigin);
+}

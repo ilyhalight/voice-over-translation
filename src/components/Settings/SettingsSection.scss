@@ -1,0 +1,67 @@
+.vot-settings-section {
+  border: 1px solid var(--vot-border-color);
+  border-radius: var(--vot-radius-l);
+  padding: var(--vot-space-2);
+  background: rgba(var(--vot-helper-onsurface-rgb), 0.03);
+  display: flex;
+  flex-direction: column;
+
+  // Avoid `gap` for predictable layout across host pages.
+  & > * {
+    margin: 0 !important;
+  }
+
+  // Spacing between header and content.
+  & > * + * {
+    margin-top: var(--vot-space-2) !important;
+  }
+}
+
+.vot-settings-section__header {
+  margin: 0 !important;
+  padding: 0.45em 0.5em !important;
+  border-radius: var(--vot-radius-m);
+}
+
+.vot-settings-section__header .vot-details-arrow-icon {
+  transition: transform var(--vot-duration-medium) var(--vot-easing-standard);
+}
+
+.vot-settings-section__header[data-open="true"] .vot-details-arrow-icon {
+  transform: scale(1.25) rotate(0deg);
+}
+
+.vot-settings-section__content {
+  // Shared grid variables for "settings rows".
+  // Components (select/slider) read these to align their right column.
+  // Controls are no longer pushed to the far right edge of the dialog.
+  // We still use a "comfort" width so dropdown pills are consistent.
+  --vot-settings-control-width: 200px;
+  // Slightly tighter vertical rhythm for long settings pages.
+  --vot-settings-row-gap: var(--vot-space-2);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--vot-settings-row-gap);
+  padding: 0 var(--vot-space-1) var(--vot-space-1);
+
+  & > * {
+    margin: 0 !important;
+  }
+
+  // Consistent padding + full-row hit area.
+  // IMPORTANT: never override component `display` values here. Some controls
+  // (hotkey, select, slider) rely on flex/grid internally.
+  // Apply only to *direct* children.
+  // Some rows are composite controls (e.g. Select/Slider with a checkbox as
+  // the label element). Styling nested `.vot-switch` would add double
+  // padding and break alignment.
+  & > .vot-switch,
+  & > .vot-hotkey,
+  & > .vot-select,
+  & > .vot-slider-wrapper {
+    width: 100% !important;
+    padding: var(--vot-space-1);
+    box-sizing: border-box;
+  }
+}

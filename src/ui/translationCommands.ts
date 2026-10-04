@@ -1,7 +1,7 @@
-import { openAuthWindow } from "../core/authWindow";
-import { localizationProvider } from "../localization/localizationProvider";
+import { openAuthWindow } from "../core/auth/window";
+import { t } from "../localization/localizationProvider";
+import { deleteExpiredAccount } from "../stores/account";
 import type { Status } from "../types/components/votButton";
-import { deleteExpiredAccount } from "../utils/account";
 import debug from "../utils/debug";
 import { isAbortError } from "../utils/errors";
 import type { VideoHandler } from "../VideoHandler";
@@ -50,7 +50,7 @@ async function prepareAuthStateForTranslation(
     return;
   }
 
-  openAuthWindow();
+  await openAuthWindow();
   throw new VOTLocalizedError("VOTYandexTokenExpired");
 }
 
@@ -69,10 +69,9 @@ export async function handleTranslationButtonCommand(
     return;
   }
 
-  // A click on an errored, idle button only clears the error and stops translation.
-  // Starting a new translation must be a separate, deliberate click.
+  // A click on an errored, idle button only clears the error.
   if (deps.currentStatus === "error" && !deps.currentLoading) {
-    deps.transformBtn("none", localizationProvider.get("translateVideo"));
+    deps.transformBtn("none", t("translateVideo"));
   }
 
   if (deps.currentStatus !== "none" || deps.currentLoading) {
@@ -120,7 +119,7 @@ export async function handleTranslationButtonCommand(
     );
   } catch (err) {
     if (isAbortError(err)) {
-      deps.transformBtn("none", localizationProvider.get("translateVideo"));
+      deps.transformBtn("none", t("translateVideo"));
       return;
     }
 

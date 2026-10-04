@@ -103,11 +103,6 @@ export function fnv1a32ToKeyPart(str: string): string {
   return (hash >>> 0).toString(36);
 }
 
-export interface DocumentWithFullscreen extends Document {
-  webkitFullscreenElement?: Element | null;
-  webkitExitFullscreen?: () => Promise<void>;
-}
-
 export const isPiPAvailable = () => Boolean(document.pictureInPictureEnabled);
 
 async function writeBlobToHandle(
@@ -172,6 +167,13 @@ function triggerBlobDownload(blob: Blob, filename: string): boolean {
   anchor.style.position = "fixed";
   anchor.style.left = "-9999px";
   anchor.style.top = "0";
+  anchor.addEventListener(
+    "click",
+    (event) => {
+      event.stopPropagation();
+    },
+    { once: true },
+  );
   (document.body ?? document.documentElement).append(anchor);
 
   try {
@@ -266,4 +268,11 @@ export function toFlatObj<T extends Record<string, unknown>>(
   }
 
   return out as T;
+}
+
+export function base64UrlEncode(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }

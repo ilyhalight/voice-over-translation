@@ -35,7 +35,7 @@ export type CapturedVerticalAnchorState = {
   travelPx: number;
 };
 
-export function getVerticalAnchorBounds({
+function getVerticalAnchorBounds({
   elementHeight,
   boxHeight,
   bottomInset,

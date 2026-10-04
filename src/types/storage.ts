@@ -1,4 +1,5 @@
 import type { ResponseLang } from "@vot.js/shared/types/data";
+import type { RawHotkey } from "../modules/hotkeys/types";
 import type { SubtitleFontFamily, SubtitleFormat } from "../types/subtitles";
 import type { LanguageSelectKey } from "./components/select";
 import type { Position } from "./components/votButton";
@@ -12,25 +13,25 @@ export type LocaleStorageKey =
   | "localeUpdatedAt"
   | "localeLangOverride";
 
-export const subtitleResponseLanguageModes = ["auto", "original"] as const;
+export const AUTO_SUBTITLE_LANGUAGE_VALUE = "auto" as const;
+export const ORIGINAL_SUBTITLE_LANGUAGE_VALUE = "original" as const;
+
 export type SubtitleResponseLanguageMode =
-  (typeof subtitleResponseLanguageModes)[number];
+  | typeof AUTO_SUBTITLE_LANGUAGE_VALUE
+  | typeof ORIGINAL_SUBTITLE_LANGUAGE_VALUE;
 export type ResponseLanguageSubtitles =
   | SubtitleResponseLanguageMode
   | Exclude<LanguageSelectKey, "auto">;
 
-export type ConvertCategory = "numToBool" | "number" | "array" | "string";
-export type ConvertDataItem = [oldName: string, newName?: string];
-export type ConvertData = Record<ConvertCategory, ConvertDataItem[]>;
-
 export const storageKeys = [
   "autoTranslate",
+  "autoPauseOnTranslate",
   "autoSubtitles",
   "dontTranslateLanguages",
-  "enabledDontTranslateLanguages",
   "enabledAutoVolume",
   "enabledSmartDucking",
   "autoVolume",
+  "smartDuckingStrength",
   "buttonPos",
   "showVideoSlider",
   "syncVolume",
@@ -54,6 +55,7 @@ export const storageKeys = [
   "detectService",
   "translationHotkey",
   "subtitlesHotkey",
+  "pipHotkey",
   "m3u8ProxyHost",
   "proxyWorkerHost",
   "translateProxyEnabled",
@@ -73,7 +75,7 @@ export const storageKeys = [
 ] as const;
 
 export type TranslateProxyStatus = 0 | 1 | 2;
-export type CompatibilityVersion = "" | "2025-05-09";
+export type CompatibilityVersion = "" | "2025-05-09" | "2026-08-18";
 
 export type Account = {
   username: string | undefined;
@@ -84,9 +86,13 @@ export type Account = {
 
 export type StorageData = {
   autoTranslate: boolean;
+  /**
+   * Pause the video while translation is being prepared,
+   * then auto-play once the translated audio is ready.
+   */
+  autoPauseOnTranslate: boolean;
   autoSubtitles: boolean;
   dontTranslateLanguages: LanguageSelectKey[];
-  enabledDontTranslateLanguages: boolean;
   enabledAutoVolume: boolean;
   /**
    * Smart Auto-Volume ducking: only lower original video volume while translated
@@ -95,7 +101,18 @@ export type StorageData = {
    * When disabled, Auto-Volume behaves like a classic constant ducking.
    */
   enabledSmartDucking: boolean;
+  /**
+   * Classic Auto-Volume target: absolute original video volume (0-100) that is
+   * applied for the whole translated playback. Ignored in Smart ducking mode.
+   */
   autoVolume: number;
+  /**
+   * Smart Auto-Volume strength (0-100): relative lowering of the original track
+   * against its baseline while translated audio is audible.
+   * 0 keeps the baseline, 100 fully mutes it.
+   * Classic mode keeps using {@link autoVolume} instead.
+   */
+  smartDuckingStrength: number;
   buttonPos: Position;
   showVideoSlider: boolean;
   syncVolume: boolean;
@@ -121,8 +138,11 @@ export type StorageData = {
   translateAPIErrors: boolean;
   translationService: TranslateService;
   detectService: DetectService;
-  translationHotkey: null | string;
-  subtitlesHotkey: null | string;
+  // hotkey block
+  translationHotkey: RawHotkey;
+  subtitlesHotkey: RawHotkey;
+  pipHotkey: RawHotkey;
+  // other
   m3u8ProxyHost: string;
   proxyWorkerHost: string;
   translateProxyEnabled: TranslateProxyStatus;

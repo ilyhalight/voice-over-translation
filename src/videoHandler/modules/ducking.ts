@@ -43,7 +43,11 @@ export type SmartDuckingInput = {
   rms?: number;
   currentVideoVolume?: number;
   hostVideoActive: boolean;
-  duckingTarget01: number;
+  /**
+   * Relative ducking strength in 0..1: 0 keeps the baseline, 1 fully mutes it.
+   * The ducked target is computed as `baseline * (1 - duckingStrength01)`.
+   */
+  duckingStrength01: number;
   volumeOnStart?: number;
 };
 
@@ -185,10 +189,10 @@ function resolveDesiredVolume(
   gateOpen: boolean,
   currentVideoVolume: number,
   baseline: number,
-  duckingTarget01: number,
+  duckingStrength01: number,
   config: SmartDuckingConfig,
 ): number {
-  const duckedTarget = Math.min(baseline, duckingTarget01);
+  const duckedTarget = baseline * (1 - duckingStrength01);
 
   if (gateOpen) {
     runtime.isDucked = true;
@@ -313,13 +317,13 @@ export function computeSmartDuckingStep(
     return { kind: "noop", runtime: nextRuntime };
   }
 
-  const duckingTarget01 = normalizeVolume01(input.duckingTarget01) ?? baseline;
+  const duckingStrength01 = normalizeVolume01(input.duckingStrength01) ?? 0;
   const desired = resolveDesiredVolume(
     nextRuntime,
     gateOpen,
     currentVideoVolume,
     baseline,
-    duckingTarget01,
+    duckingStrength01,
     config,
   );
   const nextVolume = smoothVolumeChange(

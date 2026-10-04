@@ -1,5 +1,6 @@
-import { AudioDownloadType } from "@vot.js/core/types/yandex";
+import { AudioDownloadType } from "@vot.js/core/types/providers/yandex";
 import { config } from "@vot.js/shared";
+
 import debug from "../../utils/debug";
 import { isAbortError } from "../../utils/errors";
 import { type AudioChunk, concatBuffers } from "./audioChunks";
@@ -312,7 +313,7 @@ async function getPlayer(
   );
 }
 
-export function createAudioChunkStream(
+function createAudioChunkStream(
   targetWindow: MseWindow,
   videoId: string,
   signal: AbortSignal,
@@ -841,7 +842,7 @@ async function handleTopRequest(
   ).appendChild(iframe);
 }
 
-export function initMseProxyHandler(): void {
+function initMseProxyHandler(): void {
   const pageWindow = globalThis as unknown as MseWindow;
   if (
     pageWindow[BOOT_KEY] ||

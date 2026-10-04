@@ -1,7 +1,8 @@
-import { contentUrl, repositoryUrl } from "../../../src/config/config";
-import { getAltMatchPatterns } from "./alt-urls";
-import { getHeaders, type UserscriptHeader } from "./grants";
-import type { LocaleHeadersFile } from "./locales";
+import { repositoryUrl } from "../../../src/config/config.ts";
+import { getReleaseDownloadBase } from "../paths.ts";
+import { getAltMatchPatterns } from "./alt-urls.ts";
+import { getHeaders, type UserscriptHeader } from "./grants.ts";
+import type { LocaleHeadersFile } from "./locales.ts";
 
 type UserscriptBranch = "dev" | "master";
 type HeaderFieldValue = string | readonly string[] | undefined;
@@ -13,7 +14,7 @@ function buildUserscriptMeta(
   localeEntries: Array<[string, LocaleHeadersFile]>,
 ): UserscriptHeader {
   const baseMeta = getHeaders<UserscriptHeader>();
-  const finalUrl = `${contentUrl}/${repoUpdateBranch}/dist/${filename}.user.js`;
+  const finalUrl = `${getReleaseDownloadBase(repoUpdateBranch)}/${filename}.user.js`;
   const baseMatch = Array.isArray(baseMeta.match)
     ? baseMeta.match
     : [baseMeta.match];
@@ -112,28 +113,6 @@ export function formatUserscriptHeader(options: {
     } else {
       lines.push(`// @${key}${pad}${value}`);
     }
-  }
-
-  lines.push("// ==/UserScript==\n");
-  return lines.join("\n");
-}
-
-// Упрощённый форматтер для test-ui (без локалей/грантов/альтернативных URL)
-export function formatSimpleUserscriptHeader(
-  header: Record<string, unknown>,
-): string {
-  const lines = ["// ==UserScript=="];
-
-  for (const [key, value] of Object.entries(header)) {
-    if (value === undefined) continue;
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        lines.push(`// @${key} ${item}`);
-      }
-      continue;
-    }
-
-    lines.push(`// @${key} ${String(value)}`);
   }
 
   lines.push("// ==/UserScript==\n");

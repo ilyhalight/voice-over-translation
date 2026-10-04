@@ -37,42 +37,6 @@ export function containsCrossShadow(container: Node, target: Node): boolean {
   return false;
 }
 
-export function isDocumentViewportElement(
-  element: Element | null | undefined,
-): boolean {
-  return element === document.body || element === document.documentElement;
-}
-
-export function resolveScopedFullscreenElement(
-  fullscreenEl: Element | null | undefined,
-  anchors: Array<Node | null | undefined>,
-  options: {
-    allowDocumentViewport?: boolean;
-  } = {},
-): HTMLElement | null {
-  const { allowDocumentViewport = false } = options;
-
-  if (!(fullscreenEl instanceof HTMLElement)) {
-    return null;
-  }
-
-  if (isDocumentViewportElement(fullscreenEl) && !allowDocumentViewport) {
-    return null;
-  }
-
-  for (const anchor of anchors) {
-    if (
-      anchor &&
-      (containsCrossShadow(fullscreenEl, anchor) ||
-        containsCrossShadow(anchor, fullscreenEl))
-    ) {
-      return fullscreenEl;
-    }
-  }
-
-  return null;
-}
-
 type CrossShadowTarget = Element | Document;
 
 export function closestCrossShadow(
@@ -137,4 +101,12 @@ function walkCrossShadow(
   if (closest) return closest;
 
   return walkCrossShadow(getNextCrossShadowTarget(current), selector, origin);
+}
+
+export function isInputElement(element: HTMLElement | null): boolean {
+  const activeTag = element?.tagName?.toLowerCase?.() ?? "";
+  return (
+    ["input", "textarea"].includes(activeTag) ||
+    Boolean(element?.isContentEditable)
+  );
 }

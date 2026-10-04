@@ -15,7 +15,6 @@ const REGEX_FLAGS = "dgimsuvy";
 const hostTitleMap = {
   nine_gag: "9GAG",
   mailru: "Mail.ru",
-  mail_ru: "Mail.ru",
   yandexdisk: "Yandex Disk",
   googledrive: "Google Drive",
   okru: "OK.ru",
@@ -650,6 +649,7 @@ if (import.meta.main) {
     await main();
   } catch (err) {
     console.error(err);
+    process.exitCode = 1;
   }
 }
 

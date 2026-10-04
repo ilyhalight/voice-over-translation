@@ -8,10 +8,7 @@ import {
 } from "../shared/bodySerialization";
 import type { AnyObject } from "../shared/constants";
 import { PORT_NAME, TYPE_XHR_ACK, TYPE_XHR_EVENT } from "../shared/constants";
-import {
-  getSameWindowPostMessageTargetOrigin,
-  toPageMessage,
-} from "../shared/transport";
+import { postToPage } from "../shared/transport";
 import { ext, runtimeMessagesUseStructuredClone } from "../shared/webext";
 import {
   isYandexApiHostname,
@@ -176,16 +173,6 @@ function mergeHeadersIfMissing(
     headers[name] = value;
     existingNames.add(normalizedName);
   }
-}
-
-function postToPage(payload: AnyObject) {
-  const { message, transfer } = toPageMessage(payload);
-  const targetOrigin = getSameWindowPostMessageTargetOrigin();
-  if (transfer.length) {
-    globalThis.postMessage(message, targetOrigin, transfer);
-    return;
-  }
-  globalThis.postMessage(message, targetOrigin);
 }
 
 function settleXhrPort(requestId: string, state: XhrPortState): void {

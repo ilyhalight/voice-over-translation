@@ -1,6 +1,5 @@
 import debug from "../../utils/debug";
 import {
-  type AnyObject,
   BG_MSG_NOTIFICATION,
   type BridgeWireMessage,
   isOurMessage,
@@ -10,11 +9,7 @@ import {
   TYPE_XHR_ABORT,
   TYPE_XHR_START,
 } from "../shared/constants";
-import {
-  getSameWindowPostMessageTargetOrigin,
-  isSameWindowBridgeEvent,
-  toPageMessage,
-} from "../shared/transport";
+import { isSameWindowBridgeEvent, postToPage } from "../shared/transport";
 import { asErrorMessage } from "../shared/utils";
 import { ext, runtimeSendMessage } from "../shared/webext";
 import { handleBridgeRequest } from "./request-handler";
@@ -42,16 +37,6 @@ function injectPageModule(fileName: string): void {
     { once: true },
   );
   parent.appendChild(script);
-}
-
-function postToPage(payload: AnyObject) {
-  const { message, transfer } = toPageMessage(payload);
-  const targetOrigin = getSameWindowPostMessageTargetOrigin();
-  if (transfer.length) {
-    globalThis.postMessage(message, targetOrigin, transfer);
-    return;
-  }
-  globalThis.postMessage(message, targetOrigin);
 }
 
 function sendResponse(
