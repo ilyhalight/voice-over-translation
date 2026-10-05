@@ -72,7 +72,9 @@ export type SettingsStore = {
   subtitlesOpacity: number;
 };
 
-function createInitialState(): SettingsStore {
+export function createDefaultSettings(
+  audioContextSupported = false,
+): SettingsStore {
   return {
     // menu
     defaultVolume: 100,
@@ -92,14 +94,14 @@ function createInitialState(): SettingsStore {
     syncVolume: false,
     downloadWithName: isSupportGMXhr,
     sendNotifyOnComplete: false,
+    // Audio download uses direct network requests (GM_fetch/GM_xmlhttpRequest).
     useAudioDownload: isSupportGMXhr,
     translationService: DEFAULT_TRANSLATION_SERVICE,
     detectService: DEFAULT_DETECT_SERVICE,
     // other
     translateAPIErrors: true,
-    // TODO: set default by audioContextSupported?
-    newAudioPlayer: false,
-    onlyBypassMediaCSP: false,
+    newAudioPlayer: audioContextSupported,
+    onlyBypassMediaCSP: audioContextSupported,
     showPiPButton: false,
     autoHideButtonDelay: DEFAULT_AUTO_HIDE_DELAY,
     buttonPos: "default",
@@ -121,6 +123,18 @@ function createInitialState(): SettingsStore {
   };
 }
 
+const SETTINGS_KEYS = Object.keys(
+  createDefaultSettings(),
+) as (keyof SettingsStore)[];
+
+export function pickSettings(
+  source: Partial<SettingsStore>,
+): Partial<SettingsStore> {
+  return Object.fromEntries(
+    SETTINGS_KEYS.map((key) => [key, source[key]]),
+  ) as Partial<SettingsStore>;
+}
+
 export const [settings, setSettings] = createStore<SettingsStore>(
-  createInitialState(),
+  createDefaultSettings(),
 );

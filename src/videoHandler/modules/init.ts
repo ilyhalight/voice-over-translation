@@ -1,23 +1,15 @@
-import {
-  DEFAULT_DETECT_SERVICE,
-  DEFAULT_TRANSLATION_SERVICE,
-} from "#modules/translateText/consts.ts";
-import {
-  actualCompatVersion,
-  DEFAULT_AUTO_HIDE_DELAY,
-  DEFAULT_AUTO_VOLUME,
-  DEFAULT_SMART_DUCKING_STRENGTH,
-  m3u8ProxyHost,
-  PROXY_WORKER_HOST,
-} from "../../config/config";
+import { actualCompatVersion, m3u8ProxyHost } from "../../config/config";
 import { updateAccountFromStorage } from "../../stores/account";
 import { setLocale } from "../../stores/locale";
-import { setSettings } from "../../stores/settings";
+import {
+  createDefaultSettings,
+  pickSettings,
+  setSettings,
+} from "../../stores/settings";
 import type { LanguageSelectKey } from "../../types/components/select";
-import { AUTO_SUBTITLE_LANGUAGE_VALUE } from "../../types/storage";
 import { normalizeButtonPosition } from "../../ui/buttonPlacement";
 import debug from "../../utils/debug";
-import { IS_PROXY_ONLY_EXTENSION, isSupportGMXhr } from "../../utils/gm";
+import { IS_PROXY_ONLY_EXTENSION } from "../../utils/gm";
 import { updateConfig, votStorage } from "../../utils/storage";
 import { calculatedResLang } from "../../utils/utils";
 import type { VideoHandler } from "../../VideoHandler";
@@ -29,47 +21,9 @@ export async function init(this: VideoHandler) {
 
   // Retrieve settings from storage.
   this.data = await votStorage.getValues({
-    autoTranslate: false,
-    autoPauseOnTranslate: false,
-    autoSubtitles: false,
-    dontTranslateLanguages: [calculatedResLang],
-    enabledAutoVolume: true,
-    enabledSmartDucking: true,
-    autoVolume: DEFAULT_AUTO_VOLUME,
-    smartDuckingStrength: DEFAULT_SMART_DUCKING_STRENGTH,
-    buttonPos: "default",
-    showVideoSlider: true,
-    syncVolume: false,
-    downloadWithName: isSupportGMXhr,
-    sendNotifyOnComplete: false,
-    subtitlesMaxLength: 300,
-    subtitlesSmartLayout: true,
-    highlightWords: false,
-    subtitlesFontSize: 20,
-    subtitlesFontFamily: "default-sans",
-    subtitlesOpacity: 20,
-    subtitlesDownloadFormat: "srt",
-    responseLanguage: calculatedResLang,
-    responseLanguageSubtitles: AUTO_SUBTITLE_LANGUAGE_VALUE,
-    defaultVolume: 100,
-    onlyBypassMediaCSP: audioContextSupported,
-    newAudioPlayer: audioContextSupported,
-    showPiPButton: false,
-    translateAPIErrors: true,
-    translationService: DEFAULT_TRANSLATION_SERVICE,
-    detectService: DEFAULT_DETECT_SERVICE,
-    translationHotkey: null,
-    subtitlesHotkey: null,
-    pipHotkey: null,
+    ...createDefaultSettings(audioContextSupported),
     m3u8ProxyHost,
-    proxyWorkerHost: PROXY_WORKER_HOST,
-    translateProxyEnabled: 0,
     translateProxyEnabledDefault: true,
-    audioBooster: false,
-    useLivelyVoice: false,
-    autoHideButtonDelay: DEFAULT_AUTO_HIDE_DELAY,
-    // Audio download now uses direct network requests (GM_fetch/GM_xmlhttpRequest).
-    useAudioDownload: isSupportGMXhr,
     compatVersion: "",
     account: {},
     localeHash: "",
@@ -87,49 +41,8 @@ export async function init(this: VideoHandler) {
     hash: this.data.localeHash,
   });
   setSettings({
-    // menu
-    defaultVolume: this.data.defaultVolume,
-    responseLanguage: this.data.responseLanguage,
-    useLivelyVoice: this.data.useLivelyVoice,
-    // translation
-    autoTranslate: this.data.autoTranslate,
-    autoPauseOnTranslate: this.data.autoPauseOnTranslate,
-    autoSubtitles: this.data.autoSubtitles,
-    dontTranslateLanguages: this.data.dontTranslateLanguages,
-    enabledAutoVolume: this.data.enabledAutoVolume,
-    autoVolume: this.data.autoVolume,
-    enabledSmartDucking: this.data.enabledSmartDucking,
-    smartDuckingStrength: this.data.smartDuckingStrength,
-    showVideoSlider: this.data.showVideoSlider,
-    audioBooster: this.data.audioBooster,
-    syncVolume: this.data.syncVolume,
-    downloadWithName: this.data.downloadWithName,
-    sendNotifyOnComplete: this.data.sendNotifyOnComplete,
-    useAudioDownload: this.data.useAudioDownload,
-    translationService: this.data.translationService,
-    detectService: this.data.detectService,
-    // other
-    translateAPIErrors: this.data.translateAPIErrors,
-    newAudioPlayer: this.data.newAudioPlayer,
-    onlyBypassMediaCSP: this.data.onlyBypassMediaCSP,
-    showPiPButton: this.data.showPiPButton,
-    autoHideButtonDelay: this.data.autoHideButtonDelay,
+    ...pickSettings(this.data),
     buttonPos: normalizeButtonPosition(this.data.buttonPos),
-    proxyWorkerHost: this.data.proxyWorkerHost,
-    translateProxyEnabled: this.data.translateProxyEnabled,
-    // hotkeys
-    translationHotkey: this.data.translationHotkey,
-    subtitlesHotkey: this.data.subtitlesHotkey,
-    pipHotkey: this.data.pipHotkey,
-    // subtitles
-    responseLanguageSubtitles: this.data.responseLanguageSubtitles,
-    subtitlesDownloadFormat: this.data.subtitlesDownloadFormat,
-    highlightWords: this.data.highlightWords,
-    subtitlesSmartLayout: this.data.subtitlesSmartLayout,
-    subtitlesFontFamily: this.data.subtitlesFontFamily,
-    subtitlesMaxLength: this.data.subtitlesMaxLength,
-    subtitlesFontSize: this.data.subtitlesFontSize,
-    subtitlesOpacity: this.data.subtitlesOpacity,
   });
 
   try {
