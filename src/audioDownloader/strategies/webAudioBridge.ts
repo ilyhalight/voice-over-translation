@@ -108,13 +108,14 @@ async function* getAudioBridgeChunks(
     );
   const onMessage = (event: MessageEvent) => {
     const message = event.data;
-    const iframe = document.getElementById(
-      `vot-mse-proxy-${messageId}`,
-    ) as HTMLIFrameElement | null;
+    // Firefox/Safari userscript realms can expose the same page Window through
+    // a different WindowProxy/wrapper, so event.source identity is not reliable.
+    // Authenticate bridge responses by same-origin delivery plus the per-request
+    // random messageId and protocol fields instead.
+    const expectedOrigin = globalThis.location.origin;
     if (
       !message ||
-      (event.source !== (globalThis as unknown as Window) &&
-        event.source !== iframe?.contentWindow) ||
+      event.origin !== expectedOrigin ||
       message.messageId !== messageId ||
       message.messageType !== MESSAGE_TYPE ||
       message.messageDirection !== "response"

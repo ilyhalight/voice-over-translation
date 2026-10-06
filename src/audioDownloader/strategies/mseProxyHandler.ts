@@ -810,11 +810,49 @@ async function handleTopRequest(
       );
 
       for await (const chunk of chunks) {
-        postResponse(source, event.origin, {
-          ...message,
-          messageDirection: "response",
-          payload: chunk,
+        // Normalize the chunk into this realm before crossing the message
+        // boundary. Firefox is stricter about structured-cloning objects and
+        // typed arrays originating in another userscript/page compartment.
+        // Always copying also makes Safari follow the same deterministic path
+        // instead of relying on browser-specific cross-realm behaviour.
+        const buffer = new Uint8Array(
+          chunk.buffer.buffer,
+          chunk.buffer.byteOffset,
+          chunk.buffer.byteLength,
+        ).slice();
+        const payload: AudioChunk = {
+          ...chunk,
+          buffer,
+        };
+
+        debug.log("Audio downloader. direct chunk received", {
+          videoId,
+          messageId: message.messageId,
+          size: buffer.byteLength,
+          isLastChunk: chunk.isLastChunk,
         });
+
+        try {
+          postResponse(source, event.origin, {
+            ...message,
+            messageDirection: "response",
+            payload,
+          });
+          debug.log("Audio downloader. direct chunk posted", {
+            videoId,
+            messageId: message.messageId,
+            size: buffer.byteLength,
+            isLastChunk: chunk.isLastChunk,
+          });
+        } catch (error) {
+          debug.error("Audio downloader. direct chunk post failed", {
+            videoId,
+            messageId: message.messageId,
+            size: buffer.byteLength,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          throw error;
+        }
       }
 
       settled = true;
