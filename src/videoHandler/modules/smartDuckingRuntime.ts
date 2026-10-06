@@ -429,15 +429,8 @@ function getTranslatedAudioRms(
   }
 }
 
-function isSafari(): boolean {
-  return (
-    /Safari/i.test(navigator.userAgent) &&
-    !/Chrome|Chromium|CriOS|Edg|OPR/i.test(navigator.userAgent)
-  );
-}
-
 function smartDuckingTick(handler: VideoHandler): void {
-  if (isSafari()) {
+  if (browserInfo.browser?.name === "Safari") {
     const targetVolume =
       clamp(handler.data?.autoVolume ?? defaultAutoVolume, 0, 100) / 100;
 
