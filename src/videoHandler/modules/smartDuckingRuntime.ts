@@ -429,7 +429,24 @@ function getTranslatedAudioRms(
   }
 }
 
+function isSafari(): boolean {
+  return (
+    /Safari/i.test(navigator.userAgent) &&
+    !/Chrome|Chromium|CriOS|Edg|OPR/i.test(navigator.userAgent)
+  );
+}
+
 function smartDuckingTick(handler: VideoHandler): void {
+  if (isSafari()) {
+    const targetVolume =
+      clamp(handler.data?.autoVolume ?? defaultAutoVolume, 0, 100) / 100;
+
+    handler.setVideoVolume(targetVolume, {
+      preserveYoutubeVolumeStorage: true,
+    });
+    return;
+  }
+
   if (getAutoVolumeMode(handler) !== "smart") {
     setupAudioSettings.call(handler);
     return;
