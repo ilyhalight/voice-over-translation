@@ -761,10 +761,96 @@ async function handleTopRequest(
     audioDownloadType,
     host: targetWindow.location.hostname,
   });
+
+  // Run WebABR/SABR directly in the real current YouTube page context.
+  // The hidden /embed player is retained only for the legacy MSE fallback.
+  if (audioDownloadType === AudioDownloadType.WEB_ABR) {
+    const controller = new AbortController();
+    let settled = false;
+
+    const abort = (abortEvent: MessageEvent<MseMessage>) => {
+      const data = abortEvent.data;
+      if (
+        abortEvent.source === source &&
+        abortEvent.origin === event.origin &&
+        data.messageId === message.messageId &&
+        data.messageType === MESSAGE_TYPE &&
+        data.messageDirection === "request" &&
+        data.isAborted
+      ) {
+        controller.abort(data.payload);
+      }
+    };
+    targetWindow.addEventListener("message", abort);
+
+    const postProgress = () => {
+      if (settled) return;
+      postResponse(source, event.origin, {
+        ...message,
+        messageDirection: "response",
+        payload: undefined,
+        isProgress: true,
+      });
+    };
+
+    const heartbeat = setInterval(postProgress, 30_000);
+    postProgress();
+    debug.log("Audio downloader. direct WebABR/SABR request started", {
+      videoId,
+      messageId: message.messageId,
+      host: targetWindow.location.hostname,
+    });
+
+    try {
+      const chunks = getWebAbrAudioChunks(
+        targetWindow,
+        videoId,
+        controller.signal,
+        getSourceLanguage(message),
+      );
+
+      for await (const chunk of chunks) {
+        postResponse(source, event.origin, {
+          ...message,
+          messageDirection: "response",
+          payload: chunk,
+        });
+      }
+
+      settled = true;
+      debug.log("Audio downloader. direct WebABR/SABR stream finished", {
+        videoId,
+        messageId: message.messageId,
+      });
+      postResponse(source, event.origin, {
+        ...message,
+        messageDirection: "response",
+        payload: undefined,
+        isStreamFinished: true,
+      });
+    } catch (error) {
+      settled = true;
+      debug.error("Audio downloader. direct WebABR/SABR request failed", {
+        videoId,
+        messageId: message.messageId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      postResponse(source, event.origin, {
+        ...message,
+        messageDirection: "response",
+        payload: undefined,
+        error: error instanceof Error ? error.message : String(error),
+        isAborted: controller.signal.aborted || isAbortError(error),
+      });
+    } finally {
+      clearInterval(heartbeat);
+      targetWindow.removeEventListener("message", abort);
+    }
+    return;
+  }
+
+  // MSE fallback keeps the original auxiliary /embed player path.
   const iframe = targetWindow.document.createElement("iframe");
-  // display:none iframes have no layout box, and YouTube defers media
-  // loading for non-rendered players (no src is ever assigned). Keep the
-  // frame rendered but invisible: 2x2px, off the visual path.
   iframe.style.cssText =
     "position:fixed;right:0;bottom:0;width:2px;height:2px;border:0;" +
     "padding:0;margin:0;opacity:0;visibility:hidden;pointer-events:none;";

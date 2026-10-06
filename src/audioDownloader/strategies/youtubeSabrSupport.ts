@@ -2,53 +2,14 @@ import type { SabrFormat } from "googlevideo/shared-types";
 import { createAbortableDelay } from "../../utils/abort";
 import debug from "../../utils/debug";
 import {
-  getYoutubeAudioFormatLanguage as getAudioFormatLanguage,
-  normalizeAudioLanguageTag as normalizeAudioLanguage,
-} from "../utils";
-import {
   audioLanguageMatches,
+  getAudioFormatLanguage,
+  getTopPageWindow,
   isDrcAudioFormat,
+  normalizeAudioLanguage,
   type WebAbrWindow,
   type WebEmbeddedFormat,
-} from "./webAbr";
-import { getTopPageWindow } from "./youtubeSabrPlayer";
-
-export function splitTopLevelProto(
-  bytes: Uint8Array,
-): Array<{ field: number; start: number; end: number }> {
-  const out: Array<{ field: number; start: number; end: number }> = [];
-  const readVarint = (offset: number) => {
-    let value = 0;
-    let shift = 0;
-    let index = offset;
-    while (index < bytes.length && shift <= 35) {
-      const byte = bytes[index++];
-      value += (byte & 0x7f) * 2 ** shift;
-      if ((byte & 0x80) === 0) return { value, next: index };
-      shift += 7;
-    }
-    throw new Error("invalid protobuf varint");
-  };
-
-  let offset = 0;
-  while (offset < bytes.length) {
-    const start = offset;
-    const tag = readVarint(offset);
-    offset = tag.next;
-    const field = Math.floor(tag.value / 8);
-    const wire = tag.value & 7;
-    if (wire === 0) offset = readVarint(offset).next;
-    else if (wire === 1) offset += 8;
-    else if (wire === 2) {
-      const length = readVarint(offset);
-      offset = length.next + length.value;
-    } else if (wire === 5) offset += 4;
-    else throw new Error(`unsupported protobuf wire ${wire}`);
-    if (offset > bytes.length) throw new Error("truncated protobuf field");
-    out.push({ field, start, end: offset });
-  }
-  return out;
-}
+} from "./youtubePlayer";
 
 export function toSabrFormat(
   format: WebEmbeddedFormat,
@@ -172,7 +133,7 @@ export function setGeneratedSabrAudioTrackId(
     const payloadChunks = fields
       .filter((field) => field.field !== 69)
       .map((field) => payload.slice(field.start, field.end));
-    payloadChunks.push(new Uint8Array(trackField));
+    payloadChunks.push(trackField);
     const patchedPayload = concatBytes(payloadChunks);
 
     chunks.push(

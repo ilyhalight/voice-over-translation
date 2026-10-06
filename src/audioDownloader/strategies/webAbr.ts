@@ -167,83 +167,14 @@ export function buildMediaRanges(
   return ranges;
 }
 
-export async function mintPagePoToken(
-  pageWindow: WebAbrWindow,
-  binding: string,
-  signal: AbortSignal,
-): Promise<string | undefined> {
-  const realms = new Set<WebAbrWindow>([pageWindow]);
-  try {
-    realms.add(pageWindow.parent as WebAbrWindow);
-    realms.add(pageWindow.top as WebAbrWindow);
-  } catch {
-    // Cross-origin access is denied.
-  }
-  for (const realm of realms) {
-    let keys: string[];
-    try {
-      keys = Object.getOwnPropertyNames(realm).filter(
-        (key) => key === "bevasrsg" || key.startsWith("havuokmhhs-"),
-      );
-    } catch {
-      continue;
-    }
-    for (const key of keys) {
-      let bevasrs: { wpc?: unknown } | undefined;
-      try {
-        bevasrs = (
-          (realm as unknown as Record<string, unknown>)[key] as {
-            bevasrs?: { wpc?: unknown };
-          }
-        )?.bevasrs;
-      } catch {
-        continue;
-      }
-      const wpc = bevasrs?.wpc;
-      if (typeof wpc !== "function") continue;
-      for (let attempt = 0; attempt < 10; attempt++) {
-        if (signal.aborted) throw signal.reason;
-        try {
-          const minter = await wpc.call(bevasrs);
-          const token = await minter?.mws?.({
-            c: binding,
-            mc: false,
-            me: false,
-          });
-          if (typeof token === "string" && token) return token;
-        } catch (error) {
-          if (!String(error).includes("SDF:notready")) break;
-        }
-        await createAbortableDelay(500, signal);
-      }
-    }
-  }
-}
+// PO-token handling belongs to the dedicated YouTube player layer.
+// Re-export it here to keep existing SABR imports/API compatible.
+export {
+  mintPagePoToken,
+  selectGvsPoTokenBinding,
+} from "./youtubePlayer";
 
-export function selectGvsPoTokenBinding(
-  videoId: string,
-  options: {
-    loggedIn: boolean;
-    dataSyncId: unknown;
-    visitorData: unknown;
-    experimentFlags: string[];
-  },
-): { kind: "video" | "datasync" | "visitor"; value: string } | undefined {
-  if (
-    options.experimentFlags.some(
-      (flags) =>
-        new URLSearchParams(flags)
-          .getAll("html5_generate_content_po_token")
-          .at(-1) === "true",
-    )
-  ) {
-    return { kind: "video", value: videoId };
-  }
-  // Authenticated GVS uses the full datasync ID, including the || separator.
-  const value = options.loggedIn ? options.dataSyncId : options.visitorData;
-  if (typeof value !== "string" || !value) return;
-  return { kind: options.loggedIn ? "datasync" : "visitor", value };
-}
+import { mintPagePoToken, selectGvsPoTokenBinding } from "./youtubePlayer";
 
 export function getConfigValue(config: YouTubeConfig, key: string): unknown {
   return config.get?.(key) ?? config.data_?.[key];
