@@ -2,14 +2,16 @@ import type { SabrFormat } from "googlevideo/shared-types";
 import { createAbortableDelay } from "../../utils/abort";
 import debug from "../../utils/debug";
 import {
+  getYoutubeAudioFormatLanguage as getAudioFormatLanguage,
+  normalizeAudioLanguageTag as normalizeAudioLanguage,
+} from "../utils";
+import {
   audioLanguageMatches,
-  getAudioFormatLanguage,
-  getTopPageWindow,
   isDrcAudioFormat,
-  normalizeAudioLanguage,
   type WebAbrWindow,
   type WebEmbeddedFormat,
-} from "./youtubePlayer";
+} from "./webAbr";
+import { getTopPageWindow } from "./youtubePage";
 
 export function toSabrFormat(
   format: WebEmbeddedFormat,

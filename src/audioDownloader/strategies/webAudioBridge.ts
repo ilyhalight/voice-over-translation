@@ -1,9 +1,8 @@
-import type { AudioDownloadType } from "@vot.js/core/types/yandex";
-
 import type { GetAudioFromAPIOptions } from "../../types/audioDownloader";
 import debug from "../../utils/debug";
 import { makeAbortError } from "../../utils/errors";
 import type { AudioChunk } from "./audioChunks";
+import type { AudioBridgeStrategy } from "./audioStrategy";
 
 const MESSAGE_TYPE = "get-audio-chunks-by-mse-in-main-world";
 export const STREAM_TIMEOUT_MS = 30 * 60_000;
@@ -37,9 +36,7 @@ export function parseAudioBridgeChunk(payload: unknown): AudioChunk {
 async function* getAudioBridgeChunks(
   videoId: string,
   signal: AbortSignal,
-  audioDownloadType:
-    | AudioDownloadType.WEB_ABR
-    | AudioDownloadType.WEB_MSE_PROXY,
+  audioDownloadType: AudioBridgeStrategy,
   sourceLanguage?: string,
 ): AsyncGenerator<AudioChunk> {
   if (signal.aborted) throw makeAbortError(signal.reason);
@@ -232,9 +229,7 @@ async function* getAudioBridgeChunks(
 
 export async function getAudioFromBridge(
   { videoId, signal, sourceLanguage }: GetAudioFromAPIOptions,
-  audioDownloadType:
-    | AudioDownloadType.WEB_ABR
-    | AudioDownloadType.WEB_MSE_PROXY,
+  audioDownloadType: AudioBridgeStrategy,
 ) {
   return {
     fileId: `random-${audioDownloadType}-${crypto.randomUUID()}`,

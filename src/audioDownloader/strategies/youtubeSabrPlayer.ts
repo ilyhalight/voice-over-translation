@@ -11,104 +11,63 @@ import {
   type YouTubeConfig,
 } from "./webAbr";
 
-declare const unsafeWindow: WebAbrWindow | undefined;
+import { getTopPageWindow } from "./youtubePage";
+
+export { getTopPageWindow } from "./youtubePage";
 
 function readInitialPlayerResponseFromDocument(
-  targetWindow: Window,
+  targetWindow: WebAbrWindow,
 ): WebEmbeddedPlayerResponse | undefined {
   let scripts: HTMLScriptElement[] = [];
   try {
+    const pageWindow = getTopPageWindow(targetWindow);
     scripts = [
-      ...targetWindow.document.querySelectorAll<HTMLScriptElement>(
+      ...pageWindow.document.querySelectorAll<HTMLScriptElement>(
         "script:not([src])",
       ),
     ];
   } catch {
-    return;
+    return undefined;
   }
 
   const markers = [
     "ytInitialPlayerResponse =",
     "ytInitialPlayerResponse=",
-    "var ytInitialPlayerResponse =",
-    "var ytInitialPlayerResponse=",
+    'window["ytInitialPlayerResponse"] =',
+    "window['ytInitialPlayerResponse'] =",
   ];
 
   for (const script of scripts) {
-    const source = script.textContent;
-    if (!source?.includes("ytInitialPlayerResponse")) continue;
+    const source = script.textContent ?? "";
+    if (!source.includes("ytInitialPlayerResponse")) continue;
+
     for (const marker of markers) {
-      const markerIndex = source.indexOf(marker);
-      if (markerIndex < 0) continue;
-      const start = source.indexOf("{", markerIndex + marker.length);
-      if (start < 0) continue;
-      const end = findJsonValueEnd(source, start);
-      if (end < 0) continue;
-      try {
-        return JSON.parse(
-          source.slice(start, end),
-        ) as WebEmbeddedPlayerResponse;
-      } catch {
-        // Keep scanning other inline scripts/assignment forms.
+      let cursor = 0;
+      while (cursor < source.length) {
+        const markerIndex = source.indexOf(marker, cursor);
+        if (markerIndex < 0) break;
+        let start = markerIndex + marker.length;
+        while (start < source.length && /\s/.test(source[start] ?? "")) start++;
+        if (source[start] !== "{") {
+          cursor = start + 1;
+          continue;
+        }
+        const end = findJsonValueEnd(source, start);
+        if (end < 0) break;
+        try {
+          const value = JSON.parse(
+            source.slice(start, end),
+          ) as WebEmbeddedPlayerResponse;
+          if (value && typeof value === "object") return value;
+        } catch {
+          // Keep looking: pages can contain stale/non-JSON occurrences too.
+        }
+        cursor = end;
       }
     }
   }
-}
 
-function getMainWorldWindow(targetWindow: WebAbrWindow): WebAbrWindow {
-  try {
-    if (typeof unsafeWindow !== "undefined" && unsafeWindow) {
-      const unsafe = unsafeWindow as WebAbrWindow;
-      if (
-        unsafe.document &&
-        unsafe.location?.hostname.endsWith("youtube.com")
-      ) {
-        return unsafe;
-      }
-    }
-  } catch {}
-
-  try {
-    const unsafe = (
-      globalThis as typeof globalThis & { unsafeWindow?: WebAbrWindow }
-    ).unsafeWindow;
-    if (unsafe?.document && unsafe.location?.hostname.endsWith("youtube.com")) {
-      return unsafe;
-    }
-  } catch {}
-
-  try {
-    const wrapped = (
-      targetWindow as WebAbrWindow & { wrappedJSObject?: WebAbrWindow }
-    ).wrappedJSObject;
-    if (
-      wrapped?.document &&
-      wrapped.location?.hostname.endsWith("youtube.com")
-    ) {
-      return wrapped;
-    }
-  } catch {}
-
-  return targetWindow;
-}
-
-export function getTopPageWindow(targetWindow: WebAbrWindow): WebAbrWindow {
-  const pageWindow = getMainWorldWindow(targetWindow);
-  try {
-    const top = pageWindow.top as
-      | (WebAbrWindow & { wrappedJSObject?: WebAbrWindow })
-      | null;
-    if (top?.document && top.location?.hostname.endsWith("youtube.com")) {
-      try {
-        return top.wrappedJSObject ?? top;
-      } catch {
-        return top;
-      }
-    }
-  } catch {
-    // Cross-origin frames cannot expose the top page.
-  }
-  return pageWindow;
+  return undefined;
 }
 
 export function getNativePlayerResponse(

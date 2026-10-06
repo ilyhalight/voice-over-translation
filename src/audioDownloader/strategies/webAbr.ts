@@ -167,14 +167,10 @@ export function buildMediaRanges(
   return ranges;
 }
 
-// PO-token handling belongs to the dedicated YouTube player layer.
-// Re-export it here to keep existing SABR imports/API compatible.
-export {
-  mintPagePoToken,
-  selectGvsPoTokenBinding,
-} from "./youtubePlayer";
+// Keep the existing webAbr public API while isolating page-realm PO-token logic.
+import { mintPagePoToken, selectGvsPoTokenBinding } from "./youtubePoToken";
 
-import { mintPagePoToken, selectGvsPoTokenBinding } from "./youtubePlayer";
+export { mintPagePoToken, selectGvsPoTokenBinding };
 
 export function getConfigValue(config: YouTubeConfig, key: string): unknown {
   return config.get?.(key) ?? config.data_?.[key];
