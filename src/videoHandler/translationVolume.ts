@@ -1,16 +1,17 @@
-﻿import { clampNumber } from "../utils/number";
+import { clamp } from "../utils/number";
 
 type GainBackedPlayer = {
   volume: number;
   gainNode?: GainNode;
 };
 
+// Infinity must not reach AudioParam (TypeError) or saturate to max volume.
 function normalizeMediaElementVolume(volume: number): number {
-  return clampNumber(volume, 0, 1);
+  return clamp(Number.isFinite(volume) ? volume : 0, 0, 1);
 }
 
 function normalizeGainVolume(volume: number): number {
-  return clampNumber(volume, 0, Infinity);
+  return clamp(Number.isFinite(volume) ? volume : 0, 0, Infinity);
 }
 
 function setAudioParamInstant(

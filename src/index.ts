@@ -1,10 +1,10 @@
 import type { ServiceConf } from "@vot.js/ext/types/service";
 import { getService } from "@vot.js/ext/utils/videoData";
+import { YANDEX_AUTH_ORIGIN } from "#modules/auth/consts.ts";
 import { getOrCreateBootState } from "./bootstrap/bootState";
 import { initIframeInteractor } from "./bootstrap/iframeInteractor";
 import { ensureRuntimeActivated } from "./bootstrap/runtimeActivation";
 import { bindObserverListeners } from "./bootstrap/videoObserverBinding";
-import { authServerUrl } from "./config/config";
 import { resolveBootstrapMode } from "./core/bootstrapPolicy";
 import { findConnectedContainerBySelector } from "./core/containerResolution";
 import debug from "./utils/debug";
@@ -81,7 +81,7 @@ async function main(): Promise<void> {
     isIframe: isIframe(),
     href: String(globalThis.location.href || ""),
     origin: globalThis.location.origin,
-    authOrigin: authServerUrl,
+    authOrigin: YANDEX_AUTH_ORIGIN,
   });
 
   // FIX: Drive video player UI from blocking pointer events

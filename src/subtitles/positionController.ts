@@ -1,6 +1,4 @@
-﻿import { clampNumber } from "../utils/number";
-
-export const clampToRange = clampNumber;
+import { clamp } from "../utils/number";
 
 export function hasDragThresholdBeenExceeded(
   startClientX: number,
@@ -35,7 +33,7 @@ export type CapturedVerticalAnchorState = {
   travelPx: number;
 };
 
-export function getVerticalAnchorBounds({
+function getVerticalAnchorBounds({
   elementHeight,
   boxHeight,
   bottomInset,
@@ -63,7 +61,7 @@ export function captureCustomVerticalAnchorState({
     boxHeight,
     bottomInset,
   });
-  const clampedAnchorY = clampToRange(anchorY, minAnchorY, baselineAnchorY);
+  const clampedAnchorY = clamp(anchorY, minAnchorY, baselineAnchorY);
   return {
     offsetFromBaselinePx: clampedAnchorY - baselineAnchorY,
     travelPx,
@@ -102,11 +100,7 @@ export function resolveCustomVerticalAnchor({
       ? Math.min(storedLiftPx, ratioLiftPx)
       : Math.min(travelPx, ratioLiftPx);
 
-  return clampToRange(
-    baselineAnchorY - nextLiftPx,
-    minAnchorY,
-    baselineAnchorY,
-  );
+  return clamp(baselineAnchorY - nextLiftPx, minAnchorY, baselineAnchorY);
 }
 
 export function clampAnchorWithinBox({
@@ -129,7 +123,7 @@ export function clampAnchorWithinBox({
     const maxLeftPx = boxWidth - elementWidth;
 
     if (maxLeftPx >= 0) {
-      leftPx = clampToRange(leftPx, 0, maxLeftPx);
+      leftPx = clamp(leftPx, 0, maxLeftPx);
     } else {
       leftPx = maxLeftPx / 2;
     }
@@ -137,7 +131,7 @@ export function clampAnchorWithinBox({
     nextAnchorX = leftPx + elementWidth / 2;
   }
 
-  nextAnchorY = clampToRange(nextAnchorY, minAnchorY, maxAnchorY);
+  nextAnchorY = clamp(nextAnchorY, minAnchorY, maxAnchorY);
   return { anchorX: nextAnchorX, anchorY: nextAnchorY };
 }
 

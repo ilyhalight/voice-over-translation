@@ -1,4 +1,4 @@
-import { localizationProvider } from "./localization/localizationProvider";
+import { localizationProvider, t } from "./localization/localizationProvider";
 import type { Phrase } from "./types/localization";
 
 class VOTLocalizedError extends Error {
@@ -13,7 +13,7 @@ class VOTLocalizedError extends Error {
   constructor(message: Phrase) {
     super(localizationProvider.getDefault(message));
     this.unlocalizedMessage = message;
-    this.localizedMessage = localizationProvider.get(message);
+    this.localizedMessage = t(message);
   }
 }
 

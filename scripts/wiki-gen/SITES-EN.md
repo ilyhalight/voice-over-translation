@@ -461,6 +461,12 @@ Available (sub)domains:
 
 - `my.mail.ru`
 
+Available paths:
+
+- /v/NICKNAME/video/...
+- /mail/NICKNAME/video/...
+- video/embed/VIDEO_ID
+
 ## Bitchute
 
 Status: [✅] Working
@@ -593,6 +599,10 @@ Status: [✅] Working
 Available (sub)domains:
 
 - `ok.ru`
+
+Available paths:
+
+- /video/VIDEO_ID
 
 ## Google Drive
 
@@ -813,6 +823,10 @@ Available (sub)domains:
 
 - `coursehunter.net`
 - `coursetrain.net`
+
+Available paths:
+
+- /course/COURSE_ID
 
 ## Sap
 
@@ -1146,6 +1160,7 @@ Available (sub)domains:
 Available paths:
 
 - /content/i2cs/*
+- /authoring-resources/*
 
 ## Mediafile
 
@@ -1191,3 +1206,12 @@ Status: [✅] Working
 Available (sub)domains:
 
 - `any`
+
+Available paths:
+
+- /*.mp4
+- /*.webm
+
+Limitations:
+
+- Local videos can't be translated

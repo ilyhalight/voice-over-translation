@@ -8,6 +8,7 @@ type OpenCall = {
 };
 
 const storedValues: StoredValues = {};
+const sessionStoredValues: StoredValues = {};
 const openCalls: OpenCall[] = [];
 
 Object.defineProperty(globalThis, "DEBUG_MODE", {
@@ -25,6 +26,19 @@ Object.defineProperty(globalThis, "localStorage", {
     },
     removeItem: (key: string) => {
       delete storedValues[key];
+    },
+  },
+});
+
+Object.defineProperty(globalThis, "sessionStorage", {
+  configurable: true,
+  value: {
+    getItem: (key: string) => sessionStoredValues[key] ?? null,
+    setItem: (key: string, value: string) => {
+      sessionStoredValues[key] = value;
+    },
+    removeItem: (key: string) => {
+      delete sessionStoredValues[key];
     },
   },
 });
@@ -63,7 +77,9 @@ function createVideoHandler(account?: { token?: string; expires?: number }) {
       additionalData: undefined,
     },
     votClient: {
-      provider: { apiToken: account?.token },
+      provider: {
+        apiToken: account?.token,
+      },
     },
     actionsAbortController: new AbortController(),
     hasActiveSource: () => false,
@@ -94,6 +110,9 @@ describe("translation auth command", () => {
     openCalls.length = 0;
     for (const key of Object.keys(storedValues)) {
       delete storedValues[key];
+    }
+    for (const key of Object.keys(sessionStoredValues)) {
+      delete sessionStoredValues[key];
     }
   });
 

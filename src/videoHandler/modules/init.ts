@@ -1,48 +1,18 @@
+import { actualCompatVersion, m3u8ProxyHost } from "../../config/config";
+import { updateAccountFromStorage } from "../../stores/account";
+import { setLocale } from "../../stores/locale";
 import {
-  actualCompatVersion,
-  defaultAutoHideDelay,
-  defaultAutoVolume,
-  defaultDetectService,
-  defaultTranslationService,
-  m3u8ProxyHost,
-  proxyOnlyCountries,
-  proxyWorkerHost,
-} from "../../config/config";
+  createDefaultSettings,
+  pickSettings,
+  setSettings,
+} from "../../stores/settings";
 import type { LanguageSelectKey } from "../../types/components/select";
+import { normalizeButtonPosition } from "../../ui/buttonPlacement";
 import debug from "../../utils/debug";
-import { GM_fetch, isProxyOnlyExtension, isSupportGMXhr } from "../../utils/gm";
+import { IS_PROXY_ONLY_EXTENSION } from "../../utils/gm";
 import { updateConfig, votStorage } from "../../utils/storage";
 import { calculatedResLang } from "../../utils/utils";
 import type { VideoHandler } from "../../VideoHandler";
-import { getCountryCode, setCountryCode } from "../shared";
-
-let countryCodeRequestInFlight: Promise<void> | null = null;
-
-async function ensureCountryCode(): Promise<void> {
-  if (getCountryCode()) {
-    return;
-  }
-
-  countryCodeRequestInFlight ??= (async () => {
-    try {
-      const response = await GM_fetch(
-        "https://cloudflare-dns.com/cdn-cgi/trace",
-        {
-          timeout: 7000,
-        },
-      );
-      const trace = await response.text();
-      const loc = trace.split("\n").find((line) => line.startsWith("loc="));
-      setCountryCode(loc?.slice(4, 6).toUpperCase());
-    } catch (err) {
-      console.error("[VOT] Error getting country:", err);
-    }
-  })().finally(() => {
-    countryCodeRequestInFlight = null;
-  });
-
-  await countryCodeRequestInFlight;
-}
 
 export async function init(this: VideoHandler) {
   if (this.initialized) return;
@@ -51,59 +21,33 @@ export async function init(this: VideoHandler) {
 
   // Retrieve settings from storage.
   this.data = await votStorage.getValues({
-    autoTranslate: false,
-    autoSubtitles: false,
-    dontTranslateLanguages: [calculatedResLang],
-    enabledDontTranslateLanguages: true,
-    enabledAutoVolume: true,
-    enabledSmartDucking: true,
-    autoVolume: defaultAutoVolume,
-    buttonPos: "default",
-    showVideoSlider: true,
-    syncVolume: false,
-    downloadWithName: isSupportGMXhr,
-    sendNotifyOnComplete: false,
-    subtitlesMaxLength: 300,
-    subtitlesSmartLayout: true,
-    highlightWords: false,
-    subtitlesFontSize: 20,
-    subtitlesFontFamily: "default-sans",
-    subtitlesOpacity: 20,
-    subtitlesDownloadFormat: "srt",
-    responseLanguage: calculatedResLang,
-    responseLanguageSubtitles: "auto",
-    defaultVolume: 100,
-    onlyBypassMediaCSP: audioContextSupported,
-    newAudioPlayer: audioContextSupported,
-    showPiPButton: false,
-    translateAPIErrors: true,
-    translationService: defaultTranslationService,
-    detectService: defaultDetectService,
-    translationHotkey: null,
-    subtitlesHotkey: null,
+    ...createDefaultSettings(audioContextSupported),
     m3u8ProxyHost,
-    proxyWorkerHost,
-    translateProxyEnabled: 0,
     translateProxyEnabledDefault: true,
-    audioBooster: false,
-    useLivelyVoice: false,
-    autoHideButtonDelay: defaultAutoHideDelay,
-    // Audio download now uses direct network requests (GM_fetch/GM_xmlhttpRequest).
-    useAudioDownload: isSupportGMXhr,
     compatVersion: "",
     account: {},
     localeHash: "",
     localeUpdatedAt: 0,
   });
+
   if (this.data.compatVersion !== actualCompatVersion) {
     this.data = await updateConfig(this.data);
     await votStorage.set("compatVersion", actualCompatVersion);
   }
 
+  await updateAccountFromStorage();
+  setLocale({
+    updatedAt: this.data.localeUpdatedAt,
+    hash: this.data.localeHash,
+  });
+  setSettings({
+    ...pickSettings(this.data),
+    buttonPos: normalizeButtonPosition(this.data.buttonPos),
+  });
+
   try {
     if (
       calculatedResLang === "en" &&
-      this.data?.enabledDontTranslateLanguages &&
       Array.isArray(this.data?.dontTranslateLanguages) &&
       this.data.dontTranslateLanguages.length === 1 &&
       this.data.dontTranslateLanguages[0] === "en" &&
@@ -126,37 +70,19 @@ export async function init(this: VideoHandler) {
   console.log("[VOT] data from db:", this.data);
 
   // Enable translate proxy if extension isn't compatible with GM_xmlhttpRequest
-  if (!this.data.translateProxyEnabled && isProxyOnlyExtension) {
+  if (!this.data.translateProxyEnabled && IS_PROXY_ONLY_EXTENSION) {
     this.data.translateProxyEnabled = 1;
   }
-  // Determine country for proxy purposes
-  await ensureCountryCode();
-
-  const countryCode = getCountryCode();
-  if (
-    countryCode !== null &&
-    proxyOnlyCountries.includes(countryCode) &&
-    this.data.translateProxyEnabledDefault
-  ) {
-    this.data.translateProxyEnabled = 2;
-  }
-
-  debug.log(
-    "translateProxyEnabled",
-    this.data.translateProxyEnabled,
-    this.data.translateProxyEnabledDefault,
-  );
   debug.log("Extension compatibility passed...");
-
-  await this.initVOTClient();
 
   // Initialize UI elements and events.
   this.uiManager.initUI();
   this.uiManager.initUIEvents();
+  this.uiManager.votOverlayView.overlayViewControls?.setButtonHidden(true);
 
-  if (this.uiManager.votOverlayView?.votButton?.container) {
-    this.uiManager.votOverlayView.votButton.container.hidden = true;
-  }
+  void this.ensureProxySettingsResolved().catch((err) => {
+    console.error("[VOT] Failed to initialize translation client:", err);
+  });
 
   // Get video data and create player.
   this.createPlayer();

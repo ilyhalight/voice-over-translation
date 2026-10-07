@@ -1,4 +1,5 @@
 import { config } from "@vot.js/shared";
+import { toErrorMessage } from "#utils/errors.ts";
 import { createAbortableDelay } from "../../utils/abort";
 import debug from "../../utils/debug";
 import {
@@ -145,7 +146,7 @@ async function fetchTvConfig(
     debug.log("Audio downloader. client config unavailable", {
       videoId,
       client: "tv",
-      error: error instanceof Error ? error.message : String(error),
+      error: toErrorMessage(error),
     });
   }
 }
@@ -174,6 +175,28 @@ export { mintPagePoToken, selectGvsPoTokenBinding };
 
 export function getConfigValue(config: YouTubeConfig, key: string): unknown {
   return config.get?.(key) ?? config.data_?.[key];
+}
+
+function cloneInnertubeContext(
+  config: YouTubeConfig,
+  unavailableMessage: string,
+): {
+  context: {
+    client?: Record<string, unknown>;
+    thirdParty?: Record<string, unknown>;
+  };
+  client: Record<string, unknown>;
+} {
+  const rawContext = getConfigValue(config, "INNERTUBE_CONTEXT");
+  if (!rawContext || typeof rawContext !== "object") {
+    throw new Error(unavailableMessage);
+  }
+  const context = JSON.parse(JSON.stringify(rawContext)) as {
+    client?: Record<string, unknown>;
+    thirdParty?: Record<string, unknown>;
+  };
+  context.client ??= {};
+  return { context, client: context.client };
 }
 
 function buildContentPlaybackContext(
@@ -216,7 +239,7 @@ export function findJsonValueEnd(source: string, start: number): number {
 // The page keeps its config in the ytcfg global, which a sandboxed userscript
 // realm cannot read. Both calling forms carry plain JSON, so the same inline
 // script that builds ytcfg can be replayed from its source text instead.
-export function parseYtcfgData(source: string): Record<string, unknown> {
+function parseYtcfgData(source: string): Record<string, unknown> {
   const data: Record<string, unknown> = {};
   const pattern = /ytcfg\s*\.\s*set\s*\(/g;
   const skipSpaces = (index: number) => {
@@ -304,7 +327,7 @@ export async function resolveYtcfg(
     } catch (error) {
       signal.throwIfAborted();
       debug.log("Audio downloader. web ABR config request failed", {
-        error: error instanceof Error ? error.message : String(error),
+        error: toErrorMessage(error),
       });
     }
   }
@@ -324,17 +347,10 @@ export function buildWebEmbeddedPlayerRequest(
   videoId: string,
   extractedSignatureTimestamp?: number,
 ): Record<string, unknown> {
-  const rawContext = getConfigValue(config, "INNERTUBE_CONTEXT");
-  if (!rawContext || typeof rawContext !== "object") {
-    throw new Error("Audio downloader. web_embedded context is unavailable");
-  }
-
-  const context = JSON.parse(JSON.stringify(rawContext)) as {
-    client?: Record<string, unknown>;
-    thirdParty?: Record<string, unknown>;
-  };
-  context.client ??= {};
-  const client = context.client;
+  const { context, client } = cloneInnertubeContext(
+    config,
+    "Audio downloader. web_embedded context is unavailable",
+  );
   client.clientName = "WEB_EMBEDDED_PLAYER";
   client.clientVersion =
     getConfigValue(config, "INNERTUBE_CLIENT_VERSION") ?? client.clientVersion;
@@ -870,7 +886,7 @@ export function solveYouTubeChallenges(
     // player code from leaking into the page.
     return runChallengeSolver(targetWindow, preparedPlayer, signature, n);
   } catch (error) {
-    errors.push(error instanceof Error ? error.message : String(error));
+    errors.push(toErrorMessage(error));
   }
   const sandbox = targetWindow.document.createElement("iframe");
   sandbox.style.display = "none";
@@ -884,7 +900,7 @@ export function solveYouTubeChallenges(
     if (!realm) throw new Error("Challenge solver sandbox is unavailable");
     return runChallengeSolver(realm, preparedPlayer, signature, n);
   } catch (error) {
-    errors.push(error instanceof Error ? error.message : String(error));
+    errors.push(toErrorMessage(error));
   } finally {
     sandbox.remove();
   }
@@ -905,7 +921,7 @@ function buildSolvedUrl(
   return url.toString();
 }
 
-export async function* resolveWebEmbeddedFormatUrl(
+async function* resolveWebEmbeddedFormatUrl(
   targetWindow: WebAbrWindow,
   format: WebEmbeddedFormat,
   playerCode: () => Promise<string | undefined>,
@@ -984,7 +1000,7 @@ export async function* resolveWebEmbeddedFormatUrl(
       }
     } catch (error) {
       signal.throwIfAborted();
-      errors.push(error instanceof Error ? error.message : String(error));
+      errors.push(toErrorMessage(error));
       continue;
     }
     signal.throwIfAborted();
@@ -1001,7 +1017,7 @@ export async function* resolveWebEmbeddedFormatUrl(
     solved = await solve(signature, n);
   } catch (error) {
     signal.throwIfAborted();
-    errors.push(error instanceof Error ? error.message : String(error));
+    errors.push(toErrorMessage(error));
     throw new Error(
       `Audio downloader. challenge solve failed (${errors.join(" | ")})`,
     );
@@ -1053,17 +1069,10 @@ export function buildWebPlayerRequest(
   videoId: string,
   extractedSignatureTimestamp?: number,
 ): Record<string, unknown> {
-  const rawContext = getConfigValue(config, "INNERTUBE_CONTEXT");
-  if (!rawContext || typeof rawContext !== "object") {
-    throw new Error("Audio downloader. web client context is unavailable");
-  }
-
-  const context = JSON.parse(JSON.stringify(rawContext)) as {
-    client?: Record<string, unknown>;
-    thirdParty?: Record<string, unknown>;
-  };
-  context.client ??= {};
-  const client = context.client;
+  const { context, client } = cloneInnertubeContext(
+    config,
+    "Audio downloader. web client context is unavailable",
+  );
   client.clientName = "WEB";
   client.clientVersion =
     getConfigValue(config, "INNERTUBE_CLIENT_VERSION") ?? client.clientVersion;
@@ -1376,7 +1385,7 @@ async function fetchMediaRange(
         maxAttempts: WEB_ABR_RANGE_MAX_ATTEMPTS,
         fatal,
         refreshUrl: shouldRefreshUrl,
-        error: error instanceof Error ? error.message : String(error),
+        error: toErrorMessage(error),
       });
 
       if (!hasMoreAttempts) break;
@@ -1794,12 +1803,12 @@ export async function* downloadMediaRanges(
         emitted: false,
         bufferBeforeEmit: true,
         elapsedMs: Math.round(performance.now() - startedAt),
-        error: error instanceof Error ? error.message : String(error),
+        error: toErrorMessage(error),
       });
       if (isFatalMediaError(error)) {
         debug.log("Audio downloader. web ABR transport matrix aborted", {
           transport,
-          error: error instanceof Error ? error.message : String(error),
+          error: toErrorMessage(error),
         });
         throw error;
       }
@@ -2077,7 +2086,7 @@ export async function* getWebAbrAudioChunks(
       debug.log("Audio downloader. player client format failed", {
         videoId,
         client: name,
-        error: error instanceof Error ? error.message : String(error),
+        error: toErrorMessage(error),
       });
       lastError = error;
     }

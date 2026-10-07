@@ -1,4 +1,5 @@
 import type { ResponseCacheOptions } from "../types/utils/gm";
+import { normalizeHttpMethod } from "./http";
 import { fnv1a32ToKeyPart } from "./utils";
 
 const RESPONSE_CACHE_CREATED_AT_HEADER = "x-vot-cache-created-at";
@@ -26,10 +27,6 @@ function computeExpiresAt(createdAtMs: number, ttlMs: number): number {
   return ttlMs >= maxAdd ? Number.MAX_SAFE_INTEGER : createdAtMs + ttlMs;
 }
 
-function normalizeMethod(method?: string): string {
-  return (method || "GET").toUpperCase();
-}
-
 function resolveBodyKey(body: BodyInit | null | undefined): string | undefined {
   if (body == null) return "";
   if (typeof body === "string") return body;
@@ -49,7 +46,7 @@ class ResponseCacheManager {
       return fetcher();
     }
 
-    const method = normalizeMethod(context.method);
+    const method = normalizeHttpMethod(context.method);
     const key = options.key ?? this.buildDefaultCacheKey(context);
     if (!key) {
       return fetcher();
@@ -151,7 +148,7 @@ class ResponseCacheManager {
   private buildDefaultCacheKey(
     context: RequestCacheContext,
   ): string | undefined {
-    const method = normalizeMethod(context.method);
+    const method = normalizeHttpMethod(context.method);
     if (method === "GET") {
       return `${method}:${context.url}`;
     }

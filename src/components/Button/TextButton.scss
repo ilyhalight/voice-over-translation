@@ -1,0 +1,18 @@
+@use "./mixins" as button;
+
+.vot-text-button {
+  --vot-helper-theme: var(
+    --vot-theme-rgb,
+    var(--vot-primary-rgb, 33, 150, 243)
+  );
+  @include button.vot-button-base(
+    $radius: var(--vot-radius-s),
+    $padding: 0 var(--vot-space-2),
+    $min-width: 64px,
+    $height: 36px,
+    $line-height: 36px,
+    $margin: 0 !important
+  );
+  border: none !important;
+  @include button.vot-button-theme-transparent;
+}

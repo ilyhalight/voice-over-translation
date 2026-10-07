@@ -1,32 +1,18 @@
-export type {
-  BuiltInSubtitleFontFamily,
-  SubtitleDescriptor,
-  SubtitleFontFamily,
-  SubtitleFormat,
-  SubtitleToken,
-  VideoDataForSubtitles,
-} from "../types/subtitles";
-export {
+import { isRecord } from "#utils/guards.ts";
+import type { SubtitleDescriptor } from "../types/subtitles";
+import {
+  type BuiltInSubtitleFontFamily,
+  type SubtitleFormat,
   subtitleFontFamilies,
   subtitleFormats,
 } from "../types/subtitles";
 
-import type { SubtitleDescriptor } from "../types/subtitles";
-import { subtitleFontFamilies, subtitleFormats } from "../types/subtitles";
-
 const subtitleFormatsSet = new Set(subtitleFormats);
 
-export function isSubtitleFormat(
-  value: unknown,
-): value is import("../types/subtitles").SubtitleFormat {
+function isSubtitleFormat(value: unknown): value is SubtitleFormat {
   return (
-    typeof value === "string" &&
-    subtitleFormatsSet.has(value as import("../types/subtitles").SubtitleFormat)
+    typeof value === "string" && subtitleFormatsSet.has(value as SubtitleFormat)
   );
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object";
 }
 
 export function parseSubtitleDescriptor(
@@ -64,8 +50,6 @@ export function parseSubtitleDescriptor(
 
 export function isBuiltInSubtitleFontFamily(
   fontFamily: string,
-): fontFamily is import("../types/subtitles").BuiltInSubtitleFontFamily {
-  return subtitleFontFamilies.includes(
-    fontFamily as import("../types/subtitles").BuiltInSubtitleFontFamily,
-  );
+): fontFamily is BuiltInSubtitleFontFamily {
+  return subtitleFontFamilies.includes(fontFamily as BuiltInSubtitleFontFamily);
 }

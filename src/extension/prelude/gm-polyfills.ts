@@ -1,3 +1,4 @@
+import { isObjectLike } from "#utils/guards.ts";
 import debug from "../../utils/debug";
 import { toErrorMessage } from "../../utils/errors";
 import { summarizeBodyForDebug } from "../shared/bodySerialization";
@@ -30,7 +31,7 @@ export type PendingRequest = {
 };
 
 function asRecord(value: unknown): UnknownRecord {
-  return value && typeof value === "object" ? (value as UnknownRecord) : {};
+  return isObjectLike(value) ? (value as UnknownRecord) : {};
 }
 
 function toFiniteNumber(value: unknown): number | undefined {
@@ -90,7 +91,7 @@ export function request<T = unknown>(
         action,
       });
       reject(new Error(`VOT bridge timeout for ${action}`));
-    }, BRIDGE_REQUEST_TIMEOUT_MS);
+    }, BRIDGE_REQUEST_TIMEOUT_MS) as unknown as number;
 
     debug.log("[VOT EXT][prelude] GM API request", {
       requestId: id,

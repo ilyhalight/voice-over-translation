@@ -6,7 +6,7 @@ export type VolumeLinkState = {
   lastTranslationPercent: number;
 };
 
-export type VolumeLinkDirection = "translation" | "video";
+type VolumeLinkDirection = "translation" | "video";
 
 type ApplyVolumeLinkDeltaInput = {
   state: VolumeLinkState;

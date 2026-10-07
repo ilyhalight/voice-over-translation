@@ -1,18 +1,17 @@
-type HttpMethod =
-  | "GET"
-  | "POST"
-  | "PUT"
-  | "PATCH"
-  | "DELETE"
-  | "OPTIONS"
-  | "CONNECT"
-  | "TRACE";
+import type { HttpMethod } from "@toil/gm-types/types/web/http";
+import type {
+  GMXmlHttpRequestDetails,
+  GMXmlHttpResponse,
+  XHResponseType,
+} from "@toil/gm-types/types/xmlHttpRequest/index";
 
+import { EXT_NAME_FALLBACK } from "../config/config";
 import type { FetchOpts } from "../types/utils/gm";
 import { createTimeoutSignal } from "./abort";
 import { browserInfo } from "./browserInfo";
 import debug from "./debug";
 import { getErrorMessage, isAbortError, makeAbortError } from "./errors";
+import { normalizeHttpMethod } from "./http";
 import { executeWithResponseCache } from "./responseCache";
 import { getHeaders } from "./utils";
 
@@ -22,26 +21,30 @@ const HEADER_LINE_RE = /^(\w[\w-]*):\s*(\S.*)$/;
 // Matches statusText reason-phrase: printable ASCII except control chars
 const URL_SCHEME_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
 
-type RequestUrlLike = string | URL | Request;
-type GmXhrResponse = {
-  finalUrl?: string;
-  response?: Blob | null;
-  responseHeaders?: string;
-  status?: number;
-  statusText?: string;
-};
-type GmXhrCallbackApi = (
-  details: Record<string, unknown>,
+export type RequestUrlLike = string | URL | Request;
+type GmXhrResponse = Partial<GMXmlHttpResponse<"blob">>;
+type GmXhrCallbackApi<T extends XHResponseType = "text"> = (
+  details: GMXmlHttpRequestDetails<T>,
 ) => { abort?: () => void } | undefined;
 type GmXhrPromiseApi = (
-  details: Record<string, unknown>,
+  details: GMXmlHttpRequestDetails,
 ) => Promise<GmXhrResponse> & { abort?: () => void };
 
-const scriptHandler =
-  typeof GM_info === "undefined" ? undefined : GM_info?.scriptHandler;
+const scriptHandler = getGMInfo()?.scriptHandler;
 
-function getCallbackGmXhr(): GmXhrCallbackApi | undefined {
-  const gmXhr =
+export function getScriptTitle(): string {
+  const safeGMInfo = getGMInfo();
+  if (!safeGMInfo) {
+    return EXT_NAME_FALLBACK;
+  }
+
+  return safeGMInfo?.script?.name || EXT_NAME_FALLBACK;
+}
+
+function getCallbackGmXhr<T extends XHResponseType = "text">():
+  | GmXhrCallbackApi<T>
+  | undefined {
+  const gmXhr: GmXhrCallbackApi<T> =
     typeof GM_xmlhttpRequest === "undefined"
       ? (globalThis as any).GM_xmlhttpRequest
       : GM_xmlhttpRequest;
@@ -49,9 +52,18 @@ function getCallbackGmXhr(): GmXhrCallbackApi | undefined {
   return typeof gmXhr === "function" ? gmXhr : undefined;
 }
 
+export function getGMRuntime(): typeof GM | undefined {
+  if (typeof GM !== "undefined") {
+    return GM;
+  }
+
+  return globalThis.GM;
+}
+
 function getPromiseGmXhr(): GmXhrPromiseApi | undefined {
-  const gm = typeof GM === "undefined" ? (globalThis as any).GM : GM;
-  const gmXhr = gm?.xmlHttpRequest ?? gm?.xmlhttpRequest;
+  const gm = getGMRuntime();
+  const gmXhr: GmXhrPromiseApi =
+    gm?.xmlHttpRequest ?? (gm as any)?.xmlhttpRequest;
 
   return typeof gmXhr === "function" ? gmXhr.bind(gm) : undefined;
 }
@@ -60,7 +72,7 @@ function hasSupportedGmXhr(): boolean {
   return !!(getCallbackGmXhr() || getPromiseGmXhr());
 }
 
-export const isProxyOnlyExtension =
+export const IS_PROXY_ONLY_EXTENSION =
   !(typeof IS_EXTENSION !== "undefined" && IS_EXTENSION) &&
   (browserInfo.browser?.name === "Safari" ||
     !["Tampermonkey", "Violentmonkey"].includes(scriptHandler));
@@ -73,8 +85,7 @@ export const isProxyOnlyExtension =
  * - Firefox: the bridge injects prelude.module.js before content.module.js.
  * - Userscript managers inject GM before the script runs.
  */
-export const isGM4Supported: boolean =
-  typeof GM !== "undefined" || (globalThis as any).GM !== undefined;
+export const isGM4Supported: boolean = Boolean(getGMRuntime());
 
 export const isSupportGMXhr =
   (typeof IS_EXTENSION !== "undefined" && IS_EXTENSION) || hasSupportedGmXhr();
@@ -131,13 +142,9 @@ function toRequestUrl(url: RequestUrlLike): string {
 }
 
 function resolveRequestMethod(url: RequestUrlLike, method?: string): string {
-  if (method) {
-    return method.toUpperCase();
-  }
-  if (url instanceof Request) {
-    return (url.method || "GET").toUpperCase();
-  }
-  return "GET";
+  return normalizeHttpMethod(
+    method ?? (url instanceof Request ? url.method : undefined),
+  );
 }
 
 function parseResponseHeaders(rawHeaders: unknown): Record<string, string> {
@@ -201,7 +208,7 @@ function buildResponse(resp: GmXhrResponse, urlStr: string): Response {
 }
 
 async function executeCallbackGmXhr(
-  gmXhr: GmXhrCallbackApi,
+  gmXhr: GmXhrCallbackApi<"blob">,
   urlStr: string,
   timeout: number,
   fetchOptions: Omit<FetchOpts, "timeout">,
@@ -229,8 +236,8 @@ async function executeCallbackGmXhr(
     const request = gmXhr({
       method: method as HttpMethod,
       url: urlStr,
-      responseType: "blob" as any,
-      data: fetchOptions.body as any,
+      responseType: "blob",
+      data: fetchOptions.body,
       timeout,
       headers,
       ...(redirectMode && { redirect: redirectMode }),
@@ -320,8 +327,8 @@ async function executePromiseGmXhr(
   const request = gmXhr({
     method: method as HttpMethod,
     url: urlStr,
-    responseType: "blob" as any,
-    data: fetchOptions.body as any,
+    responseType: "blob",
+    data: fetchOptions.body,
     timeout,
     headers,
     ...(redirectMode && { redirect: redirectMode }),
@@ -349,7 +356,7 @@ async function executePromiseGmXhr(
       }
     });
 
-    const resp = (await Promise.race([request, abortPromise])) as GmXhrResponse;
+    const resp = await Promise.race([request, abortPromise]);
 
     const response = buildResponse(resp, urlStr);
 
@@ -373,7 +380,7 @@ async function gmXhrFetch(
   fetchOptions: Omit<FetchOpts, "timeout">,
 ): Promise<Response> {
   const headers = getHeaders(fetchOptions.headers);
-  const method = (fetchOptions.method || "GET").toUpperCase();
+  const method = normalizeHttpMethod(fetchOptions.method);
   debug.log("[GM_fetch] GM_xmlhttpRequest start", {
     url: urlStr,
     method,
@@ -381,7 +388,7 @@ async function gmXhrFetch(
     headerCount: Object.keys(headers).length,
   });
 
-  const callbackGmXhr = getCallbackGmXhr();
+  const callbackGmXhr = getCallbackGmXhr<"blob">();
   if (callbackGmXhr) {
     debug.log("[GM_fetch] attempting callback-style GM_xmlhttpRequest");
     try {
@@ -537,4 +544,8 @@ export async function GM_fetch(
     responseCache,
     performRequest,
   );
+}
+
+export function getGMInfo() {
+  return typeof GM_info === "undefined" ? undefined : GM_info;
 }

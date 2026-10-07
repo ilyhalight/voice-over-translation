@@ -190,14 +190,11 @@ async function ensureDnrHeaderStripRule(
   return isNew;
 }
 
-export async function ensureDnrOriginStripRuleForYoutubei(
-  url: string,
-  forbiddenHeaders: Record<string, string> = {},
-): Promise<boolean> {
-  if (!isYoutubeMobileUrl(url)) return false;
-
-  const requestHeaders: DnrRequestHeader[] = [...YOUTUBEI_BASE_HEADERS];
-
+function buildRequestHeaders(
+  baseHeaders: DnrRequestHeader[],
+  forbiddenHeaders: Record<string, string>,
+): DnrRequestHeader[] {
+  const requestHeaders: DnrRequestHeader[] = [...baseHeaders];
   for (const [header, value] of Object.entries(forbiddenHeaders)) {
     const name = normalizeHeaderName(header);
     if (!name || name.toLowerCase() === "origin") continue;
@@ -207,6 +204,18 @@ export async function ensureDnrOriginStripRuleForYoutubei(
       value: String(value),
     });
   }
+  return requestHeaders;
+}
+
+export async function ensureDnrOriginStripRuleForYoutubei(
+  url: string,
+  forbiddenHeaders: Record<string, string> = {},
+): Promise<boolean> {
+  if (!isYoutubeMobileUrl(url)) return false;
+  const requestHeaders = buildRequestHeaders(
+    YOUTUBEI_BASE_HEADERS,
+    forbiddenHeaders,
+  );
 
   return ensureDnrHeaderStripRule(
     url,
@@ -222,18 +231,10 @@ export async function ensureDnrStripRuleForGooglevideo(
   forbiddenHeaders: Record<string, string> = {},
 ): Promise<boolean> {
   if (!isGooglevideoUrl(url)) return false;
-
-  const requestHeaders: DnrRequestHeader[] = [...GOOGLEVIDEO_BASE_HEADERS];
-
-  for (const [header, value] of Object.entries(forbiddenHeaders)) {
-    const name = normalizeHeaderName(header);
-    if (!name || name.toLowerCase() === "origin") continue;
-    requestHeaders.push({
-      header: name,
-      operation: "set",
-      value: String(value),
-    });
-  }
+  const requestHeaders = buildRequestHeaders(
+    GOOGLEVIDEO_BASE_HEADERS,
+    forbiddenHeaders,
+  );
 
   return ensureDnrHeaderStripRule(
     url,

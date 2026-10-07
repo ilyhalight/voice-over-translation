@@ -45,10 +45,6 @@ export default {
     ru: "Недоступен перевод для PH Premium",
     en: "Translation is not available for PH Premium",
   },
-  needSetAccessToken: {
-    ru: `Для работы необходимо [установить Access Token](${repositoryUrl}/wiki/%5BRU%5D-Where-to-get-Udemy-Access-Token%3F)"`,
-    en: `To work, you need to [set an Access Token](${repositoryUrl}/wiki/%5BEN%5D-Where-to-get-Udemy-Access-Token%3F)`,
-  },
   needBeLoggedIn: {
     ru: "Необходимо быть авторизованным на сайте",
     en: "You must be logged in to the site",
@@ -71,10 +67,6 @@ export default {
   },
   noLocalLinks: {
     ru: "Нельзя переводить локальные видео",
-    en: "Local videos cannot be translated",
-  },
-  noSubtitles: {
-    ru: "Нет субтитров",
-    en: "There are no subtitles",
+    en: "Local videos can't be translated",
   },
 };

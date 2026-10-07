@@ -1,14 +1,11 @@
 import { actualCompatVersion } from "../config/config";
 import {
   type CompatibilityVersion,
-  type ConvertCategory,
-  type ConvertData,
-  type StorageData,
   type StorageKey,
   storageKeys,
 } from "../types/storage";
 import debug from "./debug";
-import { isGM4Supported } from "./gm";
+import { getGMRuntime, isGM4Supported } from "./gm";
 
 // Minimal "GM storage" value union. We intentionally keep this wide because
 // userscript managers store arbitrary JSON-like values.
@@ -28,182 +25,64 @@ type StorageValueChangeListener<T = unknown> = (
   remote: boolean,
 ) => void;
 
-const compatMay2025Data = {
-  numToBool: [
-    ["autoTranslate"],
-    ["dontTranslateYourLang", "enabledDontTranslateLanguages"],
-    ["autoSetVolumeYandexStyle", "enabledAutoVolume"],
-    ["showVideoSlider"],
-    ["syncVolume"],
-    ["downloadWithName"],
-    ["sendNotifyOnComplete"],
-    ["highlightWords"],
-    ["onlyBypassMediaCSP"],
-    ["newAudioPlayer"],
-    ["showPiPButton"],
-    ["translateAPIErrors"],
-    ["audioBooster"],
-    ["useNewModel", "useLivelyVoice"],
-  ],
-  number: [["autoVolume"]],
-  array: [["dontTranslateLanguage", "dontTranslateLanguages"]],
-  string: [
-    ["hotkeyButton", "translationHotkey"],
-    ["locale-lang-override", "localeLangOverride"],
-    ["locale-lang", "localeLang"],
-  ],
-} as const satisfies ConvertData;
-
-type CompatRule = Readonly<{
-  category: ConvertCategory;
-  oldKey: string;
-  newKey: StorageKey;
-  shouldDeleteOldKey: boolean;
-}>;
-
-const compatRules = (
-  Object.entries(compatMay2025Data) as [
-    ConvertCategory,
-    readonly (readonly [string, string?])[],
-  ][]
-).flatMap<CompatRule>(([category, entries]) =>
-  entries.map(([oldKey, maybeNewKey]) => ({
-    category,
-    oldKey,
-    newKey: (maybeNewKey ?? oldKey) as StorageKey,
-    shouldDeleteOldKey: Boolean(maybeNewKey),
-  })),
-);
-
-const compatRuleByOldKey = new Map<string, CompatRule>(
-  compatRules.map((rule) => [rule.oldKey, rule]),
-);
-
-const compatKeysToRead = Array.from(
-  new Set<string>(compatRules.map((rule) => rule.oldKey)),
-);
-
-function createUndefinedDefaults(
-  keys: Iterable<string>,
-): Record<string, undefined> {
-  const defaults: Record<string, undefined> = {};
-  for (const key of keys) {
-    defaults[key] = undefined;
-  }
-
-  return defaults;
-}
-
-function isCompatValue(category: ConvertCategory, value: unknown) {
-  switch (category) {
-    case "numToBool":
-    case "number":
-      return typeof value === "number";
-    case "array":
-      return Array.isArray(value);
-    case "string":
-      return typeof value === "string" || value === null;
-    default:
-      return false;
-  }
-}
-
-function convertByCompatCategory(category: ConvertCategory, value: unknown) {
-  switch (category) {
-    case "string":
-    case "array":
-    case "number":
-      return value;
-    default:
-      return !!value;
-  }
-}
-
-function normalizeCompatValue(
-  rule: CompatRule,
-  value: unknown,
-): KeysOrDefaultValue {
-  let convertedValue = convertByCompatCategory(rule.category, value);
-
-  if (rule.oldKey === "autoVolume" && typeof value === "number" && value < 1) {
-    convertedValue = Math.round(value * 100);
-  }
-
-  return convertedValue as KeysOrDefaultValue;
-}
-
-function areStorageValuesEqual(a: unknown, b: unknown): boolean {
-  if (Array.isArray(a) && Array.isArray(b)) {
-    return (
-      a.length === b.length &&
-      a.every((item, index) => Object.is(item, b[index]))
-    );
-  }
-
-  return Object.is(a, b);
-}
-
-function parseStoredValue(rawValue: string | null): unknown {
+function parseStoredValue<T = unknown>(
+  rawValue: string | null,
+  fallback?: T,
+): T | undefined {
   if (rawValue === null) {
-    return undefined;
+    return fallback;
   }
 
   try {
     return JSON.parse(rawValue);
   } catch {
-    return undefined;
+    return fallback;
   }
+}
+
+async function migrateAugust2026(
+  data: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const enabledDontTranslateLanguages = await votStorage.getRaw<unknown>(
+    "enabledDontTranslateLanguages",
+  );
+
+  const storedLanguages = Array.isArray(data.dontTranslateLanguages)
+    ? data.dontTranslateLanguages
+    : [];
+
+  const dontTranslateLanguages =
+    enabledDontTranslateLanguages === false ? [] : storedLanguages;
+
+  if (enabledDontTranslateLanguages === false) {
+    await votStorage.set("dontTranslateLanguages", dontTranslateLanguages);
+  }
+
+  await votStorage.deleteRaw("enabledDontTranslateLanguages");
+
+  const migratedData = {
+    ...data,
+    dontTranslateLanguages,
+  };
+
+  return migratedData;
 }
 
 export async function updateConfig<T>(
   data: Record<string, unknown>,
 ): Promise<T> {
-  if ((data.compatVersion as CompatibilityVersion) === actualCompatVersion) {
+  const sourceVersion = data.compatVersion as CompatibilityVersion;
+  if (sourceVersion === actualCompatVersion) {
     return data as T;
   }
 
-  const keysToRead = new Set<string>([
-    ...Object.keys(data),
-    ...compatKeysToRead,
-  ]);
-  const persistedValues = await votStorage.getValues<
-    Record<string, KeysOrDefaultValue>
-  >(createUndefinedDefaults(keysToRead));
-
-  const newData: Partial<StorageData> = { ...(data as Partial<StorageData>) };
-  const writeOperations: Promise<unknown>[] = [];
-  const deleteOperations: Promise<unknown>[] = [];
-
-  for (const [key, storedValue] of Object.entries(persistedValues)) {
-    if (storedValue === undefined) {
-      continue;
-    }
-
-    const compatRule = compatRuleByOldKey.get(key);
-    if (!compatRule || !isCompatValue(compatRule.category, storedValue)) {
-      continue;
-    }
-
-    const convertedValue = normalizeCompatValue(compatRule, storedValue);
-    (newData as Record<string, unknown>)[compatRule.newKey] = convertedValue;
-
-    const existingNewValue = persistedValues[compatRule.newKey];
-    if (
-      compatRule.shouldDeleteOldKey ||
-      !areStorageValuesEqual(existingNewValue, convertedValue)
-    ) {
-      writeOperations.push(votStorage.set(compatRule.newKey, convertedValue));
-    }
-
-    if (compatRule.shouldDeleteOldKey) {
-      deleteOperations.push(votStorage.delete(compatRule.oldKey as StorageKey));
-    }
+  let migratedData = data;
+  if (sourceVersion === "" || sourceVersion === "2025-05-09") {
+    migratedData = await migrateAugust2026(migratedData);
   }
 
-  await Promise.all([...writeOperations, ...deleteOperations]);
-
   return {
-    ...newData,
+    ...migratedData,
     compatVersion: actualCompatVersion,
   } as T;
 }
@@ -238,37 +117,21 @@ class VOTStorage {
     );
   }
 
-  private getGMRuntime(): Record<string, unknown> | undefined {
-    if (typeof GM !== "undefined") {
-      return GM as unknown as Record<string, unknown>;
-    }
-
-    return (globalThis as { GM?: Record<string, unknown> }).GM;
-  }
-
   private resolveSupport(): StorageSupport {
     if (this.support) {
       return this.support;
     }
 
-    const gm = this.getGMRuntime();
+    const gm = getGMRuntime();
     const support: StorageSupport = {
       legacyGet: typeof GM_getValue === "function",
       legacySet: typeof GM_setValue === "function",
       legacyDelete: typeof GM_deleteValue === "function",
       legacyList: typeof GM_listValues === "function",
       legacyAddValueChangeListener:
-        typeof (
-          globalThis as {
-            GM_addValueChangeListener?: unknown;
-          }
-        ).GM_addValueChangeListener === "function",
+        typeof GM_addValueChangeListener === "function",
       legacyRemoveValueChangeListener:
-        typeof (
-          globalThis as {
-            GM_removeValueChangeListener?: unknown;
-          }
-        ).GM_removeValueChangeListener === "function",
+        typeof GM_removeValueChangeListener === "function",
       promiseGet: isGM4Supported && typeof gm?.getValue === "function",
       promiseGetValues: isGM4Supported && typeof gm?.getValues === "function",
       promiseSet: isGM4Supported && typeof gm?.setValue === "function",
@@ -316,21 +179,13 @@ class VOTStorage {
     }
 
     const val = globalThis.localStorage.getItem(name);
-    if (val === null) {
-      return def;
-    }
-
-    try {
-      return JSON.parse(val);
-    } catch {
-      return def;
-    }
+    return parseStoredValue<T>(val, def);
   }
 
   async getRaw<T = unknown>(name: string, def?: T): Promise<T> {
     const support = this.resolveSupport();
     if (support.promiseGet && GM.getValue) {
-      return await GM.getValue(name, def);
+      return await GM.getValue<T>(name, def);
     }
 
     return this.syncGetByName<T>(name, def, support);
@@ -348,11 +203,10 @@ class VOTStorage {
   >(data: T): Promise<T> {
     const support = this.resolveSupport();
     if (support.promiseGetValues && GM.getValues) {
-      return await GM.getValues(data);
+      return await GM.getValues<T>(data);
     }
 
-    const entries = Object.entries(data as Record<string, KeysOrDefaultValue>);
-
+    const entries = Object.entries(data);
     if (support.promiseGet && GM.getValue) {
       const values = await Promise.all(
         entries.map(async ([key, value]) => {
@@ -383,19 +237,28 @@ class VOTStorage {
     return globalThis.localStorage.setItem(name, JSON.stringify(value));
   }
 
+  private async getChangeContext(name: string): Promise<{
+    support: StorageSupport;
+    storageKey: StorageKey;
+    shouldNotify: boolean;
+    oldValue: unknown;
+  }> {
+    const support = this.resolveSupport();
+    const shouldNotify = this.shouldUseSyntheticListeners(support);
+    const oldValue = shouldNotify ? await this.getRaw(name) : undefined;
+
+    return { support, storageKey: name as StorageKey, shouldNotify, oldValue };
+  }
+
   async setRaw<T extends KeysOrDefaultValue = undefined>(
     name: string,
     value: T,
   ): Promise<void> {
-    const support = this.resolveSupport();
-    const storageKey = name as StorageKey;
-    const shouldNotify = this.shouldUseSyntheticListeners(support);
-    const oldValue = shouldNotify
-      ? await this.getRaw<T | undefined>(name)
-      : undefined;
+    const { support, storageKey, shouldNotify, oldValue } =
+      await this.getChangeContext(name);
 
     if (support.promiseSet && GM.setValue) {
-      await GM.setValue(name, value);
+      await GM.setValue<T>(name, value);
       if (shouldNotify) {
         this.notifyLocalStorageListeners(storageKey, oldValue, value, false);
       }
@@ -410,7 +273,7 @@ class VOTStorage {
     name: StorageKey,
     value: T,
   ): Promise<void> {
-    return this.setRaw(name, value);
+    return this.setRaw<T>(name, value);
   }
 
   private syncDeleteByName(name: string, support: StorageSupport) {
@@ -422,10 +285,8 @@ class VOTStorage {
   }
 
   async deleteRaw(name: string): Promise<void> {
-    const support = this.resolveSupport();
-    const storageKey = name as StorageKey;
-    const shouldNotify = this.shouldUseSyntheticListeners(support);
-    const oldValue = shouldNotify ? await this.getRaw(name) : undefined;
+    const { support, storageKey, shouldNotify, oldValue } =
+      await this.getChangeContext(name);
 
     if (support.promiseDelete && GM.deleteValue) {
       await GM.deleteValue(name);
@@ -453,57 +314,37 @@ class VOTStorage {
     listener: StorageValueChangeListener<T>,
   ): () => void {
     const support = this.resolveSupport();
-    const gm = this.getGMRuntime();
+    const gm = getGMRuntime();
 
     if (support.promiseAddValueChangeListener) {
-      const addListener = gm?.addValueChangeListener as
-        | ((
-            key: string,
-            callback: StorageValueChangeListener<unknown>,
-          ) => unknown)
-        | undefined;
+      const addListener = gm?.addValueChangeListener;
       const removeListener = support.promiseRemoveValueChangeListener
-        ? (gm?.removeValueChangeListener as
-            | ((id: unknown) => unknown)
-            | undefined)
+        ? gm?.removeValueChangeListener
         : undefined;
-
-      if (typeof addListener === "function") {
-        const gmListener = this.createTypedListener(listener);
-        const listenerId = addListener(name, gmListener);
-        return () => {
-          if (typeof removeListener === "function") {
-            removeListener(listenerId);
-          }
-        };
+      const unsubscribe = this.registerGMListener(
+        addListener,
+        removeListener,
+        name,
+        listener,
+      );
+      if (unsubscribe) {
+        return unsubscribe;
       }
     }
 
     if (support.legacyAddValueChangeListener) {
-      const addListener = (
-        globalThis as unknown as {
-          GM_addValueChangeListener?: (
-            key: string,
-            callback: StorageValueChangeListener<unknown>,
-          ) => unknown;
-        }
-      ).GM_addValueChangeListener;
+      const addListener = GM_addValueChangeListener;
       const removeListener = support.legacyRemoveValueChangeListener
-        ? (
-            globalThis as {
-              GM_removeValueChangeListener?: (id: unknown) => unknown;
-            }
-          ).GM_removeValueChangeListener
+        ? GM_removeValueChangeListener
         : undefined;
-
-      if (typeof addListener === "function") {
-        const gmListener = this.createTypedListener(listener);
-        const listenerId = addListener(name, gmListener);
-        return () => {
-          if (typeof removeListener === "function") {
-            removeListener(listenerId);
-          }
-        };
+      const unsubscribe = this.registerGMListener(
+        addListener,
+        removeListener,
+        name,
+        listener,
+      );
+      if (unsubscribe) {
+        return unsubscribe;
       }
     }
 
@@ -544,6 +385,29 @@ class VOTStorage {
         newValue as T | undefined,
         remote,
       );
+    };
+  }
+
+  private registerGMListener(
+    addListener:
+      | ((
+          key: string,
+          callback: StorageValueChangeListener<unknown>,
+        ) => unknown)
+      | undefined,
+    removeListener: ((id: unknown) => unknown) | undefined,
+    name: StorageKey,
+    listener: StorageValueChangeListener<unknown>,
+  ): (() => void) | undefined {
+    if (typeof addListener !== "function") {
+      return undefined;
+    }
+
+    const listenerId = addListener(name, this.createTypedListener(listener));
+    return () => {
+      if (typeof removeListener === "function") {
+        removeListener(listenerId);
+      }
     };
   }
 

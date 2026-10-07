@@ -1,0 +1,22 @@
+.vot-segmented-button__menu-header {
+  display: flex;
+  align-items: center;
+  gap: var(--vot-space-2);
+  margin-left: auto;
+}
+
+.vot-langpair-select {
+  --vot-helper-theme-rgb: var(--vot-onsurface-rgb, 0, 0, 0);
+  --vot-helper-theme: rgba(var(--vot-helper-theme-rgb), 0.87);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--vot-helper-theme);
+
+  &__icon {
+    font-size: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+}

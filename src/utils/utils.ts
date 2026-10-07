@@ -1,4 +1,4 @@
-import { clampNumberWithSortedBounds } from "./number";
+import { isAbortError } from "./errors";
 
 export { calculatedResLang } from "./localization";
 
@@ -26,7 +26,6 @@ const trimFilenameEdgeChars = (value: string): string => {
   return value.slice(startIndex, endIndex);
 };
 
-type PlainRecord = Record<string, unknown>;
 type NavigatorWithShare = Navigator & {
   canShare?: (data?: ShareData) => boolean;
 };
@@ -52,40 +51,6 @@ function stripAsciiControlChars(value: string): string {
 }
 
 /**
- * Creates a stable JSON string representation for consistent hashing
- * @param value The value to stringify
- * @returns A stable JSON string
- */
-export function stableStringify(value: unknown): string {
-  const seen = new WeakSet<object>();
-
-  return JSON.stringify(value, (_key, val) => {
-    if (val && typeof val === "object") {
-      if (seen.has(val)) {
-        return "[Circular]";
-      }
-
-      seen.add(val);
-      if (Array.isArray(val)) {
-        return val;
-      }
-
-      const sorted: PlainRecord = {};
-      const keys = Object.keys(val as PlainRecord).sort((a, b) =>
-        a.localeCompare(b),
-      );
-      for (const key of keys) {
-        sorted[key] = (val as PlainRecord)[key];
-      }
-
-      return sorted;
-    }
-
-    return val;
-  });
-}
-
-/**
  * Small, deterministic hash for cache keys. (Not crypto.)
  * @param str The string to hash
  * @returns A base36 string representation of the hash
@@ -101,11 +66,6 @@ export function fnv1a32ToKeyPart(str: string): string {
   }
   // Unsigned 32-bit to a compact base36 string.
   return (hash >>> 0).toString(36);
-}
-
-export interface DocumentWithFullscreen extends Document {
-  webkitFullscreenElement?: Element | null;
-  webkitExitFullscreen?: () => Promise<void>;
 }
 
 export const isPiPAvailable = () => Boolean(document.pictureInPictureEnabled);
@@ -153,7 +113,7 @@ async function shareBlob(
     await nav.share({ files: [file], title: filename });
     return "shared";
   } catch (err) {
-    if (err instanceof DOMException && err.name === "AbortError") {
+    if (isAbortError(err)) {
       // Treat user cancellation as a completed interaction.
       return "shared";
     }
@@ -162,25 +122,50 @@ async function shareBlob(
   }
 }
 
-function triggerBlobDownload(blob: Blob, filename: string): boolean {
-  const url = URL.createObjectURL(blob);
+type DownloadAnchorOptions = {
+  stopPropagation?: boolean;
+};
+
+export function clickDownloadAnchor(
+  href: string,
+  filename: string,
+  { stopPropagation = true }: DownloadAnchorOptions = {},
+): boolean {
   const anchor = document.createElement("a");
-  anchor.href = url;
+  anchor.href = href;
   anchor.download = filename;
-  anchor.rel = "noopener noreferrer";
+  // Cross-origin downloads can ignore `download`; keep navigation off the
+  // current tab in that case.
   anchor.target = "_blank";
-  anchor.style.position = "fixed";
-  anchor.style.left = "-9999px";
-  anchor.style.top = "0";
-  (document.body ?? document.documentElement).append(anchor);
+  anchor.rel = "noopener noreferrer";
+  anchor.style.display = "none";
+
+  if (stopPropagation) {
+    anchor.addEventListener(
+      "click",
+      (event) => {
+        event.stopPropagation();
+      },
+      { once: true },
+    );
+  }
 
   try {
+    (document.body ?? document.documentElement).append(anchor);
     anchor.click();
     return true;
   } catch {
     return false;
   } finally {
     anchor.remove();
+  }
+}
+
+function triggerBlobDownload(blob: Blob, filename: string): boolean {
+  const url = URL.createObjectURL(blob);
+  try {
+    return clickDownloadAnchor(url, filename);
+  } finally {
     revokeObjectUrlLater(url);
   }
 }
@@ -237,10 +222,6 @@ export const getTimestamp = () => Math.floor(Date.now() / 1000);
 export const getHeaders = (headers?: HeadersInit): Record<string, string> =>
   headers ? Object.fromEntries(new Headers(headers)) : {};
 
-export function clamp(value: number, min = 0, max = 100): number {
-  return clampNumberWithSortedBounds(value, min, max);
-}
-
 export function toFlatObj<T extends Record<string, unknown>>(
   data: Record<string, unknown>,
 ): T {
@@ -266,4 +247,11 @@ export function toFlatObj<T extends Record<string, unknown>>(
   }
 
   return out as T;
+}
+
+export function base64UrlEncode(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }

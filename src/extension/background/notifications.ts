@@ -1,6 +1,8 @@
+import { toErrorMessage } from "#utils/errors.ts";
+import { EXT_NAME_FALLBACK } from "../../config/config";
 import debug from "../../utils/debug";
 import { BG_MSG_NOTIFICATION } from "../shared/constants";
-import { asErrorMessage, sendBridgeResponse } from "../shared/utils";
+import { sendBridgeResponse } from "../shared/utils";
 import {
   ext,
   notificationsClear,
@@ -101,7 +103,7 @@ function createBridgeNotificationOptions(
   const options: Record<string, unknown> = {
     type: "basic",
     iconUrl: resolveNotificationIconUrl(),
-    title: details.title || "VOT",
+    title: details.title || EXT_NAME_FALLBACK,
     message: details.text,
   };
   if (!isFirefox) {
@@ -141,7 +143,7 @@ export function registerBackgroundNotifications(): void {
           );
           sendBridgeResponse(sendResponse, {
             ok: false,
-            error: asErrorMessage(error),
+            error: toErrorMessage(error),
           });
         }
       })();
