@@ -377,6 +377,7 @@ export class VOTTranslationHandler {
   private readonly onDownloadAudioError = async (
     translationId: string,
     videoId: string,
+    signInSuggested = false,
   ) => {
     if (!this.downloading) {
       debug.log("skip downloadAudioError");
@@ -399,9 +400,13 @@ export class VOTTranslationHandler {
       this.videoHandler.site.host === "youtube" &&
       Boolean(this.videoHandler.data?.useAudioDownload);
 
-    if (!shouldUseFallback) {
+    if (signInSuggested || !shouldUseFallback) {
       this.finishDownloadFailure(
-        new VOTLocalizedError("VOTFailedDownloadAudio"),
+        new VOTLocalizedError(
+          signInSuggested
+            ? "VOTYouTubeSignInSuggested"
+            : "VOTFailedDownloadAudio",
+        ),
         runId,
       );
       return;

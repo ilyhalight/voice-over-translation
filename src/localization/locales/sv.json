@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "Översättningen tar ungefär {0} minuter",
   "requestTranslationFailed": "Misslyckades med att begära videoöversättning",
   "audioNotReceived": "Ljudlänk inte mottagen",
+  "VOTYouTubeSignInSuggested": "Logga in på YouTube och försök översätta igen",
   "audioFormatNotSupported": "Ljudformatet stöds inte",
   "VOTAutoTranslate": "Översätt på öppna",
   "VOTDontTranslateYourLang": "Översätt inte från mitt språk",

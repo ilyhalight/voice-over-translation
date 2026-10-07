@@ -1,7 +1,7 @@
 {
   "name": "[VOT] - Voice Over Translation",
   "description": "Watch videos in other languages with voice-over translation and subtitles in any browser",
-  "version": "1.11.16",
+  "version": "1.11.17",
   "author": "Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng",
   "namespace": "vot",
   "icon": "https://raw.githubusercontent.com/ilyhalight/voice-over-translation/dev/src/extension/icons/icon-128.png",
@@ -138,6 +138,7 @@
     "*://fast.wistia.net/*",
     "*://oauth.yandex.ru/verification_code*",
     "*://*.the-joi-database.com/*",
+    "*://*.vhx.tv/*",
     "*://*/*.mp4*",
     "*://*/*.webm*"
   ],
@@ -175,6 +176,7 @@
     "timeweb.cloud",
     "raw.githubusercontent.com",
     "vimeo.com",
+    "vhx.tv",
     "toil.cc",
     "onrender.com",
     "workers.dev",
@@ -184,6 +186,8 @@
     "youtube.com",
     "googlevideo.com",
     "fonts.google.com",
-    "fonts.googleapis.com"
+    "fonts.googleapis.com",
+    "vtrans.eu.cc",
+    "vot-worker.vtrans.eu.cc"
   ]
 }

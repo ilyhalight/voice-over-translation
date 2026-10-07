@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "Аударма қазірғі түрде {0} минутқа жағынан аударылатын болады",
   "requestTranslationFailed": "Бейнені аудару талап етуден кейін сәтсіз аяқталды",
   "audioNotReceived": "Аудиоға сілтеме алынған жоқ",
+  "VOTYouTubeSignInSuggested": "YouTube жүйесіне кіріп, аударманы қайтадан қолданып көріңіз",
   "audioFormatNotSupported": "Аудио пішімі қолдау көрсетмейді",
   "VOTAutoTranslate": "Ашылада переводдау",
   "VOTDontTranslateYourLang": "Өз тіліңнен таратпау",

@@ -310,6 +310,16 @@
 - /video/VIDEO_ID
 - /videos/VIDEO_ID
 
+## Joidatabase
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `s1.the-joi-database.com`
+- `the-joi-database.com`
+- `www.the-joi-database.com`
+
 ## Picarto
 
 Статус: [✅] Работает
@@ -1168,6 +1178,18 @@
 Доступные (под)домены:
 
 - `skilljar.com`
+
+## Dropout
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `watch.dropout.tv`
+
+Ограничения:
+
+- Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
 
 ## Wistia
 

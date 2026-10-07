@@ -84,6 +84,7 @@ export type Phrase =
   | "translationTakeApproximatelyMinute"
   | "requestTranslationFailed"
   | "audioNotReceived"
+  | "VOTYouTubeSignInSuggested"
   | "VOTFailedDownloadAudio"
   | "VOTRetryTranslation"
   | "audioFormatNotSupported"
@@ -348,6 +349,7 @@ export type Phrases = {
   translationTakeApproximatelyMinute: string;
   requestTranslationFailed: string;
   audioNotReceived: string;
+  VOTYouTubeSignInSuggested: string;
   VOTFailedDownloadAudio: string;
   VOTRetryTranslation: string;
   audioFormatNotSupported: string;

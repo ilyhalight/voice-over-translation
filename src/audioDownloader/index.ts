@@ -10,6 +10,7 @@ import { EventImpl } from "../utils/eventImpl";
 
 import {
   type AvailableAudioDownloadType,
+  SABR_STRATEGY,
   strategies,
   WEB_ABR_STRATEGY,
   WEB_MSE_PROXY_STRATEGY,
@@ -169,7 +170,11 @@ type AudioDownloaderEventMap = {
     translationId: string,
     data: DownloadedPartialAudioData,
   ];
-  downloadAudioError: [translationId: string, videoId: string];
+  downloadAudioError: [
+    translationId: string,
+    videoId: string,
+    signInSuggested: boolean,
+  ];
 };
 
 export class AudioDownloader {
@@ -188,7 +193,7 @@ export class AudioDownloader {
   onDownloadedPartialAudio = new EventImpl<
     [string, DownloadedPartialAudioData]
   >();
-  onDownloadAudioError = new EventImpl<[string, string]>();
+  onDownloadAudioError = new EventImpl<[string, string, boolean]>();
 
   private readonly events: {
     [K in keyof AudioDownloaderEventMap]: EventImpl<AudioDownloaderEventMap[K]>;
@@ -200,7 +205,7 @@ export class AudioDownloader {
 
   strategy: AvailableAudioDownloadType;
 
-  constructor(strategy: AvailableAudioDownloadType = WEB_ABR_STRATEGY) {
+  constructor(strategy: AvailableAudioDownloadType = "auto") {
     this.strategy = strategy;
     this.onDownloadedPartialAudio.addListener((_translationId, data) => {
       const chunks = this.collectingChunks.get(data.videoId);
@@ -284,7 +289,7 @@ export class AudioDownloader {
       debug.error("Audio downloader. All audio download strategies failed", {
         videoId,
       });
-      this.onDownloadAudioError.dispatch(translationId, videoId);
+      this.onDownloadAudioError.dispatch(translationId, videoId, false);
       return;
     }
 
@@ -300,8 +305,8 @@ export class AudioDownloader {
       collecting = [];
       this.collectingChunks.set(videoId, collecting);
       const attempts: AvailableAudioDownloadType[] =
-        this.strategy === WEB_ABR_STRATEGY
-          ? [WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY]
+        this.strategy === "auto"
+          ? [SABR_STRATEGY, WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY]
           : [this.strategy];
       for (const attemptedStrategy of attempts) {
         try {
@@ -327,6 +332,14 @@ export class AudioDownloader {
             });
             return;
           }
+          if (
+            attemptedStrategy === WEB_ABR_STRATEGY &&
+            error instanceof Error &&
+            error.message.includes("YOUTUBE_SIGN_IN_SUGGESTED")
+          ) {
+            this.onDownloadAudioError.dispatch(translationId, videoId, true);
+            return;
+          }
           debug.error("Audio downloader. Strategy failed", {
             videoId,
             audioDownloadType: attemptedStrategy,
@@ -338,7 +351,7 @@ export class AudioDownloader {
       debug.error("Audio downloader. All audio download strategies failed", {
         videoId,
       });
-      this.onDownloadAudioError.dispatch(translationId, videoId);
+      this.onDownloadAudioError.dispatch(translationId, videoId, false);
     } finally {
       if (collecting && this.collectingChunks.get(videoId) === collecting) {
         this.collectingChunks.delete(videoId);
@@ -357,7 +370,11 @@ export class AudioDownloader {
   ): this;
   addEventListener(
     type: "downloadAudioError",
-    listener: (translationId: string, videoId: string) => void,
+    listener: (
+      translationId: string,
+      videoId: string,
+      signInSuggested: boolean,
+    ) => void,
   ): this;
   addEventListener(
     type: "downloadedAudio" | "downloadedPartialAudio" | "downloadAudioError",
@@ -377,7 +394,11 @@ export class AudioDownloader {
   ): this;
   removeEventListener(
     type: "downloadAudioError",
-    listener: (translationId: string, videoId: string) => void,
+    listener: (
+      translationId: string,
+      videoId: string,
+      signInSuggested: boolean,
+    ) => void,
   ): this;
   removeEventListener(
     type: "downloadedAudio" | "downloadedPartialAudio" | "downloadAudioError",

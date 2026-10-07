@@ -125,8 +125,17 @@ function DebugYTAudioComponent() {
           )
           .addEventListener(
             "downloadAudioError",
-            (translationId: string, videoId: string) => {
-              debug.log("downloadAudioError", translationId, videoId);
+            (
+              translationId: string,
+              videoId: string,
+              signInSuggested: boolean,
+            ) => {
+              debug.log(
+                "downloadAudioError",
+                translationId,
+                videoId,
+                signInSuggested,
+              );
             },
           );
         await audioDownloader.runAudioDownload(

@@ -310,6 +310,16 @@ Available paths:
 - /video/VIDEO_ID
 - /videos/VIDEO_ID
 
+## Joidatabase
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `s1.the-joi-database.com`
+- `the-joi-database.com`
+- `www.the-joi-database.com`
+
 ## Picarto
 
 Status: [✅] Working
@@ -1168,6 +1178,18 @@ Status: [✅] Working
 Available (sub)domains:
 
 - `skilljar.com`
+
+## Dropout
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `watch.dropout.tv`
+
+Limitations:
+
+- To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
 
 ## Wistia
 

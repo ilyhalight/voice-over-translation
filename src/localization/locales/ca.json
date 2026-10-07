@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "La traducció trigarà aproximadament {0} minuts",
   "requestTranslationFailed": "Ha fallat en demanar la traducció de vídeo",
   "audioNotReceived": "No s 'ha rebut l' enllaç d ' àudio",
+  "VOTYouTubeSignInSuggested": "Inicia la sessió a YouTube i torna a provar la traducció",
   "audioFormatNotSupported": "El format d'àudio no és compatible",
   "VOTAutoTranslate": "Tradueix en obert",
   "VOTDontTranslateYourLang": "No tradueixis de la meva llengua",

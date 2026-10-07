@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "A tradução levará aproximadamente {0} minuto",
   "requestTranslationFailed": "Falha ao solicitar a tradução do vídeo",
   "audioNotReceived": "Link de áudio não recebido",
+  "VOTYouTubeSignInSuggested": "Inicie sessão no YouTube e tente traduzir novamente",
   "audioFormatNotSupported": "Formato de áudio não suportado",
   "VOTAutoTranslate": "Traduzir automaticamente ao abrir",
   "VOTDontTranslateYourLang": "Não traduzir do seu idioma nativo",

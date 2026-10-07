@@ -73,12 +73,13 @@
   },
   "dependencies": {
     "@toil/gm-types": "^1.0.6",
-    "@vot.js/core": "^3.1.2",
-    "@vot.js/ext": "^3.1.2",
-    "@vot.js/shared": "^3.1.2",
+    "@vot.js/core": "^3.1.5",
+    "@vot.js/ext": "^3.1.5",
+    "@vot.js/shared": "^3.1.5",
     "astring": "1.9.0",
     "bowser": "^2.14.1",
     "chaimu": "^1.1.0",
+    "googlevideo": "^4.1.1",
     "meriyah": "6.1.4",
     "solid-js": "^1.9.15",
     "web-ext": "^10.6.0"

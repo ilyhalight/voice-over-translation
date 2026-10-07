@@ -4,6 +4,7 @@ import {
   DEFAULT_AUTO_VOLUME,
   DEFAULT_SMART_DUCKING_STRENGTH,
 } from "../../config/config";
+import { browserInfo } from "../../utils/browserInfo";
 import debug from "../../utils/debug";
 import { snapVolume01 } from "../../utils/volume";
 import type { VideoHandler } from "../../VideoHandler";
@@ -429,6 +430,16 @@ function getTranslatedAudioRms(
 }
 
 function smartDuckingTick(handler: VideoHandler): void {
+  if (browserInfo.browser?.name === "Safari") {
+    const targetVolume =
+      clamp(handler.data?.autoVolume ?? DEFAULT_AUTO_VOLUME, 0, 100) / 100;
+
+    handler.setVideoVolume(targetVolume, {
+      preserveYoutubeVolumeStorage: true,
+    });
+    return;
+  }
+
   if (getAutoVolumeMode(handler) !== "smart") {
     setupAudioSettings.call(handler);
     return;

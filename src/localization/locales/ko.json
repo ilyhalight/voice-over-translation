@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "번역에 약 {0}분 걸립니다",
   "requestTranslationFailed": "비디오 번역 요청 실패",
   "audioNotReceived": "오디오 링크를 받지 못했습니다",
+  "VOTYouTubeSignInSuggested": "YouTube에 로그인한 후 번역을 다시 시도하세요",
   "audioFormatNotSupported": "오디오 형식이 지원되지 않습니다",
   "VOTAutoTranslate": "열 때 번역하기",
   "VOTDontTranslateYourLang": "내 언어에서 번역하지 않기",
