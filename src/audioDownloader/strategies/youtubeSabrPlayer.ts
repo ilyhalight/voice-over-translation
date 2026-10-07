@@ -81,9 +81,10 @@ export function getNativePlayerResponse(
       | (HTMLElement & { getPlayerResponse?: () => unknown })
       | null;
     if (moviePlayer && typeof moviePlayer.getPlayerResponse === "function") {
-      candidates.push(
-        moviePlayer.getPlayerResponse() as WebEmbeddedPlayerResponse,
-      );
+      const response = moviePlayer.getPlayerResponse();
+      if (response && typeof response === "object") {
+        candidates.push(response as WebEmbeddedPlayerResponse);
+      }
     }
   } catch {}
 
