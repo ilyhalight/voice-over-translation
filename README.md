@@ -64,6 +64,10 @@
 [![en][badge-en]][vot-readme-en]
 [![ru][badge-ru]][vot-readme-ru]
 
+<a href="https://chromewebstore.google.com/detail/dnioaagdjgpcokckfpokpndoblenmfcg"><img src="./img/badges/chrome-webstore.png" alt="Установить из Chrome Web Store"></a>
+<a href="https://addons.mozilla.org/ru/firefox/addon/voice-over-translation/"><img src="./img/badges/firefox-addons.png" alt="Установить из Firefox Add-ons"></a>
+<a href="https://github.com/ilyhalight/voice-over-translation/releases/latest"><img src="./img/badges/github-releases.png" alt="Установить из Github Releases"></a>
+
   <img src="./img/banner.png" alt="vot promotion banner"/>
 </div>
 
@@ -73,33 +77,12 @@
 
 Большое спасибо разработчикам **[Yandex.Translate][yatranslate-link]**, **[Yandex.Browser][yabrowser-link]** и всем, [кто помогает делать расширение][contributors-link] еще лучше.
 
-## Установка расширения
+## Установка расширения из GitHub Releases
 
 > [!CAUTION]
 > Перед созданием Issues настоятельно рекомендуем ознакомиться с разделом [FAQ][vot-faq] и уже существующими [Issues][vot-issues].
 
-> [!WARNING]
-> **Важно для пользователей Tampermonkey 5.2+ (MV3):**
-> В браузерах на движке **Chromium** (Chrome, Edge, Brave, Vivaldi и др.) необходимо:
->
-> 1. Открыть страницу расширений (`chrome://extensions`) и включить **«Режим разработчика»** (подробности в [документации Tampermonkey][devmode-enable]).
-> 2. Если движок **Chromium версии 138+**, в «Сведениях» расширения включить **«Разрешить пользовательские скрипты»**.
->
-> **Пользователям Opera:**
->
-> 1. Используйте **[Violentmonkey][violentmonkey-opera]** вместо Tampermonkey.
-> 2. В настройках расширения обязательно включите **«Разрешить доступ к результатам на странице поиска»** (гайд от Opera: [как найти эту настройку][opera-search-results-access]), иначе скрипт не будет работать.
-
-1. Установите загрузчик юзерскриптов: **[Tampermonkey][tampermonkey-link]** (или [Violentmonkey][violentmonkey-opera] для Opera)
-2. **[«Установить скрипт»][vot-dist]**
-
-### Установка нативного расширения для Chrome / Chromium
-
-#### Из Chrome WebStore
-
-Откройте [Chrome WebStore][vot-chrome-store] и нажмите «Установить»
-
-#### Из GitHub Releases
+### Нативно под Chrome (Chromium)
 
 1. Откройте [Releases][vot-releases] и скачайте файл `vot-extension-chrome.zip`
 2. Откройте страницу расширений:
@@ -110,15 +93,29 @@
 3. Включите **«Режим разработчика»**
 4. Перетащите скачанный `.zip`-файл на страницу расширений
 
-### Установка нативного расширения для Firefox
+### Нативно под Firefox
 
-#### Из Firefox Add-ons
+1. Откройте [Releases][vot-releases]
+2. Нажмите на `vot-extension-firefox.xpi`
+3. Подтвердите установку в Firefox
 
-Откройте [Firefox Add-ons][vot-firefox-store] и нажмите «Добавить в Firefox»
+### Через загрузчик юзерскриптов (Tampermonkey)
 
-#### Из GitHub Releases
+> [!WARNING]
+> **Важно для пользователей Tampermonkey 5.2+ (MV3):**
+> В браузерах на движке **Chromium** (Chrome, Edge, Brave, Vivaldi и др.) необходимо:
+>
+> 1. Открыть страницу расширений (`chrome://extensions`) и включить **«Режим разработчика»** (подробности в [документации Tampermonkey][devmode-enable]).
+> 2. Если движок **Chromium версии 138+**, в «Сведениях» расширения включить **«Разрешить пользовательские скрипты»**.
 
-Откройте [Releases][vot-releases], нажмите на `vot-extension-firefox.xpi` и подтвердите установку в Firefox
+> [!WARNING]
+> **Пользователям Opera:**
+>
+> 1. Используйте **[Violentmonkey][violentmonkey-opera]** вместо Tampermonkey.
+> 2. В настройках расширения обязательно включите **«Разрешить доступ к результатам на странице поиска»** (гайд от Opera: [как найти эту настройку][opera-search-results-access]), иначе скрипт не будет работать.
+
+1. Установите загрузчик юзерскриптов: **[Tampermonkey][tampermonkey-link]** (или [Violentmonkey][violentmonkey-opera] для Opera)
+2. Нажмите -> **[«Установить скрипт»][vot-dist]**
 
 ## Возможности
 
