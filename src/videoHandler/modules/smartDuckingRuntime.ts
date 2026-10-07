@@ -1,4 +1,5 @@
 import { defaultAutoVolume } from "../../config/config";
+import { browserInfo } from "../../utils/browserInfo";
 import debug from "../../utils/debug";
 import { clamp } from "../../utils/utils";
 import { snapVolume01 } from "../../utils/volume";

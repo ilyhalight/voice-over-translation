@@ -17,15 +17,6 @@ import {
 } from "./strategies";
 import type { AudioChunk } from "./strategies/audioChunks";
 
-// Выбор стратегии загрузки аудио:
-// "auto"          = SABR -> WebABR -> WEB_MSE_PROXY
-// "sabr"          = только SABR
-// "web_abr"       = только WebABR
-// "web_mse_proxy" = только WEB_MSE_PROXY
-// пример AvailableAudioDownloadType = "web_abr";
-
-const AUDIO_DOWNLOAD_MODE: "auto" | AvailableAudioDownloadType = "auto";
-
 async function handleCommonAudioDownloadRequest({
   audioDownloader,
   attemptedStrategy,
@@ -193,7 +184,7 @@ export class AudioDownloader {
 
   strategy: AvailableAudioDownloadType;
 
-  constructor(strategy: AvailableAudioDownloadType = SABR_STRATEGY) {
+  constructor(strategy: AvailableAudioDownloadType = "auto") {
     this.strategy = strategy;
     this.onDownloadedPartialAudio.addListener((_translationId, data) => {
       const chunks = this.collectingChunks.get(data.videoId);
@@ -293,9 +284,9 @@ export class AudioDownloader {
       collecting = [];
       this.collectingChunks.set(videoId, collecting);
       const attempts: AvailableAudioDownloadType[] =
-        AUDIO_DOWNLOAD_MODE === "auto"
+        this.strategy === "auto"
           ? [SABR_STRATEGY, WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY]
-          : [AUDIO_DOWNLOAD_MODE];
+          : [this.strategy];
       for (const attemptedStrategy of attempts) {
         try {
           await handleCommonAudioDownloadRequest({

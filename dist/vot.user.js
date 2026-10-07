@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 配音翻译
 // @namespace      vot
-// @version        1.11.16
+// @version        1.11.17
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    Watch videos in other languages with voice-over translation and subtitles in any browser
 // @description:de Sieh dir Videos in anderen Sprachen mit Voice-over-Übersetzung und Untertiteln in jedem Browser an
@@ -155,6 +155,7 @@
 // @match          *://hot.noodlemagazine.com/*
 // @match          *://fast.wistia.net/*
 // @match          *://*.the-joi-database.com/*
+// @match          *://*.vhx.tv/*
 // @match          *://*/*.mp4*
 // @match          *://*/*.webm*
 // @match          *://*.yewtu.be/*
@@ -223,6 +224,7 @@
 // @connect        timeweb.cloud
 // @connect        raw.githubusercontent.com
 // @connect        vimeo.com
+// @connect        vhx.tv
 // @connect        toil.cc
 // @connect        onrender.com
 // @connect        workers.dev
@@ -231,6 +233,8 @@
 // @connect        porntn.com
 // @connect        youtube.com
 // @connect        googlevideo.com
+// @connect        vtrans.eu.cc
+// @connect        vot-worker.vtrans.eu.cc
 // @grant          GM_addStyle
 // @grant          GM_deleteValue
 // @grant          GM_getValue
@@ -449,6 +453,7 @@ var vot = (function(exports) {
 		ExtVideoService["netacad"] = "netacad";
 		ExtVideoService["mediafile"] = "mediafile";
 		ExtVideoService["skilljar"] = "skilljar";
+		ExtVideoService["dropout"] = "dropout";
 	})(ExtVideoService || (ExtVideoService = {}));
 	({
 		...VideoService$1,
@@ -650,7 +655,8 @@ var vot = (function(exports) {
 			host: VideoService$1.joidatabase,
 			url: "https://www.the-joi-database.com/api/stream/",
 			match: [/^s1\.the-joi-database\.com$/, /^(www\.)?the-joi-database\.com$/],
-			selector: "#small-player-container"
+			selector: ".plyr__video-wrapper",
+			needExtraData: true
 		},
 		{
 			host: VideoService$1.picarto,
@@ -1107,6 +1113,14 @@ var vot = (function(exports) {
 			needExtraData: true
 		},
 		{
+			host: ExtVideoService.dropout,
+			url: "https://embed.vhx.tv/videos/",
+			match: /^embed\.vhx\.tv$/,
+			selector: "body",
+			needExtraData: true,
+			needBypassCSP: true
+		},
+		{
 			host: VideoService$1.wistia,
 			url: "https://fast.wistia.net/embed/iframe/",
 			match: /^fast.wistia.net$/,
@@ -1126,13 +1140,13 @@ var vot = (function(exports) {
 		hostWorker: "vot-worker.toil.cc",
 		mediaProxy: "media-proxy.toil.cc",
 		userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 YaBrowser/26.8.0.0 Safari/537.36",
-		componentVersion: "26.8.3.1002",
-		chromiumRevision: "1002",
+		componentVersion: "26.8.5.811",
+		chromiumRevision: "811",
 		hmac: "bt8xH3VOlb4mqf0nqAibnDOoiPlXsisf",
 		defaultDuration: 310,
 		minChunkSize: 5295308,
 		loggerLevel: 1,
-		version: "3.1.2"
+		version: "3.1.5"
 	};
 	//#endregion
 	//#region node_modules/@vot.js/shared/dist/types/logger.js
@@ -1166,7 +1180,7 @@ var vot = (function(exports) {
 		if (!canLog(LoggerLevel.ERROR)) return;
 		console.error(prefix, ...messages);
 	}
-	var Logger = {
+	var Logger$1 = {
 		canLog,
 		log: log$1,
 		info,
@@ -1386,7 +1400,7 @@ var vot = (function(exports) {
 				if (!contentUrl) throw new VideoHelperError("Failed to find content url");
 				return { url: contentUrl };
 			} catch (err) {
-				Logger.error(`Failed to get apple developer video data by video ID: ${videoId}`, err.message);
+				Logger$1.error(`Failed to get apple developer video data by video ID: ${videoId}`, err.message);
 				return;
 			}
 		}
@@ -1430,7 +1444,7 @@ var vot = (function(exports) {
 					headers: csrfToken ? { "PUBLIC-CSRF-TOKEN": csrfToken } : {}
 				})).json();
 			} catch (err) {
-				Logger.error(`Failed to get artstation course info by courseId: ${courseId}.`, err.message);
+				Logger$1.error(`Failed to get artstation course info by courseId: ${courseId}.`, err.message);
 				return false;
 			}
 		}
@@ -1438,7 +1452,7 @@ var vot = (function(exports) {
 			try {
 				return (await (await this.fetch(`${this.API_ORIGIN}/quicksilver/video_url.json?chapter_id=${chapterId}`)).json()).url.replace("qsep://", "https://");
 			} catch (err) {
-				Logger.error(`Failed to get artstation video url by chapterId: ${chapterId}.`, err.message);
+				Logger$1.error(`Failed to get artstation video url by chapterId: ${chapterId}.`, err.message);
 				return false;
 			}
 		}
@@ -1549,7 +1563,7 @@ var vot = (function(exports) {
 				if (!videoUrl) throw new VideoHelperError("Failed to find video URL");
 				return { url: videoUrl };
 			} catch (err) {
-				Logger.error(`Failed to get Bitview data by videoId: ${videoId}`, err.message);
+				Logger$1.error(`Failed to get Bitview data by videoId: ${videoId}`, err.message);
 				return;
 			}
 		}
@@ -1672,7 +1686,7 @@ var vot = (function(exports) {
 			try {
 				return await (await this.fetch(`${this.API_ORIGIN}/api/v1/course/${courseId}/lessons`)).json();
 			} catch (err) {
-				Logger.error(`Failed to get CoursehunterLike lessons data by courseId: ${courseId}, because ${err.message}`);
+				Logger$1.error(`Failed to get CoursehunterLike lessons data by courseId: ${courseId}, because ${err.message}`);
 				return;
 			}
 		}
@@ -1807,7 +1821,7 @@ var vot = (function(exports) {
 					subtitles: this.getSubtitles()
 				};
 			} catch (err) {
-				Logger.error("Failed to get videojs video data", err.message);
+				Logger$1.error("Failed to get videojs video data", err.message);
 				return;
 			}
 		}
@@ -1864,7 +1878,7 @@ var vot = (function(exports) {
 				const url = typeof courseIdOrSlug === "string" && courseIdOrSlug.includes("-") ? `${this.API_ORIGIN}/onDemandCourses.v1?q=slug&slug=${courseIdOrSlug}` : `${this.API_ORIGIN}/onDemandCourses.v1/${courseIdOrSlug}`;
 				return (await (await this.fetch(url)).json())?.elements?.[0];
 			} catch (err) {
-				Logger.error(`Failed to get course data: ${courseIdOrSlug}`, err.message);
+				Logger$1.error(`Failed to get course data: ${courseIdOrSlug}`, err.message);
 				return;
 			}
 		}
@@ -1902,7 +1916,7 @@ var vot = (function(exports) {
 			else courseLang = normalizeLang$1(document.documentElement.lang || "en");
 			if (!availableLangs.includes(courseLang)) courseLang = "en";
 			const subtitleUrl = (data.subtitles.find((subtitle) => subtitle.language === courseLang) ?? data.subtitles?.[0])?.url;
-			if (!subtitleUrl) Logger.warn("Failed to find any subtitle file");
+			if (!subtitleUrl) Logger$1.warn("Failed to find any subtitle file");
 			const { url, duration } = data;
 			const translationHelp = subtitleUrl ? [{
 				target: "subtitles_file_url",
@@ -1994,7 +2008,7 @@ var vot = (function(exports) {
 					videoUrl = this.getVideoUrlFromDocument(doc);
 				}
 			} catch (err) {
-				Logger.error("Failed to fetch DataCamp page for DOMParser", err instanceof Error ? err.message : String(err));
+				Logger$1.error("Failed to fetch DataCamp page for DOMParser", err instanceof Error ? err.message : String(err));
 			}
 			if (!videoUrl) return;
 			return {
@@ -2051,6 +2065,339 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
+	//#region node_modules/@vot.js/ext/dist/helpers/vimeo.js
+	var VimeoHelper = class extends BaseHelper {
+		API_KEY = "";
+		DEFAULT_SITE_ORIGIN = "https://vimeo.com";
+		SITE_ORIGIN = this.service?.url?.slice(0, -1) ?? this.DEFAULT_SITE_ORIGIN;
+		isErrorData(data) {
+			return Object.hasOwn(data, "error");
+		}
+		isPrivatePlayer() {
+			return this.referer && !this.referer.includes("vimeo.com") && this.origin.endsWith("player.vimeo.com");
+		}
+		toPublicUrl(videoId) {
+			const [id, hash] = videoId.split(":", 2);
+			return hash ? `${this.DEFAULT_SITE_ORIGIN}/${id}/${hash}` : `${this.DEFAULT_SITE_ORIGIN}/${id}`;
+		}
+		returnPublicBaseData(videoId) {
+			const baseData = this.returnBaseData(videoId);
+			if (!baseData) return;
+			return {
+				...baseData,
+				url: this.toPublicUrl(videoId)
+			};
+		}
+		normalizePublicVideoUrl(url, videoId) {
+			try {
+				const parsed = new URL(url);
+				if (parsed.hostname === "player.vimeo.com") return this.toPublicUrl(videoId);
+				if (parsed.hostname.endsWith("vimeo.com")) {
+					const colonMatch = /^\/(\d+):([a-z0-9]+)$/i.exec(parsed.pathname);
+					if (colonMatch) return `${this.DEFAULT_SITE_ORIGIN}/${colonMatch[1]}/${colonMatch[2]}`;
+				}
+			} catch {}
+			return url;
+		}
+		async getViewerData() {
+			try {
+				const data = await (await this.fetch("https://vimeo.com/_next/viewer")).json();
+				const { apiUrl, jwt } = data;
+				this.API_ORIGIN = `https://${apiUrl}`;
+				this.API_KEY = `jwt ${jwt}`;
+				return data;
+			} catch (err) {
+				Logger$1.error(`Failed to get default viewer data.`, err.message);
+				return false;
+			}
+		}
+		async getVideoInfo(videoId) {
+			try {
+				const params = new URLSearchParams({ fields: "name,link,description,duration" }).toString();
+				const data = await (await this.fetch(`${this.API_ORIGIN}/videos/${videoId}?${params}`, { headers: { Authorization: this.API_KEY } })).json();
+				if (this.isErrorData(data)) throw new Error(data.developer_message ?? data.error);
+				return data;
+			} catch (err) {
+				Logger$1.error(`Failed to get video info by video ID: ${videoId}`, err.message);
+				return false;
+			}
+		}
+		async getPrivateVideoSource(files) {
+			try {
+				const { default_cdn, cdns } = files.dash;
+				const cdnUrl = cdns[default_cdn].url;
+				const res = await this.fetch(cdnUrl);
+				if (res.status !== 200) throw new VideoHelperError(await res.text());
+				const data = await res.json();
+				const baseUrl = new URL(data.base_url, cdnUrl);
+				const videoData = data.audio.find((v) => v.mime_type === "audio/mp4" && v.format === "dash");
+				if (!videoData) throw new VideoHelperError("Failed to find video data");
+				const segmentUrl = videoData.segments?.[0]?.url;
+				if (!segmentUrl) throw new VideoHelperError("Failed to find first segment url");
+				const [videoName, videoParams] = segmentUrl.split("?", 2);
+				const params = new URLSearchParams(videoParams);
+				params.delete("range");
+				return new URL(`${videoData.base_url}${videoName}?${params.toString()}`, baseUrl).href;
+			} catch (err) {
+				Logger$1.error(`Failed to get private video source`, err.message);
+				return false;
+			}
+		}
+		async getPrivateVideoInfo(videoId) {
+			try {
+				if (typeof playerConfig === "undefined") return;
+				const videoSource = await this.getPrivateVideoSource(playerConfig.request.files);
+				if (!videoSource) throw new VideoHelperError("Failed to get private video source");
+				const { video: { title, duration }, request: { text_tracks: subs } } = playerConfig;
+				return {
+					url: `${this.SITE_ORIGIN}/${videoId}`,
+					video_url: videoSource,
+					title,
+					duration,
+					subs
+				};
+			} catch (err) {
+				Logger$1.error(`Failed to get private video info by video ID: ${videoId}`, err.message);
+				return false;
+			}
+		}
+		async getSubsInfo(videoId) {
+			try {
+				const params = new URLSearchParams({
+					per_page: "100",
+					fields: "language,type,link"
+				}).toString();
+				const content = await (await this.fetch(`${this.API_ORIGIN}/videos/${videoId}/texttracks?${params}`, { headers: { Authorization: this.API_KEY } })).json();
+				if (this.isErrorData(content)) throw new Error(content.developer_message ?? content.error);
+				return content.data;
+			} catch (err) {
+				Logger$1.error(`Failed to get subtitles info by video ID: ${videoId}`, err.message);
+				return [];
+			}
+		}
+		async getVideoData(videoId) {
+			if (videoId.includes("?app_id=")) {
+				const [embedId] = videoId.split("?");
+				return this.returnBaseData(embedId);
+			}
+			if (this.isPrivatePlayer()) {
+				const videoInfo = await this.getPrivateVideoInfo(videoId);
+				if (!videoInfo) return;
+				const { url, subs, video_url, title, duration } = videoInfo;
+				const subtitles = subs.map((sub) => ({
+					language: normalizeLang$1(sub.lang),
+					source: "vimeo",
+					format: "vtt",
+					url: new URL(sub.url, this.SITE_ORIGIN).href,
+					isAutoGenerated: sub.lang.includes("autogenerated")
+				}));
+				const translationHelp = subtitles.length ? [{
+					target: "video_file_url",
+					targetUrl: video_url
+				}, {
+					target: "subtitles_file_url",
+					targetUrl: subtitles[0].url
+				}] : null;
+				return {
+					...translationHelp ? {
+						url,
+						translationHelp
+					} : { url: video_url },
+					subtitles,
+					title,
+					duration
+				};
+			}
+			if (!this.extraInfo) return this.returnPublicBaseData(videoId);
+			if (videoId.includes("/")) videoId = videoId.replace("/", ":");
+			if (!await this.getViewerData()) return this.returnPublicBaseData(videoId);
+			const videoInfo = await this.getVideoInfo(videoId);
+			if (!videoInfo) return this.returnPublicBaseData(videoId);
+			const subtitles = (await this.getSubsInfo(videoId)).map((caption) => ({
+				language: normalizeLang$1(caption.language),
+				source: "vimeo",
+				format: "vtt",
+				url: caption.link,
+				isAutoGenerated: caption.language.includes("autogen")
+			}));
+			const { link, duration, name: title, description } = videoInfo;
+			return {
+				url: this.normalizePublicVideoUrl(link, videoId),
+				title,
+				description,
+				subtitles,
+				duration
+			};
+		}
+		async getVideoId(url) {
+			const normalizedPathname = url.pathname.replace(/\/+$/, "");
+			const embedId = /video\/[^/]+$/.exec(normalizedPathname)?.[0];
+			const appId = url.searchParams.get("app_id");
+			if (embedId && appId) return `${embedId}?app_id=${appId}`;
+			if (this.isPrivatePlayer()) return embedId;
+			if (embedId) {
+				const hash = url.searchParams.get("h");
+				const videoId = embedId.replace("video/", "");
+				return hash ? `${videoId}/${hash}` : videoId;
+			}
+			const categoriesVideoId = /channels\/[^/]+\/([^/]+)/.exec(normalizedPathname)?.[1] ?? /groups\/[^/]+\/videos\/([^/]+)/.exec(normalizedPathname)?.[1] ?? /(showcase|album)\/[^/]+\/video\/([^/]+)/.exec(normalizedPathname)?.[2];
+			if (categoriesVideoId) return categoriesVideoId;
+			return /([^/]+\/)?[^/]+$/.exec(normalizedPathname)?.[0];
+		}
+	};
+	//#endregion
+	//#region node_modules/@vot.js/ext/dist/helpers/dropout.js
+	var CONFIG_URL_RE = /^https:\/\/player\.vimeo\.com\/video\/[a-z0-9_-]+\/config/i;
+	var CONFIG_WAIT_TIMEOUT = 1e4;
+	var CONFIG_WAIT_INTERVAL = 500;
+	function isPlayerConfig(data) {
+		if (!data || typeof data !== "object") return false;
+		const config = data;
+		return Boolean((config.request?.files || config.files) && (config.video || config.request));
+	}
+	function normalizeConfigUrl(value) {
+		if (!value) return;
+		let url = value.replaceAll("\\/", "/").replaceAll("\\u0026", "&").replaceAll("&amp;", "&");
+		if (url.startsWith("//")) url = `https:${url}`;
+		if (url.startsWith("/video/")) url = `https://player.vimeo.com${url}`;
+		return CONFIG_URL_RE.test(url) ? url : void 0;
+	}
+	/**
+	* Dropout embeds a private Vimeo player on embed.vhx.tv. The page doesn't
+	* expose `playerConfig`, so the player config url is searched in the loaded
+	* resources and in the page markup, then requested directly.
+	*/
+	function findConfigUrl() {
+		const candidates = [];
+		try {
+			candidates.push(...performance.getEntriesByType("resource").map((entry) => entry.name));
+		} catch {}
+		candidates.push(...Array.from(document.querySelectorAll("iframe[src], script[src]"), (el) => el.src));
+		const html = document.documentElement?.innerHTML ?? "";
+		candidates.push(...html.match(/https?:\\?\/\\?\/player\.vimeo\.com\\?\/video\\?\/\d+\\?\/config[^"'<>\s\\]*/gi) ?? [], ...html.match(/\/video\/\d+\/config[^"'<>\s]*/gi) ?? []);
+		return candidates.map(normalizeConfigUrl).find(Boolean);
+	}
+	function getDomTextTracks() {
+		return Array.from(document.querySelectorAll("track[src][kind=\"captions\"], track[src][kind=\"subtitles\"]"), (track) => ({
+			lang: track.srclang || track.getAttribute("srclang") || "auto",
+			url: track.src,
+			kind: track.kind
+		})).filter((track) => Boolean(track.url));
+	}
+	function getCdnUrl(group) {
+		return (group?.default_cdn ? group.cdns?.[group.default_cdn]?.url : void 0) ?? Object.values(group?.cdns ?? {})[0]?.url;
+	}
+	function distanceTo360p(item) {
+		return Math.abs((item.height ?? 360) - 360);
+	}
+	function getTrackCodec(track) {
+		return [
+			track.codecs,
+			track.codec,
+			track.mime_type,
+			track.id,
+			track.quality
+		].filter(Boolean).join(" ").toLowerCase();
+	}
+	var DropoutHelper = class extends VimeoHelper {
+		config;
+		isPrivatePlayer() {
+			return true;
+		}
+		async fetchConfig(configUrl) {
+			try {
+				const res = await this.fetch(configUrl, {
+					credentials: "include",
+					headers: { Accept: "application/json" }
+				});
+				if (!res.ok) throw new VideoHelperError(`Vimeo config request failed: ${res.status}`);
+				const config = await res.json();
+				return isPlayerConfig(config) ? config : void 0;
+			} catch (err) {
+				Logger$1.error("Failed to fetch Dropout player config", err.message);
+				return;
+			}
+		}
+		async getConfig() {
+			if (this.config) return this.config;
+			if (typeof playerConfig !== "undefined" && isPlayerConfig(playerConfig)) {
+				this.config = playerConfig;
+				return this.config;
+			}
+			const deadline = Date.now() + CONFIG_WAIT_TIMEOUT;
+			let configUrl = findConfigUrl();
+			while (!configUrl && Date.now() < deadline) {
+				await new Promise((resolve) => setTimeout(resolve, CONFIG_WAIT_INTERVAL));
+				configUrl = findConfigUrl();
+			}
+			if (!configUrl) return;
+			this.config = await this.fetchConfig(configUrl);
+			return this.config;
+		}
+		async getDashAudioSource(dashCdnUrl) {
+			const res = await this.fetch(dashCdnUrl);
+			if (res.status !== 200) throw new VideoHelperError(await res.text());
+			const data = await res.json();
+			const baseUrl = new URL(data.base_url ?? "", dashCdnUrl);
+			const tracks = [...data.audio ?? [], ...data.video ?? []].filter((track) => track.format === "dash" && track.segments?.length);
+			const audioTracks = tracks.filter((track) => track.mime_type === "audio/mp4");
+			const track = audioTracks.find((t) => /mp4a|aac/.test(getTrackCodec(t))) ?? audioTracks.find((t) => !/opus|vorbis/.test(getTrackCodec(t))) ?? audioTracks[0] ?? tracks[0];
+			if (!track) return;
+			const segmentUrl = track.segments?.[0]?.url;
+			if (!segmentUrl) throw new VideoHelperError("Failed to find first segment url");
+			const [segmentName, segmentParams = ""] = segmentUrl.split("?", 2);
+			const params = new URLSearchParams(segmentParams);
+			params.delete("range");
+			const query = params.toString();
+			return new URL(`${track.base_url ?? ""}${segmentName}${query ? `?${query}` : ""}`, baseUrl).href;
+		}
+		async getPrivateVideoSource(files) {
+			try {
+				const progressiveSource = files?.progressive?.filter((item) => item.url).reduce((best, item) => !best || distanceTo360p(item) < distanceTo360p(best) ? item : best, void 0)?.url;
+				if (progressiveSource) return progressiveSource;
+				const dashCdnUrl = getCdnUrl(files?.dash);
+				const hlsSource = files?.hls?.url ?? getCdnUrl(files?.hls);
+				if (/(?:[?&]qsr=1(?:&|$)|\/prot\/cXNyPTE(?:\/|$))/i.test(String(dashCdnUrl)) && hlsSource) return hlsSource;
+				if (dashCdnUrl) try {
+					const dashSource = await this.getDashAudioSource(dashCdnUrl);
+					if (dashSource) return dashSource;
+				} catch (err) {
+					Logger$1.error("Failed to get Dropout DASH source, trying HLS", err.message);
+				}
+				if (hlsSource) return hlsSource;
+				throw new VideoHelperError("Failed to find playable private video source");
+			} catch (err) {
+				Logger$1.error("Failed to get Dropout private video source", err.message);
+				return false;
+			}
+		}
+		async getPrivateVideoInfo(videoId) {
+			try {
+				const config = await this.getConfig();
+				if (!config) throw new VideoHelperError("Failed to get Vimeo player config");
+				const request = config.request ?? config;
+				const videoSource = await this.getPrivateVideoSource(request.files ?? config.files);
+				if (!videoSource) throw new VideoHelperError("Failed to get private video source");
+				const configSubs = request.text_tracks ?? request.textTracks ?? [];
+				const subs = configSubs.length ? configSubs : getDomTextTracks();
+				const video = config.video ?? {};
+				return {
+					url: `${this.SITE_ORIGIN}/${videoId}`,
+					video_url: videoSource,
+					title: video.title ?? video.name ?? "",
+					duration: video.duration ?? 0,
+					subs
+				};
+			} catch (err) {
+				Logger$1.error(`Failed to get Dropout video info by video ID: ${videoId}`, err.message);
+				return false;
+			}
+		}
+		async getVideoId(url) {
+			return /videos\/([^/?#]+)/.exec(url.pathname)?.[1] ?? url.pathname;
+		}
+	};
+	//#endregion
 	//#region node_modules/@vot.js/ext/dist/helpers/dzen.js
 	var DzenHelper = class extends BaseHelper {
 		async getVideoId(url) {
@@ -2072,7 +2419,7 @@ var vot = (function(exports) {
 			try {
 				return await (await this.fetch(`${this.API_ORIGIN}/post.json?hash_id=${videoId}`)).json();
 			} catch (err) {
-				Logger.error(`Failed to get epicgames post info by videoId: ${videoId}.`, err.message);
+				Logger$1.error(`Failed to get epicgames post info by videoId: ${videoId}.`, err.message);
 				return false;
 			}
 		}
@@ -2180,7 +2527,7 @@ var vot = (function(exports) {
 					description
 				};
 			} catch (err) {
-				Logger.warn(`Failed to get ign video data by video ID: ${videoId}, because ${err.message}. Using clear link instead...`);
+				Logger$1.warn(`Failed to get ign video data by video ID: ${videoId}, because ${err.message}. Using clear link instead...`);
 				return this.returnBaseData(videoId);
 			}
 		}
@@ -2202,6 +2549,23 @@ var vot = (function(exports) {
 	//#endregion
 	//#region node_modules/@vot.js/ext/dist/helpers/joidatabase.js
 	var JOIDatabaseHelper = class extends BaseHelper {
+		async getVideoData(videoId) {
+			const baseData = this.returnBaseData(videoId);
+			if (!baseData) return;
+			try {
+				const player = new PlyrHelper().getPlayer();
+				if (!player) return baseData;
+				const { duration, config: { title } } = player;
+				return {
+					...baseData,
+					duration: !Number.isNaN(duration) && duration > 0 ? duration : void 0,
+					title
+				};
+			} catch {
+				Logger$1.error(`Failed to extract video data. Using base data for videoId: ${videoId}`);
+				return baseData;
+			}
+		}
 		async getVideoId(url) {
 			return /\/(?:watch|embed)\/([0-9a-f]+)\/?$/.exec(url.pathname)?.[1];
 		}
@@ -2280,7 +2644,7 @@ var vot = (function(exports) {
 					title
 				};
 			} catch (err) {
-				Logger.error(`Failed to get kick clip info by clipId: ${clipId}.`, err.message);
+				Logger$1.error(`Failed to get kick clip info by clipId: ${clipId}.`, err.message);
 				return;
 			}
 		}
@@ -2294,7 +2658,7 @@ var vot = (function(exports) {
 					title
 				};
 			} catch (err) {
-				Logger.error(`Failed to get kick video info by videoId: ${videoId}.`, err.message);
+				Logger$1.error(`Failed to get kick video info by videoId: ${videoId}.`, err.message);
 				return;
 			}
 		}
@@ -2330,7 +2694,7 @@ var vot = (function(exports) {
 					}, [])
 				};
 			} catch (err) {
-				Logger.error(`Failed to get Kickstarter data by videoId: ${videoId}`, err.message);
+				Logger$1.error(`Failed to get Kickstarter data by videoId: ${videoId}`, err.message);
 				return;
 			}
 		}
@@ -2372,7 +2736,7 @@ var vot = (function(exports) {
 					...secureJSON
 				};
 			} catch (err) {
-				Logger.error(`Failed to get kodik secure data by videoPath: ${videoPath}.`, err.message);
+				Logger$1.error(`Failed to get kodik secure data by videoPath: ${videoPath}.`, err.message);
 				return false;
 			}
 		}
@@ -2402,7 +2766,7 @@ var vot = (function(exports) {
 					})
 				})).json();
 			} catch (err) {
-				Logger.error(`Failed to get kodik video data (type: ${videoType}, id: ${id}, hash: ${hash})`, err.message);
+				Logger$1.error(`Failed to get kodik video data (type: ${videoType}, id: ${id}, hash: ${hash})`, err.message);
 				return false;
 			}
 		}
@@ -4913,7 +5277,7 @@ var vot = (function(exports) {
 					}]
 				};
 			} catch (err) {
-				Logger.error(`Failed to get Loom video data, because: ${err.message}`);
+				Logger$1.error(`Failed to get Loom video data, because: ${err.message}`);
 				return this.returnBaseData(videoId);
 			}
 		}
@@ -4929,7 +5293,7 @@ var vot = (function(exports) {
 			try {
 				return await (await this.fetch(`${this.API_ORIGIN}/+/video/meta/${videoId}?xemail=&ajax_call=1&func_name=&mna=&mnb=&ext=1&_=${Date.now()}`)).json();
 			} catch (err) {
-				Logger.error("Failed to get mail.ru video data", err.message);
+				Logger$1.error("Failed to get mail.ru video data", err.message);
 				return;
 			}
 		}
@@ -5205,7 +5569,7 @@ var vot = (function(exports) {
 			try {
 				return await (await this.fetch(`${this.API_ORIGIN}/posts/${postId}?json-api-use-default-includes=false`)).json();
 			} catch (err) {
-				Logger.error(`Failed to get patreon posts by postId: ${postId}.`, err.message);
+				Logger$1.error(`Failed to get patreon posts by postId: ${postId}.`, err.message);
 				return false;
 			}
 		}
@@ -5257,16 +5621,16 @@ var vot = (function(exports) {
 				if (!source || !rnd) throw new VideoHelperError("Failed to find video source or rnd");
 				const getFileUrl = new URL(source);
 				getFileUrl.searchParams.append("rnd", rnd);
-				Logger.log("PornTN get_file link", getFileUrl.href);
+				Logger$1.log("PornTN get_file link", getFileUrl.href);
 				const cdnResponse = await this.fetch(getFileUrl.href, { method: "head" });
 				const cdnUrl = new URL(cdnResponse.url);
-				Logger.log("PornTN cdn link", cdnUrl.href);
+				Logger$1.log("PornTN cdn link", cdnUrl.href);
 				return {
 					url: proxyMedia(cdnUrl),
 					title
 				};
 			} catch (err) {
-				Logger.error(`Failed to get PornTN data by videoId: ${videoId}`, err.message);
+				Logger$1.error(`Failed to get PornTN data by videoId: ${videoId}`, err.message);
 				return;
 			}
 		}
@@ -5282,7 +5646,7 @@ var vot = (function(exports) {
 				if (!videoId) throw new VideoHelperError("Failed to find PreserveTube video ID");
 				return { url: `https://s3.archive.party/preservetube/${videoId}.mp4` };
 			} catch (err) {
-				Logger.error(`Failed to get PreserveTube data by videoId: ${videoId}`, err.message);
+				Logger$1.error(`Failed to get PreserveTube data by videoId: ${videoId}`, err.message);
 				return;
 			}
 		}
@@ -5317,7 +5681,7 @@ var vot = (function(exports) {
 				if (!audioUrl) throw new VideoHelperError("Failed to extract audio URL from DASH MPD");
 				return { url: audioUrl };
 			} catch (err) {
-				Logger.error(`Failed to get reddit video data by video ID: ${videoId}`, err.message);
+				Logger$1.error(`Failed to get reddit video data by video ID: ${videoId}`, err.message);
 				return;
 			}
 		}
@@ -5412,7 +5776,7 @@ var vot = (function(exports) {
 					headers: { "Content-Type": "application/json" }
 				})).json();
 			} catch (err) {
-				Logger.error("Failed to request kaltura data", err.message);
+				Logger$1.error("Failed to request kaltura data", err.message);
 				return;
 			}
 		}
@@ -5431,7 +5795,7 @@ var vot = (function(exports) {
 				const entryId = video.videoId;
 				return await this.requestKaltura(kalturaDomain, partnerId, entryId);
 			} catch (err) {
-				Logger.error("Failed to get kaltura data", err.message);
+				Logger$1.error("Failed to get kaltura data", err.message);
 				return;
 			}
 		}
@@ -5698,7 +6062,7 @@ var vot = (function(exports) {
 				if (this.isErrorData(data)) throw new VideoHelperError(data.detail ?? "unknown error");
 				return data;
 			} catch (err) {
-				Logger.error(`Failed to get lecture data by courseId: ${courseId} and lectureId: ${lectureId}`, err.message);
+				Logger$1.error(`Failed to get lecture data by courseId: ${courseId} and lectureId: ${lectureId}`, err.message);
 				return;
 			}
 		}
@@ -5710,7 +6074,7 @@ var vot = (function(exports) {
 				if (this.isErrorData(data2)) throw new VideoHelperError(data2.detail ?? "unknown error");
 				return data2;
 			} catch (err) {
-				Logger.error(`Failed to get course lang by courseId: ${courseId}`, err.message);
+				Logger$1.error(`Failed to get course lang by courseId: ${courseId}`, err.message);
 				return;
 			}
 		}
@@ -5773,7 +6137,7 @@ var vot = (function(exports) {
 			const moduleData = this.getModuleData();
 			const courseId = this.getCourseId(moduleData);
 			const lectureId = this.getLectureId(videoId);
-			Logger.log(`[Udemy] courseId: ${courseId}, lectureId: ${lectureId}`);
+			Logger$1.log(`[Udemy] courseId: ${courseId}, lectureId: ${lectureId}`);
 			if (!lectureId || !courseId) return;
 			const lectureData = await this.getLectureData(courseId, lectureId);
 			if (!lectureData) return;
@@ -5784,7 +6148,7 @@ var vot = (function(exports) {
 			const downloadUrls = assetWithExtraUrls.download_urls;
 			const videoUrl = this.findVideoUrl(media_sources, streamUrls, downloadUrls, assetWithExtraUrls.stream_url ?? assetWithExtraUrls.streamUrl, assetWithExtraUrls.external_url, assetWithExtraUrls.data?.outputs, view_html);
 			if (!videoUrl) {
-				Logger.log("Failed to find video file in asset sources", asset);
+				Logger$1.log("Failed to find video file in asset sources", asset);
 				return;
 			}
 			let courseLang = "en";
@@ -5792,7 +6156,7 @@ var vot = (function(exports) {
 			if (typeof courseLocale === "string") courseLang = normalizeLang$1(courseLocale);
 			if (!availableLangs.includes(courseLang)) courseLang = "en";
 			const subtitleUrl = this.findSubtitleUrl(captions, courseLang);
-			if (!subtitleUrl) Logger.log("Failed to find subtitle file in captions", captions);
+			if (!subtitleUrl) Logger$1.log("Failed to find subtitle file in captions", captions);
 			return {
 				...subtitleUrl ? {
 					url: this.service?.url + videoId,
@@ -5815,187 +6179,6 @@ var vot = (function(exports) {
 		}
 		async getVideoId(url) {
 			return url.pathname.slice(1);
-		}
-	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/vimeo.js
-	var VimeoHelper = class extends BaseHelper {
-		API_KEY = "";
-		DEFAULT_SITE_ORIGIN = "https://vimeo.com";
-		SITE_ORIGIN = this.service?.url?.slice(0, -1) ?? this.DEFAULT_SITE_ORIGIN;
-		isErrorData(data) {
-			return Object.hasOwn(data, "error");
-		}
-		isPrivatePlayer() {
-			return this.referer && !this.referer.includes("vimeo.com") && this.origin.endsWith("player.vimeo.com");
-		}
-		toPublicUrl(videoId) {
-			const [id, hash] = videoId.split(":", 2);
-			return hash ? `${this.DEFAULT_SITE_ORIGIN}/${id}/${hash}` : `${this.DEFAULT_SITE_ORIGIN}/${id}`;
-		}
-		returnPublicBaseData(videoId) {
-			const baseData = this.returnBaseData(videoId);
-			if (!baseData) return;
-			return {
-				...baseData,
-				url: this.toPublicUrl(videoId)
-			};
-		}
-		normalizePublicVideoUrl(url, videoId) {
-			try {
-				const parsed = new URL(url);
-				if (parsed.hostname === "player.vimeo.com") return this.toPublicUrl(videoId);
-				if (parsed.hostname.endsWith("vimeo.com")) {
-					const colonMatch = /^\/(\d+):([a-z0-9]+)$/i.exec(parsed.pathname);
-					if (colonMatch) return `${this.DEFAULT_SITE_ORIGIN}/${colonMatch[1]}/${colonMatch[2]}`;
-				}
-			} catch {}
-			return url;
-		}
-		async getViewerData() {
-			try {
-				const data = await (await this.fetch("https://vimeo.com/_next/viewer")).json();
-				const { apiUrl, jwt } = data;
-				this.API_ORIGIN = `https://${apiUrl}`;
-				this.API_KEY = `jwt ${jwt}`;
-				return data;
-			} catch (err) {
-				Logger.error(`Failed to get default viewer data.`, err.message);
-				return false;
-			}
-		}
-		async getVideoInfo(videoId) {
-			try {
-				const params = new URLSearchParams({ fields: "name,link,description,duration" }).toString();
-				const data = await (await this.fetch(`${this.API_ORIGIN}/videos/${videoId}?${params}`, { headers: { Authorization: this.API_KEY } })).json();
-				if (this.isErrorData(data)) throw new Error(data.developer_message ?? data.error);
-				return data;
-			} catch (err) {
-				Logger.error(`Failed to get video info by video ID: ${videoId}`, err.message);
-				return false;
-			}
-		}
-		async getPrivateVideoSource(files) {
-			try {
-				const { default_cdn, cdns } = files.dash;
-				const cdnUrl = cdns[default_cdn].url;
-				const res = await this.fetch(cdnUrl);
-				if (res.status !== 200) throw new VideoHelperError(await res.text());
-				const data = await res.json();
-				const baseUrl = new URL(data.base_url, cdnUrl);
-				const videoData = data.audio.find((v) => v.mime_type === "audio/mp4" && v.format === "dash");
-				if (!videoData) throw new VideoHelperError("Failed to find video data");
-				const segmentUrl = videoData.segments?.[0]?.url;
-				if (!segmentUrl) throw new VideoHelperError("Failed to find first segment url");
-				const [videoName, videoParams] = segmentUrl.split("?", 2);
-				const params = new URLSearchParams(videoParams);
-				params.delete("range");
-				return new URL(`${videoData.base_url}${videoName}?${params.toString()}`, baseUrl).href;
-			} catch (err) {
-				Logger.error(`Failed to get private video source`, err.message);
-				return false;
-			}
-		}
-		async getPrivateVideoInfo(videoId) {
-			try {
-				if (typeof playerConfig === "undefined") return;
-				const videoSource = await this.getPrivateVideoSource(playerConfig.request.files);
-				if (!videoSource) throw new VideoHelperError("Failed to get private video source");
-				const { video: { title, duration }, request: { text_tracks: subs } } = playerConfig;
-				return {
-					url: `${this.SITE_ORIGIN}/${videoId}`,
-					video_url: videoSource,
-					title,
-					duration,
-					subs
-				};
-			} catch (err) {
-				Logger.error(`Failed to get private video info by video ID: ${videoId}`, err.message);
-				return false;
-			}
-		}
-		async getSubsInfo(videoId) {
-			try {
-				const params = new URLSearchParams({
-					per_page: "100",
-					fields: "language,type,link"
-				}).toString();
-				const content = await (await this.fetch(`${this.API_ORIGIN}/videos/${videoId}/texttracks?${params}`, { headers: { Authorization: this.API_KEY } })).json();
-				if (this.isErrorData(content)) throw new Error(content.developer_message ?? content.error);
-				return content.data;
-			} catch (err) {
-				Logger.error(`Failed to get subtitles info by video ID: ${videoId}`, err.message);
-				return [];
-			}
-		}
-		async getVideoData(videoId) {
-			if (videoId.includes("?app_id=")) {
-				const [embedId] = videoId.split("?");
-				return this.returnBaseData(embedId);
-			}
-			if (this.isPrivatePlayer()) {
-				const videoInfo = await this.getPrivateVideoInfo(videoId);
-				if (!videoInfo) return;
-				const { url, subs, video_url, title, duration } = videoInfo;
-				const subtitles = subs.map((sub) => ({
-					language: normalizeLang$1(sub.lang),
-					source: "vimeo",
-					format: "vtt",
-					url: new URL(sub.url, this.SITE_ORIGIN).href,
-					isAutoGenerated: sub.lang.includes("autogenerated")
-				}));
-				const translationHelp = subtitles.length ? [{
-					target: "video_file_url",
-					targetUrl: video_url
-				}, {
-					target: "subtitles_file_url",
-					targetUrl: subtitles[0].url
-				}] : null;
-				return {
-					...translationHelp ? {
-						url,
-						translationHelp
-					} : { url: video_url },
-					subtitles,
-					title,
-					duration
-				};
-			}
-			if (!this.extraInfo) return this.returnPublicBaseData(videoId);
-			if (videoId.includes("/")) videoId = videoId.replace("/", ":");
-			if (!await this.getViewerData()) return this.returnPublicBaseData(videoId);
-			const videoInfo = await this.getVideoInfo(videoId);
-			if (!videoInfo) return this.returnPublicBaseData(videoId);
-			const subtitles = (await this.getSubsInfo(videoId)).map((caption) => ({
-				language: normalizeLang$1(caption.language),
-				source: "vimeo",
-				format: "vtt",
-				url: caption.link,
-				isAutoGenerated: caption.language.includes("autogen")
-			}));
-			const { link, duration, name: title, description } = videoInfo;
-			return {
-				url: this.normalizePublicVideoUrl(link, videoId),
-				title,
-				description,
-				subtitles,
-				duration
-			};
-		}
-		async getVideoId(url) {
-			const normalizedPathname = url.pathname.replace(/\/+$/, "");
-			const embedId = /video\/[^/]+$/.exec(normalizedPathname)?.[0];
-			const appId = url.searchParams.get("app_id");
-			if (embedId && appId) return `${embedId}?app_id=${appId}`;
-			if (this.isPrivatePlayer()) return embedId;
-			if (embedId) {
-				const hash = url.searchParams.get("h");
-				const videoId = embedId.replace("video/", "");
-				return hash ? `${videoId}/${hash}` : videoId;
-			}
-			const categoriesVideoId = /channels\/[^/]+\/([^/]+)/.exec(normalizedPathname)?.[1] ?? /groups\/[^/]+\/videos\/([^/]+)/.exec(normalizedPathname)?.[1] ?? /(showcase|album)\/[^/]+\/video\/([^/]+)/.exec(normalizedPathname)?.[2];
-			if (categoriesVideoId) return categoriesVideoId;
-			return /([^/]+\/)?[^/]+$/.exec(normalizedPathname)?.[0];
 		}
 	};
 	//#endregion
@@ -6028,7 +6211,7 @@ var vot = (function(exports) {
 					subtitles
 				};
 			} catch (err) {
-				Logger.error(`Failed to get VK video data, because: ${err.message}`);
+				Logger$1.error(`Failed to get VK video data, because: ${err.message}`);
 				return this.returnBaseData(videoId);
 			}
 		}
@@ -6146,7 +6329,7 @@ var vot = (function(exports) {
 			const signature = await signHMAC("SHA-1", hmacKey, utf8Encoder.encode(salt));
 			return btoa(String.fromCharCode(...new Uint8Array(signature)));
 		} catch (err) {
-			Logger.error(err);
+			Logger$1.error(err);
 			return false;
 		}
 	}
@@ -6198,7 +6381,7 @@ var vot = (function(exports) {
 				const urlParams = await this.getHashURLParams(pathname);
 				return await (await this.fetch(`${this.API_ORIGIN + pathname}&${urlParams}`, { headers: this.HEADERS })).json();
 			} catch (err) {
-				Logger.error(`Failed to get weverse post preview by postId: ${postId}`, err.message);
+				Logger$1.error(`Failed to get weverse post preview by postId: ${postId}`, err.message);
 				return false;
 			}
 		}
@@ -6214,7 +6397,7 @@ var vot = (function(exports) {
 					headers: this.HEADERS
 				})).json();
 			} catch (err) {
-				Logger.error(`Failed to get weverse InKey by videoId: ${videoId}`, err.message);
+				Logger$1.error(`Failed to get weverse InKey by videoId: ${videoId}`, err.message);
 				return false;
 			}
 		}
@@ -6237,7 +6420,7 @@ var vot = (function(exports) {
 				}).toString();
 				return await (await this.fetch(`https://global.apis.naver.com/rmcnmv/rmcnmv/vod/play/v2.0/${infraVideoId}?` + urlParams, { headers: this.HEADERS })).json();
 			} catch (err) {
-				Logger.error(`Failed to get weverse video info (infraVideoId: ${infraVideoId}, inkey: ${inkey}, serviceId: ${serviceId}`, err.message);
+				Logger$1.error(`Failed to get weverse video info (infraVideoId: ${infraVideoId}, inkey: ${inkey}, serviceId: ${serviceId}`, err.message);
 				return false;
 			}
 		}
@@ -6324,7 +6507,7 @@ var vot = (function(exports) {
 					}]
 				};
 			} catch (err) {
-				Logger.error(`Failed to get yandex disk video data by video ID: ${videoId}, because ${err.message}`);
+				Logger$1.error(`Failed to get yandex disk video data by video ID: ${videoId}, because ${err.message}`);
 				return;
 			}
 		}
@@ -6418,7 +6601,7 @@ var vot = (function(exports) {
 					}]
 				};
 			} catch (err) {
-				Logger.error(`Failed to get yandex disk video data by disk video ID: ${videoId}`, err.message);
+				Logger$1.error(`Failed to get yandex disk video data by disk video ID: ${videoId}`, err.message);
 				return;
 			}
 		}
@@ -6505,7 +6688,7 @@ var vot = (function(exports) {
 		* time in ms
 		*/
 		static videoSeek(video, time) {
-			Logger.log("videoSeek", time);
+			Logger$1.log("videoSeek", time);
 			video.currentTime = (YoutubeHelper.getPlayer()?.getProgressState()?.seekableEnd ?? video.currentTime) - time;
 		}
 		/**
@@ -6565,7 +6748,7 @@ var vot = (function(exports) {
 				});
 				return result;
 			}, []);
-			Logger.log("youtube subtitles:", subtitles);
+			Logger$1.log("youtube subtitles:", subtitles);
 			return subtitles;
 		}
 		static getLanguage() {
@@ -6700,7 +6883,8 @@ var vot = (function(exports) {
 		[ExtVideoService.deeplearningai]: DeeplearningAIHelper,
 		[ExtVideoService.netacad]: NetacadHelper,
 		[ExtVideoService.mediafile]: MediafileHelper,
-		[ExtVideoService.skilljar]: SkilljarHelper
+		[ExtVideoService.skilljar]: SkilljarHelper,
+		[ExtVideoService.dropout]: DropoutHelper
 	};
 	/**
 	* A convenient wrapper over the rest of the helpers
@@ -9941,6 +10125,7 @@ var vot = (function(exports) {
 		translationTakeApproximatelyMinute: "The translation will take approximately {0} minutes",
 		requestTranslationFailed: "Failed to request video translation",
 		audioNotReceived: "Audio link not received",
+		VOTYouTubeSignInSuggested: "Sign in to YouTube and try translation again",
 		VOTFailedDownloadAudio: "Failed to download audio",
 		audioFormatNotSupported: "The audio format is not supported",
 		VOTAutoTranslate: "Translate on open",
@@ -10327,7 +10512,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.16"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
+		return resolveRuntimeLocaleVersion(String("1.11.17"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
 	}
 	var LocalizationProvider = class {
 		/**
@@ -11741,7 +11926,7 @@ var vot = (function(exports) {
 			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, apiTokenHeader, headers), void 0, fetchOpts);
 			if (!res.success) throw new VOTJSError("Failed to request video translation", res);
 			const translationData = YandexVOTProtobuf.decodeTranslationResponse(res.data);
-			Logger.log("translateVideo", translationData);
+			Logger$1.log("translateVideo", translationData);
 			const { status, translationId } = translationData;
 			switch (status) {
 				case VideoTranslationStatus.FAILED: throw new VOTJSError("Yandex couldn't translate video", translationData);
@@ -11797,7 +11982,7 @@ var vot = (function(exports) {
 					};
 				case VideoTranslationStatus.SESSION_REQUIRED: throw new VOTJSError("Yandex auth required to translate video. See docs for more info", translationData);
 				default:
-					Logger.error("Unknown response", translationData);
+					Logger$1.error("Unknown response", translationData);
 					throw new VOTJSError("Unknown response from Yandex", translationData);
 			}
 		}
@@ -11880,7 +12065,7 @@ var vot = (function(exports) {
 						result: translateResponse.translatedInfo
 					};
 				default:
-					Logger.error("Unknown response", translateResponse);
+					Logger$1.error("Unknown response", translateResponse);
 					throw new VOTJSError("Unknown response from Yandex", translateResponse);
 			}
 		}
@@ -12961,6 +13146,19 @@ var vot = (function(exports) {
 	}
 	var detectServices = [...foswlyServices, "rust-server"];
 	//#endregion
+	//#region src/audioDownloader/strategies/audioStrategy.ts
+	/**
+	* SABR is intentionally a distinct internal strategy. It is not folded into
+	* WEB_ABR: this keeps selection and diagnostics honest while avoiding a hard
+	* dependency on a core enum value that may not exist yet.
+	*/
+	var SABR_STRATEGY = AudioDownloadType.WEB_SABR;
+	var WEB_ABR_STRATEGY = AudioDownloadType.WEB_ABR;
+	var WEB_MSE_PROXY_STRATEGY = AudioDownloadType.WEB_MSE_PROXY;
+	function isAudioBridgeStrategy(value) {
+		return value === SABR_STRATEGY || value === WEB_ABR_STRATEGY || value === WEB_MSE_PROXY_STRATEGY;
+	}
+	//#endregion
 	//#region src/audioDownloader/strategies/webAudioBridge.ts
 	var MESSAGE_TYPE$1 = "get-audio-chunks-by-mse-in-main-world";
 	var STREAM_TIMEOUT_MS = 18e5;
@@ -13031,8 +13229,8 @@ var vot = (function(exports) {
 		}, "*");
 		const onMessage = (event) => {
 			const message = event.data;
-			const iframe = document.getElementById(`vot-mse-proxy-${messageId}`);
-			if (!message || event.source !== globalThis && event.source !== iframe?.contentWindow || message.messageId !== messageId || message.messageType !== MESSAGE_TYPE$1 || message.messageDirection !== "response") return;
+			const expectedOrigin = globalThis.location.origin;
+			if (!message || event.origin !== expectedOrigin || message.messageId !== messageId || message.messageType !== MESSAGE_TYPE$1 || message.messageDirection !== "response") return;
 			resetMessageTimeout();
 			if (message.isAborted) {
 				finish(makeAbortError(message.error));
@@ -13133,6 +13331,3563 @@ var vot = (function(exports) {
 		}
 		return result;
 	}
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/misc/common.js
+	function createBaseFormatId() {
+		return {
+			itag: 0,
+			lastModified: "0",
+			xtags: ""
+		};
+	}
+	var FormatId = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.itag !== void 0 && message.itag !== 0) writer.uint32(8).int32(message.itag);
+			if (message.lastModified !== void 0 && message.lastModified !== "0") writer.uint32(16).uint64(message.lastModified);
+			if (message.xtags !== void 0 && message.xtags !== "") writer.uint32(26).string(message.xtags);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseFormatId();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.itag = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.lastModified = reader.uint64().toString();
+						continue;
+					case 3:
+						if (tag !== 26) break;
+						message.xtags = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseRange() {
+		return {
+			legacyStart: 0,
+			legacyEnd: 0,
+			start: 0,
+			end: 0
+		};
+	}
+	var Range = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.legacyStart !== void 0 && message.legacyStart !== 0) writer.uint32(8).int32(message.legacyStart);
+			if (message.legacyEnd !== void 0 && message.legacyEnd !== 0) writer.uint32(16).int32(message.legacyEnd);
+			if (message.start !== void 0 && message.start !== 0) writer.uint32(24).int32(message.start);
+			if (message.end !== void 0 && message.end !== 0) writer.uint32(32).int32(message.end);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseRange();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.legacyStart = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.legacyEnd = reader.int32();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.start = reader.int32();
+						continue;
+					case 4:
+						if (tag !== 32) break;
+						message.end = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseAuthorizedFormat() {
+		return {
+			trackType: 0,
+			isHdr: false
+		};
+	}
+	var AuthorizedFormat = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.trackType !== void 0 && message.trackType !== 0) writer.uint32(8).int32(message.trackType);
+			if (message.isHdr !== void 0 && message.isHdr !== false) writer.uint32(16).bool(message.isHdr);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseAuthorizedFormat();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.trackType = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.isHdr = reader.bool();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBasePlaybackAuthorization() {
+		return {
+			authorizedFormats: [],
+			sabrLicenseConstraint: /* @__PURE__ */ new Uint8Array(0)
+		};
+	}
+	var PlaybackAuthorization = {
+		encode(message, writer = new BinaryWriter()) {
+			for (const v of message.authorizedFormats) AuthorizedFormat.encode(v, writer.uint32(10).fork()).join();
+			if (message.sabrLicenseConstraint !== void 0 && message.sabrLicenseConstraint.length !== 0) writer.uint32(18).bytes(message.sabrLicenseConstraint);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBasePlaybackAuthorization();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.authorizedFormats.push(AuthorizedFormat.decode(reader, reader.uint32()));
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.sabrLicenseConstraint = reader.bytes();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/format_initialization_metadata.js
+	function createBaseFormatInitializationMetadata() {
+		return {
+			videoId: "",
+			formatId: void 0,
+			endTimeMs: "0",
+			endSegmentNumber: "0",
+			mimeType: "",
+			initRange: void 0,
+			indexRange: void 0,
+			field8: "0",
+			durationUnits: "0",
+			durationTimescale: "0"
+		};
+	}
+	var FormatInitializationMetadata = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.videoId !== void 0 && message.videoId !== "") writer.uint32(10).string(message.videoId);
+			if (message.formatId !== void 0) FormatId.encode(message.formatId, writer.uint32(18).fork()).join();
+			if (message.endTimeMs !== void 0 && message.endTimeMs !== "0") writer.uint32(24).int64(message.endTimeMs);
+			if (message.endSegmentNumber !== void 0 && message.endSegmentNumber !== "0") writer.uint32(32).int64(message.endSegmentNumber);
+			if (message.mimeType !== void 0 && message.mimeType !== "") writer.uint32(42).string(message.mimeType);
+			if (message.initRange !== void 0) Range.encode(message.initRange, writer.uint32(50).fork()).join();
+			if (message.indexRange !== void 0) Range.encode(message.indexRange, writer.uint32(58).fork()).join();
+			if (message.field8 !== void 0 && message.field8 !== "0") writer.uint32(64).int64(message.field8);
+			if (message.durationUnits !== void 0 && message.durationUnits !== "0") writer.uint32(72).int64(message.durationUnits);
+			if (message.durationTimescale !== void 0 && message.durationTimescale !== "0") writer.uint32(80).int64(message.durationTimescale);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseFormatInitializationMetadata();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.videoId = reader.string();
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.formatId = FormatId.decode(reader, reader.uint32());
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.endTimeMs = reader.int64().toString();
+						continue;
+					case 4:
+						if (tag !== 32) break;
+						message.endSegmentNumber = reader.int64().toString();
+						continue;
+					case 5:
+						if (tag !== 42) break;
+						message.mimeType = reader.string();
+						continue;
+					case 6:
+						if (tag !== 50) break;
+						message.initRange = Range.decode(reader, reader.uint32());
+						continue;
+					case 7:
+						if (tag !== 58) break;
+						message.indexRange = Range.decode(reader, reader.uint32());
+						continue;
+					case 8:
+						if (tag !== 64) break;
+						message.field8 = reader.int64().toString();
+						continue;
+					case 9:
+						if (tag !== 72) break;
+						message.durationUnits = reader.int64().toString();
+						continue;
+					case 10:
+						if (tag !== 80) break;
+						message.durationTimescale = reader.int64().toString();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/time_range.js
+	function createBaseTimeRange() {
+		return {
+			startTicks: "0",
+			durationTicks: "0",
+			timescale: 0
+		};
+	}
+	var TimeRange = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.startTicks !== void 0 && message.startTicks !== "0") writer.uint32(8).int64(message.startTicks);
+			if (message.durationTicks !== void 0 && message.durationTicks !== "0") writer.uint32(16).int64(message.durationTicks);
+			if (message.timescale !== void 0 && message.timescale !== 0) writer.uint32(24).int32(message.timescale);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseTimeRange();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.startTicks = reader.int64().toString();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.durationTicks = reader.int64().toString();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.timescale = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/media_header.js
+	function createBaseMediaHeader() {
+		return {
+			headerId: 0,
+			videoId: "",
+			itag: 0,
+			lmt: "0",
+			xtags: "",
+			startRange: "0",
+			compressionAlgorithm: 0,
+			isInitSeg: false,
+			sequenceNumber: 0,
+			bitrateBps: "0",
+			startMs: "0",
+			durationMs: "0",
+			formatId: void 0,
+			contentLength: "0",
+			timeRange: void 0,
+			sequenceLmt: "0"
+		};
+	}
+	var MediaHeader = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.headerId !== void 0 && message.headerId !== 0) writer.uint32(8).uint32(message.headerId);
+			if (message.videoId !== void 0 && message.videoId !== "") writer.uint32(18).string(message.videoId);
+			if (message.itag !== void 0 && message.itag !== 0) writer.uint32(24).int32(message.itag);
+			if (message.lmt !== void 0 && message.lmt !== "0") writer.uint32(32).uint64(message.lmt);
+			if (message.xtags !== void 0 && message.xtags !== "") writer.uint32(42).string(message.xtags);
+			if (message.startRange !== void 0 && message.startRange !== "0") writer.uint32(48).int64(message.startRange);
+			if (message.compressionAlgorithm !== void 0 && message.compressionAlgorithm !== 0) writer.uint32(56).int32(message.compressionAlgorithm);
+			if (message.isInitSeg !== void 0 && message.isInitSeg !== false) writer.uint32(64).bool(message.isInitSeg);
+			if (message.sequenceNumber !== void 0 && message.sequenceNumber !== 0) writer.uint32(72).int32(message.sequenceNumber);
+			if (message.bitrateBps !== void 0 && message.bitrateBps !== "0") writer.uint32(80).int64(message.bitrateBps);
+			if (message.startMs !== void 0 && message.startMs !== "0") writer.uint32(88).int64(message.startMs);
+			if (message.durationMs !== void 0 && message.durationMs !== "0") writer.uint32(96).int64(message.durationMs);
+			if (message.formatId !== void 0) FormatId.encode(message.formatId, writer.uint32(106).fork()).join();
+			if (message.contentLength !== void 0 && message.contentLength !== "0") writer.uint32(112).int64(message.contentLength);
+			if (message.timeRange !== void 0) TimeRange.encode(message.timeRange, writer.uint32(122).fork()).join();
+			if (message.sequenceLmt !== void 0 && message.sequenceLmt !== "0") writer.uint32(128).uint64(message.sequenceLmt);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseMediaHeader();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.headerId = reader.uint32();
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.videoId = reader.string();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.itag = reader.int32();
+						continue;
+					case 4:
+						if (tag !== 32) break;
+						message.lmt = reader.uint64().toString();
+						continue;
+					case 5:
+						if (tag !== 42) break;
+						message.xtags = reader.string();
+						continue;
+					case 6:
+						if (tag !== 48) break;
+						message.startRange = reader.int64().toString();
+						continue;
+					case 7:
+						if (tag !== 56) break;
+						message.compressionAlgorithm = reader.int32();
+						continue;
+					case 8:
+						if (tag !== 64) break;
+						message.isInitSeg = reader.bool();
+						continue;
+					case 9:
+						if (tag !== 72) break;
+						message.sequenceNumber = reader.int32();
+						continue;
+					case 10:
+						if (tag !== 80) break;
+						message.bitrateBps = reader.int64().toString();
+						continue;
+					case 11:
+						if (tag !== 88) break;
+						message.startMs = reader.int64().toString();
+						continue;
+					case 12:
+						if (tag !== 96) break;
+						message.durationMs = reader.int64().toString();
+						continue;
+					case 13:
+						if (tag !== 106) break;
+						message.formatId = FormatId.decode(reader, reader.uint32());
+						continue;
+					case 14:
+						if (tag !== 112) break;
+						message.contentLength = reader.int64().toString();
+						continue;
+					case 15:
+						if (tag !== 122) break;
+						message.timeRange = TimeRange.decode(reader, reader.uint32());
+						continue;
+					case 16:
+						if (tag !== 128) break;
+						message.sequenceLmt = reader.uint64().toString();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/buffered_range.js
+	function createBaseBufferedRange() {
+		return {
+			formatId: void 0,
+			startTimeMs: "0",
+			durationMs: "0",
+			startSegmentIndex: 0,
+			endSegmentIndex: 0,
+			timeRange: void 0,
+			field9: void 0,
+			field11: void 0,
+			field12: void 0
+		};
+	}
+	var BufferedRange = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.formatId !== void 0) FormatId.encode(message.formatId, writer.uint32(10).fork()).join();
+			if (message.startTimeMs !== "0") writer.uint32(16).int64(message.startTimeMs);
+			if (message.durationMs !== "0") writer.uint32(24).int64(message.durationMs);
+			if (message.startSegmentIndex !== 0) writer.uint32(32).int32(message.startSegmentIndex);
+			if (message.endSegmentIndex !== 0) writer.uint32(40).int32(message.endSegmentIndex);
+			if (message.timeRange !== void 0) TimeRange.encode(message.timeRange, writer.uint32(50).fork()).join();
+			if (message.field9 !== void 0) BufferedRange_UnknownMessage1.encode(message.field9, writer.uint32(74).fork()).join();
+			if (message.field11 !== void 0) BufferedRange_UnknownMessage2.encode(message.field11, writer.uint32(90).fork()).join();
+			if (message.field12 !== void 0) BufferedRange_UnknownMessage2.encode(message.field12, writer.uint32(98).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseBufferedRange();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.formatId = FormatId.decode(reader, reader.uint32());
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.startTimeMs = reader.int64().toString();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.durationMs = reader.int64().toString();
+						continue;
+					case 4:
+						if (tag !== 32) break;
+						message.startSegmentIndex = reader.int32();
+						continue;
+					case 5:
+						if (tag !== 40) break;
+						message.endSegmentIndex = reader.int32();
+						continue;
+					case 6:
+						if (tag !== 50) break;
+						message.timeRange = TimeRange.decode(reader, reader.uint32());
+						continue;
+					case 9:
+						if (tag !== 74) break;
+						message.field9 = BufferedRange_UnknownMessage1.decode(reader, reader.uint32());
+						continue;
+					case 11:
+						if (tag !== 90) break;
+						message.field11 = BufferedRange_UnknownMessage2.decode(reader, reader.uint32());
+						continue;
+					case 12:
+						if (tag !== 98) break;
+						message.field12 = BufferedRange_UnknownMessage2.decode(reader, reader.uint32());
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseBufferedRange_UnknownMessage1() {
+		return { field1: [] };
+	}
+	var BufferedRange_UnknownMessage1 = {
+		encode(message, writer = new BinaryWriter()) {
+			for (const v of message.field1) BufferedRange_UnknownMessage1_UnknownInnerMessage.encode(v, writer.uint32(10).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseBufferedRange_UnknownMessage1();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.field1.push(BufferedRange_UnknownMessage1_UnknownInnerMessage.decode(reader, reader.uint32()));
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseBufferedRange_UnknownMessage1_UnknownInnerMessage() {
+		return {
+			videoId: "",
+			lmt: "0"
+		};
+	}
+	var BufferedRange_UnknownMessage1_UnknownInnerMessage = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.videoId !== void 0 && message.videoId !== "") writer.uint32(10).string(message.videoId);
+			if (message.lmt !== void 0 && message.lmt !== "0") writer.uint32(16).uint64(message.lmt);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseBufferedRange_UnknownMessage1_UnknownInnerMessage();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.videoId = reader.string();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.lmt = reader.uint64().toString();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseBufferedRange_UnknownMessage2() {
+		return {
+			field1: 0,
+			field2: 0,
+			field3: 0
+		};
+	}
+	var BufferedRange_UnknownMessage2 = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.field1 !== void 0 && message.field1 !== 0) writer.uint32(8).int32(message.field1);
+			if (message.field2 !== void 0 && message.field2 !== 0) writer.uint32(16).int32(message.field2);
+			if (message.field3 !== void 0 && message.field3 !== 0) writer.uint32(24).int32(message.field3);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseBufferedRange_UnknownMessage2();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.field1 = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.field2 = reader.int32();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.field3 = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/media_capabilities.js
+	function createBaseMediaCapabilities() {
+		return {
+			videoFormatCapabilities: [],
+			audioFormatCapabilities: [],
+			hdrModeBitmask: 0
+		};
+	}
+	var MediaCapabilities = {
+		encode(message, writer = new BinaryWriter()) {
+			for (const v of message.videoFormatCapabilities) MediaCapabilities_VideoFormatCapability.encode(v, writer.uint32(10).fork()).join();
+			for (const v of message.audioFormatCapabilities) MediaCapabilities_AudioFormatCapability.encode(v, writer.uint32(18).fork()).join();
+			if (message.hdrModeBitmask !== void 0 && message.hdrModeBitmask !== 0) writer.uint32(40).int32(message.hdrModeBitmask);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseMediaCapabilities();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.videoFormatCapabilities.push(MediaCapabilities_VideoFormatCapability.decode(reader, reader.uint32()));
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.audioFormatCapabilities.push(MediaCapabilities_AudioFormatCapability.decode(reader, reader.uint32()));
+						continue;
+					case 5:
+						if (tag !== 40) break;
+						message.hdrModeBitmask = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseMediaCapabilities_VideoFormatCapability() {
+		return {
+			videoCodec: 0,
+			maxHeight: 0,
+			maxWidth: 0,
+			maxFramerate: 0,
+			maxBitrateBps: 0,
+			is10BitSupported: false
+		};
+	}
+	var MediaCapabilities_VideoFormatCapability = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.videoCodec !== void 0 && message.videoCodec !== 0) writer.uint32(8).int32(message.videoCodec);
+			if (message.maxHeight !== void 0 && message.maxHeight !== 0) writer.uint32(24).int32(message.maxHeight);
+			if (message.maxWidth !== void 0 && message.maxWidth !== 0) writer.uint32(32).int32(message.maxWidth);
+			if (message.maxFramerate !== void 0 && message.maxFramerate !== 0) writer.uint32(88).int32(message.maxFramerate);
+			if (message.maxBitrateBps !== void 0 && message.maxBitrateBps !== 0) writer.uint32(96).int32(message.maxBitrateBps);
+			if (message.is10BitSupported !== void 0 && message.is10BitSupported !== false) writer.uint32(120).bool(message.is10BitSupported);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseMediaCapabilities_VideoFormatCapability();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.videoCodec = reader.int32();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.maxHeight = reader.int32();
+						continue;
+					case 4:
+						if (tag !== 32) break;
+						message.maxWidth = reader.int32();
+						continue;
+					case 11:
+						if (tag !== 88) break;
+						message.maxFramerate = reader.int32();
+						continue;
+					case 12:
+						if (tag !== 96) break;
+						message.maxBitrateBps = reader.int32();
+						continue;
+					case 15:
+						if (tag !== 120) break;
+						message.is10BitSupported = reader.bool();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseMediaCapabilities_AudioFormatCapability() {
+		return {
+			audioCodec: 0,
+			numChannels: 0,
+			maxBitrateBps: 0,
+			spatialCapabilityBitmask: 0
+		};
+	}
+	var MediaCapabilities_AudioFormatCapability = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.audioCodec !== void 0 && message.audioCodec !== 0) writer.uint32(8).int32(message.audioCodec);
+			if (message.numChannels !== void 0 && message.numChannels !== 0) writer.uint32(16).int32(message.numChannels);
+			if (message.maxBitrateBps !== void 0 && message.maxBitrateBps !== 0) writer.uint32(24).int32(message.maxBitrateBps);
+			if (message.spatialCapabilityBitmask !== void 0 && message.spatialCapabilityBitmask !== 0) writer.uint32(48).int32(message.spatialCapabilityBitmask);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseMediaCapabilities_AudioFormatCapability();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.audioCodec = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.numChannels = reader.int32();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.maxBitrateBps = reader.int32();
+						continue;
+					case 6:
+						if (tag !== 48) break;
+						message.spatialCapabilityBitmask = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/playback_cookie.js
+	function createBasePlaybackCookie() {
+		return {
+			resolution: 0,
+			field2: 0,
+			videoFmt: void 0,
+			audioFmt: void 0
+		};
+	}
+	var PlaybackCookie = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.resolution !== void 0 && message.resolution !== 0) writer.uint32(8).int32(message.resolution);
+			if (message.field2 !== void 0 && message.field2 !== 0) writer.uint32(16).int32(message.field2);
+			if (message.videoFmt !== void 0) FormatId.encode(message.videoFmt, writer.uint32(58).fork()).join();
+			if (message.audioFmt !== void 0) FormatId.encode(message.audioFmt, writer.uint32(66).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBasePlaybackCookie();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.resolution = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.field2 = reader.int32();
+						continue;
+					case 7:
+						if (tag !== 58) break;
+						message.videoFmt = FormatId.decode(reader, reader.uint32());
+						continue;
+					case 8:
+						if (tag !== 66) break;
+						message.audioFmt = FormatId.decode(reader, reader.uint32());
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/client_abr_state.js
+	function createBaseClientAbrState() {
+		return {
+			timeSinceLastManualFormatSelectionMs: "0",
+			lastManualDirection: 0,
+			lastManualSelectedResolution: 0,
+			detailedNetworkType: 0,
+			clientViewportWidth: 0,
+			clientViewportHeight: 0,
+			clientBitrateCapBytesPerSec: "0",
+			stickyResolution: 0,
+			clientViewportIsFlexible: false,
+			bandwidthEstimate: "0",
+			minAudioQuality: 0,
+			maxAudioQuality: 0,
+			videoQualitySetting: 0,
+			audioRoute: 0,
+			playerTimeMs: "0",
+			timeSinceLastSeek: "0",
+			dataSaverMode: false,
+			networkMeteredState: 0,
+			visibility: 0,
+			playbackRate: 0,
+			elapsedWallTimeMs: "0",
+			mediaCapabilities: void 0,
+			timeSinceLastActionMs: "0",
+			enabledTrackTypesBitfield: 0,
+			maxPacingRate: 0,
+			playerState: "0",
+			drcEnabled: false,
+			field48: 0,
+			field50: 0,
+			field51: 0,
+			sabrReportRequestCancellationInfo: 0,
+			disableStreamingXhr: false,
+			field57: "0",
+			preferVp9: false,
+			av1QualityThreshold: 0,
+			field60: 0,
+			isPrefetch: false,
+			sabrSupportQualityConstraints: false,
+			sabrLicenseConstraint: /* @__PURE__ */ new Uint8Array(0),
+			allowProximaLiveLatency: 0,
+			sabrForceProxima: 0,
+			field67: 0,
+			sabrForceMaxNetworkInterruptionDurationMs: "0",
+			audioTrackId: "",
+			enableVoiceBoost: false,
+			playbackAuthorization: void 0
+		};
+	}
+	var ClientAbrState = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.timeSinceLastManualFormatSelectionMs !== void 0 && message.timeSinceLastManualFormatSelectionMs !== "0") writer.uint32(104).int64(message.timeSinceLastManualFormatSelectionMs);
+			if (message.lastManualDirection !== void 0 && message.lastManualDirection !== 0) writer.uint32(112).sint32(message.lastManualDirection);
+			if (message.lastManualSelectedResolution !== void 0 && message.lastManualSelectedResolution !== 0) writer.uint32(128).int32(message.lastManualSelectedResolution);
+			if (message.detailedNetworkType !== void 0 && message.detailedNetworkType !== 0) writer.uint32(136).int32(message.detailedNetworkType);
+			if (message.clientViewportWidth !== void 0 && message.clientViewportWidth !== 0) writer.uint32(144).int32(message.clientViewportWidth);
+			if (message.clientViewportHeight !== void 0 && message.clientViewportHeight !== 0) writer.uint32(152).int32(message.clientViewportHeight);
+			if (message.clientBitrateCapBytesPerSec !== void 0 && message.clientBitrateCapBytesPerSec !== "0") writer.uint32(160).int64(message.clientBitrateCapBytesPerSec);
+			if (message.stickyResolution !== void 0 && message.stickyResolution !== 0) writer.uint32(168).int32(message.stickyResolution);
+			if (message.clientViewportIsFlexible !== void 0 && message.clientViewportIsFlexible !== false) writer.uint32(176).bool(message.clientViewportIsFlexible);
+			if (message.bandwidthEstimate !== void 0 && message.bandwidthEstimate !== "0") writer.uint32(184).int64(message.bandwidthEstimate);
+			if (message.minAudioQuality !== void 0 && message.minAudioQuality !== 0) writer.uint32(192).int32(message.minAudioQuality);
+			if (message.maxAudioQuality !== void 0 && message.maxAudioQuality !== 0) writer.uint32(200).int32(message.maxAudioQuality);
+			if (message.videoQualitySetting !== void 0 && message.videoQualitySetting !== 0) writer.uint32(208).int32(message.videoQualitySetting);
+			if (message.audioRoute !== void 0 && message.audioRoute !== 0) writer.uint32(216).int32(message.audioRoute);
+			if (message.playerTimeMs !== void 0 && message.playerTimeMs !== "0") writer.uint32(224).int64(message.playerTimeMs);
+			if (message.timeSinceLastSeek !== void 0 && message.timeSinceLastSeek !== "0") writer.uint32(232).int64(message.timeSinceLastSeek);
+			if (message.dataSaverMode !== void 0 && message.dataSaverMode !== false) writer.uint32(240).bool(message.dataSaverMode);
+			if (message.networkMeteredState !== void 0 && message.networkMeteredState !== 0) writer.uint32(256).int32(message.networkMeteredState);
+			if (message.visibility !== void 0 && message.visibility !== 0) writer.uint32(272).int32(message.visibility);
+			if (message.playbackRate !== void 0 && message.playbackRate !== 0) writer.uint32(285).float(message.playbackRate);
+			if (message.elapsedWallTimeMs !== void 0 && message.elapsedWallTimeMs !== "0") writer.uint32(288).int64(message.elapsedWallTimeMs);
+			if (message.mediaCapabilities !== void 0) MediaCapabilities.encode(message.mediaCapabilities, writer.uint32(306).fork()).join();
+			if (message.timeSinceLastActionMs !== void 0 && message.timeSinceLastActionMs !== "0") writer.uint32(312).int64(message.timeSinceLastActionMs);
+			if (message.enabledTrackTypesBitfield !== void 0 && message.enabledTrackTypesBitfield !== 0) writer.uint32(320).int32(message.enabledTrackTypesBitfield);
+			if (message.maxPacingRate !== void 0 && message.maxPacingRate !== 0) writer.uint32(344).int32(message.maxPacingRate);
+			if (message.playerState !== void 0 && message.playerState !== "0") writer.uint32(352).int64(message.playerState);
+			if (message.drcEnabled !== void 0 && message.drcEnabled !== false) writer.uint32(368).bool(message.drcEnabled);
+			if (message.field48 !== void 0 && message.field48 !== 0) writer.uint32(384).int32(message.field48);
+			if (message.field50 !== void 0 && message.field50 !== 0) writer.uint32(400).int32(message.field50);
+			if (message.field51 !== void 0 && message.field51 !== 0) writer.uint32(408).int32(message.field51);
+			if (message.sabrReportRequestCancellationInfo !== void 0 && message.sabrReportRequestCancellationInfo !== 0) writer.uint32(432).int32(message.sabrReportRequestCancellationInfo);
+			if (message.disableStreamingXhr !== void 0 && message.disableStreamingXhr !== false) writer.uint32(448).bool(message.disableStreamingXhr);
+			if (message.field57 !== void 0 && message.field57 !== "0") writer.uint32(456).int64(message.field57);
+			if (message.preferVp9 !== void 0 && message.preferVp9 !== false) writer.uint32(464).bool(message.preferVp9);
+			if (message.av1QualityThreshold !== void 0 && message.av1QualityThreshold !== 0) writer.uint32(472).int32(message.av1QualityThreshold);
+			if (message.field60 !== void 0 && message.field60 !== 0) writer.uint32(480).int32(message.field60);
+			if (message.isPrefetch !== void 0 && message.isPrefetch !== false) writer.uint32(488).bool(message.isPrefetch);
+			if (message.sabrSupportQualityConstraints !== void 0 && message.sabrSupportQualityConstraints !== false) writer.uint32(496).bool(message.sabrSupportQualityConstraints);
+			if (message.sabrLicenseConstraint !== void 0 && message.sabrLicenseConstraint.length !== 0) writer.uint32(506).bytes(message.sabrLicenseConstraint);
+			if (message.allowProximaLiveLatency !== void 0 && message.allowProximaLiveLatency !== 0) writer.uint32(512).int32(message.allowProximaLiveLatency);
+			if (message.sabrForceProxima !== void 0 && message.sabrForceProxima !== 0) writer.uint32(528).int32(message.sabrForceProxima);
+			if (message.field67 !== void 0 && message.field67 !== 0) writer.uint32(536).int32(message.field67);
+			if (message.sabrForceMaxNetworkInterruptionDurationMs !== void 0 && message.sabrForceMaxNetworkInterruptionDurationMs !== "0") writer.uint32(544).int64(message.sabrForceMaxNetworkInterruptionDurationMs);
+			if (message.audioTrackId !== void 0 && message.audioTrackId !== "") writer.uint32(554).string(message.audioTrackId);
+			if (message.enableVoiceBoost !== void 0 && message.enableVoiceBoost !== false) writer.uint32(608).bool(message.enableVoiceBoost);
+			if (message.playbackAuthorization !== void 0) PlaybackAuthorization.encode(message.playbackAuthorization, writer.uint32(634).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseClientAbrState();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 13:
+						if (tag !== 104) break;
+						message.timeSinceLastManualFormatSelectionMs = reader.int64().toString();
+						continue;
+					case 14:
+						if (tag !== 112) break;
+						message.lastManualDirection = reader.sint32();
+						continue;
+					case 16:
+						if (tag !== 128) break;
+						message.lastManualSelectedResolution = reader.int32();
+						continue;
+					case 17:
+						if (tag !== 136) break;
+						message.detailedNetworkType = reader.int32();
+						continue;
+					case 18:
+						if (tag !== 144) break;
+						message.clientViewportWidth = reader.int32();
+						continue;
+					case 19:
+						if (tag !== 152) break;
+						message.clientViewportHeight = reader.int32();
+						continue;
+					case 20:
+						if (tag !== 160) break;
+						message.clientBitrateCapBytesPerSec = reader.int64().toString();
+						continue;
+					case 21:
+						if (tag !== 168) break;
+						message.stickyResolution = reader.int32();
+						continue;
+					case 22:
+						if (tag !== 176) break;
+						message.clientViewportIsFlexible = reader.bool();
+						continue;
+					case 23:
+						if (tag !== 184) break;
+						message.bandwidthEstimate = reader.int64().toString();
+						continue;
+					case 24:
+						if (tag !== 192) break;
+						message.minAudioQuality = reader.int32();
+						continue;
+					case 25:
+						if (tag !== 200) break;
+						message.maxAudioQuality = reader.int32();
+						continue;
+					case 26:
+						if (tag !== 208) break;
+						message.videoQualitySetting = reader.int32();
+						continue;
+					case 27:
+						if (tag !== 216) break;
+						message.audioRoute = reader.int32();
+						continue;
+					case 28:
+						if (tag !== 224) break;
+						message.playerTimeMs = reader.int64().toString();
+						continue;
+					case 29:
+						if (tag !== 232) break;
+						message.timeSinceLastSeek = reader.int64().toString();
+						continue;
+					case 30:
+						if (tag !== 240) break;
+						message.dataSaverMode = reader.bool();
+						continue;
+					case 32:
+						if (tag !== 256) break;
+						message.networkMeteredState = reader.int32();
+						continue;
+					case 34:
+						if (tag !== 272) break;
+						message.visibility = reader.int32();
+						continue;
+					case 35:
+						if (tag !== 285) break;
+						message.playbackRate = reader.float();
+						continue;
+					case 36:
+						if (tag !== 288) break;
+						message.elapsedWallTimeMs = reader.int64().toString();
+						continue;
+					case 38:
+						if (tag !== 306) break;
+						message.mediaCapabilities = MediaCapabilities.decode(reader, reader.uint32());
+						continue;
+					case 39:
+						if (tag !== 312) break;
+						message.timeSinceLastActionMs = reader.int64().toString();
+						continue;
+					case 40:
+						if (tag !== 320) break;
+						message.enabledTrackTypesBitfield = reader.int32();
+						continue;
+					case 43:
+						if (tag !== 344) break;
+						message.maxPacingRate = reader.int32();
+						continue;
+					case 44:
+						if (tag !== 352) break;
+						message.playerState = reader.int64().toString();
+						continue;
+					case 46:
+						if (tag !== 368) break;
+						message.drcEnabled = reader.bool();
+						continue;
+					case 48:
+						if (tag !== 384) break;
+						message.field48 = reader.int32();
+						continue;
+					case 50:
+						if (tag !== 400) break;
+						message.field50 = reader.int32();
+						continue;
+					case 51:
+						if (tag !== 408) break;
+						message.field51 = reader.int32();
+						continue;
+					case 54:
+						if (tag !== 432) break;
+						message.sabrReportRequestCancellationInfo = reader.int32();
+						continue;
+					case 56:
+						if (tag !== 448) break;
+						message.disableStreamingXhr = reader.bool();
+						continue;
+					case 57:
+						if (tag !== 456) break;
+						message.field57 = reader.int64().toString();
+						continue;
+					case 58:
+						if (tag !== 464) break;
+						message.preferVp9 = reader.bool();
+						continue;
+					case 59:
+						if (tag !== 472) break;
+						message.av1QualityThreshold = reader.int32();
+						continue;
+					case 60:
+						if (tag !== 480) break;
+						message.field60 = reader.int32();
+						continue;
+					case 61:
+						if (tag !== 488) break;
+						message.isPrefetch = reader.bool();
+						continue;
+					case 62:
+						if (tag !== 496) break;
+						message.sabrSupportQualityConstraints = reader.bool();
+						continue;
+					case 63:
+						if (tag !== 506) break;
+						message.sabrLicenseConstraint = reader.bytes();
+						continue;
+					case 64:
+						if (tag !== 512) break;
+						message.allowProximaLiveLatency = reader.int32();
+						continue;
+					case 66:
+						if (tag !== 528) break;
+						message.sabrForceProxima = reader.int32();
+						continue;
+					case 67:
+						if (tag !== 536) break;
+						message.field67 = reader.int32();
+						continue;
+					case 68:
+						if (tag !== 544) break;
+						message.sabrForceMaxNetworkInterruptionDurationMs = reader.int64().toString();
+						continue;
+					case 69:
+						if (tag !== 554) break;
+						message.audioTrackId = reader.string();
+						continue;
+					case 76:
+						if (tag !== 608) break;
+						message.enableVoiceBoost = reader.bool();
+						continue;
+					case 79:
+						if (tag !== 634) break;
+						message.playbackAuthorization = PlaybackAuthorization.decode(reader, reader.uint32());
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/streamer_context.js
+	function createBaseStreamerContext() {
+		return {
+			clientInfo: void 0,
+			poToken: /* @__PURE__ */ new Uint8Array(0),
+			playbackCookie: /* @__PURE__ */ new Uint8Array(0),
+			field4: /* @__PURE__ */ new Uint8Array(0),
+			sabrContexts: [],
+			unsentSabrContexts: [],
+			field7: "",
+			field8: void 0
+		};
+	}
+	var StreamerContext = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.clientInfo !== void 0) StreamerContext_ClientInfo.encode(message.clientInfo, writer.uint32(10).fork()).join();
+			if (message.poToken !== void 0 && message.poToken.length !== 0) writer.uint32(18).bytes(message.poToken);
+			if (message.playbackCookie !== void 0 && message.playbackCookie.length !== 0) writer.uint32(26).bytes(message.playbackCookie);
+			if (message.field4 !== void 0 && message.field4.length !== 0) writer.uint32(34).bytes(message.field4);
+			for (const v of message.sabrContexts) StreamerContext_SabrContext.encode(v, writer.uint32(42).fork()).join();
+			writer.uint32(50).fork();
+			for (const v of message.unsentSabrContexts) writer.int32(v);
+			writer.join();
+			if (message.field7 !== void 0 && message.field7 !== "") writer.uint32(58).string(message.field7);
+			if (message.field8 !== void 0) StreamerContext_UnknownMessage1.encode(message.field8, writer.uint32(66).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseStreamerContext();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.clientInfo = StreamerContext_ClientInfo.decode(reader, reader.uint32());
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.poToken = reader.bytes();
+						continue;
+					case 3:
+						if (tag !== 26) break;
+						message.playbackCookie = reader.bytes();
+						continue;
+					case 4:
+						if (tag !== 34) break;
+						message.field4 = reader.bytes();
+						continue;
+					case 5:
+						if (tag !== 42) break;
+						message.sabrContexts.push(StreamerContext_SabrContext.decode(reader, reader.uint32()));
+						continue;
+					case 6:
+						if (tag === 48) {
+							message.unsentSabrContexts.push(reader.int32());
+							continue;
+						}
+						if (tag === 50) {
+							const end2 = reader.uint32() + reader.pos;
+							while (reader.pos < end2) message.unsentSabrContexts.push(reader.int32());
+							continue;
+						}
+						break;
+					case 7:
+						if (tag !== 58) break;
+						message.field7 = reader.string();
+						continue;
+					case 8:
+						if (tag !== 66) break;
+						message.field8 = StreamerContext_UnknownMessage1.decode(reader, reader.uint32());
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseStreamerContext_ClientInfo() {
+		return {
+			deviceMake: "",
+			deviceModel: "",
+			clientName: 0,
+			clientVersion: "",
+			osName: "",
+			osVersion: "",
+			acceptLanguage: "",
+			acceptRegion: "",
+			screenWidthPoints: 0,
+			screenHeightPoints: 0,
+			screenWidthInches: 0,
+			screenHeightInches: 0,
+			screenPixelDensity: 0,
+			clientFormFactor: 0,
+			gmscoreVersionCode: 0,
+			windowWidthPoints: 0,
+			windowHeightPoints: 0,
+			androidSdkVersion: 0,
+			screenDensityFloat: 0,
+			utcOffsetMinutes: "0",
+			timeZone: "",
+			chipset: "",
+			glDeviceInfo: void 0
+		};
+	}
+	var StreamerContext_ClientInfo = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.deviceMake !== void 0 && message.deviceMake !== "") writer.uint32(98).string(message.deviceMake);
+			if (message.deviceModel !== void 0 && message.deviceModel !== "") writer.uint32(106).string(message.deviceModel);
+			if (message.clientName !== void 0 && message.clientName !== 0) writer.uint32(128).int32(message.clientName);
+			if (message.clientVersion !== void 0 && message.clientVersion !== "") writer.uint32(138).string(message.clientVersion);
+			if (message.osName !== void 0 && message.osName !== "") writer.uint32(146).string(message.osName);
+			if (message.osVersion !== void 0 && message.osVersion !== "") writer.uint32(154).string(message.osVersion);
+			if (message.acceptLanguage !== void 0 && message.acceptLanguage !== "") writer.uint32(170).string(message.acceptLanguage);
+			if (message.acceptRegion !== void 0 && message.acceptRegion !== "") writer.uint32(178).string(message.acceptRegion);
+			if (message.screenWidthPoints !== void 0 && message.screenWidthPoints !== 0) writer.uint32(296).int32(message.screenWidthPoints);
+			if (message.screenHeightPoints !== void 0 && message.screenHeightPoints !== 0) writer.uint32(304).int32(message.screenHeightPoints);
+			if (message.screenWidthInches !== void 0 && message.screenWidthInches !== 0) writer.uint32(317).float(message.screenWidthInches);
+			if (message.screenHeightInches !== void 0 && message.screenHeightInches !== 0) writer.uint32(325).float(message.screenHeightInches);
+			if (message.screenPixelDensity !== void 0 && message.screenPixelDensity !== 0) writer.uint32(328).int32(message.screenPixelDensity);
+			if (message.clientFormFactor !== void 0 && message.clientFormFactor !== 0) writer.uint32(368).int32(message.clientFormFactor);
+			if (message.gmscoreVersionCode !== void 0 && message.gmscoreVersionCode !== 0) writer.uint32(400).int32(message.gmscoreVersionCode);
+			if (message.windowWidthPoints !== void 0 && message.windowWidthPoints !== 0) writer.uint32(440).int32(message.windowWidthPoints);
+			if (message.windowHeightPoints !== void 0 && message.windowHeightPoints !== 0) writer.uint32(448).int32(message.windowHeightPoints);
+			if (message.androidSdkVersion !== void 0 && message.androidSdkVersion !== 0) writer.uint32(512).int32(message.androidSdkVersion);
+			if (message.screenDensityFloat !== void 0 && message.screenDensityFloat !== 0) writer.uint32(525).float(message.screenDensityFloat);
+			if (message.utcOffsetMinutes !== void 0 && message.utcOffsetMinutes !== "0") writer.uint32(536).int64(message.utcOffsetMinutes);
+			if (message.timeZone !== void 0 && message.timeZone !== "") writer.uint32(642).string(message.timeZone);
+			if (message.chipset !== void 0 && message.chipset !== "") writer.uint32(738).string(message.chipset);
+			if (message.glDeviceInfo !== void 0) StreamerContext_GLDeviceInfo.encode(message.glDeviceInfo, writer.uint32(818).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseStreamerContext_ClientInfo();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 12:
+						if (tag !== 98) break;
+						message.deviceMake = reader.string();
+						continue;
+					case 13:
+						if (tag !== 106) break;
+						message.deviceModel = reader.string();
+						continue;
+					case 16:
+						if (tag !== 128) break;
+						message.clientName = reader.int32();
+						continue;
+					case 17:
+						if (tag !== 138) break;
+						message.clientVersion = reader.string();
+						continue;
+					case 18:
+						if (tag !== 146) break;
+						message.osName = reader.string();
+						continue;
+					case 19:
+						if (tag !== 154) break;
+						message.osVersion = reader.string();
+						continue;
+					case 21:
+						if (tag !== 170) break;
+						message.acceptLanguage = reader.string();
+						continue;
+					case 22:
+						if (tag !== 178) break;
+						message.acceptRegion = reader.string();
+						continue;
+					case 37:
+						if (tag !== 296) break;
+						message.screenWidthPoints = reader.int32();
+						continue;
+					case 38:
+						if (tag !== 304) break;
+						message.screenHeightPoints = reader.int32();
+						continue;
+					case 39:
+						if (tag !== 317) break;
+						message.screenWidthInches = reader.float();
+						continue;
+					case 40:
+						if (tag !== 325) break;
+						message.screenHeightInches = reader.float();
+						continue;
+					case 41:
+						if (tag !== 328) break;
+						message.screenPixelDensity = reader.int32();
+						continue;
+					case 46:
+						if (tag !== 368) break;
+						message.clientFormFactor = reader.int32();
+						continue;
+					case 50:
+						if (tag !== 400) break;
+						message.gmscoreVersionCode = reader.int32();
+						continue;
+					case 55:
+						if (tag !== 440) break;
+						message.windowWidthPoints = reader.int32();
+						continue;
+					case 56:
+						if (tag !== 448) break;
+						message.windowHeightPoints = reader.int32();
+						continue;
+					case 64:
+						if (tag !== 512) break;
+						message.androidSdkVersion = reader.int32();
+						continue;
+					case 65:
+						if (tag !== 525) break;
+						message.screenDensityFloat = reader.float();
+						continue;
+					case 67:
+						if (tag !== 536) break;
+						message.utcOffsetMinutes = reader.int64().toString();
+						continue;
+					case 80:
+						if (tag !== 642) break;
+						message.timeZone = reader.string();
+						continue;
+					case 92:
+						if (tag !== 738) break;
+						message.chipset = reader.string();
+						continue;
+					case 102:
+						if (tag !== 818) break;
+						message.glDeviceInfo = StreamerContext_GLDeviceInfo.decode(reader, reader.uint32());
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseStreamerContext_GLDeviceInfo() {
+		return {
+			glRenderer: "",
+			glEsVersionMajor: 0,
+			glEsVersionMinor: 0
+		};
+	}
+	var StreamerContext_GLDeviceInfo = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.glRenderer !== void 0 && message.glRenderer !== "") writer.uint32(10).string(message.glRenderer);
+			if (message.glEsVersionMajor !== void 0 && message.glEsVersionMajor !== 0) writer.uint32(16).int32(message.glEsVersionMajor);
+			if (message.glEsVersionMinor !== void 0 && message.glEsVersionMinor !== 0) writer.uint32(24).int32(message.glEsVersionMinor);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseStreamerContext_GLDeviceInfo();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.glRenderer = reader.string();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.glEsVersionMajor = reader.int32();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.glEsVersionMinor = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseStreamerContext_SabrContext() {
+		return {
+			type: 0,
+			value: /* @__PURE__ */ new Uint8Array(0)
+		};
+	}
+	var StreamerContext_SabrContext = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.type !== void 0 && message.type !== 0) writer.uint32(8).int32(message.type);
+			if (message.value !== void 0 && message.value.length !== 0) writer.uint32(18).bytes(message.value);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseStreamerContext_SabrContext();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.type = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.value = reader.bytes();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseStreamerContext_UnknownMessage1() {
+		return {
+			field1: /* @__PURE__ */ new Uint8Array(0),
+			field2: void 0
+		};
+	}
+	var StreamerContext_UnknownMessage1 = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.field1 !== void 0 && message.field1.length !== 0) writer.uint32(10).bytes(message.field1);
+			if (message.field2 !== void 0) StreamerContext_UnknownMessage1_UnknownInnerMessage1.encode(message.field2, writer.uint32(18).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseStreamerContext_UnknownMessage1();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.field1 = reader.bytes();
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.field2 = StreamerContext_UnknownMessage1_UnknownInnerMessage1.decode(reader, reader.uint32());
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseStreamerContext_UnknownMessage1_UnknownInnerMessage1() {
+		return {
+			code: 0,
+			message: ""
+		};
+	}
+	var StreamerContext_UnknownMessage1_UnknownInnerMessage1 = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.code !== void 0 && message.code !== 0) writer.uint32(8).int32(message.code);
+			if (message.message !== void 0 && message.message !== "") writer.uint32(18).string(message.message);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseStreamerContext_UnknownMessage1_UnknownInnerMessage1();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.code = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.message = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/video_playback_abr_request.js
+	function createBaseVideoPlaybackAbrRequest() {
+		return {
+			clientAbrState: void 0,
+			selectedFormatIds: [],
+			bufferedRanges: [],
+			playerTimeMs: "0",
+			videoPlaybackUstreamerConfig: /* @__PURE__ */ new Uint8Array(0),
+			field6: void 0,
+			preferredAudioFormatIds: [],
+			preferredVideoFormatIds: [],
+			preferredSubtitleFormatIds: [],
+			streamerContext: void 0,
+			field21: void 0,
+			field22: 0,
+			field23: 0,
+			field1000: []
+		};
+	}
+	var VideoPlaybackAbrRequest = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.clientAbrState !== void 0) ClientAbrState.encode(message.clientAbrState, writer.uint32(10).fork()).join();
+			for (const v of message.selectedFormatIds) FormatId.encode(v, writer.uint32(18).fork()).join();
+			for (const v of message.bufferedRanges) BufferedRange.encode(v, writer.uint32(26).fork()).join();
+			if (message.playerTimeMs !== void 0 && message.playerTimeMs !== "0") writer.uint32(32).int64(message.playerTimeMs);
+			if (message.videoPlaybackUstreamerConfig !== void 0 && message.videoPlaybackUstreamerConfig.length !== 0) writer.uint32(42).bytes(message.videoPlaybackUstreamerConfig);
+			if (message.field6 !== void 0) UnknownMessage1.encode(message.field6, writer.uint32(50).fork()).join();
+			for (const v of message.preferredAudioFormatIds) FormatId.encode(v, writer.uint32(130).fork()).join();
+			for (const v of message.preferredVideoFormatIds) FormatId.encode(v, writer.uint32(138).fork()).join();
+			for (const v of message.preferredSubtitleFormatIds) FormatId.encode(v, writer.uint32(146).fork()).join();
+			if (message.streamerContext !== void 0) StreamerContext.encode(message.streamerContext, writer.uint32(154).fork()).join();
+			if (message.field21 !== void 0) UnknownMessage2.encode(message.field21, writer.uint32(170).fork()).join();
+			if (message.field22 !== void 0 && message.field22 !== 0) writer.uint32(176).int32(message.field22);
+			if (message.field23 !== void 0 && message.field23 !== 0) writer.uint32(184).int32(message.field23);
+			for (const v of message.field1000) UnknownMessage3.encode(v, writer.uint32(8002).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseVideoPlaybackAbrRequest();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.clientAbrState = ClientAbrState.decode(reader, reader.uint32());
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.selectedFormatIds.push(FormatId.decode(reader, reader.uint32()));
+						continue;
+					case 3:
+						if (tag !== 26) break;
+						message.bufferedRanges.push(BufferedRange.decode(reader, reader.uint32()));
+						continue;
+					case 4:
+						if (tag !== 32) break;
+						message.playerTimeMs = reader.int64().toString();
+						continue;
+					case 5:
+						if (tag !== 42) break;
+						message.videoPlaybackUstreamerConfig = reader.bytes();
+						continue;
+					case 6:
+						if (tag !== 50) break;
+						message.field6 = UnknownMessage1.decode(reader, reader.uint32());
+						continue;
+					case 16:
+						if (tag !== 130) break;
+						message.preferredAudioFormatIds.push(FormatId.decode(reader, reader.uint32()));
+						continue;
+					case 17:
+						if (tag !== 138) break;
+						message.preferredVideoFormatIds.push(FormatId.decode(reader, reader.uint32()));
+						continue;
+					case 18:
+						if (tag !== 146) break;
+						message.preferredSubtitleFormatIds.push(FormatId.decode(reader, reader.uint32()));
+						continue;
+					case 19:
+						if (tag !== 154) break;
+						message.streamerContext = StreamerContext.decode(reader, reader.uint32());
+						continue;
+					case 21:
+						if (tag !== 170) break;
+						message.field21 = UnknownMessage2.decode(reader, reader.uint32());
+						continue;
+					case 22:
+						if (tag !== 176) break;
+						message.field22 = reader.int32();
+						continue;
+					case 23:
+						if (tag !== 184) break;
+						message.field23 = reader.int32();
+						continue;
+					case 1e3:
+						if (tag !== 8002) break;
+						message.field1000.push(UnknownMessage3.decode(reader, reader.uint32()));
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseUnknownMessage1() {
+		return {
+			formatId: void 0,
+			lmt: "0",
+			sequenceNumber: 0,
+			timeRange: void 0,
+			field5: 0
+		};
+	}
+	var UnknownMessage1 = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.formatId !== void 0) FormatId.encode(message.formatId, writer.uint32(10).fork()).join();
+			if (message.lmt !== void 0 && message.lmt !== "0") writer.uint32(16).sint64(message.lmt);
+			if (message.sequenceNumber !== void 0 && message.sequenceNumber !== 0) writer.uint32(24).int32(message.sequenceNumber);
+			if (message.timeRange !== void 0) TimeRange.encode(message.timeRange, writer.uint32(34).fork()).join();
+			if (message.field5 !== void 0 && message.field5 !== 0) writer.uint32(40).int32(message.field5);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseUnknownMessage1();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.formatId = FormatId.decode(reader, reader.uint32());
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.lmt = reader.sint64().toString();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.sequenceNumber = reader.int32();
+						continue;
+					case 4:
+						if (tag !== 34) break;
+						message.timeRange = TimeRange.decode(reader, reader.uint32());
+						continue;
+					case 5:
+						if (tag !== 40) break;
+						message.field5 = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseUnknownMessage2() {
+		return {
+			field1: [],
+			field2: /* @__PURE__ */ new Uint8Array(0),
+			field3: "",
+			field4: 0,
+			field5: 0,
+			field6: ""
+		};
+	}
+	var UnknownMessage2 = {
+		encode(message, writer = new BinaryWriter()) {
+			for (const v of message.field1) writer.uint32(10).string(v);
+			if (message.field2 !== void 0 && message.field2.length !== 0) writer.uint32(18).bytes(message.field2);
+			if (message.field3 !== void 0 && message.field3 !== "") writer.uint32(26).string(message.field3);
+			if (message.field4 !== void 0 && message.field4 !== 0) writer.uint32(32).int32(message.field4);
+			if (message.field5 !== void 0 && message.field5 !== 0) writer.uint32(40).int32(message.field5);
+			if (message.field6 !== void 0 && message.field6 !== "") writer.uint32(50).string(message.field6);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseUnknownMessage2();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.field1.push(reader.string());
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.field2 = reader.bytes();
+						continue;
+					case 3:
+						if (tag !== 26) break;
+						message.field3 = reader.string();
+						continue;
+					case 4:
+						if (tag !== 32) break;
+						message.field4 = reader.int32();
+						continue;
+					case 5:
+						if (tag !== 40) break;
+						message.field5 = reader.int32();
+						continue;
+					case 6:
+						if (tag !== 50) break;
+						message.field6 = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseUnknownMessage3() {
+		return {
+			formatIds: [],
+			ud: [],
+			clipId: ""
+		};
+	}
+	var UnknownMessage3 = {
+		encode(message, writer = new BinaryWriter()) {
+			for (const v of message.formatIds) FormatId.encode(v, writer.uint32(10).fork()).join();
+			for (const v of message.ud) BufferedRange.encode(v, writer.uint32(18).fork()).join();
+			if (message.clipId !== void 0 && message.clipId !== "") writer.uint32(26).string(message.clipId);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseUnknownMessage3();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.formatIds.push(FormatId.decode(reader, reader.uint32()));
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.ud.push(BufferedRange.decode(reader, reader.uint32()));
+						continue;
+					case 3:
+						if (tag !== 26) break;
+						message.clipId = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/next_request_policy.js
+	function createBaseNextRequestPolicy() {
+		return {
+			targetAudioReadaheadMs: 0,
+			targetVideoReadaheadMs: 0,
+			maxTimeSinceLastRequestMs: 0,
+			backoffTimeMs: 0,
+			minAudioReadaheadMs: 0,
+			minVideoReadaheadMs: 0,
+			playbackCookie: void 0,
+			videoId: ""
+		};
+	}
+	var NextRequestPolicy = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.targetAudioReadaheadMs !== void 0 && message.targetAudioReadaheadMs !== 0) writer.uint32(8).int32(message.targetAudioReadaheadMs);
+			if (message.targetVideoReadaheadMs !== void 0 && message.targetVideoReadaheadMs !== 0) writer.uint32(16).int32(message.targetVideoReadaheadMs);
+			if (message.maxTimeSinceLastRequestMs !== void 0 && message.maxTimeSinceLastRequestMs !== 0) writer.uint32(24).int32(message.maxTimeSinceLastRequestMs);
+			if (message.backoffTimeMs !== void 0 && message.backoffTimeMs !== 0) writer.uint32(32).int32(message.backoffTimeMs);
+			if (message.minAudioReadaheadMs !== void 0 && message.minAudioReadaheadMs !== 0) writer.uint32(40).int32(message.minAudioReadaheadMs);
+			if (message.minVideoReadaheadMs !== void 0 && message.minVideoReadaheadMs !== 0) writer.uint32(48).int32(message.minVideoReadaheadMs);
+			if (message.playbackCookie !== void 0) PlaybackCookie.encode(message.playbackCookie, writer.uint32(58).fork()).join();
+			if (message.videoId !== void 0 && message.videoId !== "") writer.uint32(66).string(message.videoId);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseNextRequestPolicy();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.targetAudioReadaheadMs = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.targetVideoReadaheadMs = reader.int32();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.maxTimeSinceLastRequestMs = reader.int32();
+						continue;
+					case 4:
+						if (tag !== 32) break;
+						message.backoffTimeMs = reader.int32();
+						continue;
+					case 5:
+						if (tag !== 40) break;
+						message.minAudioReadaheadMs = reader.int32();
+						continue;
+					case 6:
+						if (tag !== 48) break;
+						message.minVideoReadaheadMs = reader.int32();
+						continue;
+					case 7:
+						if (tag !== 58) break;
+						message.playbackCookie = PlaybackCookie.decode(reader, reader.uint32());
+						continue;
+					case 8:
+						if (tag !== 66) break;
+						message.videoId = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/sabr_error.js
+	function createBaseSabrError() {
+		return {
+			type: "",
+			code: 0
+		};
+	}
+	var SabrError = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.type !== void 0 && message.type !== "") writer.uint32(10).string(message.type);
+			if (message.code !== void 0 && message.code !== 0) writer.uint32(16).int32(message.code);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseSabrError();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.type = reader.string();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.code = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/sabr_redirect.js
+	function createBaseSabrRedirect() {
+		return { url: "" };
+	}
+	var SabrRedirect = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.url !== void 0 && message.url !== "") writer.uint32(10).string(message.url);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseSabrRedirect();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.url = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/reload_player_response.js
+	function createBaseReloadPlaybackParams() {
+		return { token: "" };
+	}
+	var ReloadPlaybackParams = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.token !== void 0 && message.token !== "") writer.uint32(10).string(message.token);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseReloadPlaybackParams();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.token = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseReloadPlaybackContext() {
+		return { reloadPlaybackParams: void 0 };
+	}
+	var ReloadPlaybackContext = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.reloadPlaybackParams !== void 0) ReloadPlaybackParams.encode(message.reloadPlaybackParams, writer.uint32(10).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseReloadPlaybackContext();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.reloadPlaybackParams = ReloadPlaybackParams.decode(reader, reader.uint32());
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/sabr_context_update.js
+	var SabrContextUpdate_SabrContextWritePolicy = {
+		UNSPECIFIED: 0,
+		0: "UNSPECIFIED",
+		OVERWRITE: 1,
+		1: "OVERWRITE",
+		KEEP_EXISTING: 2,
+		2: "KEEP_EXISTING",
+		UNRECOGNIZED: -1,
+		"-1": "UNRECOGNIZED"
+	};
+	function createBaseSabrContextUpdate() {
+		return {
+			type: 0,
+			scope: 0,
+			value: /* @__PURE__ */ new Uint8Array(0),
+			sendByDefault: false,
+			writePolicy: 0
+		};
+	}
+	var SabrContextUpdate = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.type !== void 0 && message.type !== 0) writer.uint32(8).int32(message.type);
+			if (message.scope !== void 0 && message.scope !== 0) writer.uint32(16).int32(message.scope);
+			if (message.value !== void 0 && message.value.length !== 0) writer.uint32(26).bytes(message.value);
+			if (message.sendByDefault !== void 0 && message.sendByDefault !== false) writer.uint32(32).bool(message.sendByDefault);
+			if (message.writePolicy !== void 0 && message.writePolicy !== 0) writer.uint32(40).int32(message.writePolicy);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseSabrContextUpdate();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.type = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.scope = reader.int32();
+						continue;
+					case 3:
+						if (tag !== 26) break;
+						message.value = reader.bytes();
+						continue;
+					case 4:
+						if (tag !== 32) break;
+						message.sendByDefault = reader.bool();
+						continue;
+					case 5:
+						if (tag !== 40) break;
+						message.writePolicy = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/sabr_context_sending_policy.js
+	function createBaseSabrContextSendingPolicy() {
+		return {
+			startPolicy: [],
+			stopPolicy: [],
+			discardPolicy: []
+		};
+	}
+	var SabrContextSendingPolicy = {
+		encode(message, writer = new BinaryWriter()) {
+			writer.uint32(10).fork();
+			for (const v of message.startPolicy) writer.int32(v);
+			writer.join();
+			writer.uint32(18).fork();
+			for (const v of message.stopPolicy) writer.int32(v);
+			writer.join();
+			writer.uint32(26).fork();
+			for (const v of message.discardPolicy) writer.int32(v);
+			writer.join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseSabrContextSendingPolicy();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag === 8) {
+							message.startPolicy.push(reader.int32());
+							continue;
+						}
+						if (tag === 10) {
+							const end2 = reader.uint32() + reader.pos;
+							while (reader.pos < end2) message.startPolicy.push(reader.int32());
+							continue;
+						}
+						break;
+					case 2:
+						if (tag === 16) {
+							message.stopPolicy.push(reader.int32());
+							continue;
+						}
+						if (tag === 18) {
+							const end2 = reader.uint32() + reader.pos;
+							while (reader.pos < end2) message.stopPolicy.push(reader.int32());
+							continue;
+						}
+						break;
+					case 3:
+						if (tag === 24) {
+							message.discardPolicy.push(reader.int32());
+							continue;
+						}
+						if (tag === 26) {
+							const end2 = reader.uint32() + reader.pos;
+							while (reader.pos < end2) message.discardPolicy.push(reader.int32());
+							continue;
+						}
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/stream_protection_status.js
+	function createBaseStreamProtectionStatus() {
+		return {
+			status: 0,
+			maxRetries: 0
+		};
+	}
+	var StreamProtectionStatus = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.status !== void 0 && message.status !== 0) writer.uint32(8).int32(message.status);
+			if (message.maxRetries !== void 0 && message.maxRetries !== 0) writer.uint32(16).int32(message.maxRetries);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseStreamProtectionStatus();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.status = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.maxRetries = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/ump_part_id.js
+	var UMPPartId = {
+		UNKNOWN: 0,
+		0: "UNKNOWN",
+		ONESIE_HEADER: 10,
+		10: "ONESIE_HEADER",
+		ONESIE_DATA: 11,
+		11: "ONESIE_DATA",
+		ONESIE_ENCRYPTED_MEDIA: 12,
+		12: "ONESIE_ENCRYPTED_MEDIA",
+		/** MEDIA_HEADER - Header for a media segment; includes sequence and timing information. */
+		MEDIA_HEADER: 20,
+		/** MEDIA_HEADER - Header for a media segment; includes sequence and timing information. */
+		20: "MEDIA_HEADER",
+		/** MEDIA - Chunk of media segment data. */
+		MEDIA: 21,
+		/** MEDIA - Chunk of media segment data. */
+		21: "MEDIA",
+		/** MEDIA_END - Indicates end of media segment; finalizes segment processing. */
+		MEDIA_END: 22,
+		/** MEDIA_END - Indicates end of media segment; finalizes segment processing. */
+		22: "MEDIA_END",
+		CONFIG: 30,
+		30: "CONFIG",
+		LIVE_METADATA: 31,
+		31: "LIVE_METADATA",
+		HOSTNAME_CHANGE_HINT_DEPRECATED: 32,
+		32: "HOSTNAME_CHANGE_HINT_DEPRECATED",
+		LIVE_METADATA_PROMISE: 33,
+		33: "LIVE_METADATA_PROMISE",
+		LIVE_METADATA_PROMISE_CANCELLATION: 34,
+		34: "LIVE_METADATA_PROMISE_CANCELLATION",
+		/** NEXT_REQUEST_POLICY - Server's policy for the next request; includes backoff time and playback cookie. */
+		NEXT_REQUEST_POLICY: 35,
+		/** NEXT_REQUEST_POLICY - Server's policy for the next request; includes backoff time and playback cookie. */
+		35: "NEXT_REQUEST_POLICY",
+		USTREAMER_VIDEO_AND_FORMAT_METADATA: 36,
+		36: "USTREAMER_VIDEO_AND_FORMAT_METADATA",
+		FORMAT_SELECTION_CONFIG: 37,
+		37: "FORMAT_SELECTION_CONFIG",
+		USTREAMER_SELECTED_MEDIA_STREAM: 38,
+		38: "USTREAMER_SELECTED_MEDIA_STREAM",
+		/** FORMAT_INITIALIZATION_METADATA - Metadata for format initialization; contains total number of segments, duration, etc. */
+		FORMAT_INITIALIZATION_METADATA: 42,
+		/** FORMAT_INITIALIZATION_METADATA - Metadata for format initialization; contains total number of segments, duration, etc. */
+		42: "FORMAT_INITIALIZATION_METADATA",
+		/** SABR_REDIRECT - Indicates a redirect to a different streaming URL. */
+		SABR_REDIRECT: 43,
+		/** SABR_REDIRECT - Indicates a redirect to a different streaming URL. */
+		43: "SABR_REDIRECT",
+		/** SABR_ERROR - Indicates a SABR error; happens when the payload is invalid or the server cannot process the request. */
+		SABR_ERROR: 44,
+		/** SABR_ERROR - Indicates a SABR error; happens when the payload is invalid or the server cannot process the request. */
+		44: "SABR_ERROR",
+		SABR_SEEK: 45,
+		45: "SABR_SEEK",
+		/** RELOAD_PLAYER_RESPONSE - Directive to reload the player with new parameters. */
+		RELOAD_PLAYER_RESPONSE: 46,
+		/** RELOAD_PLAYER_RESPONSE - Directive to reload the player with new parameters. */
+		46: "RELOAD_PLAYER_RESPONSE",
+		PLAYBACK_START_POLICY: 47,
+		47: "PLAYBACK_START_POLICY",
+		ALLOWED_CACHED_FORMATS: 48,
+		48: "ALLOWED_CACHED_FORMATS",
+		START_BW_SAMPLING_HINT: 49,
+		49: "START_BW_SAMPLING_HINT",
+		PAUSE_BW_SAMPLING_HINT: 50,
+		50: "PAUSE_BW_SAMPLING_HINT",
+		SELECTABLE_FORMATS: 51,
+		51: "SELECTABLE_FORMATS",
+		REQUEST_IDENTIFIER: 52,
+		52: "REQUEST_IDENTIFIER",
+		REQUEST_CANCELLATION_POLICY: 53,
+		53: "REQUEST_CANCELLATION_POLICY",
+		ONESIE_PREFETCH_REJECTION: 54,
+		54: "ONESIE_PREFETCH_REJECTION",
+		TIMELINE_CONTEXT: 55,
+		55: "TIMELINE_CONTEXT",
+		REQUEST_PIPELINING: 56,
+		56: "REQUEST_PIPELINING",
+		/** SABR_CONTEXT_UPDATE - Updates SABR context data; usually used for ads. */
+		SABR_CONTEXT_UPDATE: 57,
+		/** SABR_CONTEXT_UPDATE - Updates SABR context data; usually used for ads. */
+		57: "SABR_CONTEXT_UPDATE",
+		/** STREAM_PROTECTION_STATUS - Status of stream protection; indicates whether attestation is required. */
+		STREAM_PROTECTION_STATUS: 58,
+		/** STREAM_PROTECTION_STATUS - Status of stream protection; indicates whether attestation is required. */
+		58: "STREAM_PROTECTION_STATUS",
+		/** SABR_CONTEXT_SENDING_POLICY - Policy indicating which SABR contexts to send or discard in future requests. */
+		SABR_CONTEXT_SENDING_POLICY: 59,
+		/** SABR_CONTEXT_SENDING_POLICY - Policy indicating which SABR contexts to send or discard in future requests. */
+		59: "SABR_CONTEXT_SENDING_POLICY",
+		LAWNMOWER_POLICY: 60,
+		60: "LAWNMOWER_POLICY",
+		SABR_ACK: 61,
+		61: "SABR_ACK",
+		END_OF_TRACK: 62,
+		62: "END_OF_TRACK",
+		CACHE_LOAD_POLICY: 63,
+		63: "CACHE_LOAD_POLICY",
+		LAWNMOWER_MESSAGING_POLICY: 64,
+		64: "LAWNMOWER_MESSAGING_POLICY",
+		PREWARM_CONNECTION: 65,
+		65: "PREWARM_CONNECTION",
+		PLAYBACK_DEBUG_INFO: 66,
+		66: "PLAYBACK_DEBUG_INFO",
+		/** SNACKBAR_MESSAGE - Directive to show the user a notification message. */
+		SNACKBAR_MESSAGE: 67,
+		/** SNACKBAR_MESSAGE - Directive to show the user a notification message. */
+		67: "SNACKBAR_MESSAGE",
+		UNRECOGNIZED: -1,
+		"-1": "UNRECOGNIZED"
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/src/utils/Logger.js
+	var LogLevel = {
+		NONE: 0,
+		0: "NONE",
+		ERROR: 1,
+		1: "ERROR",
+		WARN: 2,
+		2: "WARN",
+		INFO: 3,
+		3: "INFO",
+		DEBUG: 4,
+		4: "DEBUG",
+		ALL: 99,
+		99: "ALL"
+	};
+	/**
+	* Singleton logger utility.
+	*
+	* Allows enabling or disabling specific log levels (`ERROR`, `WARN`, `INFO`, `DEBUG`)
+	* at runtime. Supports logging with tags and message arguments.
+	*
+	* Usage:
+	* ```ts
+	* const logger = Logger.getInstance();
+	* logger.setLogLevels(LogLevel.ERROR, LogLevel.INFO);
+	* logger.error('MyTag', 'An error occurred');
+	* ```
+	*/
+	var Logger = class Logger {
+		constructor() {
+			this.currentLogLevels = /* @__PURE__ */ new Set([LogLevel.INFO, LogLevel.ERROR]);
+		}
+		static getInstance() {
+			if (!Logger.instance) Logger.instance = new Logger();
+			return Logger.instance;
+		}
+		/**
+		* Sets the active log levels.
+		* Call with LogLevel.NONE or no arguments to turn off all logging.
+		* Otherwise, specify one or more log levels to be active.
+		* Use LogLevel.ALL to enable all log levels.
+		*/
+		setLogLevels(...levels) {
+			if (levels.length === 0 || levels.includes(LogLevel.NONE)) this.currentLogLevels = /* @__PURE__ */ new Set();
+			else if (levels.includes(LogLevel.ALL)) this.currentLogLevels = /* @__PURE__ */ new Set([
+				LogLevel.ERROR,
+				LogLevel.WARN,
+				LogLevel.INFO,
+				LogLevel.DEBUG
+			]);
+			else this.currentLogLevels = new Set(levels.filter((level) => level !== LogLevel.NONE && level !== LogLevel.ALL));
+		}
+		/**
+		* Gets the current set of active log levels.
+		* @returns A new Set containing the active LogLevel enums.
+		*/
+		getLogLevels() {
+			return new Set(this.currentLogLevels);
+		}
+		log(level, tag, ...messages) {
+			if (level !== LogLevel.NONE && this.currentLogLevels.has(level)) {
+				const prefix = `[${LogLevel[level]}] [${tag}]`;
+				switch (level) {
+					case LogLevel.ERROR:
+						console.error(prefix, ...messages);
+						break;
+					case LogLevel.WARN:
+						console.warn(prefix, ...messages);
+						break;
+					case LogLevel.INFO:
+						console.info(prefix, ...messages);
+						break;
+					case LogLevel.DEBUG: console.debug(prefix, ...messages);
+				}
+			}
+		}
+		error(tag, ...messages) {
+			this.log(LogLevel.ERROR, tag, ...messages);
+		}
+		warn(tag, ...messages) {
+			this.log(LogLevel.WARN, tag, ...messages);
+		}
+		info(tag, ...messages) {
+			this.log(LogLevel.INFO, tag, ...messages);
+		}
+		debug(tag, ...messages) {
+			this.log(LogLevel.DEBUG, tag, ...messages);
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/src/utils/shared.js
+	var MAX_INT32_VALUE = "2147483647";
+	var EnabledTrackTypes = {
+		VIDEO_AND_AUDIO: 0,
+		0: "VIDEO_AND_AUDIO",
+		AUDIO_ONLY: 1,
+		1: "AUDIO_ONLY",
+		VIDEO_ONLY: 2,
+		2: "VIDEO_ONLY"
+	};
+	/**
+	* Converts a Base64 string to a Uint8Array.
+	* @param base64
+	*/
+	function base64ToU8(base64) {
+		const standard_base64 = base64.replace(/-/g, "+").replace(/_/g, "/");
+		const padded_base64 = standard_base64.padEnd(standard_base64.length + (4 - standard_base64.length % 4) % 4, "=");
+		return new Uint8Array(atob(padded_base64).split("").map((char) => char.charCodeAt(0)));
+	}
+	/**
+	* Concatenates multiple Uint8Array chunks into a single Uint8Array.
+	* @param chunks
+	*/
+	function concatenateChunks(chunks) {
+		const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+		const result = new Uint8Array(totalLength);
+		let offset = 0;
+		for (const chunk of chunks) {
+			result.set(chunk, offset);
+			offset += chunk.length;
+		}
+		return result;
+	}
+	/**
+	* Returns a promise that resolves after a specified number of milliseconds.
+	* @param ms - The number of milliseconds to wait.
+	*/
+	function wait(ms) {
+		return new Promise((resolve) => setTimeout(resolve, ms));
+	}
+	//#endregion
+	//#region node_modules/googlevideo/dist/src/utils/EventEmitterLike.js
+	var __classPrivateFieldSet = function(receiver, state, value, kind, f) {
+		if (kind === "m") throw new TypeError("Private method is not writable");
+		if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+		if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+		return kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value), value;
+	};
+	var __classPrivateFieldGet = function(receiver, state, kind, f) {
+		if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+		if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+		return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+	};
+	var _CustomEvent_detail;
+	var _EventEmitterLike_legacyListeners;
+	var CustomEvent$1 = class extends Event {
+		constructor(type, options) {
+			super(type, options);
+			_CustomEvent_detail.set(this, void 0);
+			__classPrivateFieldSet(this, _CustomEvent_detail, options?.detail ?? null, "f");
+		}
+		get detail() {
+			return __classPrivateFieldGet(this, _CustomEvent_detail, "f");
+		}
+	};
+	_CustomEvent_detail = /* @__PURE__ */ new WeakMap();
+	var EventEmitterLike = class extends EventTarget {
+		constructor() {
+			super();
+			_EventEmitterLike_legacyListeners.set(this, /* @__PURE__ */ new Map());
+		}
+		emit(type, ...args) {
+			const event = new CustomEvent$1(type, { detail: args });
+			this.dispatchEvent(event);
+		}
+		on(type, listener) {
+			const wrapper = (ev) => {
+				if (ev instanceof CustomEvent$1) listener(...ev.detail);
+				else listener(ev);
+			};
+			__classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").set(listener, {
+				type,
+				wrapper
+			});
+			this.addEventListener(type, wrapper);
+		}
+		once(type, listener) {
+			const wrapper = (ev) => {
+				if (ev instanceof CustomEvent$1) listener(...ev.detail);
+				else listener(ev);
+				this.off(type, listener);
+			};
+			__classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").set(listener, {
+				type,
+				wrapper
+			});
+			this.addEventListener(type, wrapper);
+		}
+		off(type, listener) {
+			const listenerData = __classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").get(listener);
+			if (listenerData && listenerData.type === type) {
+				this.removeEventListener(type, listenerData.wrapper);
+				__classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").delete(listener);
+			}
+		}
+		removeAllListeners(type) {
+			if (type) {
+				for (const [listener, listenerData] of __classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").entries()) if (listenerData.type === type) {
+					this.removeEventListener(type, listenerData.wrapper);
+					__classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").delete(listener);
+				}
+			} else for (const [listener, listenerData] of __classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").entries()) {
+				this.removeEventListener(listenerData.type, listenerData.wrapper);
+				__classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").delete(listener);
+			}
+		}
+	};
+	_EventEmitterLike_legacyListeners = /* @__PURE__ */ new WeakMap();
+	//#endregion
+	//#region node_modules/googlevideo/dist/src/utils/formatKeyUtils.js
+	/**
+	* Creates a format key based on itag and xtags.
+	* @returns A string format key.
+	*/
+	function createKey(itag, xtags) {
+		return `${itag || ""}:${xtags || ""}`;
+	}
+	/**
+	* Creates a format key from a SabrFormat object.
+	* @returns A string format key or undefined if format is undefined.
+	*/
+	function fromFormat(format) {
+		if (!format) return void 0;
+		return createKey(format.itag, format.xtags);
+	}
+	/**
+	* Creates a format key from a MediaHeader object.
+	* @returns A string format key.
+	*/
+	function fromMediaHeader(mediaHeader) {
+		return createKey(mediaHeader.itag, mediaHeader.xtags);
+	}
+	/**
+	* Creates a format key from FormatInitializationMetadata.
+	* @returns A string format key or undefined if formatId is undefined.
+	*/
+	function fromFormatInitializationMetadata(formatInitMetadata) {
+		if (!formatInitMetadata.formatId) return "";
+		return createKey(formatInitMetadata.formatId.itag, formatInitMetadata.formatId.xtags);
+	}
+	//#endregion
+	//#region node_modules/googlevideo/dist/src/utils/sabrStreamUtils.js
+	/**
+	* Determines the media type (video or audio) based on the format initialization metadata.
+	* @param initializedFormat
+	*/
+	function getMediaType(initializedFormat) {
+		return initializedFormat.formatInitializationMetadata?.mimeType?.includes("video") ? "video" : "audio";
+	}
+	/**
+	* Calculates the total duration of downloaded segments in milliseconds.
+	* @param initializedFormat
+	*/
+	function getTotalDownloadedDuration(initializedFormat) {
+		return Array.from(initializedFormat.downloadedSegments.values()).reduce((sum, segment) => sum + parseInt(segment.durationMs || "0"), 0);
+	}
+	/**
+	* Filters formats by media type (audio or video)
+	*/
+	function filterFormatsByType(formats, isAudio) {
+		return formats.filter((format) => {
+			if (!format.mimeType) return false;
+			return isAudio ? format.mimeType.includes("audio") : format.mimeType.includes("video");
+		});
+	}
+	/**
+	* Choose the best format based on options
+	*/
+	function chooseFormat(formats, formatOption, preferences) {
+		if (!formats.length) return void 0;
+		const typeFormats = filterFormatsByType(formats, preferences.isAudio);
+		if (!typeFormats.length) return void 0;
+		if (typeof formatOption === "number") return typeFormats.find((format) => format.itag === formatOption);
+		if (formatOption && typeof formatOption !== "function") return formatOption;
+		if (typeof formatOption === "function") return formatOption(typeFormats);
+		let filteredFormats = typeFormats;
+		if (preferences.language) filteredFormats = filteredFormats.filter((format) => format.language === preferences.language);
+		if (preferences.quality) filteredFormats = filteredFormats.filter((format) => preferences.isAudio ? !!format.audioQuality?.toLowerCase().includes(preferences.quality?.toLowerCase() || "") : !!format.qualityLabel?.toLowerCase().includes(preferences.quality?.toLowerCase() || ""));
+		if (preferences.isAudio) {
+			if (preferences.preferOpus) filteredFormats = applyMimeTypeFilter(filteredFormats, "opus");
+		} else if (preferences.preferH264) filteredFormats = filteredFormats.filter((format) => !!format.mimeType && format.mimeType.includes("mp4") && format.mimeType.includes("avc"));
+		if (preferences.preferWebM) filteredFormats = applyMimeTypeFilter(filteredFormats, "webm");
+		else if (preferences.preferMP4) filteredFormats = applyMimeTypeFilter(filteredFormats, "mp4");
+		return preferences.isAudio ? filteredFormats.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0] : filteredFormats.sort((a, b) => (b.height || 0) - (a.height || 0))[0];
+	}
+	function applyMimeTypeFilter(formats, mimeTypePart) {
+		return formats.filter((format) => format.mimeType?.includes(mimeTypePart));
+	}
+	//#endregion
+	//#region node_modules/googlevideo/dist/src/core/CompositeBuffer.js
+	/**
+	* A memory-efficient buffer that manages discontinuous chunks as a single logical stream.
+	*/
+	var CompositeBuffer = class CompositeBuffer {
+		constructor(chunks = []) {
+			this.chunks = [];
+			this.currentChunkOffset = this.currentChunkIndex = 0;
+			this.currentDataView = void 0;
+			this.totalLength = 0;
+			chunks.forEach((chunk) => this.append(chunk));
+		}
+		append(chunk) {
+			if (chunk instanceof Uint8Array) {
+				if (this.canMergeWithLastChunk(chunk)) {
+					const lastChunk = this.chunks[this.chunks.length - 1];
+					this.chunks[this.chunks.length - 1] = new Uint8Array(lastChunk.buffer, lastChunk.byteOffset, lastChunk.length + chunk.length);
+					this.resetFocus();
+				} else this.chunks.push(chunk);
+				this.totalLength += chunk.length;
+			} else chunk.chunks.forEach((c) => this.append(c));
+		}
+		split(position) {
+			const extractedBuffer = new CompositeBuffer();
+			const remainingBuffer = new CompositeBuffer();
+			const iterator = this.chunks[Symbol.iterator]();
+			let item = iterator.next();
+			while (!item.done) {
+				const chunk = item.value;
+				if (position >= chunk.length) {
+					extractedBuffer.append(chunk);
+					position -= chunk.length;
+				} else if (position > 0) {
+					extractedBuffer.append(new Uint8Array(chunk.buffer, chunk.byteOffset, position));
+					remainingBuffer.append(new Uint8Array(chunk.buffer, chunk.byteOffset + position, chunk.length - position));
+					position = 0;
+				} else remainingBuffer.append(chunk);
+				item = iterator.next();
+			}
+			return {
+				extractedBuffer,
+				remainingBuffer
+			};
+		}
+		getLength() {
+			return this.totalLength;
+		}
+		canReadBytes(position, length) {
+			return position + length <= this.totalLength;
+		}
+		getUint8(position) {
+			this.focus(position);
+			return this.chunks[this.currentChunkIndex][position - this.currentChunkOffset];
+		}
+		focus(position) {
+			if (!this.isFocused(position)) {
+				if (position < this.currentChunkOffset) this.resetFocus();
+				while (this.currentChunkOffset + this.chunks[this.currentChunkIndex].length <= position && this.currentChunkIndex < this.chunks.length - 1) {
+					this.currentChunkOffset += this.chunks[this.currentChunkIndex].length;
+					this.currentChunkIndex += 1;
+				}
+				this.currentDataView = void 0;
+			}
+		}
+		isFocused(position) {
+			return position >= this.currentChunkOffset && position < this.currentChunkOffset + this.chunks[this.currentChunkIndex].length;
+		}
+		resetFocus() {
+			this.currentDataView = void 0;
+			this.currentChunkIndex = 0;
+			this.currentChunkOffset = 0;
+		}
+		canMergeWithLastChunk(chunk) {
+			if (this.chunks.length === 0) return false;
+			const lastChunk = this.chunks[this.chunks.length - 1];
+			return lastChunk.buffer === chunk.buffer && lastChunk.byteOffset + lastChunk.length === chunk.byteOffset;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/src/core/UmpReader.js
+	/**
+	* A parser that efficiently processes chunked UMP binary data.
+	*/
+	var UmpReader = class {
+		constructor(compositeBuffer) {
+			this.compositeBuffer = compositeBuffer;
+		}
+		/**
+		* Parses parts from the buffer and calls the handler for each complete part.
+		* @param handlePart - Function called with each complete part.
+		* @returns Partial part if parsing is incomplete, undefined otherwise.
+		*/
+		read(handlePart) {
+			while (true) {
+				let offset = 0;
+				const [partType, newOffset] = this.readVarInt(offset);
+				offset = newOffset;
+				const [partSize, finalOffset] = this.readVarInt(offset);
+				offset = finalOffset;
+				if (partType < 0 || partSize < 0) break;
+				if (!this.compositeBuffer.canReadBytes(offset, partSize)) {
+					if (!this.compositeBuffer.canReadBytes(offset, 1)) break;
+					return {
+						type: partType,
+						size: partSize,
+						data: this.compositeBuffer
+					};
+				}
+				const splitResult = this.compositeBuffer.split(offset).remainingBuffer.split(partSize);
+				offset = 0;
+				handlePart({
+					type: partType,
+					size: partSize,
+					data: splitResult.extractedBuffer
+				});
+				this.compositeBuffer = splitResult.remainingBuffer;
+			}
+		}
+		/**
+		* Reads a variable-length integer from the buffer.
+		* @param offset - Position to start reading from.
+		* @returns Tuple of [value, new offset] or [-1, offset] if incomplete.
+		*/
+		readVarInt(offset) {
+			let byteLength;
+			if (this.compositeBuffer.canReadBytes(offset, 1)) {
+				const firstByte = this.compositeBuffer.getUint8(offset);
+				byteLength = firstByte < 128 ? 1 : firstByte < 192 ? 2 : firstByte < 224 ? 3 : firstByte < 240 ? 4 : 5;
+			} else byteLength = 0;
+			if (byteLength < 1 || !this.compositeBuffer.canReadBytes(offset, byteLength)) return [-1, offset];
+			let value;
+			switch (byteLength) {
+				case 1:
+					value = this.compositeBuffer.getUint8(offset++);
+					break;
+				case 2: {
+					const byte1 = this.compositeBuffer.getUint8(offset++);
+					const byte2 = this.compositeBuffer.getUint8(offset++);
+					value = (byte1 & 63) + 64 * byte2;
+					break;
+				}
+				case 3: {
+					const byte1 = this.compositeBuffer.getUint8(offset++);
+					const byte2 = this.compositeBuffer.getUint8(offset++);
+					const byte3 = this.compositeBuffer.getUint8(offset++);
+					value = (byte1 & 31) + 32 * (byte2 + 256 * byte3);
+					break;
+				}
+				case 4: {
+					const byte1 = this.compositeBuffer.getUint8(offset++);
+					const byte2 = this.compositeBuffer.getUint8(offset++);
+					const byte3 = this.compositeBuffer.getUint8(offset++);
+					const byte4 = this.compositeBuffer.getUint8(offset++);
+					value = (byte1 & 15) + 16 * (byte2 + 256 * (byte3 + 256 * byte4));
+					break;
+				}
+				default: {
+					const tempOffset = offset + 1;
+					this.compositeBuffer.focus(tempOffset);
+					if (this.canReadFromCurrentChunk(tempOffset, 4)) value = this.getCurrentDataView().getUint32(tempOffset - this.compositeBuffer.currentChunkOffset, true);
+					else {
+						const byte3 = this.compositeBuffer.getUint8(tempOffset + 2) + 256 * this.compositeBuffer.getUint8(tempOffset + 3);
+						value = this.compositeBuffer.getUint8(tempOffset) + 256 * (this.compositeBuffer.getUint8(tempOffset + 1) + 256 * byte3);
+					}
+					offset += 5;
+					break;
+				}
+			}
+			return [value, offset];
+		}
+		/**
+		* Checks if the specified bytes can be read from the current chunk.
+		* @param offset - Position to start reading from.
+		* @param length - Number of bytes to read.
+		* @returns True if bytes can be read from current chunk, false otherwise.
+		*/
+		canReadFromCurrentChunk(offset, length) {
+			return offset - this.compositeBuffer.currentChunkOffset + length <= this.compositeBuffer.chunks[this.compositeBuffer.currentChunkIndex].length;
+		}
+		/**
+		* Gets a DataView of the current chunk, creating it if necessary.
+		* @returns DataView for the current chunk.
+		*/
+		getCurrentDataView() {
+			if (!this.compositeBuffer.currentDataView) {
+				const currentChunk = this.compositeBuffer.chunks[this.compositeBuffer.currentChunkIndex];
+				this.compositeBuffer.currentDataView = new DataView(currentChunk.buffer, currentChunk.byteOffset, currentChunk.length);
+			}
+			return this.compositeBuffer.currentDataView;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/src/core/SabrStream.js
+	var TAG = "SabrStream";
+	var DEFAULT_MAX_RETRIES = 10;
+	var MAX_BACKOFF_MS = 8e3;
+	var BACKOFF_MULTIPLIER = 500;
+	var DEFAULT_STALL_DETECTION_MS = 3e4;
+	var MAX_STALLS = 5;
+	/**
+	* Manages the download and processing of YouTube's Server-Adaptive Bitrate (SABR) streams.
+	*
+	* This class handles the entire lifecycle of a SABR stream:
+	* - Selecting appropriate video and audio formats.
+	* - Making network requests to fetch media segments.
+	* - Processing UMP parts in real-time.
+	* - Handling server-side directives like redirects, context updates, and backoff policies.
+	* - Emitting events for key stream updates, such as format initialization and errors.
+	* - Providing separate `ReadableStream` instances for video and audio data.
+	*/
+	var SabrStream = class extends EventEmitterLike {
+		on(event, listener) {
+			super.on(event, listener);
+		}
+		once(event, listener) {
+			super.once(event, listener);
+		}
+		constructor(config = {}) {
+			super();
+			this.logger = Logger.getInstance();
+			this.formatIds = [];
+			this.umpPartHandlers = /* @__PURE__ */ new Map([
+				[UMPPartId.FORMAT_INITIALIZATION_METADATA, this.handleFormatInitializationMetadata.bind(this)],
+				[UMPPartId.NEXT_REQUEST_POLICY, this.handleNextRequestPolicy.bind(this)],
+				[UMPPartId.SABR_ERROR, this.handleSabrError.bind(this)],
+				[UMPPartId.SABR_REDIRECT, this.handleSabrRedirect.bind(this)],
+				[UMPPartId.SABR_CONTEXT_UPDATE, this.handleSabrContextUpdate.bind(this)],
+				[UMPPartId.SABR_CONTEXT_SENDING_POLICY, this.handleSabrContextSendingPolicy.bind(this)],
+				[UMPPartId.STREAM_PROTECTION_STATUS, this.handleStreamProtectionStatus.bind(this)],
+				[UMPPartId.RELOAD_PLAYER_RESPONSE, this.handleReloadPlayerResponse.bind(this)],
+				[UMPPartId.MEDIA_HEADER, this.handleMediaHeader.bind(this)],
+				[UMPPartId.MEDIA, this.handleMedia.bind(this)],
+				[UMPPartId.MEDIA_END, this.handleMediaEnd.bind(this)]
+			]);
+			this.sabrContexts = /* @__PURE__ */ new Map();
+			this.activeSabrContextTypes = /* @__PURE__ */ new Set();
+			this.initializedFormatsMap = /* @__PURE__ */ new Map();
+			this.partialSegmentQueue = /* @__PURE__ */ new Map();
+			this.requestNumber = 0;
+			this.durationMs = Infinity;
+			this.mediaHeadersProcessed = false;
+			this._errored = false;
+			this._aborted = false;
+			this.progressTracker = {
+				lastProgressTime: Date.now(),
+				lastDownloadedDuration: 0,
+				stallCount: 0
+			};
+			this.fetchFunction = config?.fetch || fetch;
+			this.serverAbrStreamingUrl = config.serverAbrStreamingUrl;
+			this.videoPlaybackUstreamerConfig = config.videoPlaybackUstreamerConfig;
+			this.clientInfo = config.clientInfo;
+			this.poToken = config.poToken;
+			this.durationMs = config.durationMs || Infinity;
+			this.formatIds = config.formats || [];
+			this.videoStream = new ReadableStream({ start: (controller) => {
+				this.videoController = controller;
+			} });
+			this.audioStream = new ReadableStream({ start: (controller) => {
+				this.audioController = controller;
+			} });
+		}
+		/**
+		* Sets Proof of Origin (PO) token.
+		* @param poToken - The base64-encoded token string.
+		*/
+		setPoToken(poToken) {
+			this.poToken = poToken;
+		}
+		/**
+		* Sets the available server ABR formats.
+		* @param formats - An array of available SabrFormat objects.
+		*/
+		setServerAbrFormats(formats) {
+			this.formatIds.push(...formats);
+		}
+		/**
+		* Sets the total duration of the stream in milliseconds.
+		* This is optional as duration is often determined automatically from format metadata.
+		* @param durationMs - The duration in milliseconds.
+		*/
+		setDurationMs(durationMs) {
+			this.durationMs = durationMs;
+		}
+		/**
+		* Sets the server ABR streaming URL for media requests.
+		* @param url - The streaming URL.
+		*/
+		setStreamingURL(url) {
+			this.serverAbrStreamingUrl = url;
+		}
+		/**
+		* Sets the Ustreamer configuration string.
+		* @param config - The Ustreamer configuration.
+		*/
+		setUstreamerConfig(config) {
+			this.videoPlaybackUstreamerConfig = config;
+		}
+		/**
+		* Sets the client information used in SABR requests.
+		* @param clientInfo - The client information object.
+		*/
+		setClientInfo(clientInfo) {
+			this.clientInfo = clientInfo;
+		}
+		/**
+		* Aborts the download process, closing all streams and cleaning up resources.
+		* Emits an 'abort' event.
+		*/
+		abort() {
+			this.logger.debug(TAG, "Aborting download process");
+			this._aborted = true;
+			this.abortController?.abort();
+			this.videoController?.error(/* @__PURE__ */ new Error("Download aborted."));
+			this.audioController?.error(/* @__PURE__ */ new Error("Download aborted."));
+			this.resetState();
+			this.emit("abort");
+		}
+		/**
+		* Returns a serializable state object that can be used to restore the stream later.
+		* @throws {Error} If the main format is not initialized.
+		* @returns The current state of the stream.
+		*/
+		getState() {
+			if (!this.mainFormat) throw new Error("Main format is not initialized, cannot get state.");
+			const playerTimeMs = getTotalDownloadedDuration(this.mainFormat);
+			const initializedFormats = [];
+			for (const [formatKey, format] of this.initializedFormatsMap.entries()) initializedFormats.push({
+				formatKey,
+				formatInitializationMetadata: format.formatInitializationMetadata,
+				downloadedSegments: Array.from(format.downloadedSegments.entries()),
+				lastMediaHeaders: format.lastMediaHeaders
+			});
+			return {
+				durationMs: this.durationMs,
+				requestNumber: this.requestNumber,
+				activeSabrContexts: Array.from(this.activeSabrContextTypes),
+				sabrContextUpdates: Array.from(this.sabrContexts.entries()),
+				formatToDiscard: this.formatToDiscard,
+				cachedBufferedRanges: this.cachedBufferedRanges || [],
+				nextRequestPolicy: this.nextRequestPolicy,
+				initializedFormats,
+				playerTimeMs
+			};
+		}
+		/**
+		* Initiates the streaming process for the selected formats.
+		* @param options - Playback options, including format preferences and initial state.
+		* @throws {Error} If no suitable formats are found or streaming fails.
+		* @returns A promise that resolves with the video/audio streams and selected formats.
+		*/
+		async start(options) {
+			const { videoFormat, audioFormat } = this.selectFormats(options);
+			this.setupStreamingProcess(videoFormat, audioFormat, options).then();
+			return {
+				videoStream: this.videoStream,
+				audioStream: this.audioStream,
+				selectedFormats: {
+					videoFormat,
+					audioFormat
+				}
+			};
+		}
+		/**
+		* Sets up and manages the main streaming loop.
+		* @param videoFormat - The selected video format.
+		* @param audioFormat - The selected audio format.
+		* @param options - Playback options.
+		* @private
+		*/
+		async setupStreamingProcess(videoFormat, audioFormat, options) {
+			try {
+				this._errored = false;
+				this._aborted = false;
+				let playerTimeMs = 0;
+				if (options.state && this.restoreState(videoFormat, audioFormat, options.state)) playerTimeMs = options.state.playerTimeMs || 0;
+				const maxRetries = options.maxRetries !== void 0 ? options.maxRetries : DEFAULT_MAX_RETRIES;
+				const enabledTrackTypesBitfield = options.enabledTrackTypes ?? EnabledTrackTypes.VIDEO_AND_AUDIO;
+				const abrState = {
+					playerTimeMs,
+					audioTrackId: audioFormat.audioTrackId,
+					playbackRate: 1,
+					stickyResolution: videoFormat.height || 360,
+					drcEnabled: audioFormat.isDrc,
+					clientViewportIsFlexible: false,
+					visibility: 1,
+					enabledTrackTypesBitfield
+				};
+				if (abrState.enabledTrackTypesBitfield === 1 || abrState.enabledTrackTypesBitfield === 2) this.formatToDiscard = abrState.enabledTrackTypesBitfield === 1 ? fromFormat(videoFormat) : fromFormat(audioFormat);
+				while (parseInt(abrState.playerTimeMs) < this.durationMs) {
+					if (this._aborted) {
+						this.logger.debug(TAG, "Download process aborted, exiting streaming loop.");
+						break;
+					}
+					this.logger.debug(TAG, `Starting new segment fetch at playback position: ${abrState.playerTimeMs}ms`);
+					this.mainFormat = abrState.enabledTrackTypesBitfield === 1 ? this.initializedFormatsMap.get(fromFormat(audioFormat) || "") : this.initializedFormatsMap.get(fromFormat(videoFormat) || "");
+					if (this.mainFormat) this.validateAndCorrectDuration(this.mainFormat.formatInitializationMetadata);
+					abrState.playerTimeMs = this.mainFormat ? getTotalDownloadedDuration(this.mainFormat) : 0;
+					const { shouldStop } = this.checkForStall({
+						playerTimeMs: abrState.playerTimeMs,
+						stallDetectionMs: options.stallDetectionMs
+					});
+					if (shouldStop) break;
+					abrState.playerTimeMs = abrState.playerTimeMs.toString();
+					if (!await this.executeWithRetry(() => this.fetchAndProcessSegments(abrState, audioFormat, videoFormat), maxRetries)) break;
+				}
+			} catch (error) {
+				if (!this._aborted) this.errorHandler(error, true);
+			} finally {
+				if (!this._aborted) {
+					this.validateDownloadedSegments();
+					if (!this._errored) {
+						this.videoController?.close();
+						this.audioController?.close();
+					}
+					this.resetState();
+					this.emit("finish");
+				}
+			}
+		}
+		/**
+		* Restores the stream state from a previously saved state object.
+		* @param videoFormat - The selected video format.
+		* @param audioFormat - The selected audio format.
+		* @param state - The saved state object.
+		* @returns `true` if the state was restored successfully, `false` otherwise.
+		* @private
+		*/
+		restoreState(videoFormat, audioFormat, state) {
+			this.resetState();
+			if (!state || typeof state !== "object" || !state.initializedFormats || !Array.isArray(state.initializedFormats) || !state.durationMs || !state.playerTimeMs) {
+				this.logger.warn(TAG, "Invalid or corrupt state object provided. Starting fresh.");
+				return false;
+			}
+			const expectedVideoFormatKey = fromFormat(videoFormat) || "";
+			const expectedAudioFormatKey = fromFormat(audioFormat) || "";
+			for (const format of state.initializedFormats) {
+				const { formatKey, formatInitializationMetadata, downloadedSegments, lastMediaHeaders } = format;
+				if (formatKey !== expectedVideoFormatKey && formatKey !== expectedAudioFormatKey) {
+					this.logger.warn(TAG, `State contains an unexpected format key "${formatKey}". It will be ignored.`);
+					continue;
+				}
+				this.initializedFormatsMap.set(formatKey, {
+					formatInitializationMetadata,
+					downloadedSegments: new Map(downloadedSegments),
+					lastMediaHeaders: lastMediaHeaders || []
+				});
+			}
+			if (!this.initializedFormatsMap.has(expectedVideoFormatKey) || !this.initializedFormatsMap.has(expectedAudioFormatKey)) {
+				this.logger.warn(TAG, "State is missing required format data for the selected video/audio formats. Starting fresh.");
+				this.resetState();
+				return false;
+			}
+			this.durationMs = state.durationMs;
+			this.requestNumber = state.requestNumber || 0;
+			this.activeSabrContextTypes = new Set(state.activeSabrContexts || []);
+			this.sabrContexts = new Map(state.sabrContextUpdates || []);
+			this.formatToDiscard = state.formatToDiscard;
+			this.cachedBufferedRanges = state.cachedBufferedRanges || [];
+			this.nextRequestPolicy = state.nextRequestPolicy;
+			return true;
+		}
+		/**
+		* Checks if the download has stalled by tracking progress over time.
+		* @param options - Configuration for stall detection.
+		* @returns An object indicating whether the stream should stop and if it is stalled.
+		* @throws {Error} If the maximum number of consecutive stalls is reached.
+		* @private
+		*/
+		checkForStall(options) {
+			const currentTime = Date.now();
+			const currentProgress = options.playerTimeMs;
+			const stallThreshold = options.stallDetectionMs || DEFAULT_STALL_DETECTION_MS;
+			if (currentProgress > this.progressTracker.lastDownloadedDuration) {
+				this.progressTracker.lastProgressTime = currentTime;
+				this.progressTracker.lastDownloadedDuration = currentProgress;
+				this.progressTracker.stallCount = 0;
+				return {
+					shouldStop: false,
+					stalled: false
+				};
+			} else if (currentTime - this.progressTracker.lastProgressTime > stallThreshold) {
+				this.progressTracker.stallCount++;
+				this.logger.warn(TAG, `Stream stalled for ${stallThreshold}ms (stall #${this.progressTracker.stallCount})`);
+				if (this.progressTracker.stallCount >= MAX_STALLS) throw new Error(`Stream stalled ${MAX_STALLS} times, aborting`);
+				this.progressTracker.lastProgressTime = currentTime;
+				if (Math.abs(this.durationMs - currentProgress) < 5e3) {
+					this.logger.warn(TAG, "Stream is close to completion, but stalled. Checking if we have the last segment.");
+					const endSegmentNumber = parseInt(this.mainFormat?.formatInitializationMetadata.endSegmentNumber || "0") || -1;
+					const lastSegment = this.mainFormat?.downloadedSegments.get(endSegmentNumber);
+					if (lastSegment && lastSegment.segmentNumber === endSegmentNumber) {
+						this.logger.warn(TAG, "Last segment is already downloaded. Stopping further processing.");
+						return {
+							shouldStop: true,
+							stalled: true
+						};
+					}
+				}
+				return {
+					shouldStop: false,
+					stalled: true
+				};
+			}
+			return {
+				shouldStop: false,
+				stalled: false
+			};
+		}
+		/**
+		* Selects the best video and audio formats based on provided options.
+		* @param options - Format selection options and quality preferences.
+		* @throws {Error} If no suitable formats are found or the duration is invalid.
+		* @returns The selected video and audio formats.
+		* @private
+		*/
+		selectFormats(options) {
+			const videoFormat = chooseFormat(this.formatIds, options.videoFormat, {
+				quality: options.videoQuality,
+				preferWebM: options.preferWebM,
+				preferH264: options.preferH264,
+				preferMP4: options.preferMP4,
+				isAudio: false
+			});
+			const audioFormat = chooseFormat(this.formatIds, options.audioFormat, {
+				quality: options.audioQuality,
+				language: options.audioLanguage,
+				preferOpus: options.preferOpus,
+				preferMP4: options.preferMP4,
+				preferWebM: options.preferWebM,
+				isAudio: true
+			});
+			if (this.durationMs < 0) throw new Error("Invalid duration");
+			if (!videoFormat || !audioFormat) throw new Error("No suitable formats found for download");
+			return {
+				videoFormat,
+				audioFormat
+			};
+		}
+		/**
+		* Fetches and processes media segments from the server for the current ABR state.
+		* @param abrState - The current client adaptive bitrate state.
+		* @param selectedAudioFormat - The selected audio format.
+		* @param selectedVideoFormat - The selected video format.
+		* @throws {Error} If the server returns an error or no valid data.
+		* @private
+		*/
+		async fetchAndProcessSegments(abrState, selectedAudioFormat, selectedVideoFormat) {
+			const initializedVideoFormat = this.initializedFormatsMap.get(fromFormat(selectedVideoFormat) || "");
+			const initializedAudioFormat = this.initializedFormatsMap.get(fromFormat(selectedAudioFormat) || "");
+			if (!this.cachedBufferedRanges?.length) this.cachedBufferedRanges = this.buildBufferedRanges(initializedVideoFormat, initializedAudioFormat);
+			const requestBody = this.buildRequestBody(abrState, selectedAudioFormat, selectedVideoFormat);
+			this.mediaHeadersProcessed = false;
+			const response = await this.makeStreamingRequest(requestBody);
+			const processedParts = await this.processStreamingResponse(response);
+			if (!processedParts.length) throw new Error("No valid parts received from server.");
+			else if ((this.streamProtectionStatus?.status || 0) >= 2 && !processedParts.includes(UMPPartId.MEDIA)) throw new Error("No media parts or protocol updates received from server.");
+			if (processedParts.includes(UMPPartId.MEDIA_HEADER) && initializedVideoFormat?.lastMediaHeaders?.length && initializedAudioFormat?.lastMediaHeaders?.length || abrState.enabledTrackTypesBitfield !== 0 && this.mainFormat?.lastMediaHeaders?.length) this.mediaHeadersProcessed = true;
+		}
+		/**
+		* Constructs an array of `BufferedRange` objects from initialized formats.
+		* @param initializedVideoFormat - The initialized video format, if available.
+		* @param initializedAudioFormat - The initialized audio format, if available.
+		* @returns An array of `BufferedRange` objects.
+		* @private
+		*/
+		buildBufferedRanges(initializedVideoFormat, initializedAudioFormat) {
+			const bufferedRanges = [];
+			const formats = [initializedVideoFormat, initializedAudioFormat];
+			for (const initializedFormat of formats) {
+				if (!initializedFormat?.lastMediaHeaders.length) continue;
+				if (fromFormatInitializationMetadata(initializedFormat.formatInitializationMetadata) === this.formatToDiscard) continue;
+				const mediaHeaders = initializedFormat.lastMediaHeaders;
+				const durationMs = mediaHeaders.reduce((sum, header) => sum + parseInt(header.durationMs || "0"), 0);
+				bufferedRanges.push({
+					durationMs: durationMs.toString(),
+					formatId: initializedFormat.formatInitializationMetadata.formatId,
+					startTimeMs: String(mediaHeaders[0].startMs || "0"),
+					startSegmentIndex: mediaHeaders[0].sequenceNumber || 1,
+					endSegmentIndex: mediaHeaders[mediaHeaders.length - 1].sequenceNumber || 1,
+					timeRange: {
+						durationTicks: durationMs.toString(),
+						startTicks: mediaHeaders[0].startMs,
+						timescale: mediaHeaders[0].timeRange?.timescale
+					}
+				});
+				initializedFormat.lastMediaHeaders = [];
+			}
+			return bufferedRanges;
+		}
+		/**
+		* Builds the protobuf request body for a `VideoPlaybackAbrRequest`.
+		* @param abrState - The current client adaptive bitrate state.
+		* @param selectedAudioFormat - The selected audio format.
+		* @param selectedVideoFormat - The selected video format.
+		* @returns The encoded request body as a `Uint8Array`.
+		* @throws {Error} If required configuration (ustreamer config, client info) is missing.
+		* @private
+		*/
+		buildRequestBody(abrState, selectedAudioFormat, selectedVideoFormat) {
+			if (!this.videoPlaybackUstreamerConfig) throw new Error("Video playback ustreamer config must be set before starting.");
+			if (!this.clientInfo) throw new Error("Client info must be set before starting.");
+			const bufferedRanges = this.cachedBufferedRanges || [];
+			const { sabrContexts, unsentSabrContexts } = this.prepareSabrContexts();
+			const { selectedFormatIds, updatedBufferedRanges } = this.prepareFormatSelections([selectedVideoFormat, selectedAudioFormat], bufferedRanges);
+			return VideoPlaybackAbrRequest.encode({
+				clientAbrState: abrState,
+				preferredAudioFormatIds: [selectedAudioFormat],
+				preferredVideoFormatIds: [selectedVideoFormat],
+				preferredSubtitleFormatIds: [],
+				selectedFormatIds,
+				videoPlaybackUstreamerConfig: base64ToU8(this.videoPlaybackUstreamerConfig),
+				streamerContext: {
+					sabrContexts,
+					unsentSabrContexts,
+					poToken: this.poToken ? base64ToU8(this.poToken) : void 0,
+					playbackCookie: this.nextRequestPolicy?.playbackCookie ? PlaybackCookie.encode(this.nextRequestPolicy.playbackCookie).finish() : void 0,
+					clientInfo: this.clientInfo
+				},
+				bufferedRanges: updatedBufferedRanges,
+				field1000: []
+			}).finish();
+		}
+		/**
+		* Prepares SABR context data for the request body.
+		* @returns An object containing active and unsent SABR contexts.
+		* @private
+		*/
+		prepareSabrContexts() {
+			const sabrContexts = [];
+			const unsentSabrContexts = [];
+			for (const ctxUpdate of this.sabrContexts.values()) if (this.activeSabrContextTypes.has(ctxUpdate.type)) sabrContexts.push(ctxUpdate);
+			else unsentSabrContexts.push(ctxUpdate.type);
+			return {
+				sabrContexts,
+				unsentSabrContexts
+			};
+		}
+		/**
+		* Prepares format selections and buffered ranges for the request body.
+		* @param formats - An array of formats to process.
+		* @param currentBufferedRanges - The current buffered ranges to update.
+		* @returns An object with selected format IDs and updated buffered ranges.
+		* @private
+		*/
+		prepareFormatSelections(formats, currentBufferedRanges) {
+			const selectedFormatIds = [];
+			const updatedBufferedRanges = [...currentBufferedRanges];
+			const formatsInitialized = this.initializedFormatsMap.size > 0;
+			for (const format of formats) {
+				const formatKey = fromFormat(format);
+				const shouldDiscard = this.formatToDiscard && formatKey === this.formatToDiscard;
+				if (shouldDiscard) updatedBufferedRanges.push({
+					formatId: format,
+					durationMs: MAX_INT32_VALUE,
+					startTimeMs: String(0),
+					startSegmentIndex: parseInt(MAX_INT32_VALUE),
+					endSegmentIndex: parseInt(MAX_INT32_VALUE),
+					timeRange: {
+						durationTicks: MAX_INT32_VALUE,
+						startTicks: "0",
+						timescale: 1e3
+					}
+				});
+				if (formatsInitialized || shouldDiscard) selectedFormatIds.push(format);
+			}
+			return {
+				selectedFormatIds,
+				updatedBufferedRanges
+			};
+		}
+		/**
+		* Executes a streaming POST request to the server.
+		* @param body - The request body payload.
+		* @returns A `Promise` that resolves with the server `Response`.
+		* @throws {Error} If the server ABR streaming URL is not configured or the request fails.
+		* @private
+		*/
+		async makeStreamingRequest(body) {
+			if (!this.serverAbrStreamingUrl) throw new Error("Server ABR streaming URL not configured.");
+			const url = new URL(this.serverAbrStreamingUrl);
+			url.searchParams.set("rn", this.requestNumber.toString());
+			this.abortController = new AbortController();
+			const timeoutId = setTimeout(() => this.abortController?.abort(), 6e4);
+			try {
+				return await this.fetchFunction(url, {
+					method: "POST",
+					headers: {
+						"content-type": "application/x-protobuf",
+						"accept-encoding": "identity",
+						"accept": "application/vnd.yt-ump"
+					},
+					body,
+					signal: this.abortController.signal
+				});
+			} finally {
+				clearTimeout(timeoutId);
+				this.requestNumber += 1;
+			}
+		}
+		/**
+		* Reads the response body as a stream and processes each UMP part.
+		* @param response - The server response to process.
+		* @returns A promise that resolves to an array of processed UMP part types.
+		* @throws {Error} If the response is invalid, empty, or aborted.
+		* @private
+		*/
+		async processStreamingResponse(response) {
+			if (!response.ok) throw new Error(`Server returned ${response.status} ${response.statusText}`);
+			if (response.headers.get("content-type") !== "application/vnd.yt-ump") throw new Error(`Unexpected content type from server: ${response.headers.get("content-type")}`);
+			const reader = response.body.getReader();
+			let dataReceived = false;
+			let partialPart;
+			const processedParts = [];
+			while (true) {
+				if (this.abortController?.signal?.aborted && !this._aborted) throw new Error("Stream was aborted.");
+				const { done, value } = await reader.read();
+				if (done) {
+					if (!dataReceived) throw new Error("Received empty response from server.");
+					break;
+				}
+				dataReceived = true;
+				let chunk;
+				if (partialPart) {
+					chunk = partialPart.data;
+					chunk.append(value);
+				} else chunk = new CompositeBuffer([value]);
+				partialPart = new UmpReader(chunk).read((part) => {
+					processedParts.push(part.type);
+					const handler = this.umpPartHandlers.get(part.type);
+					if (handler) handler(part);
+				});
+			}
+			return processedParts;
+		}
+		/**
+		* Executes a function with automatic retries and exponential backoff.
+		* Respects server-specified backoff times from `nextRequestPolicy`.
+		* @param fetchFn - The function to execute.
+		* @param maxRetries - The maximum number of retry attempts.
+		* @returns A promise that resolves to `true` on success, or `false` if all retries fail.
+		* @private
+		*/
+		async executeWithRetry(fetchFn, maxRetries) {
+			const backoffTimeMs = this.nextRequestPolicy?.backoffTimeMs || 0;
+			if (backoffTimeMs > 0) {
+				this.logger.debug(TAG, `Respecting server backoff policy: waiting ${backoffTimeMs}ms before request`);
+				await wait(backoffTimeMs);
+			}
+			for (let attempt = 1; attempt <= maxRetries + 1; attempt++) try {
+				await fetchFn();
+				if (this.mediaHeadersProcessed) this.cachedBufferedRanges = void 0;
+				return true;
+			} catch (e) {
+				const error = e;
+				if (this._aborted) {
+					this.logger.debug(TAG, "Download process aborted, skipping retry.");
+					return false;
+				}
+				if (attempt > maxRetries) {
+					this.logger.error(TAG, `Maximum retries (${maxRetries}) exceeded while fetching segment: ${error.message}`);
+					this.errorHandler(error, true);
+					break;
+				}
+				const retryBackoffMs = Math.min(BACKOFF_MULTIPLIER * Math.pow(2, attempt - 1), MAX_BACKOFF_MS);
+				this.logger.warn(TAG, `Segment fetch attempt ${attempt}/${maxRetries + 1} failed - retrying in ${retryBackoffMs}ms`, error);
+				await wait(retryBackoffMs);
+			} finally {
+				this.partialSegmentQueue.clear();
+			}
+			return false;
+		}
+		/**
+		* Decodes a UMP part using the provided decoder.
+		* @param part
+		* @param decoder
+		* @private
+		*/
+		decodePart(part, decoder) {
+			if (!part.data.chunks.length) return void 0;
+			try {
+				return decoder.decode(concatenateChunks(part.data.chunks));
+			} catch {
+				return;
+			}
+		}
+		/**
+		* Handles `FORMAT_INITIALIZATION_METADATA` parts.
+		* Creates and stores a new `InitializedFormat` entry.
+		* @private
+		*/
+		handleFormatInitializationMetadata(part) {
+			const formatInitMetadata = this.decodePart(part, FormatInitializationMetadata);
+			if (!formatInitMetadata) return;
+			const formatIdKey = fromFormatInitializationMetadata(formatInitMetadata);
+			const initializedFormat = {
+				formatInitializationMetadata: formatInitMetadata,
+				downloadedSegments: /* @__PURE__ */ new Map(),
+				lastMediaHeaders: []
+			};
+			this.initializedFormatsMap.set(formatIdKey, initializedFormat);
+			this.logger.debug(TAG, `Initialized format: ${formatIdKey}`);
+			this.emit("formatInitialization", initializedFormat);
+		}
+		/**
+		* Handles `NEXT_REQUEST_POLICY` parts.
+		* Stores the server's policy for backoff time and playback cookies.
+		* @private
+		*/
+		handleNextRequestPolicy(part) {
+			this.nextRequestPolicy = this.decodePart(part, NextRequestPolicy);
+		}
+		/**
+		* Handles `SABR_ERROR` parts.
+		* Throws an error to terminate the current request attempt.
+		* @throws {Error} Always throws with the SABR error details.
+		* @private
+		*/
+		handleSabrError(part) {
+			const sabrError = this.decodePart(part, SabrError);
+			if (!sabrError) return;
+			throw new Error(`SABR Error: ${sabrError.type} - ${sabrError.code}`);
+		}
+		/**
+		* Handles `SABR_REDIRECT` parts.
+		* Updates the streaming URL to the new location provided by the server.
+		* @private
+		*/
+		handleSabrRedirect(part) {
+			const sabrRedirect = this.decodePart(part, SabrRedirect);
+			if (!sabrRedirect) return;
+			if (sabrRedirect.url) {
+				this.serverAbrStreamingUrl = sabrRedirect.url;
+				this.logger.debug(TAG, `Redirecting to ${this.serverAbrStreamingUrl}`);
+			}
+		}
+		/**
+		* Handles `SABR_CONTEXT_UPDATE` parts.
+		* Updates the client's context state based on server instructions.
+		* @private
+		*/
+		handleSabrContextUpdate(part) {
+			const sabrContextUpdate = this.decodePart(part, SabrContextUpdate);
+			if (!sabrContextUpdate) return;
+			if (sabrContextUpdate.type !== void 0 && sabrContextUpdate.value?.length) {
+				if (sabrContextUpdate.writePolicy === SabrContextUpdate_SabrContextWritePolicy.KEEP_EXISTING && this.sabrContexts.has(sabrContextUpdate.type)) {
+					this.logger.debug(TAG, `Skipping SABR context update for type ${sabrContextUpdate.type}`);
+					return;
+				}
+				this.sabrContexts.set(sabrContextUpdate.type, sabrContextUpdate);
+				if (sabrContextUpdate.sendByDefault) this.activeSabrContextTypes.add(sabrContextUpdate.type);
+				this.logger.debug(TAG, `Received SABR context update (type: ${sabrContextUpdate.type}, sendByDefault: ${sabrContextUpdate.sendByDefault})`);
+			}
+		}
+		/**
+		* Handles `SABR_CONTEXT_SENDING_POLICY` parts.
+		* Updates which contexts should be sent in future requests.
+		* @private
+		*/
+		handleSabrContextSendingPolicy(part) {
+			const sabrContextSendingPolicy = this.decodePart(part, SabrContextSendingPolicy);
+			if (!sabrContextSendingPolicy) return;
+			for (const startPolicy of sabrContextSendingPolicy.startPolicy) if (!this.activeSabrContextTypes.has(startPolicy)) {
+				this.activeSabrContextTypes.add(startPolicy);
+				this.logger.debug(TAG, `Activated SABR context for type ${startPolicy}`);
+			}
+			for (const stopPolicy of sabrContextSendingPolicy.stopPolicy) if (this.activeSabrContextTypes.has(stopPolicy)) {
+				this.activeSabrContextTypes.delete(stopPolicy);
+				this.logger.debug(TAG, `Deactivated SABR context for type ${stopPolicy}`);
+			}
+			for (const discardPolicy of sabrContextSendingPolicy.discardPolicy) if (this.sabrContexts.has(discardPolicy)) {
+				this.sabrContexts.delete(discardPolicy);
+				this.logger.debug(TAG, `Discarded SABR context for type ${discardPolicy}`);
+			}
+		}
+		/**
+		* Handles `STREAM_PROTECTION_STATUS` parts.
+		* Emits updates and handles critical statuses like required attestation.
+		* @throws {Error} If attestation is required (status 3).
+		* @private
+		*/
+		handleStreamProtectionStatus(part) {
+			this.streamProtectionStatus = this.decodePart(part, StreamProtectionStatus);
+			if (!this.streamProtectionStatus) return;
+			this.emit("streamProtectionStatusUpdate", this.streamProtectionStatus);
+			if (this.streamProtectionStatus.status === 3) throw new Error("Cannot proceed with stream: attestation required");
+			else if (this.streamProtectionStatus.status === 2) this.logger.warn(TAG, "Attestation pending.");
+		}
+		/**
+		* Handles `RELOAD_PLAYER_RESPONSE` parts.
+		* Emits an event with reload parameters and terminates the session.
+		* @throws {Error} Always throws to terminate the current streaming session.
+		* @private
+		*/
+		handleReloadPlayerResponse(part) {
+			const reloadPlaybackContext = this.decodePart(part, ReloadPlaybackContext);
+			if (!reloadPlaybackContext) return;
+			const errorMessage = "Player response reload requested by server";
+			this.logger.debug(TAG, `${errorMessage} (token: ${reloadPlaybackContext.reloadPlaybackParams?.token}`);
+			this.emit("reloadPlayerResponse", reloadPlaybackContext);
+			throw new Error(errorMessage);
+		}
+		/**
+		* Handles `MEDIA_HEADER` parts.
+		* Creates an entry in the `partialSegmentQueue` for the upcoming media chunks.
+		* @private
+		*/
+		handleMediaHeader(part) {
+			const mediaHeader = this.decodePart(part, MediaHeader);
+			if (!mediaHeader) return;
+			const headerId = mediaHeader.headerId || 0;
+			const formatIdKey = fromMediaHeader(mediaHeader);
+			const segmentNumber = mediaHeader.isInitSeg ? 0 : mediaHeader.sequenceNumber || 0;
+			const durationMs = mediaHeader.durationMs || Math.ceil(parseInt(mediaHeader.timeRange?.durationTicks || "0") / (mediaHeader.timeRange?.timescale || 0) * 1e3).toString();
+			const initializedFormat = this.initializedFormatsMap.get(formatIdKey);
+			if (!initializedFormat) {
+				this.logger.warn(TAG, `No initialized format found for key: ${formatIdKey} (segment ${segmentNumber})`);
+				return;
+			}
+			const mediaType = getMediaType(initializedFormat);
+			if (initializedFormat.downloadedSegments.has(segmentNumber)) {
+				this.logger.debug(TAG, `Segment ${formatIdKey} (segment: ${segmentNumber}) already downloaded. Ignoring.`);
+				return;
+			}
+			this.partialSegmentQueue.set(headerId, {
+				formatIdKey,
+				segmentNumber,
+				durationMs,
+				mediaHeader,
+				bufferedChunks: []
+			});
+			this.logger.debug(TAG, `Enqueued ${mediaType} segment ${segmentNumber} (Header ID: ${headerId}, key: ${formatIdKey}, duration: ${durationMs}ms)`);
+		}
+		/**
+		* Handles `MEDIA` parts.
+		* Buffers media data chunks associated with a specific header ID.
+		* @private
+		*/
+		handleMedia(part) {
+			const headerId = part.data.getUint8(0);
+			const segment = this.partialSegmentQueue.get(headerId);
+			if (!segment) {
+				this.logger.debug(TAG, `Received Media part for an unknown Header ID: ${headerId}`);
+				return;
+			}
+			if (!this.initializedFormatsMap.get(segment.formatIdKey)) {
+				this.logger.warn(TAG, `No initialized format found for key ${segment.formatIdKey} (segment ${segment.segmentNumber})`);
+				return;
+			}
+			const dataBuffer = part.data.split(1).remainingBuffer;
+			for (const chunk of dataBuffer.chunks) segment.bufferedChunks.push(chunk);
+		}
+		/**
+		* Handles `MEDIA_END` parts.
+		* Finalizes a segment, enqueues its data to the appropriate stream, and updates tracking.
+		* @private
+		*/
+		handleMediaEnd(part) {
+			const headerId = part.data.getUint8(0);
+			const segment = this.partialSegmentQueue.get(headerId);
+			if (!segment) {
+				this.logger.debug(TAG, `Received MediaEnd for an unknown Header ID: ${headerId}`);
+				return;
+			}
+			const loadedBytes = segment.bufferedChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+			if (loadedBytes !== parseInt(segment.mediaHeader.contentLength || "0")) {
+				this.logger.warn(TAG, `Content length mismatch for segment ${segment.segmentNumber} (Header ID: ${headerId}, key: ${segment.formatIdKey}, expected: ${segment.mediaHeader.contentLength}, received: ${loadedBytes})`);
+				this.partialSegmentQueue.delete(headerId);
+				return;
+			}
+			const initializedFormat = this.initializedFormatsMap.get(segment.formatIdKey);
+			if (initializedFormat) {
+				const mediaType = getMediaType(initializedFormat);
+				if (segment.bufferedChunks.length) for (const chunk of segment.bufferedChunks) if (mediaType === "audio") this.audioController?.enqueue(chunk);
+				else this.videoController?.enqueue(chunk);
+				this.logger.debug(TAG, `Received MediaEnd for ${mediaType} segment ${segment.segmentNumber} (Header ID: ${headerId}, key: ${segment.formatIdKey})`);
+				segment.bufferedChunks.length = 0;
+				segment.bufferedChunks = [];
+				initializedFormat.lastMediaHeaders.push(segment.mediaHeader);
+				initializedFormat.downloadedSegments.set(segment.segmentNumber, segment);
+				this.partialSegmentQueue.delete(headerId);
+			}
+		}
+		/**
+		* Validates and corrects the stream duration based on format initialization metadata.
+		* @param formatInitializationMetadata - The metadata from an initialized format.
+		* @private
+		*/
+		validateAndCorrectDuration(formatInitializationMetadata) {
+			const durationUnits = parseInt(formatInitializationMetadata.durationUnits || "0");
+			const durationTimescale = parseInt(formatInitializationMetadata.durationTimescale || "0");
+			if (durationTimescale === 0) {
+				this.logger.warn(TAG, "Invalid timescale (0) in format initialization metadata");
+				return;
+			}
+			const expectedDuration = Math.trunc(durationUnits / (durationTimescale / 1e3));
+			if (this.durationMs !== expectedDuration) {
+				this.durationMs = expectedDuration;
+				this.logger.debug(TAG, `Corrected stream duration to ${this.durationMs}ms based on format initialization metadata`);
+			}
+		}
+		/**
+		* Validates downloaded segments for completeness and consistency after the stream finishes.
+		* Checks for duration coverage, missing segments, and duplicates.
+		* @private
+		*/
+		validateDownloadedSegments() {
+			for (const [formatIdKey, initializedFormat] of this.initializedFormatsMap.entries()) {
+				if (formatIdKey === this.formatToDiscard) {
+					this.logger.debug(TAG, `Skipping validation for discarded format: ${formatIdKey}`);
+					continue;
+				}
+				const totalDuration = getTotalDownloadedDuration(initializedFormat);
+				const durationUnits = parseInt(initializedFormat.formatInitializationMetadata.durationUnits || "0");
+				const durationTimescale = parseInt(initializedFormat.formatInitializationMetadata.durationTimescale || "0");
+				const expectedDuration = durationTimescale ? durationUnits / (durationTimescale / 1e3) : 0;
+				const durationMismatch = Math.abs(totalDuration - expectedDuration);
+				if (expectedDuration > 0 && durationMismatch > expectedDuration * .01) {
+					const durationCoverage = Math.round(totalDuration / expectedDuration * 100);
+					this.logger.warn(TAG, `Incomplete stream for format ${formatIdKey}: downloaded ${totalDuration}ms (${durationCoverage}%), expected ${expectedDuration}ms`);
+				}
+				const segments = Array.from(initializedFormat.downloadedSegments.entries());
+				if (segments.length === 0) continue;
+				segments.sort(([numA], [numB]) => numA - numB);
+				const expectedSegmentCount = parseInt(initializedFormat.formatInitializationMetadata.endSegmentNumber || "0");
+				const missingSegments = [];
+				for (let i = 0; i <= expectedSegmentCount; i++) if (!initializedFormat.downloadedSegments.has(i)) missingSegments.push(i);
+				const uniqueSegmentCount = new Set(segments.map(([num]) => num)).size;
+				const hasDuplicates = uniqueSegmentCount !== segments.length;
+				if (missingSegments.length > 0) {
+					const message = `Format ${formatIdKey}: Missing segments: [${missingSegments.join(", ")}]. Expected range: 0-${expectedSegmentCount}. `;
+					this.logger.warn(TAG, message);
+					this.errorHandler(new Error(message), true);
+				} else this.logger.debug(TAG, `Format ${formatIdKey}: All ${expectedSegmentCount} segments present (100% coverage)`);
+				if (hasDuplicates) {
+					const message = `Format ${formatIdKey}: Found duplicate segment numbers (${segments.length} segments but ${uniqueSegmentCount} unique numbers)`;
+					this.logger.warn(TAG, message);
+					this.errorHandler(new Error(message), true);
+				}
+			}
+		}
+		/**
+		* Resets the internal state of the stream.
+		* Clears all maps, resets counters, and re-initializes the progress tracker.
+		* @private
+		*/
+		resetState() {
+			this.initializedFormatsMap.clear();
+			this.partialSegmentQueue.clear();
+			this.activeSabrContextTypes.clear();
+			this.sabrContexts.clear();
+			this.nextRequestPolicy = void 0;
+			this.mainFormat = void 0;
+			this.requestNumber = 0;
+			this.cachedBufferedRanges = void 0;
+			this.mediaHeadersProcessed = false;
+			this.streamProtectionStatus = void 0;
+			this.formatToDiscard = void 0;
+			this.abortController = void 0;
+			this.progressTracker = {
+				lastProgressTime: Date.now(),
+				lastDownloadedDuration: 0,
+				stallCount: 0
+			};
+		}
+		/**
+		* Handles errors during the streaming process.
+		* @param error - The error that occurred.
+		* @param notifyControllers - Whether to propagate the error to the stream controllers.
+		* @private
+		*/
+		errorHandler(error, notifyControllers = true) {
+			this.resetState();
+			this.logger.error(TAG, `Stream error: ${error.message}`);
+			if (notifyControllers) {
+				this._errored = true;
+				this.videoController?.error(error);
+				this.audioController?.error(error);
+			}
+		}
+	};
 	//#endregion
 	//#region src/audioDownloader/utils.ts
 	function normalizeAudioLanguageTag(value) {
@@ -22672,6 +26427,342 @@ var vot = (function(exports) {
 		return c;
 	})(se, n$1);
 	//#endregion
+	//#region src/audioDownloader/strategies/safariPageBridge.ts
+	var REQUEST_EVENT = "vot:safari-page-po-token:request";
+	var RESPONSE_EVENT = "vot:safari-page-po-token:response";
+	var BRIDGE_MARKER = "data-vot-safari-po-token-bridge";
+	var TOP_REQUEST_MESSAGE = "vot:safari-page-po-token:top-request";
+	var TOP_RESPONSE_MESSAGE = "vot:safari-page-po-token:top-response";
+	function isSafariBrowser() {
+		return browserInfo.browser?.name === "Safari";
+	}
+	function installSafariPageBridge() {
+		if (!isSafariBrowser()) return false;
+		if (document.documentElement.hasAttribute(BRIDGE_MARKER)) return true;
+		const script = document.createElement("script");
+		const nonceSource = document.querySelector("script[nonce]");
+		if (nonceSource?.nonce) script.nonce = nonceSource.nonce;
+		script.textContent = `(() => {
+    const REQUEST_EVENT = ${JSON.stringify(REQUEST_EVENT)};
+    const RESPONSE_EVENT = ${JSON.stringify(RESPONSE_EVENT)};
+    const MARKER = ${JSON.stringify(BRIDGE_MARKER)};
+    if (document.documentElement.hasAttribute(MARKER)) return;
+    document.documentElement.setAttribute(MARKER, "1");
+
+    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    async function mint(binding) {
+      const keys = Object.getOwnPropertyNames(globalThis).filter(
+        (key) => key === "bevasrsg" || key.startsWith("havuokmhhs-"),
+      );
+      if (!keys.length) {
+        throw new Error("YouTube PO token provider is unavailable in page realm");
+      }
+
+      for (const key of keys) {
+        let bevasrs;
+        try {
+          bevasrs = globalThis[key]?.bevasrs;
+        } catch {
+          continue;
+        }
+        const wpc = bevasrs?.wpc;
+        if (typeof wpc !== "function") continue;
+
+        for (let attempt = 0; attempt < 10; attempt++) {
+          try {
+            const minter = await wpc.call(bevasrs);
+            const token = await minter?.mws?.({
+              c: binding,
+              mc: false,
+              me: false,
+            });
+            if (typeof token === "string" && token) return token;
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            if (!message.includes("SDF:notready")) break;
+          }
+          await delay(500);
+        }
+      }
+      throw new Error("YouTube PO token mint failed in page realm");
+    }
+
+    addEventListener(REQUEST_EVENT, async (event) => {
+      const detail = event?.detail;
+      const requestId = detail?.requestId;
+      const binding = detail?.binding;
+      if (typeof requestId !== "string" || typeof binding !== "string" || !binding) {
+        return;
+      }
+
+      try {
+        const token = await mint(binding);
+        dispatchEvent(new CustomEvent(RESPONSE_EVENT, {
+          detail: { requestId, token },
+        }));
+      } catch (error) {
+        dispatchEvent(new CustomEvent(RESPONSE_EVENT, {
+          detail: {
+            requestId,
+            error: error instanceof Error ? error.message : String(error),
+          },
+        }));
+      }
+    });
+  })();`;
+		(document.documentElement || document.head).append(script);
+		script.remove();
+		return document.documentElement.hasAttribute(BRIDGE_MARKER);
+	}
+	async function requestSafariPagePoTokenLocal(binding, signal) {
+		if (!isSafariBrowser()) return void 0;
+		signal.throwIfAborted();
+		if (!installSafariPageBridge()) {
+			debug.error("[VOT][PO_TOKEN] Safari page bridge injection failed");
+			return;
+		}
+		const requestId = crypto.randomUUID();
+		debug.log("[VOT][PO_TOKEN] trying Safari page-realm bridge", { bindingLength: binding.length });
+		return await new Promise((resolve, reject) => {
+			let settled = false;
+			const timeout = setTimeout(() => finish(void 0), 8e3);
+			const cleanup = () => {
+				clearTimeout(timeout);
+				removeEventListener(RESPONSE_EVENT, onResponse);
+				signal.removeEventListener("abort", onAbort);
+			};
+			const finish = (value) => {
+				if (settled) return;
+				settled = true;
+				cleanup();
+				resolve(value);
+			};
+			const onAbort = () => {
+				if (settled) return;
+				settled = true;
+				cleanup();
+				reject(signal.reason);
+			};
+			const onResponse = (event) => {
+				const detail = event.detail;
+				if (detail?.requestId !== requestId) return;
+				if (typeof detail.token === "string" && detail.token) {
+					finish(detail.token);
+					return;
+				}
+				if (detail.error) debug.error("[VOT][PO_TOKEN] Safari page-realm mint failed", { message: detail.error });
+				finish(void 0);
+			};
+			addEventListener(RESPONSE_EVENT, onResponse);
+			signal.addEventListener("abort", onAbort, { once: true });
+			dispatchEvent(new CustomEvent(REQUEST_EVENT, { detail: {
+				requestId,
+				binding
+			} }));
+		});
+	}
+	async function requestTopSafariPagePoToken(binding, signal) {
+		const requestId = crypto.randomUUID();
+		debug.log("[VOT][PO_TOKEN] requesting token from top YouTube player", { bindingLength: binding.length });
+		return await new Promise((resolve, reject) => {
+			let settled = false;
+			const timeout = setTimeout(() => finish(void 0), 8e3);
+			const cleanup = () => {
+				clearTimeout(timeout);
+				removeEventListener("message", onMessage);
+				signal.removeEventListener("abort", onAbort);
+			};
+			const finish = (value) => {
+				if (settled) return;
+				settled = true;
+				cleanup();
+				resolve(value);
+			};
+			const onAbort = () => {
+				if (settled) return;
+				settled = true;
+				cleanup();
+				reject(signal.reason);
+			};
+			const onMessage = (event) => {
+				if (event.source !== window.top || event.origin !== location.origin) return;
+				const data = event.data;
+				if (data?.type !== TOP_RESPONSE_MESSAGE || data.requestId !== requestId) return;
+				if (typeof data.token === "string" && data.token) {
+					debug.log("[VOT][PO_TOKEN] token received from top YouTube player", { tokenLength: data.token.length });
+					finish(data.token);
+				} else {
+					if (data.error) debug.error("[VOT][PO_TOKEN] top player token mint failed", { message: data.error });
+					finish(void 0);
+				}
+			};
+			addEventListener("message", onMessage);
+			signal.addEventListener("abort", onAbort, { once: true });
+			window.top?.postMessage({
+				type: TOP_REQUEST_MESSAGE,
+				requestId,
+				binding
+			}, location.origin);
+		});
+	}
+	async function requestSafariPagePoToken(binding, signal) {
+		if (!isSafariBrowser()) return void 0;
+		signal.throwIfAborted();
+		if (window !== window.top) return requestTopSafariPagePoToken(binding, signal);
+		return requestSafariPagePoTokenLocal(binding, signal);
+	}
+	//#endregion
+	//#region src/audioDownloader/strategies/youtubePage.ts
+	/** Resolve the real YouTube page realm when the userscript manager exposes it. */
+	function getMainWorldWindow(targetWindow) {
+		try {
+			if (typeof unsafeWindow !== "undefined" && unsafeWindow) {
+				const unsafe = unsafeWindow;
+				if (unsafe.document && unsafe.location?.hostname.endsWith("youtube.com")) return unsafe;
+			}
+		} catch {}
+		try {
+			const unsafe = globalThis.unsafeWindow;
+			if (unsafe?.document && unsafe.location?.hostname.endsWith("youtube.com")) return unsafe;
+		} catch {}
+		try {
+			const wrapped = targetWindow.wrappedJSObject;
+			if (wrapped?.document && wrapped.location?.hostname.endsWith("youtube.com")) return wrapped;
+		} catch {}
+		return targetWindow;
+	}
+	/** Resolve the top same-origin YouTube page while preserving the native page realm. */
+	function getTopPageWindow(targetWindow) {
+		const pageWindow = getMainWorldWindow(targetWindow);
+		try {
+			const top = pageWindow.top;
+			if (top?.document && top.location?.hostname.endsWith("youtube.com")) try {
+				return top.wrappedJSObject ?? top;
+			} catch {
+				return top;
+			}
+		} catch {}
+		return pageWindow;
+	}
+	//#endregion
+	//#region src/audioDownloader/strategies/youtubePoToken.ts
+	/** Mint a GVS PO token in the native YouTube page realm when possible. */
+	async function mintPagePoToken(pageWindow, binding, signal) {
+		const mainWindow = getTopPageWindow(pageWindow);
+		const realms = /* @__PURE__ */ new Set([mainWindow]);
+		if (mainWindow !== pageWindow) realms.add(pageWindow);
+		try {
+			realms.add(mainWindow.parent);
+			realms.add(mainWindow.top);
+		} catch {}
+		debug.log("[VOT][PO_TOKEN] mint started", {
+			bindingLength: binding.length,
+			realmCount: realms.size
+		});
+		for (const realm of realms) {
+			let keys;
+			try {
+				keys = Object.getOwnPropertyNames(realm).filter((key) => key === "bevasrsg" || key.startsWith("havuokmhhs-"));
+			} catch {
+				continue;
+			}
+			for (const key of keys) {
+				let bevasrs;
+				try {
+					bevasrs = realm[key]?.bevasrs;
+				} catch {
+					continue;
+				}
+				const wpc = bevasrs?.wpc;
+				if (typeof wpc !== "function") continue;
+				for (let attempt = 0; attempt < 10; attempt++) {
+					if (signal.aborted) throw signal.reason;
+					try {
+						const token = await (await wpc.call(bevasrs))?.mws?.({
+							c: binding,
+							mc: false,
+							me: false
+						});
+						if (typeof token === "string" && token) {
+							debug.log("[VOT][PO_TOKEN] mint success", {
+								tokenLength: token.length,
+								provider: key,
+								attempt
+							});
+							return token;
+						}
+						debug.log("[VOT][PO_TOKEN] mint returned no token", {
+							provider: key,
+							attempt
+						});
+					} catch (error) {
+						const message = error instanceof Error ? error.message : String(error);
+						debug.log("[VOT][PO_TOKEN] mint attempt failed", {
+							provider: key,
+							attempt,
+							message
+						});
+						if (!message.includes("SDF:notready")) break;
+					}
+					await createAbortableDelay(500, signal);
+				}
+			}
+		}
+		const safariToken = await requestSafariPagePoToken(binding, signal);
+		if (safariToken) {
+			debug.log("[VOT][PO_TOKEN] Safari page-realm mint success", { tokenLength: safariToken.length });
+			return safariToken;
+		}
+		debug.error("[VOT][PO_TOKEN] mint failed", {
+			bindingLength: binding.length,
+			realmCount: realms.size
+		});
+	}
+	/** Select the binding expected by YouTube's current GVS PO-token policy. */
+	function selectGvsPoTokenBinding(videoId, options) {
+		if (options.experimentFlags.some((flags) => new URLSearchParams(flags).getAll("html5_generate_content_po_token").at(-1) === "true")) {
+			debug.log("[VOT][WEB_CREATOR] selecting GVS PO binding", {
+				kind: "video",
+				loggedIn: options.loggedIn,
+				hasDataSyncId: typeof options.dataSyncId === "string" && Boolean(options.dataSyncId),
+				reason: "html5_generate_content_po_token"
+			});
+			return {
+				kind: "video",
+				value: videoId
+			};
+		}
+		if (options.loggedIn && typeof options.dataSyncId === "string" && options.dataSyncId) {
+			debug.log("[VOT][WEB_CREATOR] selecting GVS PO binding", {
+				kind: "datasync",
+				loggedIn: true,
+				hasDataSyncId: true
+			});
+			return {
+				kind: "datasync",
+				value: options.dataSyncId
+			};
+		}
+		if (typeof options.visitorData === "string" && options.visitorData) {
+			debug.log("[VOT][WEB_CREATOR] selecting GVS PO binding", {
+				kind: "visitor",
+				loggedIn: options.loggedIn,
+				hasDataSyncId: typeof options.dataSyncId === "string" && Boolean(options.dataSyncId)
+			});
+			return {
+				kind: "visitor",
+				value: options.visitorData
+			};
+		}
+		debug.error("[VOT][WEB_CREATOR] no GVS PO binding available", {
+			loggedIn: options.loggedIn,
+			hasDataSyncId: typeof options.dataSyncId === "string" && Boolean(options.dataSyncId),
+			hasVisitorData: typeof options.visitorData === "string" && Boolean(options.visitorData)
+		});
+	}
+	//#endregion
 	//#region src/audioDownloader/strategies/webAbr.ts
 	var MEDIA_RANGE_SIZES = [
 		6e4,
@@ -22735,61 +26826,10 @@ var vot = (function(exports) {
 		}
 		return ranges;
 	}
-	async function mintPagePoToken(pageWindow, binding, signal) {
-		const realms = /* @__PURE__ */ new Set([pageWindow]);
-		try {
-			realms.add(pageWindow.parent);
-			realms.add(pageWindow.top);
-		} catch {}
-		for (const realm of realms) {
-			let keys;
-			try {
-				keys = Object.getOwnPropertyNames(realm).filter((key) => key === "bevasrsg" || key.startsWith("havuokmhhs-"));
-			} catch {
-				continue;
-			}
-			for (const key of keys) {
-				let bevasrs;
-				try {
-					bevasrs = realm[key]?.bevasrs;
-				} catch {
-					continue;
-				}
-				const wpc = bevasrs?.wpc;
-				if (typeof wpc !== "function") continue;
-				for (let attempt = 0; attempt < 10; attempt++) {
-					if (signal.aborted) throw signal.reason;
-					try {
-						const token = await (await wpc.call(bevasrs))?.mws?.({
-							c: binding,
-							mc: false,
-							me: false
-						});
-						if (typeof token === "string" && token) return token;
-					} catch (error) {
-						if (!String(error).includes("SDF:notready")) break;
-					}
-					await createAbortableDelay(500, signal);
-				}
-			}
-		}
-	}
-	function selectGvsPoTokenBinding(videoId, options) {
-		if (options.experimentFlags.some((flags) => new URLSearchParams(flags).getAll("html5_generate_content_po_token").at(-1) === "true")) return {
-			kind: "video",
-			value: videoId
-		};
-		const value = options.loggedIn ? options.dataSyncId : options.visitorData;
-		if (typeof value !== "string" || !value) return;
-		return {
-			kind: options.loggedIn ? "datasync" : "visitor",
-			value
-		};
-	}
 	function getConfigValue(config, key) {
 		return config.get?.(key) ?? config.data_?.[key];
 	}
-	function buildContentPlaybackContext(signatureTimestamp) {
+	function buildContentPlaybackContext$1(signatureTimestamp) {
 		const context = { html5Preference: "HTML5_PREF_WANTS" };
 		const timestamp = Number(signatureTimestamp);
 		if (Number.isFinite(timestamp) && timestamp > 0) context.signatureTimestamp = timestamp;
@@ -22906,7 +26946,7 @@ var vot = (function(exports) {
 		client.originalUrl = `https://www.youtube.com/embed/${videoId}?html5=1`;
 		context.thirdParty ??= {};
 		context.thirdParty.embedUrl = "https://www.reddit.com/";
-		const contentPlaybackContext = buildContentPlaybackContext(extractedSignatureTimestamp ?? getConfigValue(config, "STS"));
+		const contentPlaybackContext = buildContentPlaybackContext$1(extractedSignatureTimestamp ?? getConfigValue(config, "STS"));
 		const encryptedHostFlags = getConfigValue(config, "WEB_PLAYER_CONTEXT_CONFIGS")?.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER?.encryptedHostFlags;
 		if (typeof encryptedHostFlags === "string" && encryptedHostFlags) contentPlaybackContext.encryptedHostFlags = encryptedHostFlags;
 		return {
@@ -23002,7 +27042,7 @@ var vot = (function(exports) {
 		return solved;
 	}
 	var SIG_PATTERN = /^[A-Za-z0-9_-]{20,}={0,2}$/;
-	var N_PATTERN = /^[A-Za-z0-9_-]{4,}$/;
+	var N_PATTERN$1 = /^[A-Za-z0-9_-]{4,}$/;
 	function listPageFunctions(pageWindow) {
 		const found = [];
 		const seen = /* @__PURE__ */ new Set();
@@ -23092,10 +27132,10 @@ var vot = (function(exports) {
 			} catch {}
 			if (challenge.n && transform) try {
 				if (factory) methods.set.call(instance, "n", challenge.n);
-				solution.n = validPageValue(methods.get.call(instance, "n"), challenge.n, N_PATTERN);
+				solution.n = validPageValue(methods.get.call(instance, "n"), challenge.n, N_PATTERN$1);
 				if (!solution.n) {
 					transform.call(instance);
-					solution.n = validPageValue(methods.get.call(instance, "n"), challenge.n, N_PATTERN);
+					solution.n = validPageValue(methods.get.call(instance, "n"), challenge.n, N_PATTERN$1);
 					if (!solution.signature) solution.signature = readSignature();
 				}
 			} catch {}
@@ -23208,7 +27248,7 @@ var vot = (function(exports) {
 			signal.throwIfAborted();
 			const solved = {
 				signature: validPageValue(raw.signature, signature, SIG_PATTERN),
-				n: validPageValue(raw.n, n, N_PATTERN)
+				n: validPageValue(raw.n, n, N_PATTERN$1)
 			};
 			if (signature && !solved.signature || n && !solved.n) throw new Error("Audio downloader. YouTube challenge solve invalid");
 			astSolutions.set(key, solved);
@@ -23254,7 +27294,7 @@ var vot = (function(exports) {
 		signal.throwIfAborted();
 	}
 	function buildTvDowngradedPlayerRequest(videoId, options = {}) {
-		const contentPlaybackContext = buildContentPlaybackContext(options.signatureTimestamp);
+		const contentPlaybackContext = buildContentPlaybackContext$1(options.signatureTimestamp);
 		return {
 			context: { client: {
 				clientName: "TVHTML5",
@@ -23285,13 +27325,13 @@ var vot = (function(exports) {
 		return {
 			context,
 			videoId,
-			playbackContext: { contentPlaybackContext: buildContentPlaybackContext(extractedSignatureTimestamp ?? getConfigValue(config, "STS")) },
+			playbackContext: { contentPlaybackContext: buildContentPlaybackContext$1(extractedSignatureTimestamp ?? getConfigValue(config, "STS")) },
 			contentCheckOk: true,
 			racyCheckOk: true
 		};
 	}
 	function buildWebCreatorPlayerRequest(videoId, options = {}) {
-		const contentPlaybackContext = buildContentPlaybackContext(options.signatureTimestamp);
+		const contentPlaybackContext = buildContentPlaybackContext$1(options.signatureTimestamp);
 		return {
 			context: { client: {
 				clientName: "WEB_CREATOR",
@@ -23689,7 +27729,7 @@ var vot = (function(exports) {
 		}
 		throw lastError instanceof Error ? lastError : /* @__PURE__ */ new Error("Audio downloader. All web ABR transports failed");
 	}
-	async function* getWebAbrAudioChunksImpl(targetWindow, videoId, signal, sourceLanguage) {
+	async function* getWebAbrAudioChunks$1(targetWindow, videoId, signal, sourceLanguage) {
 		const config = await resolveYtcfg(targetWindow, signal);
 		const apiKey = getConfigValue(config, "INNERTUBE_API_KEY");
 		if (typeof apiKey !== "string") throw new Error("Audio downloader. web ABR config is unavailable");
@@ -23737,6 +27777,7 @@ var vot = (function(exports) {
 		});
 		let lastError;
 		let emitted = false;
+		let loginRequiredSeen = false;
 		for (const name of [
 			"web_embedded",
 			"tv_downgraded",
@@ -23761,6 +27802,7 @@ var vot = (function(exports) {
 			const requestPlayer = async (authenticated = false) => {
 				const response = await postPlayer(authenticated);
 				const status = response.playabilityStatus?.status ?? "";
+				if (status === "LOGIN_REQUIRED") loginRequiredSeen = true;
 				if (!authenticated && authorization && /LOGIN_REQUIRED|AGE_CHECK_REQUIRED|CONTENT_CHECK_REQUIRED/.test(status)) {
 					debug.log("Audio downloader. retrying player with YouTube session", {
 						videoId,
@@ -23827,6 +27869,7 @@ var vot = (function(exports) {
 				}
 			} catch (error) {
 				signal.throwIfAborted();
+				if (error instanceof Error && error.message === "YOUTUBE_SIGN_IN_SUGGESTED") throw error;
 				if (emitted) throw error;
 				debug.log("Audio downloader. player client format failed", {
 					videoId,
@@ -23836,19 +27879,1182 @@ var vot = (function(exports) {
 				lastError = error;
 			}
 		}
+		if (loginRequiredSeen && !authorization) throw new Error("YOUTUBE_SIGN_IN_SUGGESTED", { cause: lastError });
 		const fallbackError = lastError instanceof Error ? lastError : /* @__PURE__ */ new Error("Audio downloader. no playable audio formats");
 		if (/LOGIN_REQUIRED|UNPLAYABLE/.test(fallbackError.message)) throw new Error(`${fallbackError.message}. Anonymous playback and the available signed-in YouTube session were both unable to provide a playable audio stream`, { cause: fallbackError });
 		throw fallbackError;
 	}
-	var WEB_ABR_DOWNLOAD_QUEUE = /* @__PURE__ */ new Map();
+	//#endregion
+	//#region src/audioDownloader/strategies/youtubeSabrPlayer.ts
+	function readInitialPlayerResponseFromDocument(targetWindow) {
+		let scripts = [];
+		try {
+			scripts = [...getTopPageWindow(targetWindow).document.querySelectorAll("script:not([src])")];
+		} catch {
+			return;
+		}
+		const markers = [
+			"ytInitialPlayerResponse =",
+			"ytInitialPlayerResponse=",
+			"window[\"ytInitialPlayerResponse\"] =",
+			"window['ytInitialPlayerResponse'] ="
+		];
+		for (const script of scripts) {
+			const source = script.textContent ?? "";
+			if (!source.includes("ytInitialPlayerResponse")) continue;
+			for (const marker of markers) {
+				let cursor = 0;
+				while (cursor < source.length) {
+					const markerIndex = source.indexOf(marker, cursor);
+					if (markerIndex < 0) break;
+					let start = markerIndex + marker.length;
+					while (start < source.length && /\s/.test(source[start] ?? "")) start++;
+					if (source[start] !== "{") {
+						cursor = start + 1;
+						continue;
+					}
+					const end = findJsonValueEnd(source, start);
+					if (end < 0) break;
+					try {
+						const value = JSON.parse(source.slice(start, end));
+						if (value && typeof value === "object") return value;
+					} catch {}
+					cursor = end;
+				}
+			}
+		}
+	}
+	function getNativePlayerResponse(targetWindow, videoId) {
+		const candidates = [];
+		try {
+			const moviePlayer = getTopPageWindow(targetWindow).document.querySelector("#movie_player");
+			if (moviePlayer && typeof moviePlayer.getPlayerResponse === "function") {
+				const response = moviePlayer.getPlayerResponse();
+				if (response && typeof response === "object") candidates.push(response);
+			}
+		} catch {}
+		try {
+			if (targetWindow.ytInitialPlayerResponse) candidates.push(targetWindow.ytInitialPlayerResponse);
+		} catch {}
+		const documentResponse = readInitialPlayerResponseFromDocument(targetWindow);
+		if (documentResponse) candidates.push(documentResponse);
+		for (const value of candidates) {
+			const responseVideoId = value.videoDetails?.videoId;
+			if (responseVideoId && responseVideoId !== videoId) continue;
+			if (value.streamingData?.serverAbrStreamingUrl && value.playerConfig?.mediaCommonConfig?.mediaUstreamerRequestConfig?.videoPlaybackUstreamerConfig && value.streamingData?.adaptiveFormats?.length) return value;
+		}
+	}
+	function selectEconomyAudioFormat(formats) {
+		const audioOnly = formats.filter((format) => typeof format.itag === "number" && format.mimeType?.includes("audio/") && !format.mimeType?.includes("video/"));
+		const nonDrc = audioOnly.filter((format) => !isDrcAudioFormat(format));
+		const candidates = nonDrc.length > 0 ? nonDrc : audioOnly;
+		const contentLength = (format) => {
+			const value = Number(format.contentLength);
+			return Number.isFinite(value) && value > 0 ? value : Number.POSITIVE_INFINITY;
+		};
+		const bitrate = (format) => {
+			const value = Number(format.averageBitrate ?? format.bitrate);
+			return Number.isFinite(value) && value > 0 ? value : Number.POSITIVE_INFINITY;
+		};
+		return [...candidates].sort((a, b) => {
+			const sizeDiff = contentLength(a) - contentLength(b);
+			if (Number.isFinite(sizeDiff) && sizeDiff !== 0) return sizeDiff;
+			const bitrateDiff = bitrate(a) - bitrate(b);
+			if (Number.isFinite(bitrateDiff) && bitrateDiff !== 0) return bitrateDiff;
+			return (a.itag ?? Number.MAX_SAFE_INTEGER) - (b.itag ?? Number.MAX_SAFE_INTEGER);
+		})[0];
+	}
+	var N_PATTERN = /^[A-Za-z0-9_-]{4,}$/;
+	async function resolveSabrStreamingUrl(targetWindow, rawUrl, config, signal) {
+		signal.throwIfAborted();
+		const url = new URL(rawUrl);
+		const n = url.searchParams.get("n") ?? void 0;
+		if (!n) return url.toString();
+		const playerUrl = getPlayerUrl(config);
+		if (!playerUrl) throw new Error("Audio downloader. YouTube player URL is unavailable for SABR n solve");
+		const response = await targetWindow.fetch(playerUrl, { signal });
+		if (!response.ok) throw new Error(`Audio downloader. YouTube player request failed (${response.status})`);
+		const code = await response.text();
+		signal.throwIfAborted();
+		const solvedN = validPageValue(solveYouTubeChallenges(targetWindow, code, void 0, n).n, n, N_PATTERN);
+		if (!solvedN) throw new Error("Audio downloader. SABR n challenge solve invalid");
+		url.searchParams.set("n", solvedN);
+		return url.toString();
+	}
+	function buildContentPlaybackContext(signatureTimestamp) {
+		const context = { html5Preference: "HTML5_PREF_WANTS" };
+		const timestamp = Number(signatureTimestamp);
+		if (Number.isFinite(timestamp) && timestamp > 0) context.signatureTimestamp = timestamp;
+		return context;
+	}
+	function buildSabrPlayerRequest(config, videoId, extractedSignatureTimestamp) {
+		const rawContext = getConfigValue(config, "INNERTUBE_CONTEXT");
+		if (!rawContext || typeof rawContext !== "object") throw new Error("Audio downloader. web client context is unavailable");
+		const context = JSON.parse(JSON.stringify(rawContext));
+		context.client ??= {};
+		const client = context.client;
+		client.clientName = "WEB";
+		client.clientVersion = getConfigValue(config, "INNERTUBE_CLIENT_VERSION") ?? client.clientVersion;
+		client.originalUrl = `https://www.youtube.com/watch?v=${videoId}`;
+		delete context.thirdParty;
+		return {
+			context,
+			videoId,
+			playbackContext: { contentPlaybackContext: buildContentPlaybackContext(extractedSignatureTimestamp ?? getConfigValue(config, "STS")) },
+			contentCheckOk: true,
+			racyCheckOk: true
+		};
+	}
+	//#endregion
+	//#region src/audioDownloader/strategies/youtubeSabrSupport.ts
+	function toSabrFormat(format) {
+		const itag = Number(format.itag);
+		const bitrate = Number(format.bitrate ?? format.averageBitrate);
+		const approxDurationMs = Number(format.approxDurationMs);
+		const lastModified = String(format.lastModified ?? "");
+		if (!(itag > 0) || !(bitrate > 0) || !(approxDurationMs > 0) || !lastModified) return;
+		const language = getYoutubeAudioFormatLanguage(format) || void 0;
+		return {
+			itag,
+			lastModified,
+			xtags: format.xtags,
+			width: format.width,
+			height: format.height,
+			contentLength: Number(format.contentLength) || void 0,
+			audioTrackId: format.audioTrackId ?? format.audioTrack?.id,
+			mimeType: format.mimeType,
+			isDrc: isDrcAudioFormat(format),
+			quality: format.quality,
+			qualityLabel: format.qualityLabel,
+			averageBitrate: Number(format.averageBitrate) || void 0,
+			bitrate,
+			audioQuality: format.audioQuality,
+			approxDurationMs,
+			language,
+			isOriginal: format.audioTrack?.audioIsDefault === true
+		};
+	}
+	function encodeProtoVarint(value) {
+		const out = [];
+		let current = Math.max(0, Math.floor(value));
+		do {
+			let byte = current % 128;
+			current = Math.floor(current / 128);
+			if (current > 0) byte |= 128;
+			out.push(byte);
+		} while (current > 0);
+		return new Uint8Array(out);
+	}
+	function concatBytes(parts) {
+		const size = parts.reduce((sum, part) => sum + part.byteLength, 0);
+		const out = new Uint8Array(size);
+		let offset = 0;
+		for (const part of parts) {
+			out.set(part, offset);
+			offset += part.byteLength;
+		}
+		return out;
+	}
+	function readProtoVarintAt(bytes, offset) {
+		let value = 0;
+		let shift = 0;
+		let cursor = offset;
+		while (cursor < bytes.length && shift <= 49) {
+			const byte = bytes[cursor++];
+			value += (byte & 127) * 2 ** shift;
+			if ((byte & 128) === 0) return {
+				value,
+				next: cursor
+			};
+			shift += 7;
+		}
+		throw new Error("invalid protobuf varint");
+	}
+	function splitTopLevelProto(bytes) {
+		const out = [];
+		let offset = 0;
+		while (offset < bytes.length) {
+			const start = offset;
+			const tag = readProtoVarintAt(bytes, offset);
+			offset = tag.next;
+			const field = Math.floor(tag.value / 8);
+			const wire = tag.value & 7;
+			if (wire === 0) offset = readProtoVarintAt(bytes, offset).next;
+			else if (wire === 1) offset += 8;
+			else if (wire === 2) {
+				const length = readProtoVarintAt(bytes, offset);
+				offset = length.next + length.value;
+			} else if (wire === 5) offset += 4;
+			else throw new Error(`unsupported protobuf wire ${wire}`);
+			if (offset > bytes.length) throw new Error("truncated protobuf field");
+			out.push({
+				field,
+				start,
+				end: offset
+			});
+		}
+		return out;
+	}
 	/**
-	* Serialize concurrent web_abr downloads for the same video.
+	* SABR-only: set ClientAbrState.audioTrackId (nested field 69 inside
+	* VideoPlaybackAbrRequest field 1). We keep SabrStream's generated ABR state
+	* authoritative and only add/replace the concrete YouTube audio track id.
 	*
-	* If VOT accidentally calls web_abr twice for one video, the second call waits
-	* until the first generator is completely finished before it starts resolving
-	* clients/media URLs or issuing media requests. Calls for different videos can
-	* still run independently.
+	* Native requests observed on multi-audio videos carry values such as
+	* "ar.10", "de-DE.10" and "en-US.4" in this field.
 	*/
+	function setGeneratedSabrAudioTrackId(generated, trackId) {
+		const topLevel = splitTopLevelProto(generated);
+		const encodedTrackId = new TextEncoder().encode(trackId);
+		const trackField = concatBytes([
+			encodeProtoVarint(554),
+			encodeProtoVarint(encodedTrackId.byteLength),
+			encodedTrackId
+		]);
+		const chunks = [];
+		let replacedClientAbrState = false;
+		for (const part of topLevel) {
+			if (part.field !== 1 || replacedClientAbrState) {
+				chunks.push(generated.slice(part.start, part.end));
+				continue;
+			}
+			const length = readProtoVarintAt(generated, readProtoVarintAt(generated, part.start).next);
+			const payloadStart = length.next;
+			const payloadEnd = payloadStart + length.value;
+			if (payloadEnd > part.end) throw new Error("truncated ClientAbrState");
+			const payload = generated.slice(payloadStart, payloadEnd);
+			const payloadChunks = splitTopLevelProto(payload).filter((field) => field.field !== 69).map((field) => payload.slice(field.start, field.end));
+			payloadChunks.push(trackField);
+			const patchedPayload = concatBytes(payloadChunks);
+			chunks.push(concatBytes([
+				encodeProtoVarint(10),
+				encodeProtoVarint(patchedPayload.byteLength),
+				patchedPayload
+			]));
+			replacedClientAbrState = true;
+		}
+		if (!replacedClientAbrState) throw new Error("SABR ClientAbrState field is unavailable");
+		return concatBytes(chunks);
+	}
+	function getYouTubeRuntimeAudioTracks(targetWindow) {
+		try {
+			const value = getTopPageWindow(targetWindow).document.querySelector("#movie_player")?.getAvailableAudioTracks?.();
+			return Array.isArray(value) ? value.filter((track) => Boolean(track && typeof track === "object")) : [];
+		} catch {
+			return [];
+		}
+	}
+	function getRuntimeAudioTrackId(track) {
+		let methodId;
+		try {
+			methodId = track.wM?.getId?.();
+		} catch {}
+		const id = typeof methodId === "string" ? methodId : track.wM?.id;
+		return typeof id === "string" && /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})?\.\d{1,3}$/.test(id) ? id : void 0;
+	}
+	function collectYouTubeSabrTrackDiscoveries(targetWindow) {
+		const pageWindow = getTopPageWindow(targetWindow);
+		const roots = [];
+		const addRoot = (value, source) => {
+			if (value != null) roots.push({
+				value,
+				source
+			});
+		};
+		try {
+			addRoot(pageWindow.ytInitialPlayerResponse, "ytInitialPlayerResponse");
+		} catch {}
+		try {
+			const player = pageWindow.document.querySelector("#movie_player");
+			if (player) {
+				for (const getter of [
+					"getPlayerResponse",
+					"getAudioTrack",
+					"getAudioTrackList",
+					"getAvailableAudioTracks"
+				]) try {
+					const fn = player[getter];
+					if (typeof fn === "function") addRoot(fn.call(player), `player.${getter}()`);
+				} catch {}
+				if (typeof player.getOption === "function") for (const [namespace, key] of [["audio", "tracklist"], ["audio", "track"]]) try {
+					addRoot(player.getOption(namespace, key), `player.getOption(${namespace},${key})`);
+				} catch {}
+				for (const key of [
+					"playerData",
+					"playerResponse",
+					"audioTracks",
+					"tracklist",
+					"config"
+				]) try {
+					addRoot(player[key], `player.${key}`);
+				} catch {}
+			}
+		} catch {}
+		const trackIdPattern = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})?\.\d{1,3}$/;
+		const found = /* @__PURE__ */ new Map();
+		const seen = /* @__PURE__ */ new WeakSet();
+		let visited = 0;
+		const walk = (value, depth, path, source) => {
+			if (value == null || depth > 9 || visited > 3e4) return;
+			if (typeof value === "string") {
+				if (trackIdPattern.test(value) && /audio/i.test(`${source}:${path}`)) found.set(`${value}|${source}|${path}`, {
+					trackId: value,
+					source: `${source}:${path}`
+				});
+				return;
+			}
+			if (typeof value !== "object") return;
+			if (seen.has(value)) return;
+			seen.add(value);
+			visited += 1;
+			const record = value;
+			for (const key of [
+				"trackId",
+				"audioTrackId",
+				"id"
+			]) {
+				const id = record[key];
+				if (typeof id === "string" && trackIdPattern.test(id) && (/audio/i.test(`${source}:${path}`) || key === "audioTrackId")) found.set(`${id}|${source}|${path}`, {
+					trackId: id,
+					raw: value,
+					source: `${source}:${path}`
+				});
+			}
+			const nestedAudioTrack = record.audioTrack;
+			if (nestedAudioTrack && typeof nestedAudioTrack === "object") {
+				const nestedId = nestedAudioTrack.id;
+				if (typeof nestedId === "string" && trackIdPattern.test(nestedId)) found.set(`${nestedId}|${source}|${path}.audioTrack`, {
+					trackId: nestedId,
+					raw: nestedAudioTrack,
+					source: `${source}:${path}.audioTrack`
+				});
+			}
+			let entries;
+			try {
+				entries = Array.isArray(value) ? value.slice(0, 400).map((child, index) => [String(index), child]) : Object.entries(record).slice(0, 400);
+			} catch {
+				return;
+			}
+			for (const [key, child] of entries) {
+				if (typeof child === "function") continue;
+				walk(child, depth + 1, path ? `${path}.${key}` : key, source);
+			}
+		};
+		for (const root of roots) walk(root.value, 0, "", root.source);
+		return [...found.values()];
+	}
+	function collectYouTubeSabrTrackIds(targetWindow) {
+		const runtimeIds = getYouTubeRuntimeAudioTracks(targetWindow).map(getRuntimeAudioTrackId).filter((id) => Boolean(id));
+		if (runtimeIds.length > 0) return [...new Set(runtimeIds)].sort();
+		return [...new Set(collectYouTubeSabrTrackDiscoveries(targetWindow).map((entry) => entry.trackId))].sort();
+	}
+	function switchYouTubeSabrAudioTrack(targetWindow, trackId) {
+		const pageWindow = getTopPageWindow(targetWindow);
+		try {
+			const player = pageWindow.document.querySelector("#movie_player");
+			if (!player || typeof player.setAudioTrack !== "function") return false;
+			const exact = getYouTubeRuntimeAudioTracks(targetWindow).find((track) => getRuntimeAudioTrackId(track) === trackId);
+			if (!exact) return false;
+			const current = player.getAudioTrack?.();
+			if (current && getRuntimeAudioTrackId(current) === trackId) return true;
+			player.setAudioTrack(exact);
+			return true;
+		} catch {
+			return false;
+		}
+	}
+	var VOT_SUPPORTED_SABR_SOURCE_LANGUAGES = new Set([
+		"ru",
+		"en",
+		"zh",
+		"ko",
+		"fr",
+		"it",
+		"es",
+		"de",
+		"ja"
+	].map((language) => normalizeAudioLanguageTag(language)).filter(Boolean));
+	function sabrTrackLanguage(trackId) {
+		return normalizeAudioLanguageTag(trackId.replace(/\.\d+$/, ""));
+	}
+	function isVotSupportedSabrTrack(trackId) {
+		const language = sabrTrackLanguage(trackId);
+		if (!language) return false;
+		if (VOT_SUPPORTED_SABR_SOURCE_LANGUAGES.has(language)) return true;
+		const base = language.split("-")[0];
+		return [...VOT_SUPPORTED_SABR_SOURCE_LANGUAGES].some((supported) => supported.split("-")[0] === base);
+	}
+	var WEB_ABR_RESOLVED_AUDIO_LANGUAGES = /* @__PURE__ */ new Map();
+	function resolveSabrAudioTrackId(targetWindow, requestedLanguage) {
+		const requested = normalizeAudioLanguageTag(requestedLanguage);
+		const availableTrackIds = collectYouTubeSabrTrackIds(targetWindow);
+		const supportedAlternativeTrackIds = availableTrackIds.filter(isVotSupportedSabrTrack);
+		if (!requested || requested === "auto") return {
+			availableTrackIds,
+			supportedAlternativeTrackIds,
+			usedSupportedAlternative: false
+		};
+		if (availableTrackIds.length === 0) return {
+			availableTrackIds,
+			supportedAlternativeTrackIds,
+			usedSupportedAlternative: false
+		};
+		const exact = availableTrackIds.find((trackId) => sabrTrackLanguage(trackId) === requested);
+		if (exact) return {
+			trackId: exact,
+			availableTrackIds,
+			supportedAlternativeTrackIds,
+			usedSupportedAlternative: false
+		};
+		const requestedBase = requested.split("-")[0];
+		const baseMatches = availableTrackIds.filter((trackId) => sabrTrackLanguage(trackId).split("-")[0] === requestedBase);
+		if (baseMatches.length === 1) return {
+			trackId: baseMatches[0],
+			availableTrackIds,
+			supportedAlternativeTrackIds,
+			usedSupportedAlternative: false
+		};
+		if (baseMatches.length > 1) throw new Error(`Audio downloader. SABR audio language ${requestedLanguage} is ambiguous (matches: ${baseMatches.join(", ")})`);
+		return {
+			availableTrackIds,
+			supportedAlternativeTrackIds,
+			usedSupportedAlternative: false
+		};
+	}
+	async function waitForSabrAudioTrackId(targetWindow, signal, requestedLanguage, timeoutMs = 2e3) {
+		const requested = normalizeAudioLanguageTag(requestedLanguage);
+		if (!requested || requested === "auto") return resolveSabrAudioTrackId(targetWindow, requestedLanguage);
+		const startedAt = Date.now();
+		let lastAvailable = [];
+		while (Date.now() - startedAt < timeoutMs) {
+			signal.throwIfAborted();
+			const resolved = resolveSabrAudioTrackId(targetWindow, requestedLanguage);
+			lastAvailable = resolved.availableTrackIds;
+			if (resolved.trackId) return resolved;
+			await createAbortableDelay(250, signal);
+		}
+		if (lastAvailable.length === 0) return {
+			availableTrackIds: [],
+			supportedAlternativeTrackIds: [],
+			usedSupportedAlternative: false
+		};
+		throw new Error(`Audio downloader. SABR could not resolve requested audio language ${requestedLanguage} to a YouTube trackId within ${timeoutMs}ms (available: ${lastAvailable.join(", ")})`);
+	}
+	var VOT_SABR_INSTANCE_CONTEXT = /* @__PURE__ */ new WeakMap();
+	//#endregion
+	//#region src/audioDownloader/strategies/youtubeSabr.ts
+	function readProtoVarint(bytes, start) {
+		let value = 0;
+		let shift = 0;
+		let offset = start;
+		while (offset < bytes.length && shift <= 35) {
+			const byte = bytes[offset++];
+			value += (byte & 127) * 2 ** shift;
+			if ((byte & 128) === 0) return {
+				value,
+				next: offset
+			};
+			shift += 7;
+		}
+		throw new Error("invalid protobuf varint");
+	}
+	function getGeneratedSabrAudioTrackId(bytes) {
+		try {
+			let offset = 0;
+			while (offset < bytes.length) {
+				const tag = readProtoVarint(bytes, offset);
+				offset = tag.next;
+				const field = Math.floor(tag.value / 8);
+				const wire = tag.value & 7;
+				if (wire !== 2) {
+					if (wire === 0) offset = readProtoVarint(bytes, offset).next;
+					else if (wire === 1) offset += 8;
+					else if (wire === 5) offset += 4;
+					else return void 0;
+					continue;
+				}
+				const length = readProtoVarint(bytes, offset);
+				const start = length.next;
+				const end = start + length.value;
+				if (end > bytes.length) return void 0;
+				if (field === 1) {
+					let inner = start;
+					while (inner < end) {
+						const innerTag = readProtoVarint(bytes, inner);
+						inner = innerTag.next;
+						const innerField = Math.floor(innerTag.value / 8);
+						const innerWire = innerTag.value & 7;
+						if (innerWire === 2) {
+							const innerLength = readProtoVarint(bytes, inner);
+							const valueStart = innerLength.next;
+							const valueEnd = valueStart + innerLength.value;
+							if (valueEnd > end) return void 0;
+							if (innerField === 69) {
+								const trackId = new TextDecoder().decode(bytes.slice(valueStart, valueEnd));
+								return /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})?\.\d{1,3}$/.test(trackId) ? trackId : void 0;
+							}
+							inner = valueEnd;
+						} else if (innerWire === 0) inner = readProtoVarint(bytes, inner).next;
+						else if (innerWire === 1) inner += 8;
+						else if (innerWire === 5) inner += 4;
+						else return void 0;
+					}
+				}
+				offset = end;
+			}
+		} catch {}
+	}
+	async function* trySabrAudioChunks(targetWindow, videoId, signal, sourceLanguage) {
+		debug.log("[VOT][SABR][PRIMARY] entered trySabrAudioChunks", { videoId });
+		WEB_ABR_RESOLVED_AUDIO_LANGUAGES.delete(videoId);
+		const config = await resolveYtcfg(targetWindow, signal);
+		const apiKey = getConfigValue(config, "INNERTUBE_API_KEY");
+		if (typeof apiKey !== "string") throw new Error("Audio downloader. SABR config is unavailable");
+		const body = buildSabrPlayerRequest(config, videoId, Number(getConfigValue(config, "STS")));
+		const context = body.context;
+		const clientVersion = String(context.client.clientVersion ?? "");
+		const visitorData = context.client.visitorData ?? getConfigValue(config, "VISITOR_DATA");
+		if (typeof visitorData === "string") context.client.visitorData = visitorData;
+		const dataSyncId = getConfigValue(config, "DATASYNC_ID");
+		const [firstSyncId, secondSyncId] = typeof dataSyncId === "string" ? dataSyncId.split("||") : [];
+		const authorization = await getYouTubeAuthorization(targetWindow, String(getConfigValue(config, "USER_SESSION_ID") ?? (secondSyncId || firstSyncId) ?? "") || void 0);
+		const auth = authorization ? {
+			authorization,
+			sessionIndex: getConfigValue(config, "SESSION_INDEX"),
+			delegatedSessionId: getConfigValue(config, "DELEGATED_SESSION_ID") ?? (secondSyncId ? firstSyncId : void 0)
+		} : {};
+		let player = await postInnertubePlayer(targetWindow, signal, apiKey, body, "1", clientVersion, {});
+		if (authorization && /LOGIN_REQUIRED|AGE_CHECK_REQUIRED|CONTENT_CHECK_REQUIRED/.test(player.playabilityStatus?.status ?? "")) player = await postInnertubePlayer(targetWindow, signal, apiKey, body, "1", clientVersion, auth);
+		const nativePlayer = getNativePlayerResponse(targetWindow, videoId);
+		if (nativePlayer) player = nativePlayer;
+		const playerServerAbrStreamingUrl = player.streamingData?.serverAbrStreamingUrl;
+		const requestedSabrLanguage = normalizeAudioLanguageTag(sourceLanguage);
+		const resolvedSabrTrack = await waitForSabrAudioTrackId(targetWindow, signal, sourceLanguage, 2e3);
+		const sabrAvailableTrackIds = resolvedSabrTrack.availableTrackIds;
+		if (resolvedSabrTrack.trackId) switchYouTubeSabrAudioTrack(targetWindow, resolvedSabrTrack.trackId);
+		const nativeSabrAudioTrackId = void 0;
+		let sabrAudioTrackId = resolvedSabrTrack.trackId;
+		let sabrTrackSelection;
+		if (resolvedSabrTrack.usedSupportedAlternative) {
+			new Set(resolvedSabrTrack.supportedAlternativeTrackIds);
+			sabrTrackSelection = "supported-alternative";
+		} else if (sabrAudioTrackId) sabrTrackSelection = "ui-language";
+		else if (sabrAvailableTrackIds.length === 0) {
+			sabrAudioTrackId = nativeSabrAudioTrackId;
+			sabrTrackSelection = requestedSabrLanguage && requestedSabrLanguage !== "auto" ? "native-only" : "native-auto";
+		} else throw new Error(`Audio downloader. SABR found no VOT-supported audio track (requested: ${sourceLanguage ?? "auto"}, available: ${sabrAvailableTrackIds.join(", ")})`);
+		const actualSabrLanguage = sabrAudioTrackId ? sabrTrackLanguage(sabrAudioTrackId) : requestedSabrLanguage || void 0;
+		WEB_ABR_RESOLVED_AUDIO_LANGUAGES.set(videoId, {
+			videoId,
+			requestedLanguage: requestedSabrLanguage || void 0,
+			actualLanguage: actualSabrLanguage,
+			trackId: sabrAudioTrackId,
+			selection: sabrTrackSelection
+		});
+		const serverAbrStreamingUrl = playerServerAbrStreamingUrl ? await resolveSabrStreamingUrl(targetWindow, playerServerAbrStreamingUrl, config, signal) : void 0;
+		const videoPlaybackUstreamerConfig = player.playerConfig?.mediaCommonConfig?.mediaUstreamerRequestConfig?.videoPlaybackUstreamerConfig;
+		if (!serverAbrStreamingUrl || !videoPlaybackUstreamerConfig) throw new Error("Audio downloader. SABR metadata is unavailable in player response");
+		const rawFormats = [...player.streamingData?.adaptiveFormats ?? [], ...player.streamingData?.formats ?? []];
+		const audioCandidates = rawFormats.filter((format) => format.mimeType?.includes("audio/") && !format.mimeType?.includes("video/"));
+		const normalizedSelectedTrackId = sabrAudioTrackId?.toLowerCase();
+		const requestedTrackLanguage = normalizedSelectedTrackId ? normalizeAudioLanguageTag(normalizedSelectedTrackId.split(".")[0]) : normalizeAudioLanguageTag(sourceLanguage);
+		const formatTrackId = (format) => format.audioTrackId ?? format.audioTrack?.id;
+		const exactTrackAudioCandidates = normalizedSelectedTrackId ? audioCandidates.filter((format) => formatTrackId(format)?.toLowerCase() === normalizedSelectedTrackId) : [];
+		const languageTrackAudioCandidates = exactTrackAudioCandidates.length === 0 && requestedTrackLanguage ? audioCandidates.filter((format) => audioLanguageMatches(getYoutubeAudioFormatLanguage(format), requestedTrackLanguage)) : [];
+		audioCandidates.some((format) => Boolean(formatTrackId(format) || normalizeAudioLanguageTag(getYoutubeAudioFormatLanguage(format))));
+		const nativeBoundUnscopedAudioCandidates = (exactTrackAudioCandidates.length === 0 && languageTrackAudioCandidates.length, []);
+		const selectedTrackAudioCandidates = exactTrackAudioCandidates.length > 0 ? exactTrackAudioCandidates : languageTrackAudioCandidates.length > 0 ? languageTrackAudioCandidates : nativeBoundUnscopedAudioCandidates.length > 0 ? nativeBoundUnscopedAudioCandidates : sabrAvailableTrackIds.length <= 1 ? audioCandidates : [];
+		if (selectedTrackAudioCandidates.length === 0) throw new Error(`Audio downloader. SABR has no concrete formats for selected track ${sabrAudioTrackId ?? "native/default"}; refusing array[0] fallback`);
+		const selected = selectEconomyAudioFormat(selectedTrackAudioCandidates);
+		if (!selected?.itag) throw new Error("Audio downloader. SABR audio format is unavailable");
+		const selectedSabr = toSabrFormat(selected);
+		if (!selectedSabr) throw new Error("Audio downloader. SABR selected format metadata is incomplete");
+		const selectedTrackAudioObjects = new Set(selectedTrackAudioCandidates);
+		const sabrFormatsForStream = rawFormats.flatMap((format) => {
+			if (format.mimeType?.includes("audio/") && !format.mimeType?.includes("video/") && !selectedTrackAudioObjects.has(format)) return [];
+			const converted = toSabrFormat(format);
+			return converted ? [converted] : [];
+		});
+		const nativeClient = getConfigValue(config, "INNERTUBE_CONTEXT")?.client ?? {};
+		const pageWindow = getTopPageWindow(targetWindow);
+		const clientInfo = {
+			clientName: Number(getConfigValue(config, "INNERTUBE_CONTEXT_CLIENT_NAME")) || 1,
+			clientVersion,
+			...typeof nativeClient.hl === "string" && nativeClient.hl ? { acceptLanguage: nativeClient.hl } : {},
+			...typeof nativeClient.deviceMake === "string" && nativeClient.deviceMake ? { deviceMake: nativeClient.deviceMake } : {},
+			...typeof nativeClient.deviceModel === "string" && nativeClient.deviceModel ? { deviceModel: nativeClient.deviceModel } : {},
+			...typeof nativeClient.osName === "string" && nativeClient.osName ? { osName: nativeClient.osName } : {},
+			...typeof nativeClient.osVersion === "string" && nativeClient.osVersion ? { osVersion: nativeClient.osVersion } : {}
+		};
+		const playerContexts = getConfigValue(config, "WEB_PLAYER_CONTEXT_CONFIGS");
+		const pageExperimentFlags = Object.values(playerContexts && typeof playerContexts === "object" ? playerContexts : {}).flatMap((entry) => typeof entry?.serializedExperimentFlags === "string" ? [entry.serializedExperimentFlags] : []);
+		const sabrPoTokenBinding = selectGvsPoTokenBinding(videoId, {
+			loggedIn: Boolean(authorization),
+			dataSyncId: player.responseContext?.mainAppWebResponseContext?.datasyncId ?? dataSyncId,
+			visitorData,
+			experimentFlags: pageExperimentFlags
+		});
+		const sabrPoToken = sabrPoTokenBinding ? await mintPagePoToken(targetWindow, sabrPoTokenBinding.value, signal) : void 0;
+		const readSabrVarint = (bytes, start) => {
+			let value = 0n;
+			let shift = 0n;
+			for (let offset = start; offset < bytes.length && offset < start + 10; offset++) {
+				const byte = bytes[offset];
+				value |= BigInt(byte & 127) << shift;
+				if ((byte & 128) === 0) return {
+					value,
+					next: offset + 1
+				};
+				shift += 7n;
+			}
+		};
+		const inspectSabrProto = (bytes) => {
+			const fields = [];
+			let offset = 0;
+			let parseError;
+			while (offset < bytes.length && fields.length < 512) {
+				const tag = readSabrVarint(bytes, offset);
+				if (!tag) {
+					parseError = `invalid tag at ${offset}`;
+					break;
+				}
+				offset = tag.next;
+				const field = Number(tag.value >> 3n);
+				const wireType = Number(tag.value & 7n);
+				if (!field) {
+					parseError = `field 0 at ${offset}`;
+					break;
+				}
+				if (wireType === 0) {
+					const item = readSabrVarint(bytes, offset);
+					if (!item) {
+						parseError = `invalid varint field ${field}`;
+						break;
+					}
+					offset = item.next;
+					fields.push({
+						field,
+						wireType,
+						value: item.value.toString()
+					});
+				} else if (wireType === 1) {
+					if (offset + 8 > bytes.length) {
+						parseError = `truncated fixed64 field ${field}`;
+						break;
+					}
+					fields.push({
+						field,
+						wireType,
+						length: 8
+					});
+					offset += 8;
+				} else if (wireType === 2) {
+					const length = readSabrVarint(bytes, offset);
+					if (!length) {
+						parseError = `invalid length field ${field}`;
+						break;
+					}
+					offset = length.next;
+					const size = Number(length.value);
+					if (!Number.isSafeInteger(size) || size < 0 || offset + size > bytes.length) {
+						parseError = `truncated bytes field ${field} length ${length.value}`;
+						break;
+					}
+					fields.push({
+						field,
+						wireType,
+						length: size
+					});
+					offset += size;
+				} else if (wireType === 5) {
+					if (offset + 4 > bytes.length) {
+						parseError = `truncated fixed32 field ${field}`;
+						break;
+					}
+					fields.push({
+						field,
+						wireType,
+						length: 4
+					});
+					offset += 4;
+				} else {
+					parseError = `unsupported wire type ${wireType} field ${field}`;
+					break;
+				}
+			}
+			const counts = {};
+			const lengths = {};
+			for (const item of fields) {
+				const key = String(item.field);
+				counts[key] = (counts[key] ?? 0) + 1;
+				if (item.length !== void 0) {
+					lengths[key] ??= [];
+					lengths[key].push(item.length);
+				}
+			}
+			return {
+				byteLength: bytes.byteLength,
+				fieldFingerprint: fields.map((item) => `${item.field}:${item.wireType}:${item.length ?? item.value ?? ""}`).join("|"),
+				fieldCounts: counts,
+				fieldLengths: lengths,
+				targetFields: Object.fromEntries([
+					1,
+					2,
+					3,
+					5,
+					16,
+					19
+				].map((field) => [String(field), {
+					count: counts[String(field)] ?? 0,
+					lengths: lengths[String(field)] ?? []
+				}])),
+				parseError: parseError ?? null,
+				parsedBytes: offset
+			};
+		};
+		let sabrRequestIndex = 0;
+		let consecutivePostBootstrapRequestsWithoutBufferedRanges = 0;
+		const fetchRealm = targetWindow;
+		const sabrDiagnosticFetch = async (input, init) => {
+			const index = ++sabrRequestIndex;
+			const RequestCtor = fetchRealm.Request;
+			const inputIsRequest = typeof RequestCtor !== "undefined" && input instanceof RequestCtor;
+			const requestInput = inputIsRequest ? input : void 0;
+			const requestUrl = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+			const url = new URL(requestUrl, targetWindow.location.href);
+			const isSabrRequest = url.hostname.endsWith("googlevideo.com") && url.pathname === "/videoplayback" && url.searchParams.get("sabr") === "1";
+			if (isSabrRequest) {}
+			const method = init?.method ?? requestInput?.method ?? "GET";
+			const body = init?.body ?? null;
+			const headers = new fetchRealm.Headers(init?.headers ?? requestInput?.headers);
+			if (isSabrRequest) {
+				headers.delete("content-type");
+				headers.delete("Content-Type");
+			}
+			let transportBody = body;
+			const BlobCtor = fetchRealm.Blob;
+			if (isSabrRequest && typeof BlobCtor !== "undefined" && body instanceof BlobCtor) transportBody = await body.arrayBuffer();
+			const headerEntries = Object.fromEntries(headers.entries());
+			if (body !== null) {
+				let bytes = null;
+				if (typeof body === "string") bytes = new TextEncoder().encode(body);
+				else if (body instanceof ArrayBuffer) bytes = new Uint8Array(body);
+				else if (ArrayBuffer.isView(body)) bytes = new Uint8Array(body.buffer, body.byteOffset, body.byteLength);
+				else if (typeof BlobCtor !== "undefined" && body instanceof BlobCtor) {}
+				if (bytes) {
+					const protobuf = inspectSabrProto(bytes);
+					const encodedAudioTrackId = getGeneratedSabrAudioTrackId(bytes);
+					if (index <= 3 || encodedAudioTrackId !== sabrAudioTrackId) {}
+					if (index > 1) {
+						consecutivePostBootstrapRequestsWithoutBufferedRanges = (protobuf.targetFields?.["3"]?.count ?? 0) > 0 ? 0 : consecutivePostBootstrapRequestsWithoutBufferedRanges + 1;
+						if (consecutivePostBootstrapRequestsWithoutBufferedRanges >= 8) throw new Error("SABR state did not produce buffered ranges after bootstrap");
+					}
+				}
+			}
+			const fetchWithGmFallback = async () => {
+				try {
+					const nativeInit = {
+						...init ?? {},
+						headers,
+						body: transportBody,
+						credentials: "include",
+						mode: "cors",
+						cache: "no-store",
+						redirect: "follow"
+					};
+					if (!inputIsRequest) return await targetWindow.fetch(url.toString(), nativeInit);
+					if (!RequestCtor) throw new Error("Audio downloader. SABR Request constructor is unavailable");
+					const rewrittenRequest = new RequestCtor(url.toString(), {
+						method,
+						headers,
+						body: transportBody ?? void 0,
+						credentials: "include",
+						mode: "cors",
+						cache: "no-store",
+						redirect: "follow",
+						signal: init?.signal ?? requestInput?.signal
+					});
+					return await targetWindow.fetch(rewrittenRequest);
+				} catch (nativeError) {
+					const gmGlobal = globalThis;
+					const callbackGm = gmGlobal.GM_xmlhttpRequest;
+					const promiseGm = gmGlobal.GM?.xmlHttpRequest ?? gmGlobal.GM?.xmlhttpRequest;
+					const gm = typeof callbackGm === "function" ? callbackGm : typeof promiseGm === "function" ? promiseGm.bind(gmGlobal.GM) : void 0;
+					if (typeof gm !== "function") throw nativeError;
+					let gmBody;
+					if (typeof transportBody === "string") gmBody = transportBody;
+					else if (transportBody instanceof ArrayBuffer) gmBody = transportBody.slice(0);
+					else if (ArrayBuffer.isView(transportBody)) gmBody = transportBody.buffer.slice(transportBody.byteOffset, transportBody.byteOffset + transportBody.byteLength);
+					else if (typeof BlobCtor !== "undefined" && transportBody instanceof BlobCtor) gmBody = await transportBody.arrayBuffer();
+					else if (transportBody !== null || requestInput?.body) throw nativeError;
+					return await new Promise((resolve, reject) => {
+						let settled = false;
+						let requestHandle;
+						const signal = init?.signal ?? requestInput?.signal;
+						const cleanup = () => signal?.removeEventListener("abort", onAbort);
+						const finishReject = (error) => {
+							if (settled) return;
+							settled = true;
+							cleanup();
+							reject(error);
+						};
+						const onAbort = () => {
+							try {
+								requestHandle?.abort?.();
+							} catch {}
+							finishReject(new DOMException("The operation was aborted.", "AbortError"));
+						};
+						if (signal?.aborted) {
+							onAbort();
+							return;
+						}
+						signal?.addEventListener("abort", onAbort, { once: true });
+						const parseHeaders = (raw) => {
+							const result = new fetchRealm.Headers();
+							for (const line of (raw ?? "").split(/\r?\n/)) {
+								const colon = line.indexOf(":");
+								if (colon > 0) try {
+									result.append(line.slice(0, colon).trim(), line.slice(colon + 1).trim());
+								} catch {}
+							}
+							return result;
+						};
+						const finishResolve = (gmResponse) => {
+							if (settled) return;
+							settled = true;
+							cleanup();
+							const responseHeaders = parseHeaders(gmResponse.responseHeaders);
+							resolve(new fetchRealm.Response(gmResponse.response ?? /* @__PURE__ */ new ArrayBuffer(0), {
+								status: gmResponse.status || 200,
+								statusText: gmResponse.statusText ?? "",
+								headers: responseHeaders
+							}));
+						};
+						const details = {
+							method,
+							url: url.toString(),
+							headers: headerEntries,
+							data: gmBody,
+							responseType: "arraybuffer",
+							anonymous: false,
+							onload: finishResolve,
+							onerror: (gmError) => finishReject(gmError instanceof Error ? gmError : /* @__PURE__ */ new TypeError("GM_xmlhttpRequest SABR request failed")),
+							ontimeout: () => finishReject(/* @__PURE__ */ new TypeError("GM_xmlhttpRequest SABR request timed out")),
+							onabort: () => finishReject(new DOMException("The operation was aborted.", "AbortError"))
+						};
+						try {
+							requestHandle = gm(details);
+							if (requestHandle && typeof requestHandle.then === "function") requestHandle.then(finishResolve, finishReject);
+						} catch (gmError) {
+							finishReject(gmError);
+						}
+					});
+				}
+			};
+			const response = await fetchWithGmFallback();
+			if (response.body) {
+				const foreignReader = response.body.getReader();
+				const localBody = new ReadableStream({
+					async pull(controller) {
+						try {
+							const { value, done } = await foreignReader.read();
+							if (done) {
+								controller.close();
+								return;
+							}
+							if (!value) return;
+							const source = ArrayBuffer.isView(value) ? new Uint8Array(value.buffer, value.byteOffset, value.byteLength) : new Uint8Array(value);
+							const localChunk = new Uint8Array(source.byteLength);
+							localChunk.set(source);
+							controller.enqueue(localChunk);
+						} catch (error) {
+							controller.error(error);
+						}
+					},
+					cancel(reason) {
+						return foreignReader.cancel(reason);
+					}
+				});
+				return new Response(localBody, {
+					status: response.status,
+					statusText: response.statusText,
+					headers: new Headers(response.headers)
+				});
+			}
+			return response;
+		};
+		const sabrPrototype = SabrStream.prototype;
+		if (typeof sabrPrototype.buildRequestBody === "function" && !sabrPrototype.__votNativeAbrStatePatched) {
+			const originalBuildRequestBody = sabrPrototype.buildRequestBody;
+			sabrPrototype.buildRequestBody = function(abrState, selectedAudioFormat, selectedVideoFormat) {
+				const context = VOT_SABR_INSTANCE_CONTEXT.get(this);
+				const generated = originalBuildRequestBody.call(this, abrState, selectedAudioFormat, selectedVideoFormat);
+				if (!context) return generated;
+				context.buildIndex += 1;
+				try {
+					let selfBuilt = generated;
+					if (context.sabrAudioTrackId) selfBuilt = setGeneratedSabrAudioTrackId(selfBuilt, context.sabrAudioTrackId);
+					return selfBuilt;
+				} catch {
+					return generated;
+				}
+			};
+			sabrPrototype.__votNativeAbrStatePatched = true;
+		}
+		let stream;
+		stream = new SabrStream({
+			fetch: sabrDiagnosticFetch,
+			poToken: sabrPoToken,
+			serverAbrStreamingUrl,
+			videoPlaybackUstreamerConfig,
+			clientInfo,
+			formats: sabrFormatsForStream
+		});
+		VOT_SABR_INSTANCE_CONTEXT.set(stream, {
+			videoId,
+			sabrAudioTrackId,
+			buildIndex: 0,
+			pageWindow
+		});
+		debug.log("[VOT][SABR][PURE_ONLY] SabrStream created", {
+			videoId,
+			sabrAudioTrackId,
+			bootstrap: "playerResponse+SabrStream-generated-protobuf",
+			nativeSabrCapture: "disabled",
+			nativeBodyUsed: false,
+			nativeUrlUsed: false,
+			nativeCpnUsed: false,
+			nativeRnUsed: false,
+			serverAbrSource: "playerResponse",
+			onlySabrStrategy: "PURE_SELF_BUILT"
+		});
+		const abort = () => stream.abort();
+		signal.addEventListener("abort", abort, { once: true });
+		try {
+			const started = await stream.start({
+				audioFormat: selectedSabr,
+				videoFormat: (formats) => formats.filter((format) => format.mimeType?.includes("video/")).sort((a, b) => a.bitrate - b.bitrate)[0],
+				enabledTrackTypes: 1,
+				maxRetries: 3,
+				stallDetectionMs: 2e4
+			});
+			debug.log("[VOT][SABR][PURE_ONLY] SabrStream started", {
+				videoId,
+				sabrAudioTrackId
+			});
+			const audioReader = started.audioStream.getReader();
+			const pending = [];
+			let pendingSize = 0;
+			let readyChunk = null;
+			let total = 0;
+			const configuredMinChunkSize = Number(config_default$1.minChunkSize);
+			const minChunkSize = Number.isFinite(configuredMinChunkSize) && configuredMinChunkSize > 0 ? Math.floor(configuredMinChunkSize) : 5295308;
+			console.log("[VOT][SABR] chunk config", {
+				configuredMinChunkSize: config_default$1.minChunkSize,
+				minChunkSize,
+				usedFallback: minChunkSize !== configuredMinChunkSize
+			});
+			try {
+				while (true) {
+					signal.throwIfAborted();
+					let result;
+					const readTimeoutMs = 25e3;
+					let timeoutId;
+					const timeout = new Promise((_, reject) => {
+						timeoutId = setTimeout(() => {
+							reject(/* @__PURE__ */ new Error(`Audio downloader. SABR audio stream stalled for ${readTimeoutMs}ms`));
+						}, readTimeoutMs);
+					});
+					try {
+						result = await Promise.race([audioReader.read(), timeout]);
+					} finally {
+						if (timeoutId !== void 0) clearTimeout(timeoutId);
+					}
+					const { value, done } = result;
+					if (done) break;
+					if (!value?.byteLength) continue;
+					const copy = new Uint8Array(value.byteLength);
+					copy.set(new Uint8Array(value.buffer, value.byteOffset, value.byteLength));
+					total += copy.byteLength;
+					let copyOffset = 0;
+					while (copyOffset < copy.byteLength) {
+						const remaining = minChunkSize - pendingSize;
+						const take = Math.min(remaining, copy.byteLength - copyOffset);
+						pending.push(copy.subarray(copyOffset, copyOffset + take));
+						pendingSize += take;
+						copyOffset += take;
+						if (pendingSize >= minChunkSize) {
+							const nextChunk = concatBuffers(pending);
+							pending.length = 0;
+							pendingSize = 0;
+							if (readyChunk) {
+								console.log("[VOT][SABR] yielding chunk", {
+									size: readyChunk.byteLength,
+									isLastChunk: false,
+									total,
+									pendingSize,
+									aborted: signal.aborted
+								});
+								yield {
+									buffer: readyChunk,
+									isLastChunk: false
+								};
+								console.log("[VOT][SABR] resumed after yield", {
+									total,
+									aborted: signal.aborted
+								});
+							}
+							readyChunk = nextChunk;
+						}
+					}
+				}
+				if (pendingSize > 0) {
+					const tail = concatBuffers(pending);
+					pending.length = 0;
+					pendingSize = 0;
+					if (readyChunk) {
+						console.log("[VOT][SABR] yielding chunk", {
+							size: readyChunk.byteLength,
+							isLastChunk: false,
+							total,
+							pendingSize,
+							aborted: signal.aborted
+						});
+						yield {
+							buffer: readyChunk,
+							isLastChunk: false
+						};
+						console.log("[VOT][SABR] resumed after yield", {
+							total,
+							aborted: signal.aborted
+						});
+					}
+					readyChunk = tail;
+				}
+				if (total < 1 || !readyChunk) throw new Error("Audio downloader. SABR returned empty audio");
+				const expectedContentLength = Number(selected.contentLength);
+				if (Number.isFinite(expectedContentLength) && expectedContentLength > 0) {
+					if (expectedContentLength - total > Math.max(262144, expectedContentLength * .02)) throw new Error(`Audio downloader. SABR premature EOF (${total}/${expectedContentLength} bytes)`);
+				}
+				console.log("[VOT][SABR] yielding final chunk", {
+					size: readyChunk.byteLength,
+					isLastChunk: true,
+					total,
+					aborted: signal.aborted
+				});
+				yield {
+					buffer: readyChunk,
+					isLastChunk: true
+				};
+				console.log("[VOT][SABR] resumed after final yield", {
+					total,
+					aborted: signal.aborted
+				});
+			} catch (error) {
+				console.error("[VOT][SABR] audio reader failed", {
+					error,
+					total,
+					pendingSize,
+					readyChunkSize: readyChunk?.byteLength ?? 0,
+					aborted: signal.aborted,
+					reason: signal.reason
+				});
+				throw error;
+			} finally {
+				console.log("[VOT][SABR] releasing audio reader", {
+					total,
+					pendingSize,
+					readyChunkSize: readyChunk?.byteLength ?? 0,
+					aborted: signal.aborted,
+					reason: signal.reason
+				});
+				try {
+					audioReader.releaseLock();
+				} catch {}
+			}
+		} finally {
+			signal.removeEventListener("abort", abort);
+			stream.abort();
+		}
+	}
+	//#endregion
+	//#region src/audioDownloader/strategies/youtubeSabrStrategy.ts
+	var SABR_MAX_ATTEMPTS = 2;
+	var SABR_RETRY_DELAY_MS = 750;
+	var SABR_DOWNLOAD_QUEUE = /* @__PURE__ */ new Map();
+	function isDeterministicSabrError(error) {
+		const message = error instanceof Error ? error.message : String(error);
+		return message.includes("SABR could not resolve requested audio language") || message.includes("SABR found no VOT-supported audio track") || message.includes("SABR audio language") && message.includes("is ambiguous") || message.includes("refusing array[0] fallback");
+	}
+	async function* getSabrAudioChunksImpl(targetWindow, videoId, signal, sourceLanguage) {
+		let lastError;
+		for (let attempt = 1; attempt <= SABR_MAX_ATTEMPTS; attempt++) {
+			const chunks = [];
+			let bytes = 0;
+			try {
+				for await (const chunk of trySabrAudioChunks(targetWindow, videoId, signal, sourceLanguage)) {
+					const buffer = chunk.buffer.slice();
+					chunks.push({
+						buffer,
+						isLastChunk: chunk.isLastChunk
+					});
+					bytes += buffer.byteLength;
+				}
+				if (!chunks.length) throw new Error("Audio downloader. SABR completed without audio chunks");
+				debug.log("Audio downloader. SABR completed", {
+					videoId,
+					attempt,
+					chunks: chunks.length,
+					bytes
+				});
+				yield* chunks;
+				return;
+			} catch (error) {
+				signal.throwIfAborted();
+				lastError = error;
+				debug.log("Audio downloader. SABR attempt failed", {
+					videoId,
+					attempt,
+					bufferedChunks: chunks.length,
+					bufferedBytes: bytes,
+					error: error instanceof Error ? error.message : String(error)
+				});
+				if (attempt < SABR_MAX_ATTEMPTS && !isDeterministicSabrError(error)) {
+					await createAbortableDelay(SABR_RETRY_DELAY_MS, signal);
+					continue;
+				}
+				break;
+			}
+		}
+		throw lastError instanceof Error ? lastError : new Error(String(lastError ?? "Audio downloader. SABR failed"));
+	}
+	async function* getSabrAudioChunks(targetWindow, videoId, signal, sourceLanguage) {
+		const queueKey = String(videoId);
+		const previous = SABR_DOWNLOAD_QUEUE.get(queueKey) ?? Promise.resolve();
+		const hadPrevious = SABR_DOWNLOAD_QUEUE.has(queueKey);
+		let releaseCurrent;
+		const current = new Promise((resolve) => {
+			releaseCurrent = resolve;
+		});
+		SABR_DOWNLOAD_QUEUE.set(queueKey, current);
+		debug.log("Audio downloader. SABR queued", {
+			videoId,
+			hasPrevious: hadPrevious
+		});
+		try {
+			await previous;
+			signal.throwIfAborted();
+			yield* getSabrAudioChunksImpl(targetWindow, videoId, signal, sourceLanguage);
+		} finally {
+			releaseCurrent?.();
+			if (SABR_DOWNLOAD_QUEUE.get(queueKey) === current) SABR_DOWNLOAD_QUEUE.delete(queueKey);
+			debug.log("Audio downloader. SABR queue released", { videoId });
+		}
+	}
+	//#endregion
+	//#region src/audioDownloader/strategies/youtubeWebAbr.ts
+	var WEB_ABR_DOWNLOAD_QUEUE = /* @__PURE__ */ new Map();
+	/** Pure WebABR strategy. SABR is implemented separately. */
 	async function* getWebAbrAudioChunks(targetWindow, videoId, signal, sourceLanguage) {
 		const queueKey = String(videoId);
 		const previous = WEB_ABR_DOWNLOAD_QUEUE.get(queueKey) ?? Promise.resolve();
@@ -23858,18 +29064,18 @@ var vot = (function(exports) {
 			releaseCurrent = resolve;
 		});
 		WEB_ABR_DOWNLOAD_QUEUE.set(queueKey, current);
-		debug.log("Audio downloader. web ABR queued", {
+		debug.log("Audio downloader. WebABR queued", {
 			videoId,
 			hasPrevious: hadPrevious
 		});
 		try {
 			await previous;
 			signal.throwIfAborted();
-			yield* getWebAbrAudioChunksImpl(targetWindow, videoId, signal, sourceLanguage);
+			yield* getWebAbrAudioChunks$1(targetWindow, videoId, signal, sourceLanguage);
 		} finally {
 			releaseCurrent?.();
 			if (WEB_ABR_DOWNLOAD_QUEUE.get(queueKey) === current) WEB_ABR_DOWNLOAD_QUEUE.delete(queueKey);
-			debug.log("Audio downloader. web ABR queue released", { videoId });
+			debug.log("Audio downloader. WebABR queue released", { videoId });
 		}
 	}
 	//#endregion
@@ -23888,7 +29094,7 @@ var vot = (function(exports) {
 	function getAudioDownloadType(message) {
 		if (!message.payload || typeof message.payload !== "object") return;
 		const audioDownloadType = message.payload.audioDownloadType;
-		return audioDownloadType === AudioDownloadType.WEB_ABR || audioDownloadType === AudioDownloadType.WEB_MSE_PROXY ? audioDownloadType : void 0;
+		return isAudioBridgeStrategy(audioDownloadType) ? audioDownloadType : void 0;
 	}
 	function getSourceLanguage(message) {
 		if (!message.payload || typeof message.payload !== "object") return;
@@ -24305,13 +29511,13 @@ var vot = (function(exports) {
 				if (settled) return;
 				postResponse(source, event.origin, {
 					...message,
-					messageDirection: "response",
+					messageDirection: "iframe-response",
 					payload: void 0,
 					isProgress: true
 				});
 			};
-			const chunks = audioDownloadType === AudioDownloadType.WEB_ABR ? getWebAbrAudioChunks(targetWindow, videoId, controller.signal, getSourceLanguage(message)) : createAudioChunkStream(targetWindow, videoId, controller.signal, postProgress);
-			if (audioDownloadType === AudioDownloadType.WEB_ABR) {
+			const chunks = audioDownloadType === SABR_STRATEGY ? getSabrAudioChunks(targetWindow, videoId, controller.signal, getSourceLanguage(message)) : audioDownloadType === AudioDownloadType.WEB_ABR ? getWebAbrAudioChunks(targetWindow, videoId, controller.signal, getSourceLanguage(message)) : createAudioChunkStream(targetWindow, videoId, controller.signal, postProgress);
+			if (audioDownloadType === SABR_STRATEGY || audioDownloadType === AudioDownloadType.WEB_ABR) {
 				postProgress();
 				heartbeat = setInterval(postProgress, 3e4);
 			}
@@ -24325,7 +29531,7 @@ var vot = (function(exports) {
 				});
 				postResponse(source, event.origin, {
 					...message,
-					messageDirection: "response",
+					messageDirection: "iframe-response",
 					payload: chunk
 				});
 			}
@@ -24337,7 +29543,7 @@ var vot = (function(exports) {
 			});
 			postResponse(source, event.origin, {
 				...message,
-				messageDirection: "response",
+				messageDirection: "iframe-response",
 				payload: void 0,
 				isStreamFinished: true
 			});
@@ -24349,7 +29555,7 @@ var vot = (function(exports) {
 			});
 			postResponse(source, event.origin, {
 				...message,
-				messageDirection: "response",
+				messageDirection: "iframe-response",
 				payload: void 0,
 				error: error instanceof Error ? error.message : String(error),
 				isAborted: controller.signal.aborted || isAbortError(error)
@@ -24387,6 +29593,99 @@ var vot = (function(exports) {
 			audioDownloadType,
 			host: targetWindow.location.hostname
 		});
+		if (audioDownloadType === SABR_STRATEGY || audioDownloadType === AudioDownloadType.WEB_ABR) {
+			const controller = new AbortController();
+			let settled = false;
+			const abort = (abortEvent) => {
+				const data = abortEvent.data;
+				if (abortEvent.source === source && abortEvent.origin === event.origin && data.messageId === message.messageId && data.messageType === MESSAGE_TYPE && data.messageDirection === "request" && data.isAborted) controller.abort(data.payload);
+			};
+			targetWindow.addEventListener("message", abort);
+			const postProgress = () => {
+				if (settled) return;
+				postResponse(source, event.origin, {
+					...message,
+					messageDirection: "response",
+					payload: void 0,
+					isProgress: true
+				});
+			};
+			const heartbeat = setInterval(postProgress, 3e4);
+			postProgress();
+			debug.log("Audio downloader. direct strategy request started", {
+				strategy: audioDownloadType,
+				videoId,
+				messageId: message.messageId,
+				host: targetWindow.location.hostname
+			});
+			try {
+				const chunks = audioDownloadType === SABR_STRATEGY ? getSabrAudioChunks(targetWindow, videoId, controller.signal, getSourceLanguage(message)) : getWebAbrAudioChunks(targetWindow, videoId, controller.signal, getSourceLanguage(message));
+				for await (const chunk of chunks) {
+					const buffer = new Uint8Array(chunk.buffer.buffer, chunk.buffer.byteOffset, chunk.buffer.byteLength).slice();
+					const payload = {
+						...chunk,
+						buffer
+					};
+					debug.log("Audio downloader. direct chunk received", {
+						videoId,
+						messageId: message.messageId,
+						size: buffer.byteLength,
+						isLastChunk: chunk.isLastChunk
+					});
+					try {
+						postResponse(source, event.origin, {
+							...message,
+							messageDirection: "response",
+							payload
+						});
+						debug.log("Audio downloader. direct chunk posted", {
+							videoId,
+							messageId: message.messageId,
+							size: buffer.byteLength,
+							isLastChunk: chunk.isLastChunk
+						});
+					} catch (error) {
+						debug.error("Audio downloader. direct chunk post failed", {
+							videoId,
+							messageId: message.messageId,
+							size: buffer.byteLength,
+							error: error instanceof Error ? error.message : String(error)
+						});
+						throw error;
+					}
+				}
+				settled = true;
+				debug.log("Audio downloader. direct strategy stream finished", {
+					strategy: audioDownloadType,
+					videoId,
+					messageId: message.messageId
+				});
+				postResponse(source, event.origin, {
+					...message,
+					messageDirection: "response",
+					payload: void 0,
+					isStreamFinished: true
+				});
+			} catch (error) {
+				settled = true;
+				debug.error("Audio downloader. direct WebABR/SABR request failed", {
+					videoId,
+					messageId: message.messageId,
+					error: error instanceof Error ? error.message : String(error)
+				});
+				postResponse(source, event.origin, {
+					...message,
+					messageDirection: "response",
+					payload: void 0,
+					error: error instanceof Error ? error.message : String(error),
+					isAborted: controller.signal.aborted || isAbortError(error)
+				});
+			} finally {
+				clearInterval(heartbeat);
+				targetWindow.removeEventListener("message", abort);
+			}
+			return;
+		}
 		const iframe = targetWindow.document.createElement("iframe");
 		iframe.style.cssText = "position:fixed;right:0;bottom:0;width:2px;height:2px;border:0;padding:0;margin:0;opacity:0;visibility:hidden;pointer-events:none;";
 		iframe.tabIndex = -1;
@@ -24429,7 +29728,13 @@ var vot = (function(exports) {
 					messageId: message.messageId
 				});
 				iframe.contentWindow?.postMessage(message, "*");
-			} else if (response.messageId === message.messageId && (response.error || response.isAborted || response.isStreamFinished)) queueMicrotask(cleanup);
+			} else if (response.messageId === message.messageId && response.messageType === MESSAGE_TYPE && response.messageDirection === "iframe-response") {
+				postResponse(source, event.origin, {
+					...response,
+					messageDirection: "response"
+				});
+				if (response.error || response.isAborted || response.isStreamFinished) queueMicrotask(cleanup);
+			}
 		};
 		timeout = setTimeout(() => {
 			debug.error("Audio downloader. iframe loading timed out", {
@@ -24470,9 +29775,8 @@ var vot = (function(exports) {
 	initMseProxyHandler();
 	//#endregion
 	//#region src/audioDownloader/strategies/index.ts
-	var WEB_ABR_STRATEGY = AudioDownloadType.WEB_ABR;
-	var WEB_MSE_PROXY_STRATEGY = AudioDownloadType.WEB_MSE_PROXY;
 	var strategies = {
+		[SABR_STRATEGY]: (options) => getAudioFromBridge(options, SABR_STRATEGY),
 		[WEB_ABR_STRATEGY]: (options) => getAudioFromBridge(options, WEB_ABR_STRATEGY),
 		[WEB_MSE_PROXY_STRATEGY]: (options) => getAudioFromBridge(options, WEB_MSE_PROXY_STRATEGY)
 	};
@@ -24575,7 +29879,7 @@ var vot = (function(exports) {
 		onDownloadedPartialAudio = new EventImpl();
 		onDownloadAudioError = new EventImpl();
 		strategy;
-		constructor(strategy = WEB_ABR_STRATEGY) {
+		constructor(strategy = "auto") {
 			this.strategy = strategy;
 			this.onDownloadedPartialAudio.addListener((_translationId, data) => {
 				const chunks = this.collectingChunks.get(data.videoId);
@@ -24632,7 +29936,7 @@ var vot = (function(exports) {
 					return;
 				}
 				debug.error("Audio downloader. All audio download strategies failed", { videoId });
-				this.onDownloadAudioError.dispatch(translationId, videoId);
+				this.onDownloadAudioError.dispatch(translationId, videoId, false);
 				return;
 			}
 			let collecting;
@@ -24640,7 +29944,11 @@ var vot = (function(exports) {
 				if (await this.replayCachedAudio(videoId, translationId, signal)) return;
 				collecting = [];
 				this.collectingChunks.set(videoId, collecting);
-				const attempts = this.strategy === WEB_ABR_STRATEGY ? [WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY] : [this.strategy];
+				const attempts = this.strategy === "auto" ? [
+					SABR_STRATEGY,
+					WEB_ABR_STRATEGY,
+					WEB_MSE_PROXY_STRATEGY
+				] : [this.strategy];
 				for (const attemptedStrategy of attempts) try {
 					await handleCommonAudioDownloadRequest({
 						audioDownloader: this,
@@ -24664,6 +29972,10 @@ var vot = (function(exports) {
 						});
 						return;
 					}
+					if (attemptedStrategy === WEB_ABR_STRATEGY && error instanceof Error && error.message.includes("YOUTUBE_SIGN_IN_SUGGESTED")) {
+						this.onDownloadAudioError.dispatch(translationId, videoId, true);
+						return;
+					}
 					debug.error("Audio downloader. Strategy failed", {
 						videoId,
 						audioDownloadType: attemptedStrategy,
@@ -24671,7 +29983,7 @@ var vot = (function(exports) {
 					});
 				}
 				debug.error("Audio downloader. All audio download strategies failed", { videoId });
-				this.onDownloadAudioError.dispatch(translationId, videoId);
+				this.onDownloadAudioError.dispatch(translationId, videoId, false);
 			} finally {
 				if (collecting && this.collectingChunks.get(videoId) === collecting) this.collectingChunks.delete(videoId);
 				release();
@@ -25084,7 +30396,7 @@ var vot = (function(exports) {
 				this.finishDownloadSuccess(runId);
 			}
 		};
-		onDownloadAudioError = async (translationId, videoId) => {
+		onDownloadAudioError = async (translationId, videoId, signInSuggested = false) => {
 			if (!this.downloading) {
 				debug.log("skip downloadAudioError");
 				return;
@@ -25096,8 +30408,9 @@ var vot = (function(exports) {
 			const runId = this.audioRunSeq;
 			debug.error("[VOT][AudioDownload] failed to download audio from source", { videoId });
 			const videoUrl = this.getCanonicalUrl(videoId);
-			if (!(this.videoHandler.site.host === "youtube" && Boolean(this.videoHandler.data?.useAudioDownload))) {
-				this.finishDownloadFailure(new VOTLocalizedError("VOTFailedDownloadAudio"), runId);
+			const shouldUseFallback = this.videoHandler.site.host === "youtube" && Boolean(this.videoHandler.data?.useAudioDownload);
+			if (signInSuggested || !shouldUseFallback) {
+				this.finishDownloadFailure(new VOTLocalizedError(signInSuggested ? "VOTYouTubeSignInSuggested" : "VOTFailedDownloadAudio"), runId);
 				return;
 			}
 			try {
@@ -35998,6 +41311,11 @@ var vot = (function(exports) {
 		}
 	}
 	function smartDuckingTick(handler) {
+		if (browserInfo.browser?.name === "Safari") {
+			const targetVolume = clamp(handler.data?.autoVolume ?? 15, 0, 100) / 100;
+			handler.setVideoVolume(targetVolume, { preserveYoutubeVolumeStorage: true });
+			return;
+		}
 		if (getAutoVolumeMode(handler) !== "smart") {
 			setupAudioSettings.call(handler);
 			return;

@@ -264,15 +264,6 @@ export async function* trySabrAudioChunks(
     selection: sabrTrackSelection,
   });
 
-  // Native SABR is a bootstrap/session reference, not the authority for VOT's
-  // selected language. YouTube player switching is unreliable across builds and
-  // previously caused valid alternate tracks to fail before format selection.
-  // The concrete media track is enforced below by (audioTrackId/language + itag)
-  // filtering and by exposing only that track's audio formats to SabrStream.
-  const confirmedNativeTrackId = nativeSabrAudioTrackId;
-  const nativeTrackConfirmed =
-    !sabrAudioTrackId || sabrAudioTrackId === nativeSabrAudioTrackId;
-
   // Keep config/formats from one coherent player response. SabrStream starts
   // from that response URL, while sabrDiagnosticFetch may substitute a fresh
   // passively observed native URL at transport time. This avoids reprocessing
@@ -299,10 +290,7 @@ export async function* trySabrAudioChunks(
     ...(player.streamingData?.adaptiveFormats ?? []),
     ...(player.streamingData?.formats ?? []),
   ];
-  const sabrFormats = rawFormats.flatMap((format) => {
-    const converted = toSabrFormat(format);
-    return converted ? [converted] : [];
-  });
+
   const audioCandidates = rawFormats.filter(
     (format) =>
       format.mimeType?.includes("audio/") &&
@@ -473,7 +461,7 @@ export async function* trySabrAudioChunks(
       offset < bytes.length && offset < start + 10;
       offset++
     ) {
-      const byte = bytes[offset]!;
+      const byte = bytes[offset];
       value |= BigInt(byte & 0x7f) << shift;
       if ((byte & 0x80) === 0) return { value, next: offset + 1 };
       shift += 7n;
@@ -592,7 +580,6 @@ export async function* trySabrAudioChunks(
 
   const sabrDiagnosticFetch: typeof fetch = async (input, init) => {
     const index = ++sabrRequestIndex;
-    const startedAt = performance.now();
     const RequestCtor = fetchRealm.Request;
     const inputIsRequest =
       typeof RequestCtor !== "undefined" && input instanceof RequestCtor;
@@ -616,10 +603,6 @@ export async function* trySabrAudioChunks(
       // is authoritative for this request sequence and redirects.
     }
     const method = init?.method ?? requestInput?.method ?? "GET";
-    const credentials = init?.credentials ?? requestInput?.credentials;
-    const mode = init?.mode ?? requestInput?.mode;
-    const redirect = init?.redirect ?? requestInput?.redirect;
-    const cache = init?.cache ?? requestInput?.cache;
     const body = init?.body ?? null;
 
     const headers = new fetchRealm.Headers(
@@ -649,24 +632,7 @@ export async function* trySabrAudioChunks(
     }
 
     const headerEntries = Object.fromEntries(headers.entries());
-
-    let bodyType = body === null ? "none" : typeof body;
-    let bodyConstructor: string | null = null;
-    let bodyByteLength: number | null = null;
-    let bodyIsReadableStream = false;
-    let bodyHexPreview: string | null = null;
-
     if (body !== null) {
-      bodyConstructor =
-        typeof body === "object" && body && "constructor" in body
-          ? ((body as { constructor?: { name?: string } }).constructor?.name ??
-            null)
-          : null;
-      const ReadableStreamCtor = fetchRealm.ReadableStream;
-      bodyIsReadableStream =
-        typeof ReadableStreamCtor !== "undefined" &&
-        body instanceof ReadableStreamCtor;
-
       let bytes: Uint8Array | null = null;
       if (typeof body === "string") {
         bytes = new TextEncoder().encode(body);
@@ -675,14 +641,9 @@ export async function* trySabrAudioChunks(
       } else if (ArrayBuffer.isView(body)) {
         bytes = new Uint8Array(body.buffer, body.byteOffset, body.byteLength);
       } else if (typeof BlobCtor !== "undefined" && body instanceof BlobCtor) {
-        bodyByteLength = (body as Blob).size;
       }
 
       if (bytes) {
-        bodyByteLength = bytes.byteLength;
-        bodyHexPreview = [...bytes.subarray(0, 24)]
-          .map((value) => value.toString(16).padStart(2, "0"))
-          .join(" ");
         const protobuf = inspectSabrProto(bytes);
         const encodedAudioTrackId = getGeneratedSabrAudioTrackId(bytes);
         if (index <= 3 || encodedAudioTrackId !== sabrAudioTrackId) {
@@ -705,10 +666,6 @@ export async function* trySabrAudioChunks(
           }
         }
       }
-    } else if (inputIsRequest) {
-      bodyType = requestInput?.body ? "request-stream" : "none";
-      bodyConstructor = requestInput?.body?.constructor?.name ?? null;
-      bodyIsReadableStream = Boolean(requestInput?.body);
     }
 
     const fetchWithGmFallback = async (): Promise<Response> => {
@@ -891,60 +848,51 @@ export async function* trySabrAudioChunks(
         });
       }
     };
-
-    try {
-      const response = await fetchWithGmFallback();
-      // `targetWindow.fetch()` (and the GM fallback above) return a Response
-      // whose body chunks are created in the YouTube page realm. googlevideo's
-      // CompositeBuffer currently distinguishes Uint8Array with `instanceof`.
-      // A cross-realm Uint8Array fails that check and is then incorrectly
-      // treated as CompositeBuffer (`chunk.chunks.forEach(...)`), which crashes.
-      //
-      // Re-stream the body and copy every chunk into this userscript realm.
-      // Keep it streaming: buffering the whole SABR response here would add
-      // unnecessary latency/memory use.
-      if (response.body) {
-        const foreignReader = response.body.getReader();
-        const localBody = new ReadableStream<Uint8Array>({
-          async pull(controller) {
-            try {
-              const { value, done } = await foreignReader.read();
-              if (done) {
-                controller.close();
-                return;
-              }
-              if (!value) return;
-
-              const source = ArrayBuffer.isView(value)
-                ? new Uint8Array(
-                    value.buffer,
-                    value.byteOffset,
-                    value.byteLength,
-                  )
-                : new Uint8Array(value as ArrayBuffer);
-              const localChunk = new Uint8Array(source.byteLength);
-              localChunk.set(source);
-              controller.enqueue(localChunk);
-            } catch (error) {
-              controller.error(error);
+    const response = await fetchWithGmFallback();
+    // `targetWindow.fetch()` (and the GM fallback above) return a Response
+    // whose body chunks are created in the YouTube page realm. googlevideo's
+    // CompositeBuffer currently distinguishes Uint8Array with `instanceof`.
+    // A cross-realm Uint8Array fails that check and is then incorrectly
+    // treated as CompositeBuffer (`chunk.chunks.forEach(...)`), which crashes.
+    //
+    // Re-stream the body and copy every chunk into this userscript realm.
+    // Keep it streaming: buffering the whole SABR response here would add
+    // unnecessary latency/memory use.
+    if (response.body) {
+      const foreignReader = response.body.getReader();
+      const localBody = new ReadableStream<Uint8Array>({
+        async pull(controller) {
+          try {
+            const { value, done } = await foreignReader.read();
+            if (done) {
+              controller.close();
+              return;
             }
-          },
-          cancel(reason) {
-            return foreignReader.cancel(reason);
-          },
-        });
+            if (!value) return;
 
-        return new Response(localBody, {
-          status: response.status,
-          statusText: response.statusText,
-          headers: new Headers(response.headers),
-        });
-      }
+            const source = ArrayBuffer.isView(value)
+              ? new Uint8Array(value.buffer, value.byteOffset, value.byteLength)
+              : new Uint8Array(value as ArrayBuffer);
+            const localChunk = new Uint8Array(source.byteLength);
+            localChunk.set(source);
+            controller.enqueue(localChunk);
+          } catch (error) {
+            controller.error(error);
+          }
+        },
+        cancel(reason) {
+          return foreignReader.cancel(reason);
+        },
+      });
 
-      return response;
-    } catch (error) {
-      throw error;
+      return new Response(localBody, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: new Headers(response.headers),
+      });
     }
+
+    return response;
   };
 
   // Do not synthesize native-only ClientAbrState fields here.
@@ -1007,69 +955,58 @@ export async function* trySabrAudioChunks(
   }
 
   let stream: SabrStream;
-  try {
-    stream = new SabrStream({
-      fetch: sabrDiagnosticFetch,
-      poToken: sabrPoToken,
-      serverAbrStreamingUrl,
-      videoPlaybackUstreamerConfig,
-      clientInfo,
-      formats: sabrFormatsForStream,
-    });
-    VOT_SABR_INSTANCE_CONTEXT.set(stream as unknown as object, {
-      videoId,
-      // Deliberately do not expose the captured body to PURE SELF_BUILT.
-      // Capture remains available only to diagnostics and the later DIRECT fallback.
-      sabrAudioTrackId,
-      buildIndex: 0,
-      pageWindow,
-    });
-    debug.log("[VOT][SABR][PURE_ONLY] SabrStream created", {
-      videoId,
-      sabrAudioTrackId,
-      bootstrap: "playerResponse+SabrStream-generated-protobuf",
-      nativeSabrCapture: "disabled",
-      nativeBodyUsed: false,
-      nativeUrlUsed: false,
-      nativeCpnUsed: false,
-      nativeRnUsed: false,
-      serverAbrSource: "playerResponse",
-      onlySabrStrategy: "PURE_SELF_BUILT",
-    });
-  } catch (error) {
-    throw error;
-  }
+  stream = new SabrStream({
+    fetch: sabrDiagnosticFetch,
+    poToken: sabrPoToken,
+    serverAbrStreamingUrl,
+    videoPlaybackUstreamerConfig,
+    clientInfo,
+    formats: sabrFormatsForStream,
+  });
+  VOT_SABR_INSTANCE_CONTEXT.set(stream as unknown as object, {
+    videoId,
+    // Deliberately do not expose the captured body to PURE SELF_BUILT.
+    // Capture remains available only to diagnostics and the later DIRECT fallback.
+    sabrAudioTrackId,
+    buildIndex: 0,
+    pageWindow,
+  });
+  debug.log("[VOT][SABR][PURE_ONLY] SabrStream created", {
+    videoId,
+    sabrAudioTrackId,
+    bootstrap: "playerResponse+SabrStream-generated-protobuf",
+    nativeSabrCapture: "disabled",
+    nativeBodyUsed: false,
+    nativeUrlUsed: false,
+    nativeCpnUsed: false,
+    nativeRnUsed: false,
+    serverAbrSource: "playerResponse",
+    onlySabrStrategy: "PURE_SELF_BUILT",
+  });
 
   const abort = () => stream.abort();
   signal.addEventListener("abort", abort, { once: true });
   try {
-    let started: Awaited<ReturnType<typeof stream.start>>;
-    try {
-      started = await stream.start({
-        audioFormat: selectedSabr,
-        // SABR currently initializes both tracks. Pick the smallest video and
-        // drain it below so video backpressure cannot stall the audio download.
-        videoFormat: (formats) =>
-          formats
-            .filter((format) => format.mimeType?.includes("video/"))
-            .sort((a, b) => a.bitrate - b.bitrate)[0],
-        // We only consume audio. Telling SabrStream this explicitly makes it
-        // mark the dummy video format as discarded and, crucially, emit a
-        // BufferedRange (protobuf field 3) from the first post-bootstrap
-        // request instead of waiting for both tracks to initialize.
-        enabledTrackTypes: 1,
-        maxRetries: 3,
-        stallDetectionMs: 20_000,
-      });
-      debug.log("[VOT][SABR][PURE_ONLY] SabrStream started", {
-        videoId,
-        sabrAudioTrackId,
-      });
-    } catch (error) {
-      throw error;
-    }
-
-    let audioReadCount = 0;
+    const started = await stream.start({
+      audioFormat: selectedSabr,
+      // SABR currently initializes both tracks. Pick the smallest video and
+      // drain it below so video backpressure cannot stall the audio download.
+      videoFormat: (formats) =>
+        formats
+          .filter((format) => format.mimeType?.includes("video/"))
+          .sort((a, b) => a.bitrate - b.bitrate)[0],
+      // We only consume audio. Telling SabrStream this explicitly makes it
+      // mark the dummy video format as discarded and, crucially, emit a
+      // BufferedRange (protobuf field 3) from the first post-bootstrap
+      // request instead of waiting for both tracks to initialize.
+      enabledTrackTypes: 1,
+      maxRetries: 3,
+      stallDetectionMs: 20_000,
+    });
+    debug.log("[VOT][SABR][PURE_ONLY] SabrStream started", {
+      videoId,
+      sabrAudioTrackId,
+    });
 
     // Do not cancel videoStream while SabrStream is active. Some versions use
     // both exposed streams as part of their internal scheduling/backpressure
@@ -1106,29 +1043,23 @@ export async function* trySabrAudioChunks(
     try {
       while (true) {
         signal.throwIfAborted();
-        const index = ++audioReadCount;
-        const startedAt = performance.now();
 
         let result: ReadableStreamReadResult<Uint8Array>;
+        const readTimeoutMs = 25_000;
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
+        const timeout = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(
+              new Error(
+                `Audio downloader. SABR audio stream stalled for ${readTimeoutMs}ms`,
+              ),
+            );
+          }, readTimeoutMs);
+        });
         try {
-          const readTimeoutMs = 25_000;
-          let timeoutId: ReturnType<typeof setTimeout> | undefined;
-          const timeout = new Promise<never>((_, reject) => {
-            timeoutId = setTimeout(() => {
-              reject(
-                new Error(
-                  `Audio downloader. SABR audio stream stalled for ${readTimeoutMs}ms`,
-                ),
-              );
-            }, readTimeoutMs);
-          });
-          try {
-            result = await Promise.race([audioReader.read(), timeout]);
-          } finally {
-            if (timeoutId !== undefined) clearTimeout(timeoutId);
-          }
-        } catch (error) {
-          throw error;
+          result = await Promise.race([audioReader.read(), timeout]);
+        } finally {
+          if (timeoutId !== undefined) clearTimeout(timeoutId);
         }
 
         const { value, done } = result;
@@ -1137,13 +1068,9 @@ export async function* trySabrAudioChunks(
         if (!value?.byteLength) continue;
 
         const copy = new Uint8Array(value.byteLength);
-        try {
-          copy.set(
-            new Uint8Array(value.buffer, value.byteOffset, value.byteLength),
-          );
-        } catch (error) {
-          throw error;
-        }
+        copy.set(
+          new Uint8Array(value.buffer, value.byteOffset, value.byteLength),
+        );
 
         total += copy.byteLength;
 

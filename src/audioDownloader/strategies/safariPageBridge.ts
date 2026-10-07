@@ -1,3 +1,4 @@
+import { browserInfo } from "../../utils/browserInfo";
 import debug from "../../utils/debug";
 
 const REQUEST_EVENT = "vot:safari-page-po-token:request";
@@ -23,11 +24,7 @@ type PoTokenResponse = {
 };
 
 function isSafariBrowser(): boolean {
-  const ua = navigator.userAgent;
-  return (
-    /Safari\//.test(ua) &&
-    !/(?:Chrome|Chromium|CriOS|Edg|OPR|Firefox|FxiOS)\//.test(ua)
-  );
+  return browserInfo.browser?.name === "Safari";
 }
 
 function installSafariPageBridge(): boolean {

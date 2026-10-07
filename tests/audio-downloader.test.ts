@@ -17,9 +17,14 @@ const tick = (ms = 10) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 const { AudioDownloader } = await import("../src/audioDownloader/index");
-const { strategies, WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY } = await import(
-  "../src/audioDownloader/strategies/index"
-);
+const { strategies, SABR_STRATEGY, WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY } =
+  await import("../src/audioDownloader/strategies/index");
+
+// The real SABR strategy waits on a page bridge that does not exist in bun, so
+// it must never run. "auto" tries it first, hence this stub throws immediately.
+const sabrUnavailable = async (): Promise<never> => {
+  throw new Error("sabr unavailable");
+};
 
 type RecordedChunk = {
   index: number;
@@ -75,8 +80,10 @@ async function runWithChunks(
       }>;
     }>
   >;
+  const prevSabr = table[SABR_STRATEGY];
   const prevAbr = table[WEB_ABR_STRATEGY];
   const prevMse = table[WEB_MSE_PROXY_STRATEGY];
+  table[SABR_STRATEGY] = sabrUnavailable;
   table[WEB_ABR_STRATEGY] = async (options) => {
     seenLanguage = options.sourceLanguage;
     return {
@@ -101,6 +108,7 @@ async function runWithChunks(
       sourceLanguage,
     );
   } finally {
+    table[SABR_STRATEGY] = prevSabr;
     table[WEB_ABR_STRATEGY] = prevAbr;
     table[WEB_MSE_PROXY_STRATEGY] = prevMse;
   }
@@ -174,11 +182,14 @@ type StrategyFn = (options: {
 
 function patchStrategies(abr: StrategyFn, mse: StrategyFn) {
   const table = strategies as unknown as Record<string, StrategyFn>;
+  const prevSabr = table[SABR_STRATEGY];
   const prevAbr = table[WEB_ABR_STRATEGY];
   const prevMse = table[WEB_MSE_PROXY_STRATEGY];
+  table[SABR_STRATEGY] = sabrUnavailable;
   table[WEB_ABR_STRATEGY] = abr;
   table[WEB_MSE_PROXY_STRATEGY] = mse;
   return () => {
+    table[SABR_STRATEGY] = prevSabr;
     table[WEB_ABR_STRATEGY] = prevAbr;
     table[WEB_MSE_PROXY_STRATEGY] = prevMse;
   };
@@ -446,11 +457,11 @@ test("a failed run releases the slot for the next same-video run", async () => {
   try {
     const errors: string[] = [];
     const videoId = "q-fail";
-    const first = new AudioDownloader(WEB_ABR_STRATEGY);
+    const first = new AudioDownloader("auto");
     first.addEventListener("downloadAudioError", (_id, id) => {
       errors.push(id);
     });
-    const second = new AudioDownloader(WEB_ABR_STRATEGY);
+    const second = new AudioDownloader("auto");
     second.addEventListener("downloadAudioError", (_id, id) => {
       errors.push(id);
     });
@@ -511,13 +522,13 @@ test("a queued run cannot interleave between WEB_ABR and its fallback", async ()
   try {
     const videoId = "q-fallback";
     const signal = new AbortController().signal;
-    const runA = new AudioDownloader(WEB_ABR_STRATEGY).runAudioDownload(
+    const runA = new AudioDownloader("auto").runAudioDownload(
       videoId,
       "t-a",
       signal,
       "lang-a",
     );
-    const runB = new AudioDownloader(WEB_ABR_STRATEGY).runAudioDownload(
+    const runB = new AudioDownloader("auto").runAudioDownload(
       videoId,
       "t-b",
       signal,

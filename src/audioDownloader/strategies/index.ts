@@ -19,4 +19,4 @@ export const strategies = {
     getAudioFromBridge(options, WEB_MSE_PROXY_STRATEGY),
 } as const;
 
-export type AvailableAudioDownloadType = keyof typeof strategies;
+export type AvailableAudioDownloadType = keyof typeof strategies | "auto";

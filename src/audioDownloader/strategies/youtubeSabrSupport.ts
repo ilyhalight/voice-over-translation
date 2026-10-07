@@ -44,18 +44,6 @@ export function toSabrFormat(
   };
 }
 
-function describeError(error: unknown) {
-  return {
-    errorName: error instanceof Error ? error.name : typeof error,
-    errorMessage: error instanceof Error ? error.message : String(error),
-    errorStack: error instanceof Error ? error.stack : undefined,
-    errorCause:
-      error instanceof Error && "cause" in error
-        ? String(error.cause)
-        : undefined,
-  };
-}
-
 function encodeProtoVarint(value: number): Uint8Array {
   const out: number[] = [];
   let current = Math.max(0, Math.floor(value));
@@ -95,6 +83,30 @@ function readProtoVarintAt(
   throw new Error("invalid protobuf varint");
 }
 
+function splitTopLevelProto(
+  bytes: Uint8Array,
+): Array<{ field: number; start: number; end: number }> {
+  const out: Array<{ field: number; start: number; end: number }> = [];
+  let offset = 0;
+  while (offset < bytes.length) {
+    const start = offset;
+    const tag = readProtoVarintAt(bytes, offset);
+    offset = tag.next;
+    const field = Math.floor(tag.value / 8);
+    const wire = tag.value & 7;
+    if (wire === 0) offset = readProtoVarintAt(bytes, offset).next;
+    else if (wire === 1) offset += 8;
+    else if (wire === 2) {
+      const length = readProtoVarintAt(bytes, offset);
+      offset = length.next + length.value;
+    } else if (wire === 5) offset += 4;
+    else throw new Error(`unsupported protobuf wire ${wire}`);
+    if (offset > bytes.length) throw new Error("truncated protobuf field");
+    out.push({ field, start, end: offset });
+  }
+  return out;
+}
+
 /**
  * SABR-only: set ClientAbrState.audioTrackId (nested field 69 inside
  * VideoPlaybackAbrRequest field 1). We keep SabrStream's generated ABR state
@@ -132,7 +144,7 @@ export function setGeneratedSabrAudioTrackId(
 
     const payload = generated.slice(payloadStart, payloadEnd);
     const fields = splitTopLevelProto(payload);
-    const payloadChunks = fields
+    const payloadChunks: Uint8Array[] = fields
       .filter((field) => field.field !== 69)
       .map((field) => payload.slice(field.start, field.end));
     payloadChunks.push(trackField);

@@ -34,7 +34,7 @@ type MseWindow = Window & {
 type MseMessage = {
   messageId: string;
   messageType: string;
-  messageDirection: "request" | "response";
+  messageDirection: "request" | "response" | "iframe-response";
   payload?: unknown;
   error?: string;
   isAborted?: boolean;
@@ -661,7 +661,7 @@ async function handleIframeRequest(
       if (settled) return;
       postResponse(source, event.origin, {
         ...message,
-        messageDirection: "response",
+        messageDirection: "iframe-response",
         payload: undefined,
         isProgress: true,
       });
@@ -705,7 +705,7 @@ async function handleIframeRequest(
       });
       postResponse(source, event.origin, {
         ...message,
-        messageDirection: "response",
+        messageDirection: "iframe-response",
         payload: chunk,
       });
     }
@@ -717,7 +717,7 @@ async function handleIframeRequest(
     });
     postResponse(source, event.origin, {
       ...message,
-      messageDirection: "response",
+      messageDirection: "iframe-response",
       payload: undefined,
       isStreamFinished: true,
     });
@@ -729,7 +729,7 @@ async function handleIframeRequest(
     });
     postResponse(source, event.origin, {
       ...message,
-      messageDirection: "response",
+      messageDirection: "iframe-response",
       payload: undefined,
       error: error instanceof Error ? error.message : String(error),
       isAborted: controller.signal.aborted || isAbortError(error),
@@ -967,9 +967,18 @@ async function handleTopRequest(
       iframe.contentWindow?.postMessage(message, "*");
     } else if (
       response.messageId === message.messageId &&
-      (response.error || response.isAborted || response.isStreamFinished)
+      response.messageType === MESSAGE_TYPE &&
+      response.messageDirection === "iframe-response"
     ) {
-      queueMicrotask(cleanup);
+      // The service iframe is cross-origin from non-www YouTube hosts, so the
+      // bridge would reject its responses. Relay them with the top page origin.
+      postResponse(source, event.origin, {
+        ...response,
+        messageDirection: "response",
+      });
+      if (response.error || response.isAborted || response.isStreamFinished) {
+        queueMicrotask(cleanup);
+      }
     }
   };
   timeout = setTimeout(() => {

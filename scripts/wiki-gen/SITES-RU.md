@@ -310,6 +310,16 @@
 - /video/VIDEO_ID
 - /videos/VIDEO_ID
 
+## Joidatabase
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `s1.the-joi-database.com`
+- `the-joi-database.com`
+- `www.the-joi-database.com`
+
 ## Picarto
 
 Статус: [✅] Работает
@@ -903,23 +913,6 @@
 
 - Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
 
-## Incestflix
-
-Статус: [✅] Работает
-
-Доступные (под)домены:
-
-- `incestflix.net`
-- `incestflix.to`
-- `incestflix.com`
-- `www.incestflix.net`
-- `www.incestflix.to`
-- `www.incestflix.com`
-
-Доступные пути:
-
-- /watch/VIDEO_ID
-
 ## Dzen
 
 Статус: [✅] Работает
@@ -1170,6 +1163,26 @@
 Доступные (под)домены:
 
 - `skilljar.com`
+
+## Dropout
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `watch.dropout.tv`
+
+Ограничения:
+
+- Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
+
+## Wistia
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `fast.wistia.net`
 
 ## Direct link to MP4/WEBM
 
