@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "Traducerea va dura aproximativ {0} minute",
   "requestTranslationFailed": "Nu s-a solicitat traducerea video",
   "audioNotReceived": "Link-ul Audio nu a fost primit",
+  "VOTYouTubeSignInSuggested": "Conectați-vă la YouTube și încercați din nou traducerea",
   "audioFormatNotSupported": "Formatul audio nu este acceptat",
   "VOTAutoTranslate": "Traduceți pe deschis",
   "VOTDontTranslateYourLang": "Nu Traduceți din limba mea",

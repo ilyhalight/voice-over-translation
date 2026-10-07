@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "Käännös vie noin {0} minuuttia",
   "requestTranslationFailed": "Videon käännöksen pyyntö epäonnistui",
   "audioNotReceived": "Äänilinkkiä ei vastaanotettu",
+  "VOTYouTubeSignInSuggested": "Kirjaudu YouTubeen ja yritä käännöstä uudelleen",
   "audioFormatNotSupported": "Äänimuotoa ei tueta",
   "VOTAutoTranslate": "Käännä auki",
   "VOTDontTranslateYourLang": "Älä käännä kielestäni",

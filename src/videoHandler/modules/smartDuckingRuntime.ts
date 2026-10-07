@@ -430,6 +430,16 @@ function getTranslatedAudioRms(
 }
 
 function smartDuckingTick(handler: VideoHandler): void {
+  if (browserInfo.browser?.name === "Safari") {
+    const targetVolume =
+      clamp(handler.data?.autoVolume ?? defaultAutoVolume, 0, 100) / 100;
+
+    handler.setVideoVolume(targetVolume, {
+      preserveYoutubeVolumeStorage: true,
+    });
+    return;
+  }
+
   if (getAutoVolumeMode(handler) !== "smart") {
     setupAudioSettings.call(handler);
     return;

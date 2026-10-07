@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "Tafsiri itachukua takriban {0} dakika",
   "requestTranslationFailed": "Imeshindwa kuomba tafsiri ya video",
   "audioNotReceived": "Kiungo cha sauti hakijapokelewa",
+  "VOTYouTubeSignInSuggested": "Ingia kwenye YouTube na ujaribu kutafsiri tena",
   "audioFormatNotSupported": "Umbizo la sauti halitumiki",
   "VOTAutoTranslate": "Tafsiri juu ya wazi",
   "VOTDontTranslateYourLang": "Usitafsiri kutoka kwa lugha yangu",

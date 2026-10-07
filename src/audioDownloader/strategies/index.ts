@@ -1,13 +1,18 @@
-import { AudioDownloadType } from "@vot.js/core/types/yandex";
 import type { GetAudioFromAPIOptions } from "../../types/audioDownloader";
+import {
+  SABR_STRATEGY,
+  WEB_ABR_STRATEGY,
+  WEB_MSE_PROXY_STRATEGY,
+} from "./audioStrategy";
 import { getAudioFromBridge } from "./webAudioBridge";
 
 import "./mseProxyHandler";
 
-export const WEB_ABR_STRATEGY = AudioDownloadType.WEB_ABR;
-export const WEB_MSE_PROXY_STRATEGY = AudioDownloadType.WEB_MSE_PROXY;
+export { SABR_STRATEGY, WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY };
 
 export const strategies = {
+  [SABR_STRATEGY]: (options: GetAudioFromAPIOptions) =>
+    getAudioFromBridge(options, SABR_STRATEGY),
   [WEB_ABR_STRATEGY]: (options: GetAudioFromAPIOptions) =>
     getAudioFromBridge(options, WEB_ABR_STRATEGY),
   [WEB_MSE_PROXY_STRATEGY]: (options: GetAudioFromAPIOptions) =>

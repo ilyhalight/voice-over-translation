@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "Terjemahan akan mengambil masa selama kira-kira {0} minit",
   "requestTranslationFailed": "Gagal meminta terjemahan video",
   "audioNotReceived": "Link audio tidak diterima",
+  "VOTYouTubeSignInSuggested": "Log masuk ke YouTube dan cuba terjemahan sekali lagi",
   "audioFormatNotSupported": "Format audio tidak disokong",
   "VOTAutoTranslate": "Terjemahkan semasa pembukaan",
   "VOTDontTranslateYourLang": "Jangan terjemahkan dari bahasa asal anda",

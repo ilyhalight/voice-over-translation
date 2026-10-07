@@ -3,7 +3,13 @@ import { config } from "@vot.js/shared";
 import debug from "../../utils/debug";
 import { isAbortError } from "../../utils/errors";
 import { type AudioChunk, concatBuffers } from "./audioChunks";
-import { getWebAbrAudioChunks } from "./webAbr";
+import {
+  type AudioBridgeStrategy,
+  isAudioBridgeStrategy,
+  SABR_STRATEGY,
+} from "./audioStrategy";
+import { getSabrAudioChunks } from "./youtubeSabrStrategy";
+import { getWebAbrAudioChunks } from "./youtubeWebAbr";
 
 const MESSAGE_TYPE = "get-audio-chunks-by-mse-in-main-world";
 const READY_MESSAGE_TYPE = "vot-mse-proxy-ready";
@@ -54,12 +60,11 @@ function getVideoId(message: MseMessage): string | undefined {
 
 function getAudioDownloadType(
   message: MseMessage,
-): AudioDownloadType.WEB_ABR | AudioDownloadType.WEB_MSE_PROXY | undefined {
+): AudioBridgeStrategy | undefined {
   if (!message.payload || typeof message.payload !== "object") return;
   const audioDownloadType = (message.payload as { audioDownloadType?: unknown })
     .audioDownloadType;
-  return audioDownloadType === AudioDownloadType.WEB_ABR ||
-    audioDownloadType === AudioDownloadType.WEB_MSE_PROXY
+  return isAudioBridgeStrategy(audioDownloadType)
     ? audioDownloadType
     : undefined;
 }
@@ -662,20 +667,30 @@ async function handleIframeRequest(
       });
     };
     const chunks: AsyncIterable<AudioChunk> =
-      audioDownloadType === AudioDownloadType.WEB_ABR
-        ? getWebAbrAudioChunks(
+      audioDownloadType === SABR_STRATEGY
+        ? getSabrAudioChunks(
             targetWindow,
             videoId,
             controller.signal,
             getSourceLanguage(message),
           )
-        : createAudioChunkStream(
-            targetWindow,
-            videoId,
-            controller.signal,
-            postProgress,
-          );
-    if (audioDownloadType === AudioDownloadType.WEB_ABR) {
+        : audioDownloadType === AudioDownloadType.WEB_ABR
+          ? getWebAbrAudioChunks(
+              targetWindow,
+              videoId,
+              controller.signal,
+              getSourceLanguage(message),
+            )
+          : createAudioChunkStream(
+              targetWindow,
+              videoId,
+              controller.signal,
+              postProgress,
+            );
+    if (
+      audioDownloadType === SABR_STRATEGY ||
+      audioDownloadType === AudioDownloadType.WEB_ABR
+    ) {
       postProgress();
       heartbeat = setInterval(postProgress, 30_000);
     }
@@ -761,10 +776,147 @@ async function handleTopRequest(
     audioDownloadType,
     host: targetWindow.location.hostname,
   });
+
+  // Run WebABR/SABR directly in the real current YouTube page context.
+  // The hidden /embed player is retained only for the legacy MSE fallback.
+  if (
+    audioDownloadType === SABR_STRATEGY ||
+    audioDownloadType === AudioDownloadType.WEB_ABR
+  ) {
+    const controller = new AbortController();
+    let settled = false;
+
+    const abort = (abortEvent: MessageEvent<MseMessage>) => {
+      const data = abortEvent.data;
+      if (
+        abortEvent.source === source &&
+        abortEvent.origin === event.origin &&
+        data.messageId === message.messageId &&
+        data.messageType === MESSAGE_TYPE &&
+        data.messageDirection === "request" &&
+        data.isAborted
+      ) {
+        controller.abort(data.payload);
+      }
+    };
+    targetWindow.addEventListener("message", abort);
+
+    const postProgress = () => {
+      if (settled) return;
+      postResponse(source, event.origin, {
+        ...message,
+        messageDirection: "response",
+        payload: undefined,
+        isProgress: true,
+      });
+    };
+
+    const heartbeat = setInterval(postProgress, 30_000);
+    postProgress();
+    debug.log("Audio downloader. direct strategy request started", {
+      strategy: audioDownloadType,
+      videoId,
+      messageId: message.messageId,
+      host: targetWindow.location.hostname,
+    });
+
+    try {
+      const chunks =
+        audioDownloadType === SABR_STRATEGY
+          ? getSabrAudioChunks(
+              targetWindow,
+              videoId,
+              controller.signal,
+              getSourceLanguage(message),
+            )
+          : getWebAbrAudioChunks(
+              targetWindow,
+              videoId,
+              controller.signal,
+              getSourceLanguage(message),
+            );
+
+      for await (const chunk of chunks) {
+        // Normalize the chunk into this realm before crossing the message
+        // boundary. Firefox is stricter about structured-cloning objects and
+        // typed arrays originating in another userscript/page compartment.
+        // Always copying also makes Safari follow the same deterministic path
+        // instead of relying on browser-specific cross-realm behaviour.
+        const buffer = new Uint8Array(
+          chunk.buffer.buffer,
+          chunk.buffer.byteOffset,
+          chunk.buffer.byteLength,
+        ).slice();
+        const payload: AudioChunk = {
+          ...chunk,
+          buffer,
+        };
+
+        debug.log("Audio downloader. direct chunk received", {
+          videoId,
+          messageId: message.messageId,
+          size: buffer.byteLength,
+          isLastChunk: chunk.isLastChunk,
+        });
+
+        try {
+          postResponse(source, event.origin, {
+            ...message,
+            messageDirection: "response",
+            payload,
+          });
+          debug.log("Audio downloader. direct chunk posted", {
+            videoId,
+            messageId: message.messageId,
+            size: buffer.byteLength,
+            isLastChunk: chunk.isLastChunk,
+          });
+        } catch (error) {
+          debug.error("Audio downloader. direct chunk post failed", {
+            videoId,
+            messageId: message.messageId,
+            size: buffer.byteLength,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          throw error;
+        }
+      }
+
+      settled = true;
+      debug.log("Audio downloader. direct strategy stream finished", {
+        strategy: audioDownloadType,
+        videoId,
+        messageId: message.messageId,
+      });
+      postResponse(source, event.origin, {
+        ...message,
+        messageDirection: "response",
+        payload: undefined,
+        isStreamFinished: true,
+      });
+    } catch (error) {
+      settled = true;
+      debug.error("Audio downloader. direct WebABR/SABR request failed", {
+        videoId,
+        messageId: message.messageId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      postResponse(source, event.origin, {
+        ...message,
+        messageDirection: "response",
+        payload: undefined,
+        error: error instanceof Error ? error.message : String(error),
+        isAborted: controller.signal.aborted || isAbortError(error),
+      });
+    } finally {
+      clearInterval(heartbeat);
+      targetWindow.removeEventListener("message", abort);
+    }
+    return;
+  }
+
+  // MSE fallback keeps the original auxiliary /embed player path.
   const iframe = targetWindow.document.createElement("iframe");
-  // display:none iframes have no layout box, and YouTube defers media
-  // loading for non-rendered players (no src is ever assigned). Keep the
-  // frame rendered but invisible: 2x2px, off the visual path.
   iframe.style.cssText =
     "position:fixed;right:0;bottom:0;width:2px;height:2px;border:0;" +
     "padding:0;margin:0;opacity:0;visibility:hidden;pointer-events:none;";

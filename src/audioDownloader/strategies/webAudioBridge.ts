@@ -1,9 +1,8 @@
-import type { AudioDownloadType } from "@vot.js/core/types/yandex";
-
 import type { GetAudioFromAPIOptions } from "../../types/audioDownloader";
 import debug from "../../utils/debug";
 import { makeAbortError } from "../../utils/errors";
 import type { AudioChunk } from "./audioChunks";
+import type { AudioBridgeStrategy } from "./audioStrategy";
 
 const MESSAGE_TYPE = "get-audio-chunks-by-mse-in-main-world";
 export const STREAM_TIMEOUT_MS = 30 * 60_000;
@@ -37,9 +36,7 @@ export function parseAudioBridgeChunk(payload: unknown): AudioChunk {
 async function* getAudioBridgeChunks(
   videoId: string,
   signal: AbortSignal,
-  audioDownloadType:
-    | AudioDownloadType.WEB_ABR
-    | AudioDownloadType.WEB_MSE_PROXY,
+  audioDownloadType: AudioBridgeStrategy,
   sourceLanguage?: string,
 ): AsyncGenerator<AudioChunk> {
   if (signal.aborted) throw makeAbortError(signal.reason);
@@ -108,13 +105,14 @@ async function* getAudioBridgeChunks(
     );
   const onMessage = (event: MessageEvent) => {
     const message = event.data;
-    const iframe = document.getElementById(
-      `vot-mse-proxy-${messageId}`,
-    ) as HTMLIFrameElement | null;
+    // Firefox/Safari userscript realms can expose the same page Window through
+    // a different WindowProxy/wrapper, so event.source identity is not reliable.
+    // Authenticate bridge responses by same-origin delivery plus the per-request
+    // random messageId and protocol fields instead.
+    const expectedOrigin = globalThis.location.origin;
     if (
       !message ||
-      (event.source !== (globalThis as unknown as Window) &&
-        event.source !== iframe?.contentWindow) ||
+      event.origin !== expectedOrigin ||
       message.messageId !== messageId ||
       message.messageType !== MESSAGE_TYPE ||
       message.messageDirection !== "response"
@@ -231,9 +229,7 @@ async function* getAudioBridgeChunks(
 
 export async function getAudioFromBridge(
   { videoId, signal, sourceLanguage }: GetAudioFromAPIOptions,
-  audioDownloadType:
-    | AudioDownloadType.WEB_ABR
-    | AudioDownloadType.WEB_MSE_PROXY,
+  audioDownloadType: AudioBridgeStrategy,
 ) {
   return {
     fileId: `random-${audioDownloadType}-${crypto.randomUUID()}`,

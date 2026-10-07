@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "Die Übersetzung dauert ungefähr {0} Minuten",
   "requestTranslationFailed": "Videoübersetzung konnte nicht angefordert werden",
   "audioNotReceived": "Audiolink nicht empfangen",
+  "VOTYouTubeSignInSuggested": "Melde dich bei YouTube an und versuche die Übersetzung erneut",
   "audioFormatNotSupported": "Das Audioformat wird nicht unterstützt",
   "VOTAutoTranslate": "Beim Öffnen übersetzen",
   "VOTDontTranslateYourLang": "Nicht aus Ihrer Sprache übersetzen",

@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "Terjemahan bakal njupuk kira-kira {0} menit",
   "requestTranslationFailed": "Gagal kanggo njaluk terjemahan video",
   "audioNotReceived": "Link Audio ora ditampa",
+  "VOTYouTubeSignInSuggested": "Mlebu menyang YouTube lan coba terjemahake maneh",
   "audioFormatNotSupported": "Format audio ora didhukung",
   "VOTAutoTranslate": "Nerjemahake ing mbukak",
   "VOTDontTranslateYourLang": "Aja nerjemahké saka basanku",

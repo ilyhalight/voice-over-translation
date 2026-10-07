@@ -16,6 +16,7 @@
   "translationTakeApproximatelyMinute": "ترجمه تقریباً {0} دقیقه طول می کشد",
   "requestTranslationFailed": "امکان درخواست ترجمه ویدیو وجود ندارد",
   "audioNotReceived": "پیدا نشدن پیوند صوتی",
+  "VOTYouTubeSignInSuggested": "وارد YouTube شوید و ترجمه را دوباره امتحان کنید",
   "audioFormatNotSupported": "قالب صوتی پشتیبانی نمی شود",
   "VOTAutoTranslate": "ترجمه خودکار",
   "VOTDontTranslateYourLang": "از زبان مادری خود ترجمه نکنید",
