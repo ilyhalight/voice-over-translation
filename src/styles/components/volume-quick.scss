@@ -1,0 +1,30 @@
+// Compact, keyboard-accessible toggles below Subtitles.
+.vot-volume-quick-controls {
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 0;
+  gap: var(--vot-space-2, 8px);
+  width: 100%;
+}
+.vot-volume-quick-button {
+  appearance: none;
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  padding: 9px 12px;
+  border: 1px solid var(--vot-border-color);
+  border-radius: var(--vot-radius-s, 10px);
+  background: transparent;
+  color: rgb(var(--vot-onsurface-rgb, 227, 227, 227));
+  cursor: pointer;
+  transition: background var(--vot-duration-fast, 120ms);
+  &[aria-pressed="true"] {
+    background: rgba(var(--vot-primary-rgb, 139, 180, 245), 0.16);
+    border-color: rgba(var(--vot-primary-rgb, 139, 180, 245), 0.6);
+  }
+  &:focus-visible { outline: 2px solid var(--vot-focus-ring-color); outline-offset: 2px; }
+  &:disabled { opacity: 0.45; cursor: not-allowed; }
+}

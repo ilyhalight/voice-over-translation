@@ -98,6 +98,22 @@ export type Phrase =
   | "VOTAutoSetVolume"
   | "VOTShowVideoSlider"
   | "VOTSyncVolume"
+  | "VOTVolumeLinkMode"
+  | "VOTVolumeLinkDelta"
+  | "VOTVolumeLinkOffset"
+  | "VOTVolumeOffsetPreset"
+  | "VOTVolumeOffsetCustom"
+  | "VOTVolumeOffset"
+  | "VOTVolumeOffsetHelp"
+  | "VOTAutoVolumeMode"
+  | "VOTAutoVolumeModeOnce"
+  | "VOTAutoVolumeModeHold"
+  | "VOTAutoVolumeModeAdaptive"
+  | "VOTAutoVolumeModeDesc"
+  | "VOTQuickReduce"
+  | "VOTQuickLink"
+  | "VOTQuickBoost"
+  | "VOTQuickBoostUnavailableLinked"
   | "VOTDisableFromYourLang"
   | "VOTVideoIsTooLong"
   | "VOTNoVideoIDFound"
@@ -350,6 +366,22 @@ export type Phrases = {
   VOTAutoSetVolume: string;
   VOTShowVideoSlider: string;
   VOTSyncVolume: string;
+  VOTVolumeLinkMode: string;
+  VOTVolumeLinkDelta: string;
+  VOTVolumeLinkOffset: string;
+  VOTVolumeOffsetPreset: string;
+  VOTVolumeOffsetCustom: string;
+  VOTVolumeOffset: string;
+  VOTVolumeOffsetHelp: string;
+  VOTAutoVolumeMode: string;
+  VOTAutoVolumeModeOnce: string;
+  VOTAutoVolumeModeHold: string;
+  VOTAutoVolumeModeAdaptive: string;
+  VOTAutoVolumeModeDesc: string;
+  VOTQuickReduce: string;
+  VOTQuickLink: string;
+  VOTQuickBoost: string;
+  VOTQuickBoostUnavailableLinked: string;
   VOTDisableFromYourLang: string;
   VOTVideoIsTooLong: string;
   VOTNoVideoIDFound: string;

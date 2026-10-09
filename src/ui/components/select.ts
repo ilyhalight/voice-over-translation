@@ -31,6 +31,7 @@ export default class Select<
   private _selectTitle: string;
   private readonly _dialogTitle: string;
   private readonly multiSelect: MultiSelect;
+  private readonly searchable: boolean;
   private baseItems: SelectItem<T>[];
   private _items: SelectItem<T>[];
   private readonly searchItemsProvider?: SelectProps<
@@ -56,6 +57,8 @@ export default class Select<
     labelElement,
     dialogParent = document.documentElement,
     multiSelect,
+    // Only the fork volume controls opt out of search.
+    searchable = true,
   }: SelectProps<T, MultiSelect>) {
     super(["selectItem", "beforeOpen"]);
     this._selectTitle = selectTitle;
@@ -64,6 +67,7 @@ export default class Select<
     this._items = this.cloneItems(items);
     this.searchItemsProvider = searchItemsProvider;
     this.multiSelect = (multiSelect ?? false) as MultiSelect;
+    this.searchable = searchable;
     this.labelElement = labelElement;
     this.dialogParent = dialogParent;
     this.selectedValues = this.calcSelectedValues();
@@ -233,34 +237,39 @@ export default class Select<
         this.isDialogOpen = true;
         outer.setAttribute("aria-expanded", "true");
 
-        // Always show the search box (even for small lists) for consistent UX.
-        const votSearchLangTextfield = new Textfield({
-          labelHtml: localizationProvider.get("searchField"),
-        });
+        const votSearchLangTextfield = this.searchable
+          ? new Textfield({
+              labelHtml: localizationProvider.get("searchField"),
+            })
+          : undefined;
 
-        votSearchLangTextfield.addEventListener("input", async (searchText) => {
-          const requestId = ++this.searchRequestId;
-          if (this.searchItemsProvider) {
-            const providedItems = await this.searchItemsProvider(searchText);
-            if (requestId !== this.searchRequestId) {
-              return;
+        votSearchLangTextfield?.addEventListener(
+          "input",
+          async (searchText) => {
+            const requestId = ++this.searchRequestId;
+            if (this.searchItemsProvider) {
+              const providedItems = await this.searchItemsProvider(searchText);
+              if (requestId !== this.searchRequestId) {
+                return;
+              }
+              this.updateItems(providedItems, { persist: false });
             }
-            this.updateItems(providedItems, { persist: false });
-          }
 
-          const normalizedSearchText = searchText.toLowerCase();
-          for (const contentItem of this.selectedItems) {
-            const searchableText =
-              contentItem.dataset[this.contentItemSearchDatasetKey] ?? "";
-            contentItem.hidden = !searchableText.includes(normalizedSearchText);
-          }
-        });
+            const normalizedSearchText = searchText.toLowerCase();
+            for (const contentItem of this.selectedItems) {
+              const searchableText =
+                contentItem.dataset[this.contentItemSearchDatasetKey] ?? "";
+              contentItem.hidden =
+                !searchableText.includes(normalizedSearchText);
+            }
+          },
+        );
 
         this.contentList = this.createDialogContentList();
-        tempDialog.bodyContainer.append(
-          votSearchLangTextfield.container,
-          this.contentList,
-        );
+        if (votSearchLangTextfield) {
+          tempDialog.bodyContainer.append(votSearchLangTextfield.container);
+        }
+        tempDialog.bodyContainer.append(this.contentList);
 
         tempDialog.addEventListener("close", () => {
           this.isDialogOpen = false;
@@ -379,14 +388,16 @@ export default class Select<
     this.updateTitle();
   }
 
+  // Boolean HTML attributes use presence, not value="true".
   get disabled() {
     return (
-      this.outer.getAttribute("disabled") === "true" ||
+      this.outer.hasAttribute("disabled") ||
       this.outer.getAttribute("aria-disabled") === "true"
     );
   }
 
   set disabled(isDisabled: boolean) {
     this.outer.toggleAttribute("disabled", isDisabled);
+    this.outer.setAttribute("aria-disabled", String(isDisabled));
   }
 }

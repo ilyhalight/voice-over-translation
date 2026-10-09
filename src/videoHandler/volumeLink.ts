@@ -16,6 +16,8 @@ type ApplyVolumeLinkDeltaInput = {
   currentTranslation: number;
   translationMin: number;
   translationMax: number;
+  /** When present, the original is the master and the offset is in percentage points. */
+  offsetPercent?: number;
 };
 
 export type ApplyVolumeLinkDeltaResult = {
@@ -67,12 +69,33 @@ export function applyVolumeLinkDelta({
   currentTranslation,
   translationMin,
   translationMax,
+  offsetPercent,
 }: ApplyVolumeLinkDeltaInput): ApplyVolumeLinkDeltaResult {
   const sharedTranslationRange = getSharedTranslationRange(
     translationMin,
     translationMax,
   );
 
+  // BEGIN original-master percentage-point mode.
+  if (offsetPercent !== undefined) {
+    const video = clampPercentInt(
+      fromType === "video" ? newVolume : currentVideo,
+    );
+    const nextTranslation =
+      video === 0
+        ? 0
+        : clampInt(
+            video + clampPercentInt(offsetPercent),
+            sharedTranslationRange.min,
+            sharedTranslationRange.max,
+          );
+    state.initialized = true;
+    state.lastVideoPercent = video;
+    state.lastTranslationPercent = nextTranslation;
+    return { nextTranslation };
+  }
+
+  // END; upstream delta algorithm follows unchanged.
   if (!state.initialized) {
     state.lastVideoPercent = clampPercentInt(currentVideo);
     state.lastTranslationPercent = clampInt(

@@ -24,6 +24,8 @@ export type SettingsViewEventMap = {
   "change:showVideoVolume": [checked: boolean];
   "change:audioBooster": [checked: boolean];
   "change:syncVolume": [checked: boolean];
+  "change:volumeLinkSettings": [];
+  "change:volumePreferences": [];
   "change:subtitlesHighlightWords": [checked: boolean];
   "change:subtitlesSmartLayout": [checked: boolean];
   "select:responseLanguageSubtitles": [item: ResponseLanguageSubtitles];

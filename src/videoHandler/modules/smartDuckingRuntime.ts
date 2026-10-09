@@ -4,6 +4,7 @@ import debug from "../../utils/debug";
 import { clamp } from "../../utils/utils";
 import { snapVolume01 } from "../../utils/volume";
 import type { VideoHandler } from "../../VideoHandler";
+import { applyAutoVolumeLimit, stopAutoVolumeLimit } from "../autoVolumeLimit";
 import { safeSetPlayerVolume } from "../translationVolume";
 import {
   computeSmartDuckingStep,
@@ -302,6 +303,8 @@ export function stopSmartVolumeDucking(
   options: StopSmartVolumeDuckingOptions = {},
 ): void {
   const { restoreVolume } = options;
+  // Restore the exact pre-reduction level, not a mutated ducking baseline.
+  const restoredLimit = stopAutoVolumeLimit(handler);
 
   if (handler.smartVolumeDuckingInterval !== undefined) {
     clearTimeout(handler.smartVolumeDuckingInterval);
@@ -314,8 +317,10 @@ export function stopSmartVolumeDucking(
       : (handler.smartVolumeDuckingBaseline ?? handler.volumeOnStart);
 
   if (
+    !restoredLimit &&
     typeof baseline === "number" &&
-    (typeof restoreVolume === "number" || handler.smartVolumeIsDucked)
+    (handler.smartVolumeIsDucked ||
+      typeof handler.smartVolumeDuckingBaseline === "number")
   ) {
     try {
       handler.setVideoVolume(baseline);
@@ -506,6 +511,20 @@ export function setupAudioSettings(this: VideoHandler) {
     safeSetPlayerVolume(this.audioPlayer.player, this.data.defaultVolume / 100);
   }
 
+  // Once/hold do not use the adaptive timer or legacy baseline.
+  if (
+    this.data?.enabledAutoVolume &&
+    (this.data.autoVolumeMode === "once" || this.data.autoVolumeMode === "hold")
+  ) {
+    if (
+      this.smartVolumeDuckingInterval !== undefined ||
+      this.smartVolumeIsDucked
+    ) {
+      stopSmartVolumeDucking(this);
+    }
+    applyAutoVolumeLimit(this);
+    return;
+  }
   const autoVolumeMode = getAutoVolumeMode(this);
 
   if (autoVolumeMode === "off") {
@@ -515,6 +534,8 @@ export function setupAudioSettings(this: VideoHandler) {
     return;
   }
 
+  // Transitioning to upstream adaptive mode releases a fork ceiling first.
+  stopAutoVolumeLimit(this);
   const targetVolume =
     clamp(this.data.autoVolume ?? defaultAutoVolume, 0, 100) / 100;
 
@@ -580,6 +601,12 @@ export function applyManualVideoVolumeOverride(
     return;
   }
 
+  // Once/hold have an immutable restoration baseline of their own.
+  if (
+    this.data?.autoVolumeMode === "once" ||
+    this.data?.autoVolumeMode === "hold"
+  )
+    return;
   const nextVolume = snapVolume01(volume01);
   this.smartVolumeDuckingBaseline = nextVolume;
   this.smartVolumeLastApplied = nextVolume;

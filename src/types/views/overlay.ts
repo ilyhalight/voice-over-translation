@@ -13,6 +13,7 @@ export type OverlayViewProps = {
 };
 
 export type OverlayViewEventMap = {
+  "click:volumeQuick": ["enabledAutoVolume" | "syncVolume" | "audioBooster"];
   "click:settings": [];
   "click:pip": [];
   "click:subtitles": [];
