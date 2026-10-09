@@ -36,6 +36,7 @@ import Slider from "../components/slider";
 import SliderLabel from "../components/sliderLabel";
 import Tooltip from "../components/tooltip";
 import VoicePopover, { type VoiceType } from "../components/voicePopover";
+import { VolumeQuickControls } from "../components/volumeQuickControls";
 import VOTButton from "../components/votButton";
 import VOTMenu from "../components/votMenu";
 import { SETTINGS_ICON, SUBTITLES_ICON } from "./../icons";
@@ -92,6 +93,9 @@ export class OverlayView {
     "click:downloadTranslation": new EventImpl<
       OverlayViewEventMap["click:downloadTranslation"]
     >(),
+    "click:volumeQuick": new EventImpl<
+      OverlayViewEventMap["click:volumeQuick"]
+    >(),
     "click:downloadSubtitles": new EventImpl<
       OverlayViewEventMap["click:downloadSubtitles"]
     >(),
@@ -125,6 +129,7 @@ export class OverlayView {
   // menu
   votMenu?: VOTMenu;
   downloadTranslationButton?: DownloadButton;
+  volumeQuickControls?: VolumeQuickControls;
   downloadSubtitlesButton?: HTMLElement;
   openSettingsButton?: HTMLElement;
   languagePairSelect?: LanguagePairSelect<RequestLang, ResponseLang>;
@@ -210,6 +215,7 @@ export class OverlayView {
     // #region Menu type
     votMenu: VOTMenu;
     downloadTranslationButton: DownloadButton;
+    volumeQuickControls: VolumeQuickControls;
     downloadSubtitlesButton: HTMLElement;
     openSettingsButton: HTMLElement;
     languagePairSelect: LanguagePairSelect<RequestLang, ResponseLang>;
@@ -485,6 +491,15 @@ export class OverlayView {
     );
 
     // #region VOT Menu Header
+    // Keep these directly beneath the subtitles row.
+    this.volumeQuickControls = new VolumeQuickControls(
+      this.data,
+      Boolean(this.videoHandler?.isAudioContextSupported),
+      (key) => {
+        this.events["click:volumeQuick"].dispatch(key);
+      },
+    );
+
     this.downloadTranslationButton = new DownloadButton();
     this.downloadTranslationButton.hidden = true;
 
@@ -576,6 +591,7 @@ export class OverlayView {
     this.votMenu.bodyContainer.append(
       this.languagePairSelect.container,
       this.subtitlesSelect.container,
+      this.volumeQuickControls.container,
       this.videoVolumeSlider.container,
       this.translationVolumeSlider.container,
     );
@@ -583,6 +599,10 @@ export class OverlayView {
     // #endregion VOT Menu Body
     // #endregion VOT Menu
     return this;
+  }
+
+  refreshVolumeQuickControls(): void {
+    this.volumeQuickControls?.refresh();
   }
 
   initUIEvents() {

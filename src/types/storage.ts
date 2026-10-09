@@ -29,11 +29,14 @@ export const storageKeys = [
   "dontTranslateLanguages",
   "enabledDontTranslateLanguages",
   "enabledAutoVolume",
+  "autoVolumeMode",
   "enabledSmartDucking",
   "autoVolume",
   "buttonPos",
   "showVideoSlider",
   "syncVolume",
+  "volumeLinkMode",
+  "translationVolumeOffset",
   "downloadWithName",
   "sendNotifyOnComplete",
   "subtitlesMaxLength",
@@ -88,6 +91,8 @@ export type StorageData = {
   dontTranslateLanguages: LanguageSelectKey[];
   enabledDontTranslateLanguages: boolean;
   enabledAutoVolume: boolean;
+  /** Explicit reduction policy; adaptive preserves upstream ducking. */
+  autoVolumeMode: "once" | "hold" | "adaptive";
   /**
    * Smart Auto-Volume ducking: only lower original video volume while translated
    * audio is actually audible.
@@ -99,6 +104,10 @@ export type StorageData = {
   buttonPos: Position;
   showVideoSlider: boolean;
   syncVolume: boolean;
+  // Persisted settings; keep these keys stable across updates.
+  volumeLinkMode: "delta" | "offset";
+  /** Fixed translation volume bonus in percentage points (0..100). */
+  translationVolumeOffset: number;
   downloadWithName: boolean;
   sendNotifyOnComplete: boolean;
   subtitlesMaxLength: number;

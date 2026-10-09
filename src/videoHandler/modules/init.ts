@@ -56,11 +56,17 @@ export async function init(this: VideoHandler) {
     dontTranslateLanguages: [calculatedResLang],
     enabledDontTranslateLanguages: true,
     enabledAutoVolume: true,
+    autoVolumeMode: (await votStorage.get("enabledSmartDucking", true))
+      ? "adaptive"
+      : "once",
     enabledSmartDucking: true,
     autoVolume: defaultAutoVolume,
     buttonPos: "default",
     showVideoSlider: true,
     syncVolume: false,
+    // Preserve upstream behavior until explicitly selected.
+    volumeLinkMode: "delta",
+    translationVolumeOffset: 10,
     downloadWithName: isSupportGMXhr,
     sendNotifyOnComplete: false,
     subtitlesMaxLength: 300,

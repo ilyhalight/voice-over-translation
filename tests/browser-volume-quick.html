@@ -1,0 +1,5 @@
+<!doctype html>
+<html lang="ru"><meta charset="utf-8"><title>VOT quick volume controls test</title>
+<body><h1>VOT quick volume controls</h1><p>Real VOT overlay/settings and local audio; no translation API.</p>
+<div id="player" style="position:relative;width:640px;height:640px;background:#1b1c20"><video controls style="width:100%;height:100%"><track kind="captions" label="Silent fixture" srclang="en" src="data:text/vtt,WEBVTT%0A%0A"></video></div>
+<script>globalThis.GM_info={script:{version:"1.11.17.2",author:"Toil",name:"VOT fixture"},scriptHandler:"Fixture",version:"1.0"};globalThis.fixtureErrors=[];addEventListener('error',e=>fixtureErrors.push(String(e.error||e.message)));addEventListener('unhandledrejection',e=>fixtureErrors.push(String(e.reason)));</script><script type="module" src="./browser-volume-quick.ts"></script></body></html>

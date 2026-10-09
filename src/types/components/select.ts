@@ -20,6 +20,8 @@ export type SelectProps<
   labelElement?: HTMLElement | string;
   dialogParent?: HTMLElement;
   multiSelect?: M;
+  /** Enable filtering in the dialog; defaults to true for existing controls. */
+  searchable?: boolean;
 };
 
 export type SelectUpdateItemsOptions = {

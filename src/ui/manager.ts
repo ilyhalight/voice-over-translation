@@ -196,6 +196,14 @@ export class UIManager {
 
         await this.videoHandler.toggleSubtitlesForCurrentLangPair();
       })
+      .addEventListener("click:volumeQuick", (key) => {
+        const settingsView = this.votSettingsView;
+        if (!settingsView) return;
+        this.runDetached(
+          settingsView.toggleQuickVolumeSetting(key),
+          "Failed to toggle volume preference",
+        );
+      })
       .addEventListener("click:settings", async () => {
         this.videoHandler?.subtitlesWidget?.releaseTooltip();
         this.videoHandler?.overlayVisibility?.cancel();
@@ -221,15 +229,23 @@ export class UIManager {
           }
           const nextVolume01 = volume / 100;
           this.videoHandler.setVideoVolume(nextVolume01);
-          this.videoHandler.applyManualVideoVolumeOverride(nextVolume01);
+          this.videoHandler.applyManualVideoVolumeOverride(
+            this.videoHandler.getVideoVolume(),
+          );
         }
 
+        // A clamped write may not emit volumechange if already at the ceiling.
+        const actualVolume =
+          volume === 0
+            ? 0
+            : Math.round(this.videoHandler.getVideoVolume() * 100);
+        if (actualVolume !== volume) this.videoHandler.syncVideoVolumeSlider();
         if (!this.data.syncVolume) {
-          this.videoHandler.onVideoVolumeSliderSynced(volume);
+          this.videoHandler.onVideoVolumeSliderSynced(actualVolume);
           return;
         }
 
-        this.videoHandler.syncVolumeWrapper("video", volume);
+        this.videoHandler.syncVolumeWrapper("video", actualVolume);
       })
       .addEventListener("input:translationVolume", (volume) => {
         if (!this.videoHandler) {
@@ -388,7 +404,16 @@ export class UIManager {
             Number(videoSlider.value),
             nextTranslation,
           );
+          this.videoHandler.refreshVolumeLink();
         });
+      })
+      .addEventListener("change:volumePreferences", () => {
+        this.votOverlayView?.refreshVolumeQuickControls();
+      })
+      // Apply settings without waiting for a player-volume event.
+      .addEventListener("change:volumeLinkSettings", () => {
+        this.votOverlayView?.refreshVolumeQuickControls();
+        this.videoHandler?.refreshVolumeLink();
       })
       .addEventListener("change:subtitlesHighlightWords", (checked) => {
         this.updateSubtitlesWidgetSetting(
