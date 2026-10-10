@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { defineConfig } from "vite";
+import { defineConfig, type UserConfig } from "vite";
 import { buildDefine } from "./lib/env";
 import { distDir, singleFileBuildOptions, testsDir } from "./lib/paths";
 import { formatSimpleUserscriptHeader } from "./lib/userscript/headers";
@@ -45,5 +45,5 @@ export default defineConfig(async () => {
         },
       },
     },
-  };
+  } satisfies UserConfig;
 });
