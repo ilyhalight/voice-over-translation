@@ -263,7 +263,8 @@ describe("smart ducking engine", () => {
     setupAudioSettings.call(handler);
 
     expect(volumeWrites).toEqual([{ volume: 0, preserveStorage: true }]);
-    expect(muteWrites).toEqual([{ muted: true, preserveStorage: true }]);
+    // muting never writes the persisted volume, so it passes no preserve option
+    expect(muteWrites).toEqual([{ muted: true, preserveStorage: undefined }]);
     expect(handler.smartVolumeDuckingBaseline).toBe(0.7);
     expect(handler.autoVolumeMutedOnStart).toBe(false);
 

@@ -144,7 +144,7 @@ describe("translation auth command", () => {
     expect(videoHandler.calls.translateFunc).toBe(1);
   });
 
-  test("an idle error click retries in the same click without stopping", async () => {
+  test("an idle error click only resets the button and stops without retrying", async () => {
     const videoHandler = createVideoHandler();
     const buttonStates: Array<[string, string]> = [];
     let stops = 0;
@@ -161,12 +161,12 @@ describe("translation auth command", () => {
       },
     });
 
-    // Reset to idle, but do not abort the background preparation.
+    // Starting a new translation after an error is a separate, deliberate click.
     expect(buttonStates.map(([status]) => status)).toEqual(["none"]);
-    expect(videoHandler.actionsAbortController.signal.aborted).toBe(false);
-    expect(stops).toBe(0);
-    expect(videoHandler.calls.ensureDetectedLanguage).toBe(1);
-    expect(videoHandler.calls.translateFunc).toBe(1);
+    expect(videoHandler.actionsAbortController.signal.aborted).toBe(true);
+    expect(stops).toBe(1);
+    expect(videoHandler.calls.ensureDetectedLanguage).toBe(0);
+    expect(videoHandler.calls.translateFunc).toBe(0);
   });
 
   test("an active/loading click still aborts and stops", async () => {
