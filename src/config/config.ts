@@ -1,5 +1,6 @@
 // CONFIGURATION
 
+import votConfig from "@vot.js/shared/config";
 import type { CompatibilityVersion } from "../types/storage";
 
 export const EXT_NAME_FALLBACK = "VOT";
@@ -18,6 +19,13 @@ export const m3u8ProxyHost = "media-proxy.toil.cc/v1/proxy/m3u8";
  */
 export const proxyWorkerHostMode1 = "vot-worker.vtrans.eu.cc";
 export const PROXY_WORKER_HOST = "vot-worker.eu.cc"; // vot-worker.toil.cc
+
+/**
+ * Host of the media proxy that Yandex servers use to fetch some media links
+ *
+ * @see https://github.com/FOSWLY/media-proxy
+ */
+export const MEDIA_PROXY_HOST = votConfig.mediaProxy;
 
 const repoPath = "ilyhalight/voice-over-translation";
 export const contentUrl = `https://raw.githubusercontent.com/${repoPath}`;

@@ -25,6 +25,7 @@ import {
 } from "../utils/volume";
 import type { VideoHandler } from "../VideoHandler";
 import VOTLocalizedError from "../VOTLocalizedError";
+import { normalizeMediaProxyHost } from "../videoHandler/modules/proxyShared";
 import { isExternalVolumeHost } from "./hostPolicies";
 
 const FORCED_DETECTED_LANGUAGE_BY_HOST: Record<string, RequestLang> = {
@@ -543,6 +544,7 @@ export class VOTVideoManager {
         fetchFn: GM_fetch,
         video: this.videoHandler.video,
         language: localizationProvider.lang,
+        mediaProxy: normalizeMediaProxyHost(data?.mediaProxyHost),
       });
     } catch (err) {
       // Helper messages can echo video ids and titles, so only the stack is sent.
