@@ -274,5 +274,6 @@
   "sendErrorReports": "Kirim laporan kesalahan anonim",
   "sendErrorReportsDescription": "Membantu kami menemukan dan memperbaiki bug. Hanya detail teknis yang dikirim",
   "VOTSubtitlesTranslationLanguage": "Bahasa terjemahan kata dan frase",
-  "VOTSameAsMenuLanguage": "Sama seperti bahasa menu"
+  "VOTSameAsMenuLanguage": "Sama seperti bahasa menu",
+  "VOTMediaProxyHost": "Masukkan alamat proksi media"
 }

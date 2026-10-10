@@ -274,5 +274,6 @@
   "sendErrorReports": "Thumela imibiko iphutha engaziwa",
   "sendErrorReportsDescription": "Usisiza ukuthola futhi silungise izimbungulu. Imininingwane yobuchwepheshe kuphela ethunyelwayo",
   "VOTSubtitlesTranslationLanguage": "Ulimi lokuhumusha amagama nemishwana",
-  "VOTSameAsMenuLanguage": "Okufanayo nolimi lwemenyu"
+  "VOTSameAsMenuLanguage": "Okufanayo nolimi lwemenyu",
+  "VOTMediaProxyHost": "Faka ikheli le-media proxy"
 }

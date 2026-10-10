@@ -274,5 +274,6 @@
   "sendErrorReports": "Ibgħat rapporti ta'żball anonimi",
   "sendErrorReportsDescription": "Jgħinna nsibu u nirranġaw il-bugs. Jintbagħtu biss dettalji tekniċi",
   "VOTSubtitlesTranslationLanguage": "Lingwa tat-traduzzjoni tal-kelma u l-frażi",
-  "VOTSameAsMenuLanguage": "L-istess bħall-lingwa tal-menu"
+  "VOTSameAsMenuLanguage": "L-istess bħall-lingwa tal-menu",
+  "VOTMediaProxyHost": "Daħħal l indirizz tal prokura tal midja"
 }

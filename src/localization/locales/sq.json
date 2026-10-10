@@ -274,5 +274,6 @@
   "sendErrorReports": "Dërgoni raporte anonime të gabimeve",
   "sendErrorReportsDescription": "Na ndihmon të gjejmë dhe rregullojmë gabimet. Dërgohen vetëm detaje teknike",
   "VOTSubtitlesTranslationLanguage": "Gjuha e përkthimit të fjalëve dhe frazave",
-  "VOTSameAsMenuLanguage": "Njësoj si gjuha e menusë"
+  "VOTSameAsMenuLanguage": "Njësoj si gjuha e menusë",
+  "VOTMediaProxyHost": "Vendosni adresën e përfaqësuesit të medias"
 }

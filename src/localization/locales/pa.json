@@ -274,5 +274,6 @@
   "sendErrorReports": "ਅਗਿਆਤ ਗਲਤੀ ਰਿਪੋਰਟ ਭੇਜੋ",
   "sendErrorReportsDescription": "ਸਾਨੂੰ ਲੱਭਣ ਅਤੇ ਬੱਗ ਨੂੰ ਠੀਕ ਕਰਨ ਵਿੱਚ ਮਦਦ ਕਰਦਾ ਹੈ. ਕੇਵਲ ਤਕਨੀਕੀ ਵੇਰਵੇ ਭੇਜੇ ਜਾਂਦੇ ਹਨ",
   "VOTSubtitlesTranslationLanguage": "ਸ਼ਬਦ ਅਤੇ ਵਾਕ ਅਨੁਵਾਦ ਭਾਸ਼ਾ",
-  "VOTSameAsMenuLanguage": "ਮੇਨੂ ਭਾਸ਼ਾ ਵਾਂਗ ਹੀ"
+  "VOTSameAsMenuLanguage": "ਮੇਨੂ ਭਾਸ਼ਾ ਵਾਂਗ ਹੀ",
+  "VOTMediaProxyHost": "ਮੀਡਿਆ ਪਰਾਕਸੀ ਐਡਰੈੱਸ ਦਿਓ"
 }

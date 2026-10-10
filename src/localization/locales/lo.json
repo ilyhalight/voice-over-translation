@@ -274,5 +274,6 @@
   "sendErrorReports": "ສົ່ງບົດລາຍງານຄວາມຜິດພາດບໍລິຈາກເງິນ",
   "sendErrorReportsDescription": "ຊ່ວຍພວກເຮົາຊອກຫາແລະແກ້ໄຂແມງໄມ້. ພຽງແຕ່ລາຍລະອຽດດ້ານວິຊາການຖືກສົ່ງ",
   "VOTSubtitlesTranslationLanguage": "ການແປຄຳສັບແລະປະໂຫຍກພາສາ",
-  "VOTSameAsMenuLanguage": "ຄືກັນກັບພາສາເມນູ"
+  "VOTSameAsMenuLanguage": "ຄືກັນກັບພາສາເມນູ",
+  "VOTMediaProxyHost": "ກະລຸນາໃສ່ທີ່ຢູ່ຕົວແທນສື່ມວນຊົນ"
 }

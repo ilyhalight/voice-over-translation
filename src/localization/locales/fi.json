@@ -274,5 +274,6 @@
   "sendErrorReports": "Lähetä anonyymejä virheraportteja",
   "sendErrorReportsDescription": "Auttaa meitä löytämään ja korjaamaan vikoja. Vain tekniset tiedot lähetetään",
   "VOTSubtitlesTranslationLanguage": "Sanan ja lauseen käännöskieli",
-  "VOTSameAsMenuLanguage": "Sama kuin valikon kieli"
+  "VOTSameAsMenuLanguage": "Sama kuin valikon kieli",
+  "VOTMediaProxyHost": "Anna median välityspalvelimen osoite"
 }

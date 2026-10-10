@@ -274,5 +274,6 @@
   "sendErrorReports": "Анонимді қателер туралы есептерді жіберіңіз",
   "sendErrorReportsDescription": "Қателерді табуға және түзетуге көмектеседі. Тек техникалық мәліметтер жіберіледі",
   "VOTSubtitlesTranslationLanguage": "Сөз және сөз тіркестерін аудару тілі",
-  "VOTSameAsMenuLanguage": "Мәзір тілімен бірдей"
+  "VOTSameAsMenuLanguage": "Мәзір тілімен бірдей",
+  "VOTMediaProxyHost": "Медиа прокси мекенжайын енгізіңіз"
 }

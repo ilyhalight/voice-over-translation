@@ -274,5 +274,6 @@
   "sendErrorReports": "Névtelen hibajelentések küldése",
   "sendErrorReportsDescription": "Segít megtalálni és kijavítani a hibákat. Csak technikai részleteket küldünk",
   "VOTSubtitlesTranslationLanguage": "Szó - és kifejezésfordítás nyelve",
-  "VOTSameAsMenuLanguage": "Ugyanaz, mint a menü nyelve"
+  "VOTSameAsMenuLanguage": "Ugyanaz, mint a menü nyelve",
+  "VOTMediaProxyHost": "Adja meg a Média proxy címét"
 }

@@ -274,5 +274,6 @@
   "sendErrorReports": "Bidali errore-txosten anonimoak",
   "sendErrorReportsDescription": "Bugs aurkitu eta konpontzen laguntzen digu. Xehetasun teknikoak bakarrik bidaltzen dira",
   "VOTSubtitlesTranslationLanguage": "Hitzen eta esaldien itzulpen hizkuntza",
-  "VOTSameAsMenuLanguage": "Menu hizkuntza bezala"
+  "VOTSameAsMenuLanguage": "Menu hizkuntza bezala",
+  "VOTMediaProxyHost": "Sartu komunikabideen ordezkariaren helbidea"
 }

@@ -274,5 +274,6 @@
   "sendErrorReports": "अज्ञात त्रुटि प्रतिवेदन पठाउनुहोस्",
   "sendErrorReportsDescription": "हामीलाई बगहरू फेला पार्न र ठीक गर्न मद्दत गर्दछ ।  प्राविधिक विवरण मात्र पठाइन्छ",
   "VOTSubtitlesTranslationLanguage": "शब्द र वाक्यांश अनुवाद भाषा",
-  "VOTSameAsMenuLanguage": "मेनु भाषा जस्तै"
+  "VOTSameAsMenuLanguage": "मेनु भाषा जस्तै",
+  "VOTMediaProxyHost": "मिडिया प्रोक्सी ठेगाना प्रविष्ट गर्नुहोस्"
 }

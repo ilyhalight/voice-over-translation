@@ -274,5 +274,6 @@
   "sendErrorReports": "Posielanie anonymných hlásení o chybách",
   "sendErrorReportsDescription": "Pomáha nám nájsť a opraviť chyby. Odosielajú sa iba technické podrobnosti",
   "VOTSubtitlesTranslationLanguage": "Jazyk prekladu slov a fráz",
-  "VOTSameAsMenuLanguage": "Rovnaké ako jazyk menu"
+  "VOTSameAsMenuLanguage": "Rovnaké ako jazyk menu",
+  "VOTMediaProxyHost": "Zadajte adresu proxy servera médií"
 }

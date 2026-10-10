@@ -274,5 +274,6 @@
   "sendErrorReports": "Skicka anonyma felanmälningar",
   "sendErrorReportsDescription": "Hjälper oss att hitta och åtgärda buggar. Endast tekniska detaljer skickas",
   "VOTSubtitlesTranslationLanguage": "Ord och fras översättning språk",
-  "VOTSameAsMenuLanguage": "Samma som menyspråk"
+  "VOTSameAsMenuLanguage": "Samma som menyspråk",
+  "VOTMediaProxyHost": "Ange media proxy-adressen"
 }

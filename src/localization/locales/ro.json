@@ -274,5 +274,6 @@
   "sendErrorReports": "Trimiteți rapoarte de eroare anonime",
   "sendErrorReportsDescription": "Ne ajută să găsim și să remediem Erorile. Sunt trimise doar detalii tehnice",
   "VOTSubtitlesTranslationLanguage": "Limba de traducere a cuvintelor și expresiilor",
-  "VOTSameAsMenuLanguage": "La fel ca limba meniului"
+  "VOTSameAsMenuLanguage": "La fel ca limba meniului",
+  "VOTMediaProxyHost": "Introduceți adresa proxy media"
 }

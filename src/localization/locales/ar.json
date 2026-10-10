@@ -274,5 +274,6 @@
   "sendErrorReports": "إرسال تقارير خطأ مجهولة المصدر",
   "sendErrorReportsDescription": "يساعدنا في العثور على الأخطاء وإصلاحها. يتم إرسال التفاصيل الفنية فقط",
   "VOTSubtitlesTranslationLanguage": "كلمة وعبارة لغة الترجمة",
-  "VOTSameAsMenuLanguage": "نفس لغة القائمة"
+  "VOTSameAsMenuLanguage": "نفس لغة القائمة",
+  "VOTMediaProxyHost": "أدخل عنوان وكيل الوسائط"
 }

@@ -274,5 +274,6 @@
   "sendErrorReports": "گمنام غلطی کی رپورٹیں بھیجیں",
   "sendErrorReportsDescription": "کیڑے تلاش کرنے اور ٹھیک کرنے میں ہماری مدد کرتا ہے ۔  صرف تکنیکی تفصیلات بھیجی جاتی ہیں",
   "VOTSubtitlesTranslationLanguage": "لفظ اور فقرے کا ترجمہ زبان",
-  "VOTSameAsMenuLanguage": "مینو زبان کی طرح"
+  "VOTSameAsMenuLanguage": "مینو زبان کی طرح",
+  "VOTMediaProxyHost": "میڈیا پراکسی ایڈریس درج کریں"
 }

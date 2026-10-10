@@ -274,5 +274,6 @@
   "sendErrorReports": "ផ្ញើរបាយការណ៍កំហុសអនាមិក",
   "sendErrorReportsDescription": "ជួយឱ្យយើងរកឃើញនិងជួសជុលកំហុស. តែច្ចេកទេសលម្អិតត្រូវបានផ្ញើ",
   "VOTSubtitlesTranslationLanguage": "ពាក្យនិងឃ្លាបកប្រែភាសា",
-  "VOTSameAsMenuLanguage": "ដូចគ្នានឹងភាសាម៉ឺនុយ"
+  "VOTSameAsMenuLanguage": "ដូចគ្នានឹងភាសាម៉ឺនុយ",
+  "VOTMediaProxyHost": "បញ្ចូលអាសយដ្ឋានប្រូកស៊ីមេឌៀ"
 }

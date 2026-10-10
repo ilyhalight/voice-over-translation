@@ -274,5 +274,6 @@
   "sendErrorReports": "Надсилання анонімних звітів про помилки",
   "sendErrorReportsDescription": "Допомагає нам знаходити та виправляти помилки. Надсилаються тільки технічні подробиці",
   "VOTSubtitlesTranslationLanguage": "Мова перекладу слів і фраз",
-  "VOTSameAsMenuLanguage": "Те саме, що мова меню"
+  "VOTSameAsMenuLanguage": "Те саме, що мова меню",
+  "VOTMediaProxyHost": "Введіть адресу медіа-проксі-сервера"
 }

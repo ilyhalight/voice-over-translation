@@ -274,5 +274,6 @@
   "sendErrorReports": "ارسال گزارش خطای ناشناس",
   "sendErrorReportsDescription": "به ما کمک می کند تا باگ ها را پیدا و برطرف کنیم. فقط جزئیات فنی ارسال می شود",
   "VOTSubtitlesTranslationLanguage": "زبان ترجمه کلمه و عبارت",
-  "VOTSameAsMenuLanguage": "همان زبان منو"
+  "VOTSameAsMenuLanguage": "همان زبان منو",
+  "VOTMediaProxyHost": "آدرس پروکسی رسانه را وارد کنید"
 }

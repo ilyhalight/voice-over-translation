@@ -274,5 +274,6 @@
   "sendErrorReports": "Saatke anonüümseid veateateid",
   "sendErrorReportsDescription": "Aitab meil vigu leida ja parandada. Saadetakse ainult tehnilised üksikasjad",
   "VOTSubtitlesTranslationLanguage": "Sõna ja fraasi tõlkekeel",
-  "VOTSameAsMenuLanguage": "Sama mis menüü keel"
+  "VOTSameAsMenuLanguage": "Sama mis menüü keel",
+  "VOTMediaProxyHost": "Sisestage meedia puhverserveri aadress"
 }

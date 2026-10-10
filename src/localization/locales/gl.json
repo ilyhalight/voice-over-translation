@@ -274,5 +274,6 @@
   "sendErrorReports": "Enviar informes de erro anónimos",
   "sendErrorReportsDescription": "Axúdanos a atopar e corrixir erros. Só se envían detalles técnicos",
   "VOTSubtitlesTranslationLanguage": "Linguaxe de tradución de palabras e frases",
-  "VOTSameAsMenuLanguage": "O mesmo que o menú"
+  "VOTSameAsMenuLanguage": "O mesmo que o menú",
+  "VOTMediaProxyHost": "Introduza o enderezo de proxy de medios"
 }
