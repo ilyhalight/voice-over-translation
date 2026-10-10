@@ -79,6 +79,7 @@ function createTranslationHandlerForResponse(
     getRequestLangForTranslation: () => "en",
     isLivelyVoiceAllowed: () => false,
     isYouTubeHosts: () => false,
+    ensureProxySettingsResolved: async () => undefined,
     updateTranslationErrorMsg: async () => undefined,
     hadAsyncWait: false,
     notifier: { translationFailed: () => undefined },
@@ -128,6 +129,12 @@ describe("translation auto-pause", () => {
     const translationHandler = new VOTTranslationHandler(handler as never);
     const playback = createPlaybackHandler();
     let waitingCalls = 0;
+    let translateRequests = 0;
+    const translateVideo = handler.votClient.translateVideo;
+    handler.votClient.translateVideo = async () => {
+      translateRequests += 1;
+      return translateVideo();
+    };
 
     const pending = translationHandler
       .translateVideoImpl(
@@ -150,6 +157,7 @@ describe("translation auto-pause", () => {
     setTimeout(() => controller.abort(), 0);
     await pending;
 
+    expect(translateRequests).toBe(1);
     expect(waitingCalls).toBe(0);
     expect(playback.video.pauseCalls).toBe(0);
     expect(playback.pausedByTranslation).toBe(false);
