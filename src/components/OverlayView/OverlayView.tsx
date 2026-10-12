@@ -203,7 +203,8 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
     } else {
       menuOverlay?.setAttribute("data-compact", "");
     }
-    if (width < 300) {
+    const menuWidth = width > 0 ? width : globalThis.innerWidth;
+    if (menuWidth < 300) {
       menuOverlay?.setAttribute("data-vertical", "");
     } else {
       menuOverlay?.removeAttribute("data-vertical");
