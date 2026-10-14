@@ -267,5 +267,8 @@
   "VOTLogin": "Đăng nhập",
   "VOTAutoPauseOnTranslate": "Tạm dừng video cho đến khi bản dịch đã sẵn sàng",
   "VOTSmartDuckingStrength": "Cường độ giảm âm lượng thích ứng",
-  "VOTRetryTranslation": "Thử dịch lại"
+  "VOTRetryTranslation": "Thử dịch lại",
+  "VOTVideoIsMusic": "Bạn đã vô hiệu hóa bản dịch cho video âm nhạc",
+  "DontTranslateByYTMusic": "Không dịch video được Xác định là nhạc Của YouTube Music",
+  "VOTMusicDetectDesc": "Phát hiện nhạc chỉ khả dụng Trên YouTube"
 }

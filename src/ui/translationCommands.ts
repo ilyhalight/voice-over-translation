@@ -85,6 +85,12 @@ export async function handleTranslationButtonCommand(
 
     debug.log("[handleTranslationBtnClick] trying execute translation");
     const videoData = await getVideoDataForTranslation(videoHandler);
+    if (
+      videoHandler.data.dontTranslateByYTMusic &&
+      (await videoHandler.videoManager.detectMusic(videoData.videoId))
+    ) {
+      throw new VOTLocalizedError("VOTVideoIsMusic");
+    }
 
     // Automatic fallback belongs only to the video where it was selected.
     // Reset it before resolving the language of a newly opened video.

@@ -267,5 +267,8 @@
   "VOTLogin": "Hyrje",
   "VOTAutoPauseOnTranslate": "Ndaloni videon derisa përkthimi të jetë gati",
   "VOTSmartDuckingStrength": "Forca Adaptive e reduktimit të vëllimit",
-  "VOTRetryTranslation": "Provo përsëri përkthimin"
+  "VOTRetryTranslation": "Provo përsëri përkthimin",
+  "VOTVideoIsMusic": "Ju keni çaktivizuar përkthimin për videot muzikore",
+  "DontTranslateByYTMusic": "Mos përktheni video të identifikuara si muzikë nga YouTube Music",
+  "VOTMusicDetectDesc": "Zbulimi i muzikës është i disponueshëm vetëm Në YouTube"
 }

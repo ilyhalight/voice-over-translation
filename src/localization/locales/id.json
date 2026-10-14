@@ -267,5 +267,8 @@
   "VOTLogin": "Login",
   "VOTAutoPauseOnTranslate": "Jeda video hingga terjemahan siap",
   "VOTSmartDuckingStrength": "Kekuatan pengurangan volume adaptif",
-  "VOTRetryTranslation": "Coba terjemahkan lagi"
+  "VOTRetryTranslation": "Coba terjemahkan lagi",
+  "VOTVideoIsMusic": "Anda telah menonaktifkan terjemahan untuk video musik",
+  "DontTranslateByYTMusic": "Jangan menerjemahkan video yang diidentifikasi sebagai musik oleh YouTube Music",
+  "VOTMusicDetectDesc": "Deteksi musik hanya tersedia di YouTube"
 }

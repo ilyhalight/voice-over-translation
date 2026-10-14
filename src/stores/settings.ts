@@ -36,6 +36,7 @@ export type SettingsStore = {
   autoPauseOnTranslate: boolean;
   autoSubtitles: boolean;
   dontTranslateLanguages: LanguageSelectKey[];
+  dontTranslateByYTMusic: boolean;
   enabledAutoVolume: boolean;
   autoVolume: number;
   enabledSmartDucking: boolean;
@@ -85,6 +86,7 @@ export function createDefaultSettings(
     autoPauseOnTranslate: false,
     autoSubtitles: false,
     dontTranslateLanguages: [calculatedResLang],
+    dontTranslateByYTMusic: false,
     enabledAutoVolume: true,
     autoVolume: DEFAULT_AUTO_VOLUME,
     enabledSmartDucking: true,

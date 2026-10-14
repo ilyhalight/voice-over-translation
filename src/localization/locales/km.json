@@ -267,5 +267,8 @@
   "VOTLogin": "ចូល",
   "VOTAutoPauseOnTranslate": "ផ្អាកវីដេអូរហូតដល់ការបកប្រែរួចរាល់",
   "VOTSmartDuckingStrength": "កម្លាំងកាត់បន្ថយបរិមាណសម្របសម្រួល",
-  "VOTRetryTranslation": "សាកល្បងបកប្រែម្តងទៀត"
+  "VOTRetryTranslation": "សាកល្បងបកប្រែម្តងទៀត",
+  "VOTVideoIsMusic": "អ្នកបានបិទការបកប្រែសម្រាប់វីដេអូតន្ត្រី",
+  "DontTranslateByYTMusic": "កុំបកប្រែវីដេអូដែលបានកំណត់ថាជាតន្ត្រីដោយគេហទំព័រ YouTube តន្ត្រី",
+  "VOTMusicDetectDesc": "ការរកឃើញតន្ត្រីគឺអាចប្រើបានតែនៅលើ YouTube"
 }

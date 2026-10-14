@@ -267,5 +267,8 @@
   "VOTLogin": "Daxil ol",
   "VOTAutoPauseOnTranslate": "Pause video until translation is ready",
   "VOTSmartDuckingStrength": "Adaptiv həcm azaltma gücü",
-  "VOTRetryTranslation": "Tərcüməni yenidən sınayın"
+  "VOTRetryTranslation": "Tərcüməni yenidən sınayın",
+  "VOTVideoIsMusic": "Musiqi videolarının tərcüməsini deaktiv etdiniz",
+  "DontTranslateByYTMusic": "YouTube Music tərəfindən müəyyən edilmiş videoları musiqi kimi tərcümə etməyin",
+  "VOTMusicDetectDesc": "Musiqi tanıma xüsusiyyəti yalnız YouTube-da mövcuddur"
 }

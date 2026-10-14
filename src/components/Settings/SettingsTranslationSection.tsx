@@ -1,6 +1,5 @@
 import { availableLangs } from "@vot.js/shared/consts";
-import { createSignal, type JSX, mergeProps } from "solid-js";
-import { effect } from "solid-js/web";
+import { type JSX, mergeProps } from "solid-js";
 
 import {
   DETECT_SERVICES,
@@ -30,6 +29,7 @@ import { SettingsSection } from "./SettingsSection";
 
 export type SettingsTranslationSectionProps = {
   isAudioContextSupported?: boolean;
+  isCanDetectMusic?: boolean;
   onAutoTranslateChange?: (checked: boolean) => void;
   onAutoPauseOnTranslateChange?: (checked: boolean) => void;
   onAutoSubtitlesChange?: (checked: boolean) => void;
@@ -37,6 +37,7 @@ export type SettingsTranslationSectionProps = {
     selectedLanguages: LanguageSelectKey[],
     changedLanguage: LanguageSelectKey,
   ) => void;
+  onDontTranslateByYTMusicChange?: (checked: boolean) => void;
   onEnabledAutoVolumeChange?: (checked: boolean) => void;
   onAutoVolumeInput?: (volume: number) => void;
   onSmartDuckingStrengthInput?: (volume: number) => void;
@@ -57,6 +58,7 @@ export function SettingsTranslationSection(
   const finalProps = mergeProps(
     {
       isAudioContextSupported: false,
+      isCanDetectMusic: false,
     },
     props,
   );
@@ -72,14 +74,6 @@ export function SettingsTranslationSection(
     label: t(`services.${service}`),
     value: service,
   }));
-
-  const [isAudioContextSupported, setIsAudioContextSupported] = createSignal(
-    finalProps.isAudioContextSupported,
-  );
-
-  effect(() => {
-    setIsAudioContextSupported(finalProps.isAudioContextSupported);
-  });
 
   const autoVolumeText = () =>
     `${settings.enabledSmartDucking ? settings.smartDuckingStrength : settings.autoVolume}%`;
@@ -131,6 +125,16 @@ export function SettingsTranslationSection(
       >
         {t("DontTranslateSelectedLanguages")}
       </Select>
+      <Switch
+        heading={t("DontTranslateByYTMusic")}
+        description={t("VOTMusicDetectDesc")}
+        checked={settings.dontTranslateByYTMusic}
+        hidden={!finalProps.isCanDetectMusic}
+        onChange={(checked) => {
+          setSettings("dontTranslateByYTMusic", checked);
+          finalProps.onDontTranslateByYTMusicChange?.(checked);
+        }}
+      />
       <Switch
         heading={t("VOTAutoReduceVolume")}
         checked={settings.enabledAutoVolume}
@@ -190,10 +194,12 @@ export function SettingsTranslationSection(
       <Switch
         heading={t("VOTAudioBooster")}
         description={
-          isAudioContextSupported() ? undefined : t("VOTNeedWebAudioAPI")
+          finalProps.isAudioContextSupported
+            ? undefined
+            : t("VOTNeedWebAudioAPI")
         }
         checked={settings.audioBooster}
-        disabled={!isAudioContextSupported()}
+        disabled={!finalProps.isAudioContextSupported}
         onChange={(checked) => {
           setSettings("audioBooster", checked);
           finalProps.onAudioBoosterChange?.(checked);

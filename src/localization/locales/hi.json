@@ -267,5 +267,8 @@
   "VOTLogin": "लॉगिन करें",
   "VOTAutoPauseOnTranslate": "Pause video until translation is ready",
   "VOTSmartDuckingStrength": "अनुकूली मात्रा में कमी ताकत",
-  "VOTRetryTranslation": "अनुवाद का फिर से प्रयास करें"
+  "VOTRetryTranslation": "अनुवाद का फिर से प्रयास करें",
+  "VOTVideoIsMusic": "आपने संगीत वीडियो के लिए अनुवाद अक्षम कर दिया है",
+  "DontTranslateByYTMusic": "यूट्यूब संगीत द्वारा संगीत के रूप में पहचाने गए वीडियो का अनुवाद न करें",
+  "VOTMusicDetectDesc": "संगीत का पता लगाने यूट्यूब पर ही उपलब्ध है"
 }

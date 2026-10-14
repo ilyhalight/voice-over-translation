@@ -267,5 +267,8 @@
   "VOTLogin": "Մուտք գործել",
   "VOTAutoPauseOnTranslate": "Դադարեցրեք տեսանյութը, մինչև թարգմանությունը պատրաստ լինի",
   "VOTSmartDuckingStrength": "Հարմարվողական ծավալի նվազեցման ուժ",
-  "VOTRetryTranslation": "Կրկին փորձել թարգմանությունը"
+  "VOTRetryTranslation": "Կրկին փորձել թարգմանությունը",
+  "VOTVideoIsMusic": "Դուք անջատել եք երաժշտական տեսահոլովակների թարգմանությունը",
+  "DontTranslateByYTMusic": "Մի թարգմանեք YouTube Music-ի կողմից հայտնաբերված տեսանյութերը որպես երաժշտական",
+  "VOTMusicDetectDesc": "Երաժշտության ճանաչման գործառույթը հասանելի է միայն YouTube-ում"
 }

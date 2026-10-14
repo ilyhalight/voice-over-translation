@@ -267,5 +267,8 @@
   "VOTLogin": "تسجيل الدخول",
   "VOTAutoPauseOnTranslate": "إيقاف الفيديو مؤقتا حتى تصبح الترجمة جاهزة",
   "VOTSmartDuckingStrength": "قوة تقليل الحجم التكيفي",
-  "VOTRetryTranslation": "إعادة محاولة الترجمة"
+  "VOTRetryTranslation": "إعادة محاولة الترجمة",
+  "VOTVideoIsMusic": "لقد قمت بتعطيل الترجمة لمقاطع الفيديو الموسيقية",
+  "DontTranslateByYTMusic": "لا تترجم مقاطع الفيديو التي تم تحديدها كموسيقى بواسطة موسيقى يوتيوب",
+  "VOTMusicDetectDesc": "اكتشاف الموسيقى متاح فقط على موقع يوتيوب"
 }

@@ -267,5 +267,8 @@
   "VOTLogin": "ログイン",
   "VOTAutoPauseOnTranslate": "翻訳の準備が整うまでビデオを一時停止します",
   "VOTSmartDuckingStrength": "適応的な容積の減少の強さ",
-  "VOTRetryTranslation": "翻訳を再試行"
+  "VOTRetryTranslation": "翻訳を再試行",
+  "VOTVideoIsMusic": "ミュージックビデオの翻訳を無効にしました",
+  "DontTranslateByYTMusic": "YouTube Musicで音楽として識別された動画を翻訳しないでください",
+  "VOTMusicDetectDesc": "音楽検出はYouTubeでのみ利用可能です"
 }

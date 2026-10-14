@@ -267,5 +267,8 @@
   "VOTLogin": "Авторизувати",
   "VOTAutoPauseOnTranslate": "Призупиніть Відео, поки переклад не буде готовий",
   "VOTSmartDuckingStrength": "Адаптивна сила зменшення обсягу",
-  "VOTRetryTranslation": "Повторити переклад"
+  "VOTRetryTranslation": "Повторити переклад",
+  "VOTVideoIsMusic": "Ви вимкнули переклад музичних кліпів",
+  "DontTranslateByYTMusic": "Не перекладайте відео, визначені YouTube Music як музичні",
+  "VOTMusicDetectDesc": "Функція розпізнавання музики доступна лише на YouTube"
 }

@@ -267,5 +267,8 @@
   "VOTLogin": "Кіру",
   "VOTAutoPauseOnTranslate": "Аударма дайын болғанша бейнені кідіртіңіз",
   "VOTSmartDuckingStrength": "Адаптивті көлемді азайту күші",
-  "VOTRetryTranslation": "Аударманы қайталап көру"
+  "VOTRetryTranslation": "Аударманы қайталап көру",
+  "VOTVideoIsMusic": "Сіз музыкалық бейнелерге аударманы өшірдіңіз",
+  "DontTranslateByYTMusic": "Youtube Music арқылы музыка ретінде анықталған бейнелерді аудармаңыз",
+  "VOTMusicDetectDesc": "Музыканы анықтау Тек YouTube сайтында қолжетімді"
 }

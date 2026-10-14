@@ -267,5 +267,8 @@
   "VOTLogin": "ورود به سایت",
   "VOTAutoPauseOnTranslate": "فیلم را مکث کنید تا ترجمه آماده شود",
   "VOTSmartDuckingStrength": "قدرت کاهش حجم انطباقی",
-  "VOTRetryTranslation": "تلاش مجدد برای ترجمه"
+  "VOTRetryTranslation": "تلاش مجدد برای ترجمه",
+  "VOTVideoIsMusic": "ترجمه موزیک ویدیو را غیر فعال کرده اید",
+  "DontTranslateByYTMusic": "ویدیوهایی که توسط YouTube Music به عنوان موسیقی شناخته شده اند را ترجمه نکنید",
+  "VOTMusicDetectDesc": "تشخیص موسیقی فقط در یوتیوب موجود است"
 }

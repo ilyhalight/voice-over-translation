@@ -267,5 +267,8 @@
   "VOTLogin": "لاگ ان",
   "VOTAutoPauseOnTranslate": "Pause video until translation is ready",
   "VOTSmartDuckingStrength": "انکولی حجم میں کمی کی طاقت",
-  "VOTRetryTranslation": "ترجمہ دوبارہ آزمائیں"
+  "VOTRetryTranslation": "ترجمہ دوبارہ آزمائیں",
+  "VOTVideoIsMusic": "آپ نے میوزک ویڈیوز کا ترجمہ غیر فعال کردیا ہے",
+  "DontTranslateByYTMusic": "یوٹیوب میوزک کے ذریعہ موسیقی کے طور پر شناخت کردہ ویڈیوز کا ترجمہ نہ کریں ۔ ",
+  "VOTMusicDetectDesc": "موسیقی کا پتہ لگانا صرف یوٹیوب پر دستیاب ہے ۔ "
 }

@@ -267,5 +267,8 @@
   "VOTLogin": "Ingia",
   "VOTAutoPauseOnTranslate": "Pumzika video mpaka tafsiri iko tayari",
   "VOTSmartDuckingStrength": "Adaptive kiasi kupunguza nguvu",
-  "VOTRetryTranslation": "Jaribu kutafsiri tena"
+  "VOTRetryTranslation": "Jaribu kutafsiri tena",
+  "VOTVideoIsMusic": "Umezima tafsiri ya video za muziki",
+  "DontTranslateByYTMusic": "Usitafsiri video zilizotambuliwa kama muziki Na Muziki Wa YouTube",
+  "VOTMusicDetectDesc": "Utambuzi wa muziki unapatikana Tu Kwenye YouTube"
 }

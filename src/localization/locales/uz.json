@@ -267,5 +267,8 @@
   "VOTLogin": "Kirish",
   "VOTAutoPauseOnTranslate": "Tarjima tayyor bo'lgunga qadar videoni pauza qiling",
   "VOTSmartDuckingStrength": "Adaptiv hajmni kamaytirish kuchi",
-  "VOTRetryTranslation": "Tarjimani qayta urinib ko‘ring"
+  "VOTRetryTranslation": "Tarjimani qayta urinib ko‘ring",
+  "VOTVideoIsMusic": "Siz musiqiy videolar uchun tarjimani o'chirib qo'ydingiz",
+  "DontTranslateByYTMusic": "YouTube Music tomonidan musiqa deb belgilangan videolarni tarjima qilmang",
+  "VOTMusicDetectDesc": "Musiqani aniqlash faqat YouTube-da mavjud"
 }

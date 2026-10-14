@@ -267,5 +267,8 @@
   "VOTLogin": "Kirjautuminen",
   "VOTAutoPauseOnTranslate": "Keskeytä video, Kunnes käännös on valmis",
   "VOTSmartDuckingStrength": "Mukautuva äänenvoimakkuuden vähennyslujuus",
-  "VOTRetryTranslation": "Yritä käännöstä uudelleen"
+  "VOTRetryTranslation": "Yritä käännöstä uudelleen",
+  "VOTVideoIsMusic": "Olet poistanut musiikkivideoiden käännökset käytöstä",
+  "DontTranslateByYTMusic": "Älä käännä videoita, jotka YouTube Music on tunnistanut musiikiksi",
+  "VOTMusicDetectDesc": "Musiikin tunnistus on saatavilla vain YouTubessa"
 }

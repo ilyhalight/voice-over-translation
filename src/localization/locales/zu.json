@@ -267,5 +267,8 @@
   "VOTLogin": "Ukungena ngemvume",
   "VOTAutoPauseOnTranslate": "Phumula ividiyo kuze translation isilungile",
   "VOTSmartDuckingStrength": "Amandla okunciphisa umthamo wokuzivumelanisa nezimo",
-  "VOTRetryTranslation": "Zama ukuhumusha futhi"
+  "VOTRetryTranslation": "Zama ukuhumusha futhi",
+  "VOTVideoIsMusic": "You ' ve disabled translation for amavidiyo omculo",
+  "DontTranslateByYTMusic": "Ungahumushi amavidiyo akhonjwe njengomculo Ngomculo We YouTube",
+  "VOTMusicDetectDesc": "Ukutholwa komculo kutholakala kuphela Ku-YouTube"
 }

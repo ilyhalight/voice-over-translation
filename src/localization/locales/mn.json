@@ -267,5 +267,8 @@
   "VOTLogin": "Нэвтрэх",
   "VOTAutoPauseOnTranslate": "Орчуулга бэлэн болтол видеог түр зогсоо",
   "VOTSmartDuckingStrength": "Дасан зохицох хэмжээ бууруулах хүч чадал",
-  "VOTRetryTranslation": "Орчуулгыг дахин оролдох"
+  "VOTRetryTranslation": "Орчуулгыг дахин оролдох",
+  "VOTVideoIsMusic": "Та хөгжмийн видеонуудын орчуулгыг идэвхгүй болгосон",
+  "DontTranslateByYTMusic": "YouTube Music - ээр хөгжим гэж тодорхойлсон видеог бүү орчуул",
+  "VOTMusicDetectDesc": "Хөгжим илрүүлэх нь зөвхөн YouTube дээр байдаг"
 }

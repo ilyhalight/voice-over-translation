@@ -267,5 +267,8 @@
   "VOTLogin": "Login",
   "VOTAutoPauseOnTranslate": "Pause video, indtil oversættelsen er klar",
   "VOTSmartDuckingStrength": "Adaptiv volumenreduktionsstyrke",
-  "VOTRetryTranslation": "Prøv oversættelsen igen"
+  "VOTRetryTranslation": "Prøv oversættelsen igen",
+  "VOTVideoIsMusic": "Du har deaktiveret oversættelse til musikvideoer",
+  "DontTranslateByYTMusic": "Oversæt ikke Videoer identificeret som musik af YouTube Music",
+  "VOTMusicDetectDesc": "Musikdetektering er kun tilgængelig på YouTube"
 }

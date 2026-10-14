@@ -267,5 +267,8 @@
   "VOTLogin": "Login",
   "VOTAutoPauseOnTranslate": "Seibio fideo nes bod y cyfieithiad yn barod",
   "VOTSmartDuckingStrength": "Cryfder lleihau cyfaint addasol",
-  "VOTRetryTranslation": "Rhoi cynnig arall ar y cyfieithiad"
+  "VOTRetryTranslation": "Rhoi cynnig arall ar y cyfieithiad",
+  "VOTVideoIsMusic": "Rydych wedi anabl cyfieithu ar gyfer fideos cerddoriaeth",
+  "DontTranslateByYTMusic": "Peidiwch â chyfieithu fideos a nodwyd fel cerddoriaeth Gan Youtube Cerddoriaeth",
+  "VOTMusicDetectDesc": "Mae fideos cerddoriaeth Ar Gael Ar YouTube Yn unig"
 }

@@ -267,5 +267,8 @@
   "VOTLogin": "ਲਾਗਇਨ",
   "VOTAutoPauseOnTranslate": "ਅਨੁਵਾਦ ਤਿਆਰ ਹੋਣ ਤੱਕ ਵਿਡੀਓ ਵਿਰਾਮ ਕਰੋ",
   "VOTSmartDuckingStrength": "ਅਨੁਕੂਲ ਵਾਲੀਅਮ ਘਟਾਉਣ ਦੀ ਤਾਕਤ",
-  "VOTRetryTranslation": "ਅਨੁਵਾਦ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ"
+  "VOTRetryTranslation": "ਅਨੁਵਾਦ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ",
+  "VOTVideoIsMusic": "ਤੁਸੀਂ ਸੰਗੀਤ ਵੀਡੀਓਜ਼ ਲਈ ਅਨੁਵਾਦ ਅਯੋਗ ਕਰ ਦਿੱਤਾ ਹੈ",
+  "DontTranslateByYTMusic": "ਯੂਟਿਊਬ ਸੰਗੀਤ ਦੁਆਰਾ ਸੰਗੀਤ ਦੇ ਤੌਰ ਤੇ ਪਛਾਣ ਕੀਤੇ ਗਏ ਵੀਡੀਓਜ਼ ਦਾ ਅਨੁਵਾਦ ਨਾ ਕਰੋ",
+  "VOTMusicDetectDesc": "ਸੰਗੀਤ ਖੋਜ ਸਿਰਫ ਯੂਟਿਊਬ ' ਤੇ ਉਪਲਬਧ ਹੈ"
 }

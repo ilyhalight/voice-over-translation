@@ -267,5 +267,8 @@
   "VOTLogin": "登入",
   "VOTAutoPauseOnTranslate": "暂停视频，直到翻译准备好",
   "VOTSmartDuckingStrength": "自适应音量减小强度",
-  "VOTRetryTranslation": "重试翻译"
+  "VOTRetryTranslation": "重试翻译",
+  "VOTVideoIsMusic": "您已禁用音乐视频的翻译",
+  "DontTranslateByYTMusic": "不要翻译youtube音乐识别为音乐的视频",
+  "VOTMusicDetectDesc": "音乐检测仅在YouTube上可用"
 }

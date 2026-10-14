@@ -267,5 +267,8 @@
   "VOTLogin": "Вход",
   "VOTAutoPauseOnTranslate": "Pause video until translation is ready",
   "VOTSmartDuckingStrength": "Адаптивно намаляване на обема",
-  "VOTRetryTranslation": "Повторен опит за превод"
+  "VOTRetryTranslation": "Повторен опит за превод",
+  "VOTVideoIsMusic": "Деактивирали сте превод за музикални видеоклипове",
+  "DontTranslateByYTMusic": "Не превеждайте видеоклипове, идентифицирани като музика от Ютюб музика",
+  "VOTMusicDetectDesc": "Откриване на музика е достъпно само на Ютюб"
 }

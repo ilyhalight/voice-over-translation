@@ -267,5 +267,8 @@
   "VOTDownloadTranslation": "Download translation",
   "VOTClose": "Close",
   "VOTSmartDuckingStrength": "Adaptive volume reduction strength",
-  "VOTRetryTranslation": "Retry translation"
+  "VOTRetryTranslation": "Retry translation",
+  "VOTVideoIsMusic": "You've disabled translation for music videos",
+  "DontTranslateByYTMusic": "Don't translate videos identified as music by YouTube Music",
+  "VOTMusicDetectDesc": "Music detection is only available on YouTube"
 }

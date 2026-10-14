@@ -267,5 +267,8 @@
   "VOTLogin": "Login",
   "VOTAutoPauseOnTranslate": "Peatage video, kuni tõlge on valmis",
   "VOTSmartDuckingStrength": "Adaptiivne mahu vähendamise tugevus",
-  "VOTRetryTranslation": "Proovi tõlget uuesti"
+  "VOTRetryTranslation": "Proovi tõlget uuesti",
+  "VOTVideoIsMusic": "Olete keelanud muusikavideote tõlkimise",
+  "DontTranslateByYTMusic": "Ärge tõlkige Youtube Musicu muusikana tuvastatud videoid",
+  "VOTMusicDetectDesc": "Muusika tuvastamine on saadaval ainult YouTube ' is"
 }

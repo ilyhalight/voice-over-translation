@@ -31,6 +31,7 @@ export const storageKeys = [
   "autoPauseOnTranslate",
   "autoSubtitles",
   "dontTranslateLanguages",
+  "dontTranslateByYTMusic",
   "enabledAutoVolume",
   "enabledSmartDucking",
   "autoVolume",
@@ -96,6 +97,7 @@ export type StorageData = {
   autoPauseOnTranslate: boolean;
   autoSubtitles: boolean;
   dontTranslateLanguages: LanguageSelectKey[];
+  dontTranslateByYTMusic: boolean;
   enabledAutoVolume: boolean;
   /**
    * Smart Auto-Volume ducking: only lower original video volume while translated

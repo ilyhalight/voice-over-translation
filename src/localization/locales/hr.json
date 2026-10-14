@@ -267,5 +267,8 @@
   "VOTLogin": "Prijaviti se",
   "VOTAutoPauseOnTranslate": "Pauzirajte videozapis dok prijevod ne bude spreman",
   "VOTSmartDuckingStrength": "Prilagodljiva sila smanjenja volumena",
-  "VOTRetryTranslation": "Pokušaj ponovno prevesti"
+  "VOTRetryTranslation": "Pokušaj ponovno prevesti",
+  "VOTVideoIsMusic": "Onemogućili ste prijevod glazbenih videozapisa",
+  "DontTranslateByYTMusic": "Nemojte prevoditi videozapise identificirane kao glazbene",
+  "VOTMusicDetectDesc": "Značajka prepoznavanja glazbe dostupna je samo na"
 }

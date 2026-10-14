@@ -267,5 +267,8 @@
   "VOTLogin": "Login",
   "VOTAutoPauseOnTranslate": "Pausa o vídeo ata que a tradución estea lista",
   "VOTSmartDuckingStrength": "Resistencia á redución do volume adaptativo",
-  "VOTRetryTranslation": "Tentar de novo a tradución"
+  "VOTRetryTranslation": "Tentar de novo a tradución",
+  "VOTVideoIsMusic": "Desactivou a tradución para vídeos musicais",
+  "DontTranslateByYTMusic": "Non traducir vídeos identificados como música Por Youtube Music",
+  "VOTMusicDetectDesc": "A detección de música só está dispoñible en YouTube"
 }

@@ -267,5 +267,8 @@
   "VOTLogin": "ဝင်ရောက်ပါ",
   "VOTAutoPauseOnTranslate": "ဘာသာပြန်မှုအဆင်သင့်ဖြစ်သည်အထိဗီဒီယိုကိုရပ်ထားပါ။",
   "VOTSmartDuckingStrength": "အလိုက်သင့်ပြောင်းလဲနိုင်သောပမာဏလျှော့ချမှုအားကောင်းမှု",
-  "VOTRetryTranslation": "ဘာသာပြန်ခြင်းကို ထပ်စမ်းကြည့်ပါ"
+  "VOTRetryTranslation": "ဘာသာပြန်ခြင်းကို ထပ်စမ်းကြည့်ပါ",
+  "VOTVideoIsMusic": "ဂီတဗီဒီယိုများအတွက်ဘာသာပြန်မှုကိုပိတ်ထားသည်",
+  "DontTranslateByYTMusic": "YouTube Music မှဂီတအဖြစ်သတ်မှတ်ထားသောဗီဒီယိုများကိုဘာသာပြန်၍မရပါ။",
+  "VOTMusicDetectDesc": "ဂီတရှာဖွေမှုကို YouTube တွင်သာရရှိနိုင်သည်"
 }

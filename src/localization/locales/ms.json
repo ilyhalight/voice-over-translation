@@ -267,5 +267,8 @@
   "VOTLogin": "Logmasuk",
   "VOTAutoPauseOnTranslate": "Jeda video sehingga terjemahan siap",
   "VOTSmartDuckingStrength": "Kekuatan pengurangan isipadu adaptif",
-  "VOTRetryTranslation": "Cuba terjemahan sekali lagi"
+  "VOTRetryTranslation": "Cuba terjemahan sekali lagi",
+  "VOTVideoIsMusic": "Anda telah melumpuhkan terjemahan untuk video muzik",
+  "DontTranslateByYTMusic": "Jangan terjemahkan video yang dikenal pasti sebagai muzik oleh YouTube Music",
+  "VOTMusicDetectDesc": "Pengesanan muzik hanya tersedia di YouTube"
 }

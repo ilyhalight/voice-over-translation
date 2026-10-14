@@ -267,5 +267,8 @@
   "VOTLogin": "አዲስ ዝምብሎ ይግባ",
   "VOTAutoPauseOnTranslate": "ትርጉም ዝግጁ እስኪሆን ድረስ ቪዲዮ ለአፍታ ያቁሙ",
   "VOTSmartDuckingStrength": "የመላመድ መጠን ቅነሳ ጥንካሬ",
-  "VOTRetryTranslation": "ትርጉሙን እንደገና ሞክር"
+  "VOTRetryTranslation": "ትርጉሙን እንደገና ሞክር",
+  "VOTVideoIsMusic": "የሙዚቃ ቪዲዮዎችን ለመተርጎም ተሰናክሏል",
+  "DontTranslateByYTMusic": "በዩቲዩብ ሙዚቃ የተለዩ ቪዲዮዎችን አይተረጉሙ ። ",
+  "VOTMusicDetectDesc": "የሙዚቃ ማወቂያ በዩቲዩብ ላይ ብቻ ይገኛል ። "
 }

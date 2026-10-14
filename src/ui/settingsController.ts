@@ -327,6 +327,7 @@ export class SettingsController {
         },
         translation: {
           isAudioContextSupported: this.videoHandler?.isAudioContextSupported,
+          isCanDetectMusic: this.videoHandler.site.host === "youtube",
           onAutoTranslateChange: this.createPersistedSettingHandler({
             storageKey: "autoTranslate",
             dispatch: (checked) =>
@@ -342,6 +343,9 @@ export class SettingsController {
           }),
           onDontTranslateLanguagesChange: this.createPersistedSettingHandler({
             storageKey: "dontTranslateLanguages",
+          }),
+          onDontTranslateByYTMusicChange: this.createPersistedSettingHandler({
+            storageKey: "dontTranslateByYTMusic",
           }),
           onEnabledAutoVolumeChange: this.createPersistedSettingHandler({
             storageKey: "enabledAutoVolume",

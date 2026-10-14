@@ -267,5 +267,8 @@
   "VOTLogin": "Login",
   "VOTAutoPauseOnTranslate": "Nieqaf il-vidjow sakemm it-traduzzjoni tkun lesta",
   "VOTSmartDuckingStrength": "Qawwa adattiva għat-tnaqqis tal-volum",
-  "VOTRetryTranslation": "Erġa’ pprova t-traduzzjoni"
+  "VOTRetryTranslation": "Erġa’ pprova t-traduzzjoni",
+  "VOTVideoIsMusic": "Int iddiżattivajt it traduzzjoni għal vidjows mużikali",
+  "DontTranslateByYTMusic": "Tittraduċix vidjows identifikati bħala mużika Mill Mużika YouTube",
+  "VOTMusicDetectDesc": "L-iskoperta tal-mużika hija disponibbli biss Fuq YouTube"
 }

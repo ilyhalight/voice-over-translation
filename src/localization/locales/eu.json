@@ -267,5 +267,8 @@
   "VOTLogin": "Saioa hasi",
   "VOTAutoPauseOnTranslate": "Pausatu bideoa itzulpena prest dagoen arte",
   "VOTSmartDuckingStrength": "Bolumena murrizteko erresistentzia egokitzailea",
-  "VOTRetryTranslation": "Saiatu itzulpena berriro"
+  "VOTRetryTranslation": "Saiatu itzulpena berriro",
+  "VOTVideoIsMusic": "Musika bideoen itzulpena desgaitu duzu",
+  "DontTranslateByYTMusic": "Ez itzuli youtube Music-ek identifikatutako bideoak",
+  "VOTMusicDetectDesc": "Musika Detekzioa Youtuben bakarrik dago eskuragarri"
 }

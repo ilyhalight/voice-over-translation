@@ -267,5 +267,8 @@
   "VOTLogin": "පිවිසෙන්න",
   "VOTAutoPauseOnTranslate": "පරිවර්තනය සූදානම් වන තුරු වීඩියෝ විරාමයක්",
   "VOTSmartDuckingStrength": "අනුවර්තන පරිමාව අඩු කිරීමේ ශක්තිය",
-  "VOTRetryTranslation": "පරිවර්තනය නැවත උත්සාහ කරන්න"
+  "VOTRetryTranslation": "පරිවර්තනය නැවත උත්සාහ කරන්න",
+  "VOTVideoIsMusic": "ඔබ සංගීත වීඩියෝ සඳහා පරිවර්තනය අක්රීය කර ඇත",
+  "DontTranslateByYTMusic": "YouTube Music විසින් සංගීතය ලෙස හඳුනාගත් වීඩියෝ පරිවර්තනය නොකරන්න",
+  "VOTMusicDetectDesc": "සංගීත හඳුනාගැනීම ලබා ගත හැක්කේ යූ ටියුබ් හි පමණි"
 }

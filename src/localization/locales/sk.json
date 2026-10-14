@@ -267,5 +267,8 @@
   "VOTLogin": "Prihlásenie",
   "VOTAutoPauseOnTranslate": "Pause video until translation is ready",
   "VOTSmartDuckingStrength": "Adaptívna sila na zníženie objemu",
-  "VOTRetryTranslation": "Skúsiť preklad znova"
+  "VOTRetryTranslation": "Skúsiť preklad znova",
+  "VOTVideoIsMusic": "Zakázali ste preklad hudobných videí",
+  "DontTranslateByYTMusic": "Neprekladajte videá označené ako hudba v službe YouTube Music",
+  "VOTMusicDetectDesc": "Detekcia hudby je k dispozícii iba na YouTube"
 }

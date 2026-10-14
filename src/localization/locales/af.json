@@ -267,5 +267,8 @@
   "VOTLogin": "Aanmelding",
   "VOTAutoPauseOnTranslate": "Pouse video totdat vertaling gereed is",
   "VOTSmartDuckingStrength": "Aanpasbare volume vermindering sterkte",
-  "VOTRetryTranslation": "Probeer vertaling weer"
+  "VOTRetryTranslation": "Probeer vertaling weer",
+  "VOTVideoIsMusic": "Jy het vertaling vir musiekvideo's gedeaktiveer",
+  "DontTranslateByYTMusic": "Moenie video's vertaal wat Deur YouTube Music as musiek geïdentifiseer is nie",
+  "VOTMusicDetectDesc": "Musiekopsporing is slegs op YouTube beskikbaar"
 }

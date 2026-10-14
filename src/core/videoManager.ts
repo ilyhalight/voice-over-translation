@@ -3,7 +3,9 @@ import { getVideoData } from "@vot.js/ext/utils/videoData";
 import votConfig from "@vot.js/shared/config";
 import { availableLangs } from "@vot.js/shared/consts";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
+import { detectMusicYT } from "#modules/detectMusic/service.ts";
 import { detect } from "#modules/translateText/service.ts";
+
 import {
   getYoutubeAudioFormatLanguage as getYoutubeAudioFormatLanguageTag,
   selectSmallestAudioFormat,
@@ -42,17 +44,9 @@ const MAX_SHARED_LANGUAGE_STATES = 500;
 const REQUEST_LANG_SET = new Set<RequestLang>(
   availableLangs as readonly RequestLang[],
 );
-const SUPPORTED_TRANSLATION_SOURCE_LANGS = new Set<RequestLang>([
-  "ru",
-  "en",
-  "zh",
-  "ko",
-  "fr",
-  "it",
-  "es",
-  "de",
-  "ja",
-]);
+const SUPPORTED_TRANSLATION_SOURCE_LANGS = new Set<RequestLang>(
+  availableLangs.filter((l) => l !== "auto"),
+);
 
 type ResolvedRequestLang = Exclude<RequestLang, "auto">;
 type SharedLanguageState = {
@@ -185,7 +179,7 @@ function isResolvedLanguage(
 function resolveSupportedYoutubeAudioLanguage():
   | ResolvedRequestLang
   | undefined {
-  const response = YoutubeHelper.getPlayerResponse() as any;
+  const response = YoutubeHelper.getPlayerResponse();
   const formats = [
     ...(Array.isArray(response?.streamingData?.adaptiveFormats)
       ? response.streamingData.adaptiveFormats
@@ -353,6 +347,7 @@ function getAriaValueNowPercent(selector: string): number | null {
 
 export class VOTVideoManager {
   videoHandler: VideoHandler;
+  detectMusicCache = new Map<string, boolean>();
 
   constructor(videoHandler: VideoHandler) {
     this.videoHandler = videoHandler;
@@ -517,6 +512,26 @@ export class VOTVideoManager {
       supportedVideoLanguage,
       translateFromLang: this.videoHandler.translateFromLang,
     });
+  }
+
+  /**
+   * Detects if the given YouTube video contains music.
+   */
+  async detectMusic(videoId: string) {
+    if (this.videoHandler.site.host !== "youtube") {
+      return false;
+    }
+
+    if (this.detectMusicCache.has(videoId)) {
+      return this.detectMusicCache.get(videoId);
+    }
+
+    const detected = await detectMusicYT(
+      videoId,
+      this.videoHandler.actionsAbortController.signal,
+    );
+    this.detectMusicCache.set(videoId, detected);
+    return detected;
   }
 
   async getVideoData() {

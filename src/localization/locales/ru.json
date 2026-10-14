@@ -205,7 +205,7 @@
   "VOTTranslateProxyEverything": "Проксировать всё",
   "VOTTranslateProxyStatus": "Режим проксирования",
   "VOTTranslatedBy": "Переведено {0}",
-  "VOTStreamNotAvailable": "Трансляция перевода недоступна",
+  "VOTStreamNotAvailable": "Перевод трансляций недоступен",
   "VOTTranslationTextService": "Сервис перевода текста",
   "VOTNotAffectToVoice": "Не влияет на перевод текста при озвучивании",
   "DontTranslateSelectedLanguages": "Не переводите с выбранных языков",
@@ -267,5 +267,8 @@
   "VOTLogin": "Авторизоваться",
   "VOTAutoPauseOnTranslate": "Приостанавливать видео до готовности перевода",
   "VOTSmartDuckingStrength": "Сила адаптивного приглушения",
-  "VOTRetryTranslation": "Повторить перевод"
+  "VOTRetryTranslation": "Повторить перевод",
+  "VOTVideoIsMusic": "Вы отключили перевод музыкальных клипов",
+  "DontTranslateByYTMusic": "Не переводить видео, распознанные YouTube Music как музыка",
+  "VOTMusicDetectDesc": "Функция распознавания музыки доступна только на YouTube"
 }

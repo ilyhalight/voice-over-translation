@@ -267,5 +267,8 @@
   "VOTLogin": "ເຂົ້າສູ່ລະບົບ",
   "VOTAutoPauseOnTranslate": "ຢຸດວິດີໂອຈົນກ່ວາການແປພາສາແມ່ນກຽມພ້ອມ",
   "VOTSmartDuckingStrength": "ຄວາມເຂັ້ມແຂງການຫຼຸດຜ່ອນປະລິມານການປັບ",
-  "VOTRetryTranslation": "ລອງແປອີກຄັ້ງ"
+  "VOTRetryTranslation": "ລອງແປອີກຄັ້ງ",
+  "VOTVideoIsMusic": "ທ່ານໄດ້ປິດການແປພາສາສໍາລັບວິດີໂອດົນຕີ",
+  "DontTranslateByYTMusic": "ຢ່າແປວິດີໂອທີ່ຖືກລະບຸວ່າເປັນເພງໂດຍ Youtube Music",
+  "VOTMusicDetectDesc": "ການຊອກຄົ້ນຫາເພັງແມ່ນມີຢູ່ໃນ YouTube ເທົ່ານັ້ນ"
 }
