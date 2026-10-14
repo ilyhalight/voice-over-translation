@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "Älä käännä videoita, jotka YouTube Music on tunnistanut musiikiksi",
   "VOTMusicDetectDesc": "Musiikin tunnistus on saatavilla vain YouTubessa",
   "sendErrorReports": "Lähetä anonyymejä virheraportteja",
-  "sendErrorReportsDescription": "Auttaa meitä löytämään ja korjaamaan vikoja. Vain tekniset tiedot lähetetään"
+  "sendErrorReportsDescription": "Auttaa meitä löytämään ja korjaamaan vikoja. Vain tekniset tiedot lähetetään",
+  "VOTSubtitlesTranslationLanguage": "Sanan ja lauseen käännöskieli",
+  "VOTSameAsMenuLanguage": "Sama kuin valikon kieli"
 }

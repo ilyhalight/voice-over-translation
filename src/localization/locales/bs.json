@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "Ne prevodite video zapise koje je YouTube Music identifikovao kao muziku",
   "VOTMusicDetectDesc": "Otkrivanje muzike dostupno je samo na YouTubeu",
   "sendErrorReports": "Pošaljite anonimne izvještaje o greškama",
-  "sendErrorReportsDescription": "Pomaže nam da pronađemo i popravimo greške. Šalju se samo tehnički detalji"
+  "sendErrorReportsDescription": "Pomaže nam da pronađemo i popravimo greške. Šalju se samo tehnički detalji",
+  "VOTSubtitlesTranslationLanguage": "Jezik prevođenja riječi i fraza",
+  "VOTSameAsMenuLanguage": "Isto kao i jezik menija"
 }

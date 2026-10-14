@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "Не превеждайте видеоклипове, идентифицирани като музика от Ютюб музика",
   "VOTMusicDetectDesc": "Откриване на музика е достъпно само на Ютюб",
   "sendErrorReports": "Изпращане на анонимни доклади за грешки",
-  "sendErrorReportsDescription": "Помага ни да откриваме и поправяме бъгове. Изпращат се само технически подробности"
+  "sendErrorReportsDescription": "Помага ни да откриваме и поправяме бъгове. Изпращат се само технически подробности",
+  "VOTSubtitlesTranslationLanguage": "Дума и фраза превод език",
+  "VOTSameAsMenuLanguage": "Език на менюто"
 }

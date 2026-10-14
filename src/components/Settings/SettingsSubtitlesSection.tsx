@@ -1,5 +1,6 @@
 import type { JSX } from "solid-js";
 import {
+  type LangOverride,
   localizationProvider,
   t,
 } from "../../localization/localizationProvider";
@@ -23,7 +24,11 @@ import {
   subtitleFontFamilies,
   subtitleFormats,
 } from "../../types/subtitles";
-import { Select, type SelectOption } from "../Control/Select";
+import {
+  genSelectOptionsByLangs,
+  Select,
+  type SelectOption,
+} from "../Control/Select";
 import { Slider } from "../Control/Slider";
 import { SliderLabel } from "../Control/SliderLabel";
 import { SliderWrapper } from "../Control/SliderWrapper";
@@ -32,6 +37,7 @@ import { SettingsSection } from "./SettingsSection";
 
 export type SettingsSubtitlesSectionProps = {
   onResponseLanguageSubtitlesSelect?: (option: SelectOption) => void;
+  onSubtitlesTranslationLanguageSelect?: (value: LangOverride) => void;
   onSubtitlesDownloadFormatSelect?: (option: SelectOption) => void;
   onSubtitlesFontFamilySelect?: (value: SubtitleFontFamily) => void;
   onHighlightWordsChange?: (checked: boolean) => void;
@@ -150,6 +156,14 @@ export function SettingsSubtitlesSection(
   props: SettingsSubtitlesSectionProps,
 ): JSX.Element {
   const subtitleLanguageOptions = buildSubtitleLanguageSettingOptions();
+  const translationLanguageOptions: SelectOption[] = [
+    { label: t("VOTSameAsMenuLanguage"), value: "auto" },
+    ...genSelectOptionsByLangs(
+      localizationProvider
+        .getAvailableLangs()
+        .filter((lang) => lang !== "auto"),
+    ),
+  ];
   const subtitlesDownloadFormatOptions: SelectOption[] =
     subtitleFormats.map<SelectOption>((format) => ({
       label: format.toUpperCase(),
@@ -179,6 +193,19 @@ export function SettingsSubtitlesSection(
         }}
       >
         {t("VOTDefaultSubtitlesLanguage")}
+      </Select>
+      <Select
+        title={t("VOTSubtitlesTranslationLanguage")}
+        options={translationLanguageOptions}
+        search={true}
+        selectedValue={settings.subtitlesTranslationLanguage}
+        onSelect={(option) => {
+          const value = option.value as LangOverride;
+          setSettings("subtitlesTranslationLanguage", value);
+          props.onSubtitlesTranslationLanguageSelect?.(value);
+        }}
+      >
+        {t("VOTSubtitlesTranslationLanguage")}
       </Select>
       <Select
         title={t("VOTSubtitlesDownloadFormat")}

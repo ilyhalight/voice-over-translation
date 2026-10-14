@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "YouTube Music - ээр хөгжим гэж тодорхойлсон видеог бүү орчуул",
   "VOTMusicDetectDesc": "Хөгжим илрүүлэх нь зөвхөн YouTube дээр байдаг",
   "sendErrorReports": "Нэргүй Алдааны тайланг илгээх",
-  "sendErrorReportsDescription": "Алдааг олж, засахад бидэнд тусалдаг. Зөвхөн техникийн дэлгэрэнгүй мэдээллийг илгээдэг"
+  "sendErrorReportsDescription": "Алдааг олж, засахад бидэнд тусалдаг. Зөвхөн техникийн дэлгэрэнгүй мэдээллийг илгээдэг",
+  "VOTSubtitlesTranslationLanguage": "Үг, хэллэгийн орчуулгын хэл",
+  "VOTSameAsMenuLanguage": "Цэсийн хэлтэй адил"
 }

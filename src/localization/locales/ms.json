@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "Jangan terjemahkan video yang dikenal pasti sebagai muzik oleh YouTube Music",
   "VOTMusicDetectDesc": "Pengesanan muzik hanya tersedia di YouTube",
   "sendErrorReports": "Hantar laporan ralat tanpa nama",
-  "sendErrorReportsDescription": "Membantu kami mencari dan membetulkan pepijat. Hanya butiran teknikal yang dihantar"
+  "sendErrorReportsDescription": "Membantu kami mencari dan membetulkan pepijat. Hanya butiran teknikal yang dihantar",
+  "VOTSubtitlesTranslationLanguage": "Bahasa terjemahan perkataan dan frasa",
+  "VOTSameAsMenuLanguage": "Sama seperti bahasa menu"
 }

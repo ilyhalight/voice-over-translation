@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "YouTube Müzik tarafından müzik olarak tanımlanan videoları çevirmeyin",
   "VOTMusicDetectDesc": "Müzik algılama yalnızca YouTube'da kullanılabilir",
   "sendErrorReports": "Anonim hata raporları gönder",
-  "sendErrorReportsDescription": "Hataları bulmamıza ve düzeltmemize yardımcı olur. Sadece teknik detaylar gönderilir"
+  "sendErrorReportsDescription": "Hataları bulmamıza ve düzeltmemize yardımcı olur. Sadece teknik detaylar gönderilir",
+  "VOTSubtitlesTranslationLanguage": "Kelime ve cümle çeviri dili",
+  "VOTSameAsMenuLanguage": "Menü dili ile aynı"
 }

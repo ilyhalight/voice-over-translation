@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "Youtube Music арқылы музыка ретінде анықталған бейнелерді аудармаңыз",
   "VOTMusicDetectDesc": "Музыканы анықтау Тек YouTube сайтында қолжетімді",
   "sendErrorReports": "Анонимді қателер туралы есептерді жіберіңіз",
-  "sendErrorReportsDescription": "Қателерді табуға және түзетуге көмектеседі. Тек техникалық мәліметтер жіберіледі"
+  "sendErrorReportsDescription": "Қателерді табуға және түзетуге көмектеседі. Тек техникалық мәліметтер жіберіледі",
+  "VOTSubtitlesTranslationLanguage": "Сөз және сөз тіркестерін аудару тілі",
+  "VOTSameAsMenuLanguage": "Мәзір тілімен бірдей"
 }

@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "Ne fordítsa le a YouTube Music által zeneként azonosított videókat",
   "VOTMusicDetectDesc": "A zene észlelése csak a YouTube-on érhető el",
   "sendErrorReports": "Névtelen hibajelentések küldése",
-  "sendErrorReportsDescription": "Segít megtalálni és kijavítani a hibákat. Csak technikai részleteket küldünk"
+  "sendErrorReportsDescription": "Segít megtalálni és kijavítani a hibákat. Csak technikai részleteket küldünk",
+  "VOTSubtitlesTranslationLanguage": "Szó - és kifejezésfordítás nyelve",
+  "VOTSameAsMenuLanguage": "Ugyanaz, mint a menü nyelve"
 }

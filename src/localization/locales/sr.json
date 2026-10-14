@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "Не преводите видео записе које је ИоуТубе Мусиц идентификовао као музичке",
   "VOTMusicDetectDesc": "Функција препознавања музике доступна је само на ИоуТубе-у",
   "sendErrorReports": "Слање анонимних извештаја о грешкама",
-  "sendErrorReportsDescription": "Помаже нам да пронађемо и исправимо грешке. Шаљу се само технички детаљи"
+  "sendErrorReportsDescription": "Помаже нам да пронађемо и исправимо грешке. Шаљу се само технички детаљи",
+  "VOTSubtitlesTranslationLanguage": "Језик превођења речи и фраза",
+  "VOTSameAsMenuLanguage": "Исто као и језик менија"
 }

@@ -406,6 +406,10 @@ export class SettingsController {
               dispatch: (item) =>
                 this.events["select:responseLanguageSubtitles"].dispatch(item),
             })(option.value as ResponseLanguageSubtitles),
+          onSubtitlesTranslationLanguageSelect:
+            this.createPersistedSettingHandler({
+              storageKey: "subtitlesTranslationLanguage",
+            }),
           onSubtitlesDownloadFormatSelect: (option) =>
             this.createPersistedSettingHandler({
               storageKey: "subtitlesDownloadFormat",

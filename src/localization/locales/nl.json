@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "Vertaal geen video ' s die door YouTube Music als muziek zijn geïdentificeerd",
   "VOTMusicDetectDesc": "Muziekdetectie is alleen beschikbaar op YouTube",
   "sendErrorReports": "Stuur anonieme foutrapporten",
-  "sendErrorReportsDescription": "Helpt ons bugs te vinden en op te lossen. Alleen technische details worden verzonden"
+  "sendErrorReportsDescription": "Helpt ons bugs te vinden en op te lossen. Alleen technische details worden verzonden",
+  "VOTSubtitlesTranslationLanguage": "Woorden en zinnen vertalen Taal",
+  "VOTSameAsMenuLanguage": "Zelfde als menutaal"
 }

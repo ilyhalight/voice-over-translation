@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "यूट्यूब संगीत द्वारा संगीत के रूप में पहचाने गए वीडियो का अनुवाद न करें",
   "VOTMusicDetectDesc": "संगीत का पता लगाने यूट्यूब पर ही उपलब्ध है",
   "sendErrorReports": "अनाम त्रुटि रिपोर्ट भेजें",
-  "sendErrorReportsDescription": "हमें कीड़े खोजने और ठीक करने में मदद करता है ।  केवल तकनीकी विवरण भेजे जाते हैं"
+  "sendErrorReportsDescription": "हमें कीड़े खोजने और ठीक करने में मदद करता है ।  केवल तकनीकी विवरण भेजे जाते हैं",
+  "VOTSubtitlesTranslationLanguage": "शब्द और वाक्यांश अनुवाद भाषा",
+  "VOTSameAsMenuLanguage": "मेनू भाषा के समान"
 }

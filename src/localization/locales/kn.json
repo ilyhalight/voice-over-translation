@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "YouTube ಸಂಗೀತದಿಂದ ಸಂಗೀತ ಎಂದು ಗುರುತಿಸಲಾದ ವೀಡಿಯೊಗಳನ್ನು ಅನುವಾದಿಸಬೇಡಿ",
   "VOTMusicDetectDesc": "ಸಂಗೀತ ಪತ್ತೆ YouTube ನಲ್ಲಿ ಮಾತ್ರ ಲಭ್ಯವಿದೆ",
   "sendErrorReports": "ಅನಾಮಧೇಯ ದೋಷ ವರದಿಗಳನ್ನು ಕಳುಹಿಸಿ",
-  "sendErrorReportsDescription": "ದೋಷಗಳನ್ನು ಹುಡುಕಲು ಮತ್ತು ಸರಿಪಡಿಸಲು ನಮಗೆ ಸಹಾಯ ಮಾಡುತ್ತದೆ. ತಾಂತ್ರಿಕ ವಿವರಗಳನ್ನು ಮಾತ್ರ ಕಳುಹಿಸಲಾಗುತ್ತದೆ"
+  "sendErrorReportsDescription": "ದೋಷಗಳನ್ನು ಹುಡುಕಲು ಮತ್ತು ಸರಿಪಡಿಸಲು ನಮಗೆ ಸಹಾಯ ಮಾಡುತ್ತದೆ. ತಾಂತ್ರಿಕ ವಿವರಗಳನ್ನು ಮಾತ್ರ ಕಳುಹಿಸಲಾಗುತ್ತದೆ",
+  "VOTSubtitlesTranslationLanguage": "ಪದ ಮತ್ತು ಪದಗುಚ್ಛ ಅನುವಾದ ಭಾಷೆ",
+  "VOTSameAsMenuLanguage": "ಮೆನು ಭಾಷೆಯಂತೆಯೇ"
 }

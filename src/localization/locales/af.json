@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "Moenie video's vertaal wat Deur YouTube Music as musiek geïdentifiseer is nie",
   "VOTMusicDetectDesc": "Musiekopsporing is slegs op YouTube beskikbaar",
   "sendErrorReports": "Stuur anonieme foutverslae",
-  "sendErrorReportsDescription": "Help ons om foute te vind en reg te stel. Slegs tegniese besonderhede word gestuur"
+  "sendErrorReportsDescription": "Help ons om foute te vind en reg te stel. Slegs tegniese besonderhede word gestuur",
+  "VOTSubtitlesTranslationLanguage": "Woord-en frase-vertaaltaal",
+  "VOTSameAsMenuLanguage": "Dieselfde as menu taal"
 }
