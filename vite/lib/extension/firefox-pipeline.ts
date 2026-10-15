@@ -281,6 +281,10 @@ const parseList = (raw: string): string[] =>
     .map((entry) => entry.trim())
     .filter(Boolean);
 
+// Error reports are opt-in: `technicalAndInteraction` cannot be required, and
+// the user can toggle it in the install prompt and in about:addons.
+const TECHNICAL_AND_INTERACTION = "technicalAndInteraction";
+
 function getFirefoxDataCollectionPermissions(config: BuildConfig): {
   required: string[];
   optional?: string[];
@@ -291,11 +295,13 @@ function getFirefoxDataCollectionPermissions(config: BuildConfig): {
   } = config;
 
   const required = requiredRaw ? parseList(requiredRaw) : ["none"];
-  const optional = optionalRaw ? parseList(optionalRaw) : null;
+  const optional = optionalRaw?.trim()
+    ? parseList(optionalRaw)
+    : [TECHNICAL_AND_INTERACTION];
 
   return {
     required,
-    ...(optional?.length ? { optional } : {}),
+    ...(optional.length ? { optional } : {}),
   };
 }
 
@@ -491,6 +497,18 @@ function verifyFirefoxManifestFields(
       config.IS_STORE_BUILD
         ? "firefox: store manifest must not contain browser_specific_settings.gecko.update_url"
         : `firefox: expected browser_specific_settings.gecko.update_url to be ${expectedUpdateUrl}`,
+    );
+  }
+  const dataCollection =
+    manifest.browser_specific_settings?.gecko?.data_collection_permissions;
+  if (!dataCollection?.optional?.includes(TECHNICAL_AND_INTERACTION)) {
+    throw new Error(
+      `firefox: error reports require ${TECHNICAL_AND_INTERACTION} in browser_specific_settings.gecko.data_collection_permissions.optional`,
+    );
+  }
+  if (dataCollection.required?.includes(TECHNICAL_AND_INTERACTION)) {
+    throw new Error(
+      `firefox: ${TECHNICAL_AND_INTERACTION} cannot be a required data collection permission`,
     );
   }
   if (

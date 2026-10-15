@@ -1,8 +1,9 @@
+import logger from "#utils/logger.ts";
 import { browserInfo } from "../../utils/browserInfo";
-import debug from "../../utils/debug";
 import { GM_fetch, getGMInfo, setGmFetchFailureHandler } from "../../utils/gm";
 import { isIframe } from "../../utils/iframeConnector";
 import { votStorage } from "../../utils/storage";
+import { getDefaultSendErrorReports } from "./consent";
 import type { EnvironmentInfo } from "./context";
 import {
   buildAuthHeader,
@@ -65,7 +66,8 @@ async function sendEvent(event: SentryEvent): Promise<void> {
 }
 
 const report = createReporter({
-  isEnabled: () => votStorage.get("sendErrorReports", true),
+  isEnabled: async () =>
+    votStorage.get("sendErrorReports", await getDefaultSendErrorReports()),
   getRuntimeInfo,
   send: sendEvent,
 });
@@ -76,7 +78,7 @@ export function captureException(
   options: CaptureOptions,
 ): void {
   report(error, options).catch((err) => {
-    debug.log("[telemetry] failed to report error", err);
+    logger.info("[telemetry] failed to report error", err);
   });
 }
 

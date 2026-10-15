@@ -21,6 +21,7 @@ import {
   ensureDnrStripRuleForGooglevideo,
   isForbiddenToSetViaFetch,
 } from "./dnr-rules";
+import { isTelemetryBlocked } from "./telemetry-guard";
 
 type XhrStartMessage = {
   type: "start";
@@ -594,6 +595,10 @@ export function registerXhrPortListener(): void {
           : "follow";
 
       try {
+        if (await isTelemetryBlocked(url)) {
+          throw new Error("Blocked: data collection is not permitted");
+        }
+
         try {
           await ensureDnrStripRuleForGooglevideo(url, forbiddenHeaders);
           await ensureDnrOriginStripRuleForYoutubei(url, forbiddenHeaders);

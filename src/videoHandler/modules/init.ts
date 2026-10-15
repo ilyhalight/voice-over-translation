@@ -1,4 +1,5 @@
 import { actualCompatVersion, m3u8ProxyHost } from "../../config/config";
+import { getDefaultSendErrorReports } from "../../modules/telemetry/consent";
 import { updateAccountFromStorage } from "../../stores/account";
 import { setLocale } from "../../stores/locale";
 import {
@@ -21,7 +22,10 @@ export async function init(this: VideoHandler) {
 
   // Retrieve settings from storage.
   this.data = await votStorage.getValues({
-    ...createDefaultSettings(audioContextSupported),
+    ...createDefaultSettings(
+      audioContextSupported,
+      await getDefaultSendErrorReports(),
+    ),
     m3u8ProxyHost,
     translateProxyEnabledDefault: true,
     compatVersion: "",
