@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "Fordítás újrapróbálása",
   "VOTVideoIsMusic": "Letiltotta a zenei videók fordítását",
   "DontTranslateByYTMusic": "Ne fordítsa le a YouTube Music által zeneként azonosított videókat",
-  "VOTMusicDetectDesc": "A zene észlelése csak a YouTube-on érhető el"
+  "VOTMusicDetectDesc": "A zene észlelése csak a YouTube-on érhető el",
+  "sendErrorReports": "Névtelen hibajelentések küldése",
+  "sendErrorReportsDescription": "Segít megtalálni és kijavítani a hibákat. Csak technikai részleteket küldünk"
 }

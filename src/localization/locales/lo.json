@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "ລອງແປອີກຄັ້ງ",
   "VOTVideoIsMusic": "ທ່ານໄດ້ປິດການແປພາສາສໍາລັບວິດີໂອດົນຕີ",
   "DontTranslateByYTMusic": "ຢ່າແປວິດີໂອທີ່ຖືກລະບຸວ່າເປັນເພງໂດຍ Youtube Music",
-  "VOTMusicDetectDesc": "ການຊອກຄົ້ນຫາເພັງແມ່ນມີຢູ່ໃນ YouTube ເທົ່ານັ້ນ"
+  "VOTMusicDetectDesc": "ການຊອກຄົ້ນຫາເພັງແມ່ນມີຢູ່ໃນ YouTube ເທົ່ານັ້ນ",
+  "sendErrorReports": "ສົ່ງບົດລາຍງານຄວາມຜິດພາດບໍລິຈາກເງິນ",
+  "sendErrorReportsDescription": "ຊ່ວຍພວກເຮົາຊອກຫາແລະແກ້ໄຂແມງໄມ້. ພຽງແຕ່ລາຍລະອຽດດ້ານວິຊາການຖືກສົ່ງ"
 }

@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "Jaribu kutafsiri tena",
   "VOTVideoIsMusic": "Umezima tafsiri ya video za muziki",
   "DontTranslateByYTMusic": "Usitafsiri video zilizotambuliwa kama muziki Na Muziki Wa YouTube",
-  "VOTMusicDetectDesc": "Utambuzi wa muziki unapatikana Tu Kwenye YouTube"
+  "VOTMusicDetectDesc": "Utambuzi wa muziki unapatikana Tu Kwenye YouTube",
+  "sendErrorReports": "Tuma ripoti za makosa zisizojulikana",
+  "sendErrorReportsDescription": "Inatusaidia kupata na kurekebisha mende. Maelezo ya kiufundi tu yanatumwa"
 }

@@ -31,6 +31,15 @@ declare global {
    */
   const VOT_VERSION: string;
 
+  /**
+   * Build-time injected build flavor (see `getBuildVariant` in vite/lib/env.ts).
+   */
+  const VOT_BUILD_VARIANT:
+    | "userscript"
+    | "userscript-min"
+    | "chrome"
+    | "firefox";
+
   // --- Userscript globals (Tampermonkey / Violentmonkey / etc.) ---
   // These are injected at runtime by the userscript manager or by our extension
   // prelude.  GM is installed synchronously at document_start before any

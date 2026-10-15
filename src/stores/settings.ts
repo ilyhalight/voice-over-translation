@@ -51,6 +51,7 @@ export type SettingsStore = {
   detectService: DetectService;
   // other
   translateAPIErrors: boolean;
+  sendErrorReports: boolean;
   newAudioPlayer: boolean;
   onlyBypassMediaCSP: boolean;
   showPiPButton: boolean;
@@ -102,6 +103,7 @@ export function createDefaultSettings(
     detectService: DEFAULT_DETECT_SERVICE,
     // other
     translateAPIErrors: true,
+    sendErrorReports: true,
     newAudioPlayer: audioContextSupported,
     onlyBypassMediaCSP: audioContextSupported,
     showPiPButton: false,

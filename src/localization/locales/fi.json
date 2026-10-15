@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "Yritä käännöstä uudelleen",
   "VOTVideoIsMusic": "Olet poistanut musiikkivideoiden käännökset käytöstä",
   "DontTranslateByYTMusic": "Älä käännä videoita, jotka YouTube Music on tunnistanut musiikiksi",
-  "VOTMusicDetectDesc": "Musiikin tunnistus on saatavilla vain YouTubessa"
+  "VOTMusicDetectDesc": "Musiikin tunnistus on saatavilla vain YouTubessa",
+  "sendErrorReports": "Lähetä anonyymejä virheraportteja",
+  "sendErrorReportsDescription": "Auttaa meitä löytämään ja korjaamaan vikoja. Vain tekniset tiedot lähetetään"
 }

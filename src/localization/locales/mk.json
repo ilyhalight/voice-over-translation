@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "Обиди се повторно со преводот",
   "VOTVideoIsMusic": "Го оневозможивте преводот за музички видеа",
   "DontTranslateByYTMusic": "Не преведувајте видеа идентификувани како музика Од Јутјуб Музика",
-  "VOTMusicDetectDesc": "Откривањето музика е достапно само На YouTube"
+  "VOTMusicDetectDesc": "Откривањето музика е достапно само На YouTube",
+  "sendErrorReports": "Испрати анонимни извештаи за грешки",
+  "sendErrorReportsDescription": "Ни помага да најдеме и поправиме грешки. Се испраќаат само технички детали"
 }

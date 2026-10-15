@@ -1,4 +1,5 @@
 import { getUUID } from "@vot.js/shared/secure";
+import { captureException } from "#modules/telemetry/client.ts";
 import { setAccount, updateAccount } from "#stores/account.ts";
 import type { Account } from "#types/storage.ts";
 import { GM_fetch } from "#utils/gm.ts";
@@ -34,6 +35,47 @@ async function createCodeChallenge(codeVerifier: string): Promise<string> {
   return base64UrlEncode(new Uint8Array(digest));
 }
 
+// Yandex refused the code or token (expired, revoked, already used): a normal
+// user state rather than a failure worth reporting.
+class AuthRejectedError extends Error {
+  override name = "AuthRejectedError";
+}
+
+class AuthResponseError extends Error {
+  override name = "AuthResponseError";
+  readonly status: number;
+
+  constructor(status: number, cause: unknown) {
+    super(`Unreadable Yandex auth response (HTTP ${status})`, { cause });
+    this.status = status;
+  }
+}
+
+async function readAuthJson<T>(res: Response): Promise<T> {
+  try {
+    return (await res.json()) as T;
+  } catch (err) {
+    throw new AuthResponseError(res.status, err);
+  }
+}
+
+// Auth errors may echo tokens or response bodies, so only a fixed message is sent.
+function reportAuthFailure(
+  error: unknown,
+  operation: string,
+  message: string,
+): void {
+  if (error instanceof AuthRejectedError) return;
+
+  captureException(error, {
+    source: "auth",
+    operation,
+    redactedMessage: message,
+    extra:
+      error instanceof AuthResponseError ? { status: error.status } : undefined,
+  });
+}
+
 const isTokenError = (data: unknown): data is TokenError => {
   return (
     typeof data === "object" &&
@@ -55,11 +97,11 @@ async function getOAuthTokenByCode(code: string): Promise<TokenInfo> {
       client_id: YANDEX_AUTH_CLIENT_ID,
       redirect_uri: YANDEX_AUTH_REDIRECT_URI,
       code_verifier: sessionStorage.getItem("votYandexCodeVerifier") || "",
-    }),
+    }).toString(),
   });
-  const data = (await res.json()) as TokenResponse;
+  const data = await readAuthJson<TokenResponse>(res);
   if (isTokenError(data)) {
-    throw new Error(
+    throw new AuthRejectedError(
       `Failed to fetch yandex OAuth token: ${data.error_description} (error: ${data.error})`,
     );
   }
@@ -83,9 +125,9 @@ async function getUserInfo(token: string): Promise<UserInfo> {
       Authorization: `OAuth ${token}`,
     },
   });
-  const data = (await res.json()) as UserInfoResponse;
+  const data = await readAuthJson<UserInfoResponse>(res);
   if (isAuthError(data)) {
-    throw new Error(
+    throw new AuthRejectedError(
       `[VOT] Failed to fetch yandex user info: ${data.message} (code: ${data.code})`,
     );
   }
@@ -115,6 +157,11 @@ export async function updateAccountInfo() {
     updateAccount(updatedAccount);
   } catch (err) {
     console.error("[VOT] Failed to fetch user info:", err);
+    reportAuthFailure(
+      err,
+      "updateAccountInfo",
+      "Failed to refresh Yandex account info",
+    );
   } finally {
     setAccount("isRefreshing", false);
   }
@@ -133,7 +180,17 @@ export async function updateAccountByCallbackData(
     throw new Error("[VOT] Invalid auth code response");
   }
 
-  const token = await getOAuthTokenByCode(code);
+  let token: TokenInfo;
+  try {
+    token = await getOAuthTokenByCode(code);
+  } catch (err) {
+    reportAuthFailure(
+      err,
+      "exchangeCode",
+      "Failed to exchange Yandex auth code",
+    );
+    throw err;
+  }
   const expires = Date.now() + token.expires_in * 1000;
   const account: Account = {
     token: token.access_token,

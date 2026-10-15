@@ -1,5 +1,7 @@
 import YoutubeHelper from "@vot.js/ext/helpers/youtube";
 import { localizationProvider } from "../../localization/localizationProvider";
+import { captureException } from "../../modules/telemetry/client";
+import { getTranslationTags } from "../../modules/telemetry/context";
 import {
   SubtitlesProcessor,
   SubtitlesRequestError,
@@ -187,8 +189,10 @@ export async function changeSubtitlesLang(
     debug.log(`[VOT] Subs proxied via ${subtitlesObj.url}`);
   }
 
-  const fetchedSubtitles =
-    await SubtitlesProcessor.fetchSubtitles(subtitlesObj);
+  const fetchedSubtitles = await SubtitlesProcessor.fetchSubtitles(
+    subtitlesObj,
+    { dedupeKey: this.videoData?.videoId, tags: getTranslationTags(this) },
+  );
   if (!isCurrentSubtitlesSelectionRequest(this, requestVersion)) {
     return this;
   }
@@ -387,6 +391,17 @@ export async function loadSubtitles(this: VideoHandler) {
     this.subtitlesCacheKey = cacheKey;
   } catch (error) {
     console.error("[VOT] Failed to load subtitles:", error);
+    captureException(error, {
+      source: "subtitles",
+      operation: "fetchSubtitleList",
+      dedupeKey: this.videoData?.videoId,
+      tags: {
+        ...getTranslationTags(this),
+        ...(error instanceof SubtitlesRequestError && {
+          subtitles_source: "yandex",
+        }),
+      },
+    });
     // The Yandex request failed (e.g. timeout), but the site's own subtitles
     // don't depend on it, so keep them instead of dropping everything. The
     // cache key is left unset on purpose: the degraded list isn't cached, so

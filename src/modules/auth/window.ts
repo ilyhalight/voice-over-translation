@@ -1,3 +1,4 @@
+import { captureException } from "../telemetry/client";
 import { createAuthLink } from "./yandex";
 
 const AUTH_WINDOW_NAME = "votAuthWindow";
@@ -50,7 +51,15 @@ function getAuthWindowFeatures(): string {
 }
 
 export async function openAuthWindow(): Promise<void> {
+  let authLink: string;
+  try {
+    authLink = await createAuthLink();
+  } catch (err) {
+    captureException(err, { source: "auth", operation: "createAuthLink" });
+    throw err;
+  }
+
   globalThis
-    .open(await createAuthLink(), AUTH_WINDOW_NAME, getAuthWindowFeatures())
+    .open(authLink, AUTH_WINDOW_NAME, getAuthWindowFeatures())
     ?.focus?.();
 }

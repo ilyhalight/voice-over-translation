@@ -10,7 +10,12 @@ import type { FetchOpts } from "../types/utils/gm";
 import { createTimeoutSignal } from "./abort";
 import { browserInfo } from "./browserInfo";
 import debug from "./debug";
-import { getErrorMessage, isAbortError, makeAbortError } from "./errors";
+import {
+  categorizeFailure,
+  getErrorMessage,
+  isAbortError,
+  makeAbortError,
+} from "./errors";
 import { normalizeHttpMethod } from "./http";
 import { executeWithResponseCache } from "./responseCache";
 import { getHeaders } from "./utils";
@@ -29,6 +34,29 @@ type GmXhrCallbackApi<T extends XHResponseType = "text"> = (
 type GmXhrPromiseApi = (
   details: GMXmlHttpRequestDetails,
 ) => Promise<GmXhrResponse> & { abort?: () => void };
+
+/** Allowlisted failure class: raw GM errors may carry response data. */
+type GmFetchAttempt = {
+  approach: "GM_xmlhttpRequest" | "GM.xmlHttpRequest";
+  category: string;
+};
+
+export type GmFetchFailure = {
+  error: Error;
+  host?: string;
+  method: string;
+  attempts: GmFetchAttempt[];
+};
+
+// Registered by the telemetry module; a direct import would form a cycle
+// through storage.ts, which reads this module's top-level constants.
+let gmFetchFailureHandler: ((failure: GmFetchFailure) => void) | undefined;
+
+export function setGmFetchFailureHandler(
+  handler: typeof gmFetchFailureHandler,
+): void {
+  gmFetchFailureHandler = handler;
+}
 
 const scriptHandler = getGMInfo()?.scriptHandler;
 
@@ -388,6 +416,8 @@ async function gmXhrFetch(
     headerCount: Object.keys(headers).length,
   });
 
+  const attempts: GmFetchAttempt[] = [];
+
   const callbackGmXhr = getCallbackGmXhr<"blob">();
   if (callbackGmXhr) {
     debug.log("[GM_fetch] attempting callback-style GM_xmlhttpRequest");
@@ -402,6 +432,10 @@ async function gmXhrFetch(
       );
     } catch (error) {
       if (isAbortError(error)) throw error;
+      attempts.push({
+        approach: "GM_xmlhttpRequest",
+        category: categorizeFailure(error),
+      });
       debug.warn("[GM_fetch] callback-style GM_xmlhttpRequest failed", {
         url: urlStr,
         method,
@@ -410,7 +444,14 @@ async function gmXhrFetch(
     }
   }
 
+  if (!callbackGmXhr) {
+    attempts.push({ approach: "GM_xmlhttpRequest", category: "unavailable" });
+  }
+
   const promiseGmXhr = getPromiseGmXhr();
+  if (!promiseGmXhr) {
+    attempts.push({ approach: "GM.xmlHttpRequest", category: "unavailable" });
+  }
   if (promiseGmXhr) {
     debug.log("[GM_fetch] attempting promise-style GM.xmlHttpRequest");
     try {
@@ -424,6 +465,10 @@ async function gmXhrFetch(
       );
     } catch (error) {
       if (isAbortError(error)) throw error;
+      attempts.push({
+        approach: "GM.xmlHttpRequest",
+        category: categorizeFailure(error),
+      });
       debug.warn("[GM_fetch] promise-style GM.xmlHttpRequest failed", {
         url: urlStr,
         method,
@@ -433,7 +478,19 @@ async function gmXhrFetch(
   }
 
   debug.warn("[GM_fetch] none of the GM approaches worked");
-  throw new Error("All GM approaches failed");
+  const lastCategory = attempts.at(-1)?.category;
+  const failure = new Error("All GM approaches failed", {
+    cause: lastCategory ? new Error(lastCategory) : undefined,
+  });
+  try {
+    gmFetchFailureHandler?.({
+      error: failure,
+      host: getRequestHost(urlStr),
+      method,
+      attempts,
+    });
+  } catch {}
+  throw failure;
 }
 
 export async function GM_fetch(

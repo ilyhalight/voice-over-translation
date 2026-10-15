@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "Tarjimani qayta urinib ko‘ring",
   "VOTVideoIsMusic": "Siz musiqiy videolar uchun tarjimani o'chirib qo'ydingiz",
   "DontTranslateByYTMusic": "YouTube Music tomonidan musiqa deb belgilangan videolarni tarjima qilmang",
-  "VOTMusicDetectDesc": "Musiqani aniqlash faqat YouTube-da mavjud"
+  "VOTMusicDetectDesc": "Musiqani aniqlash faqat YouTube-da mavjud",
+  "sendErrorReports": "Anonim xato hisobotlarini yuboring",
+  "sendErrorReportsDescription": "Xatolarni topish va tuzatishga yordam beradi. Faqat texnik tafsilotlar yuboriladi"
 }

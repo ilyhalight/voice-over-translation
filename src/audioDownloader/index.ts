@@ -1,4 +1,10 @@
 import { isAbortError, makeAbortError, toErrorMessage } from "#utils/errors.ts";
+import { captureException } from "../modules/telemetry/client";
+import {
+  getAudioFailureTags,
+  type StrategyFailure,
+  selectStrategyFailuresToReport,
+} from "../modules/telemetry/context";
 import type {
   AudioDownloadRequestOptions,
   DownloadedAudioData,
@@ -16,6 +22,32 @@ import {
   WEB_MSE_PROXY_STRATEGY,
 } from "./strategies";
 import type { AudioChunk } from "./strategies/audioChunks";
+
+// Not keyed by video: a broken strategy affects every video, and one warning
+// per strategy and outcome keeps the session event budget for other errors.
+function reportStrategyFailures(
+  failures: StrategyFailure[],
+  downloadSucceeded: boolean,
+): void {
+  for (const { strategy, error, recovered } of selectStrategyFailuresToReport(
+    failures,
+    downloadSucceeded,
+  )) {
+    captureException(error, {
+      source: "audio",
+      operation: "audioStrategy",
+      level: "warning",
+      dedupeKey: `${strategy}:${recovered}`,
+      // Strategy errors can embed media urls and ids.
+      redactedMessage: `Audio strategy failed: ${strategy}`,
+      tags: {
+        ...getAudioFailureTags(error, "download"),
+        audio_strategy: strategy,
+        audio_recovered: String(recovered),
+      },
+    });
+  }
+}
 
 async function handleCommonAudioDownloadRequest({
   audioDownloader,
@@ -308,6 +340,7 @@ export class AudioDownloader {
         this.strategy === "auto"
           ? [SABR_STRATEGY, WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY]
           : [this.strategy];
+      const failures: StrategyFailure[] = [];
       for (const attemptedStrategy of attempts) {
         try {
           await handleCommonAudioDownloadRequest({
@@ -323,6 +356,7 @@ export class AudioDownloader {
             sourceLanguage,
             audioDownloadType: attemptedStrategy,
           });
+          reportStrategyFailures(failures, true);
           return;
         } catch (error) {
           if (signal.aborted || isAbortError(error)) {
@@ -340,6 +374,7 @@ export class AudioDownloader {
             this.onDownloadAudioError.dispatch(translationId, videoId, true);
             return;
           }
+          failures.push({ strategy: attemptedStrategy, error });
           debug.error("Audio downloader. Strategy failed", {
             videoId,
             audioDownloadType: attemptedStrategy,
@@ -350,6 +385,19 @@ export class AudioDownloader {
 
       debug.error("Audio downloader. All audio download strategies failed", {
         videoId,
+      });
+      const lastError = failures.at(-1)?.error;
+      reportStrategyFailures(failures, false);
+      captureException(lastError, {
+        source: "audio",
+        operation: "downloadSourceAudio",
+        dedupeKey: videoId,
+        // Strategy errors can embed media urls and ids.
+        redactedMessage: "All audio download strategies failed",
+        tags: {
+          ...getAudioFailureTags(lastError, "download"),
+          audio_strategies: attempts.join(","),
+        },
       });
       this.onDownloadAudioError.dispatch(translationId, videoId, false);
     } finally {

@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 配音翻译
 // @namespace      vot
-// @version        1.11.16
+// @version        1.11.17
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    Watch videos in other languages with voice-over translation and subtitles in any browser
 // @description:de Sieh dir Videos in anderen Sprachen mit Voice-over-Übersetzung und Untertiteln in jedem Browser an
@@ -155,6 +155,7 @@
 // @match          *://fast.wistia.net/*
 // @match          *://oauth.yandex.ru/verification_code*
 // @match          *://*.the-joi-database.com/*
+// @match          *://*.vhx.tv/*
 // @match          *://*/*.mp4*
 // @match          *://*/*.webm*
 // @match          *://*.yewtu.be/*
@@ -162,21 +163,10 @@
 // @match          *://invidious.nerdvpn.de/*
 // @match          *://invidious.protokolla.fi/*
 // @match          *://invidious.materialio.us/*
-// @match          *://iv.melmac.space/*
 // @match          *://*.piped.video/*
 // @match          *://piped.kavin.rocks/*
 // @match          *://piped.private.coffee/*
 // @match          *://proxitok.pabloferreiro.es/*
-// @match          *://proxitok.pussthecat.org/*
-// @match          *://tok.habedieeh.re/*
-// @match          *://proxitok.esmailelbob.xyz/*
-// @match          *://proxitok.privacydev.net/*
-// @match          *://tok.artemislena.eu/*
-// @match          *://tok.adminforge.de/*
-// @match          *://tt.vern.cc/*
-// @match          *://cringe.whatever.social/*
-// @match          *://proxitok.lunar.icu/*
-// @match          *://proxitok.privacy.com.de/*
 // @match          *://peertube.tmp.rcp.tf/*
 // @match          *://*.dalek.zone/*
 // @match          *://video.sadmin.io/*
@@ -225,6 +215,7 @@
 // @connect        timeweb.cloud
 // @connect        raw.githubusercontent.com
 // @connect        vimeo.com
+// @connect        vhx.tv
 // @connect        toil.cc
 // @connect        onrender.com
 // @connect        workers.dev
@@ -235,6 +226,9 @@
 // @connect        googlevideo.com
 // @connect        fonts.google.com
 // @connect        fonts.googleapis.com
+// @connect        vtrans.eu.cc
+// @connect        vot-worker.vtrans.eu.cc
+// @connect        ingest.nirel.cc
 // @grant          GM_addStyle
 // @grant          GM_deleteValue
 // @grant          GM_getValue
@@ -371,6 +365,7 @@ var vot = (function(exports) {
 		VideoService["zdf"] = "zdf";
 		VideoService["bunkr"] = "bunkr";
 		VideoService["imdb"] = "imdb";
+		VideoService["kinopoisk"] = "kinopoisk";
 		VideoService["telegram"] = "telegram";
 		VideoService["wistia"] = "wistia";
 	})(VideoService$1 || (VideoService$1 = {}));
@@ -387,33 +382,20 @@ var vot = (function(exports) {
 		return !!/\.(m3u8|m4(a|v)|mpd)/.exec(url);
 	};
 	//#endregion
-	//#region node_modules/@vot.js/shared/dist/data/alternativeUrls.js
+	//#region ../vot.js/packages/shared/dist/data/alternativeUrls.js
 	var sitesInvidious = [
 		"yewtu.be",
 		"inv.nadeko.net",
 		"invidious.nerdvpn.de",
 		"invidious.protokolla.fi",
-		"invidious.materialio.us",
-		"iv.melmac.space"
+		"invidious.materialio.us"
 	];
 	var sitesPiped = [
 		"piped.video",
 		"piped.kavin.rocks",
 		"piped.private.coffee"
 	];
-	var sitesProxiTok = [
-		"proxitok.pabloferreiro.es",
-		"proxitok.pussthecat.org",
-		"tok.habedieeh.re",
-		"proxitok.esmailelbob.xyz",
-		"proxitok.privacydev.net",
-		"tok.artemislena.eu",
-		"tok.adminforge.de",
-		"tt.vern.cc",
-		"cringe.whatever.social",
-		"proxitok.lunar.icu",
-		"proxitok.privacy.com.de"
-	];
+	var sitesProxiTok = ["proxitok.pabloferreiro.es"];
 	var sitesPeertube = [
 		"peertube.tmp.rcp.tf",
 		"dalek.zone",
@@ -436,6 +418,121 @@ var vot = (function(exports) {
 	];
 	var sitesCoursehunterLike = ["coursehunter.net", "coursetrain.net"];
 	//#endregion
+	//#region ../vot.js/packages/shared/dist/utils/kinopoisk.js
+	var KinopoiskError = class extends Error {
+		constructor(message) {
+			super(message);
+			this.name = "KinopoiskError";
+		}
+	};
+	var KINOPOISK_WIDGET_ORIGIN = "https://widgets.kinopoisk.ru";
+	var KINOPOISK_SERVICE_URL = `${KINOPOISK_WIDGET_ORIGIN}/discovery/`;
+	var KINOPOISK_REFERER = "https://www.kinopoisk.ru/";
+	var SITE_HOST_RE = /^(www\.)?kinopoisk\.ru$/;
+	var VIDEO_ID_RE = /^(?:(?:film|series)\/(\d+)\/)?trailer\/(\d+)$/;
+	var WIDGET_PATH_RE = /^\/discovery\/(?:(?:film|series)\/(\d+)\/)?trailer\/(\d+)\/?$/;
+	var SITE_PATH_RE = /^\/(?:film|series)\/(\d+)\/video\/(\d+)\/?$/;
+	var FILM_PATH_RE = /^\/(?:film|series)\/(\d+)\/?$/;
+	var DRM_RE = /(?:^|[/_,=-])(?:drm|cenc|cbcs|widevine|playready|fairplay)(?:[/_,=-]|$)/i;
+	var PLAYABLE_RE = /\.(?:m3u8|mp4)(?:$|[?#])/i;
+	function toKinopoiskVideoRef(match) {
+		return match?.[2] ? {
+			filmId: match[1],
+			trailerId: match[2]
+		} : void 0;
+	}
+	function parseKinopoiskUrl(url) {
+		return toKinopoiskVideoRef(url.hostname === "widgets.kinopoisk.ru" ? WIDGET_PATH_RE.exec(url.pathname) : SITE_HOST_RE.test(url.hostname) ? SITE_PATH_RE.exec(url.pathname) : null);
+	}
+	function parseKinopoiskFilmId(url) {
+		return SITE_HOST_RE.test(url.hostname) ? FILM_PATH_RE.exec(url.pathname)?.[1] : void 0;
+	}
+	function buildKinopoiskVideoId({ filmId, trailerId }) {
+		return filmId ? `film/${filmId}/trailer/${trailerId}` : `trailer/${trailerId}`;
+	}
+	function getKinopoiskVideoId(url) {
+		const ref = parseKinopoiskUrl(url);
+		return ref ? buildKinopoiskVideoId(ref) : void 0;
+	}
+	function parseKinopoiskVideoId(videoId) {
+		return toKinopoiskVideoRef(VIDEO_ID_RE.exec(videoId));
+	}
+	function getKinopoiskVideoRef(videoId) {
+		const ref = parseKinopoiskVideoId(videoId);
+		if (!ref) throw new KinopoiskError(`Invalid Kinopoisk video id: ${videoId}`);
+		return ref;
+	}
+	function decodeKinopoiskState(raw) {
+		const text = raw.trim();
+		if (!text) throw new KinopoiskError("Kinopoisk player state is empty");
+		let json = text;
+		if (!text.startsWith("{")) try {
+			json = decodeURIComponent(text);
+		} catch {
+			throw new KinopoiskError("Kinopoisk player state is malformed");
+		}
+		try {
+			const state = JSON.parse(json);
+			if (!state || typeof state !== "object") throw new Error("not an object");
+			return state;
+		} catch {
+			throw new KinopoiskError("Kinopoisk player state is malformed");
+		}
+	}
+	function parseKinopoiskWidgetHtml(html) {
+		const match = /<script[^>]*\bdata-state\b[^>]*>([\s\S]*?)<\/script>/i.exec(html);
+		if (!match) throw new KinopoiskError("Kinopoisk player state not found");
+		return decodeKinopoiskState(match[1]);
+	}
+	async function fetchKinopoiskWidgetState(fetchFn, videoId) {
+		const res = await fetchFn(KINOPOISK_SERVICE_URL + videoId, { headers: { Referer: KINOPOISK_REFERER } });
+		if (!res.ok) throw new KinopoiskError(`Failed to load Kinopoisk player (HTTP ${res.status})`);
+		return parseKinopoiskWidgetHtml(await res.text());
+	}
+	function findKinopoiskTrailerRef(state, predicate) {
+		const trailer = Object.values(state?.models?.trailers ?? {}).find((item) => item && predicate(item));
+		return trailer ? {
+			filmId: trailer.filmId ? String(trailer.filmId) : void 0,
+			trailerId: String(trailer.id)
+		} : void 0;
+	}
+	function getKinopoiskTrailer(state, trailerId) {
+		const trailer = state.models?.trailers?.[trailerId];
+		if (!trailer) throw new KinopoiskError(`Kinopoisk trailer ${trailerId} not found`);
+		const streamUrl = trailer.streamUrl?.trim();
+		if (!streamUrl) throw new KinopoiskError("Kinopoisk trailer stream URL is missing");
+		let parsed;
+		try {
+			parsed = new URL(streamUrl, KINOPOISK_WIDGET_ORIGIN);
+		} catch {
+			throw new KinopoiskError("Kinopoisk trailer stream URL is invalid");
+		}
+		if (DRM_RE.test(parsed.pathname)) throw new KinopoiskError("Kinopoisk stream is DRM-protected");
+		if (!/^https?:$/.test(parsed.protocol) || !PLAYABLE_RE.test(parsed.href)) throw new KinopoiskError("Kinopoisk stream has an unsupported format (expected .m3u8 or .mp4)");
+		return {
+			...trailer,
+			streamUrl: parsed.href
+		};
+	}
+	function toKinopoiskVideoData(videoId, trailer, duration) {
+		const finalDuration = duration && Number.isFinite(duration) && duration > 0 ? duration : trailer.duration && trailer.duration > 0 ? trailer.duration : void 0;
+		return {
+			url: KINOPOISK_SERVICE_URL + videoId,
+			videoId,
+			duration: finalDuration,
+			title: trailer.film?.originalTitle || trailer.film?.title,
+			localizedTitle: trailer.film?.title,
+			translationHelp: [{
+				target: "video_file_url",
+				targetUrl: trailer.streamUrl
+			}]
+		};
+	}
+	async function getKinopoiskVideoData(loadState, videoId, duration) {
+		const { trailerId } = getKinopoiskVideoRef(videoId);
+		return toKinopoiskVideoData(videoId, getKinopoiskTrailer(await loadState(videoId), trailerId), duration);
+	}
+	//#endregion
 	//#region node_modules/@vot.js/ext/dist/types/service.js
 	var ExtVideoService;
 	(function(ExtVideoService) {
@@ -450,6 +547,7 @@ var vot = (function(exports) {
 		ExtVideoService["netacad"] = "netacad";
 		ExtVideoService["mediafile"] = "mediafile";
 		ExtVideoService["skilljar"] = "skilljar";
+		ExtVideoService["dropout"] = "dropout";
 	})(ExtVideoService || (ExtVideoService = {}));
 	var VideoService = {
 		...VideoService$1,
@@ -592,6 +690,7 @@ var vot = (function(exports) {
 			host: VideoService$1.tiktok,
 			url: "https://www.tiktok.com/",
 			match: /^(www.)?tiktok.com$/,
+			needExtraData: true,
 			selector: null
 		},
 		{
@@ -1060,6 +1159,14 @@ var vot = (function(exports) {
 			selector: ".plyr__video-wrapper"
 		},
 		{
+			host: VideoService$1.kinopoisk,
+			url: "https://widgets.kinopoisk.ru/discovery/",
+			match: (url) => !!(parseKinopoiskUrl(url) || parseKinopoiskFilmId(url)),
+			needExtraData: true,
+			needBypassCSP: true,
+			selector: sharedSelectors.idPlayer
+		},
+		{
 			host: VideoService$1.imdb,
 			url: "https://www.imdb.com/video/",
 			match: /^(www\.)?imdb\.com$/,
@@ -1109,6 +1216,14 @@ var vot = (function(exports) {
 			needExtraData: true
 		},
 		{
+			host: ExtVideoService.dropout,
+			url: "https://embed.vhx.tv/videos/",
+			match: /^embed\.vhx\.tv$/,
+			selector: "body",
+			needExtraData: true,
+			needBypassCSP: true
+		},
+		{
 			host: VideoService$1.wistia,
 			url: "https://fast.wistia.net/embed/iframe/",
 			match: /^fast.wistia.net$/,
@@ -1122,22 +1237,22 @@ var vot = (function(exports) {
 		}
 	];
 	//#endregion
-	//#region node_modules/@vot.js/shared/dist/data/config.js
+	//#region ../vot.js/packages/shared/dist/data/config.js
 	var config_default$1 = {
 		host: "api.browser.yandex.ru",
 		hostWorker: "vot-worker.toil.cc",
 		mediaProxy: "media-proxy.toil.cc",
 		userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 YaBrowser/26.8.0.0 Safari/537.36",
-		componentVersion: "26.8.3.1002",
-		chromiumRevision: "1002",
+		componentVersion: "26.10.0.1796",
+		chromiumRevision: "1796",
 		hmac: "bt8xH3VOlb4mqf0nqAibnDOoiPlXsisf",
 		defaultDuration: 310,
 		minChunkSize: 5295308,
 		loggerLevel: 1,
-		version: "3.1.4"
+		version: "3.1.6"
 	};
 	//#endregion
-	//#region node_modules/@vot.js/shared/dist/types/logger.js
+	//#region ../vot.js/packages/shared/dist/types/logger.js
 	var LoggerLevel;
 	(function(LoggerLevel) {
 		LoggerLevel[LoggerLevel["DEBUG"] = 0] = "DEBUG";
@@ -1147,7 +1262,7 @@ var vot = (function(exports) {
 		LoggerLevel[LoggerLevel["SILENCE"] = 4] = "SILENCE";
 	})(LoggerLevel || (LoggerLevel = {}));
 	//#endregion
-	//#region node_modules/@vot.js/shared/dist/utils/logger.js
+	//#region ../vot.js/packages/shared/dist/utils/logger.js
 	var prefix = `[vot.js v${config_default$1.version}]`;
 	function canLog(level) {
 		return config_default$1.loggerLevel <= level;
@@ -1168,7 +1283,7 @@ var vot = (function(exports) {
 		if (!canLog(LoggerLevel.ERROR)) return;
 		console.error(prefix, ...messages);
 	}
-	var Logger = {
+	var Logger$1 = {
 		canLog,
 		log: log$1,
 		info,
@@ -1176,7 +1291,7 @@ var vot = (function(exports) {
 		error: error$1
 	};
 	//#endregion
-	//#region node_modules/@vot.js/shared/dist/utils/utils.js
+	//#region ../vot.js/packages/shared/dist/utils/utils.js
 	var iso6392to6391 = {
 		afr: "af",
 		aka: "ak",
@@ -1311,10 +1426,10 @@ var vot = (function(exports) {
 		if (lang.length === 3) return iso6392to6391[lang];
 		return lang.toLowerCase().split(/[_;-]/)[0].trim();
 	}
-	function proxyMedia(url, format = "mp4") {
-		const generalUrl = `https://${config_default$1.mediaProxy}/v1/proxy/video.${format}?format=base64&force=true`;
-		if (!(url instanceof URL)) return `${generalUrl}&url=${btoa(url)}`;
-		return `${generalUrl}&url=${btoa(url.href)}&origin=${url.origin}&referer=${url.origin}`;
+	function proxyMedia(url, format = "mp4", host = config_default$1.mediaProxy) {
+		const generalUrl = `https://${host}/v1/proxy/video.${format}?format=base64&force=true`;
+		if (!(url instanceof URL)) return `${generalUrl}&url=${encodeURIComponent(btoa(url))}`;
+		return `${generalUrl}&url=${encodeURIComponent(btoa(url.href))}&origin=${url.origin}&referer=${url.origin}`;
 	}
 	//#endregion
 	//#region node_modules/@vot.js/ext/dist/helpers/base.js
@@ -1333,7 +1448,8 @@ var vot = (function(exports) {
 		service;
 		video;
 		language;
-		constructor({ fetchFn = fetchWithTimeout, extraInfo = true, referer = document.referrer ?? `${window.location.origin}/`, origin = window.location.origin, service, video, language = "en" } = {}) {
+		mediaProxy;
+		constructor({ fetchFn = fetchWithTimeout, extraInfo = true, referer = document.referrer ?? `${window.location.origin}/`, origin = window.location.origin, service, video, language = "en", mediaProxy = config_default$1.mediaProxy } = {}) {
 			this.fetch = fetchFn;
 			this.extraInfo = extraInfo;
 			this.referer = referer;
@@ -1341,6 +1457,7 @@ var vot = (function(exports) {
 			this.service = service;
 			this.video = video;
 			this.language = language;
+			this.mediaProxy = mediaProxy;
 		}
 		getVideoData(_videoId) {
 			return Promise.resolve(void 0);
@@ -1368,7 +1485,7 @@ var vot = (function(exports) {
 				if (!contentUrl) throw new VideoHelperError("Failed to find content url");
 				return { url: contentUrl };
 			} catch (err) {
-				Logger.error(`Failed to get apple developer video data by video ID: ${videoId}`, err.message);
+				Logger$1.error(`Failed to get apple developer video data by video ID: ${videoId}`, err.message);
 				return;
 			}
 		}
@@ -1412,7 +1529,7 @@ var vot = (function(exports) {
 					headers: csrfToken ? { "PUBLIC-CSRF-TOKEN": csrfToken } : {}
 				})).json();
 			} catch (err) {
-				Logger.error(`Failed to get artstation course info by courseId: ${courseId}.`, err.message);
+				Logger$1.error(`Failed to get artstation course info by courseId: ${courseId}.`, err.message);
 				return false;
 			}
 		}
@@ -1420,7 +1537,7 @@ var vot = (function(exports) {
 			try {
 				return (await (await this.fetch(`${this.API_ORIGIN}/quicksilver/video_url.json?chapter_id=${chapterId}`)).json()).url.replace("qsep://", "https://");
 			} catch (err) {
-				Logger.error(`Failed to get artstation video url by chapterId: ${chapterId}.`, err.message);
+				Logger$1.error(`Failed to get artstation video url by chapterId: ${chapterId}.`, err.message);
 				return false;
 			}
 		}
@@ -1531,7 +1648,7 @@ var vot = (function(exports) {
 				if (!videoUrl) throw new VideoHelperError("Failed to find video URL");
 				return { url: videoUrl };
 			} catch (err) {
-				Logger.error(`Failed to get Bitview data by videoId: ${videoId}`, err.message);
+				Logger$1.error(`Failed to get Bitview data by videoId: ${videoId}`, err.message);
 				return;
 			}
 		}
@@ -1539,6 +1656,20 @@ var vot = (function(exports) {
 			return url.searchParams.get("v");
 		}
 	};
+	//#endregion
+	//#region node_modules/@vot.js/ext/dist/utils/dom.js
+	function querySelectorDeep(selector, root = document) {
+		const match = root.querySelector(selector);
+		if (match) return match;
+		for (const el of root.querySelectorAll("*")) if (el.shadowRoot) {
+			const nested = querySelectorDeep(selector, el.shadowRoot);
+			if (nested) return nested;
+		}
+		return null;
+	}
+	function getVideoSrc(videoEl) {
+		return videoEl?.src || videoEl?.currentSrc || videoEl?.querySelector("source[src]")?.src;
+	}
 	//#endregion
 	//#region node_modules/@vot.js/ext/dist/players/plyr.js
 	var PlyrHelper = class {
@@ -1555,7 +1686,7 @@ var vot = (function(exports) {
 				const videoEl = document.querySelector("video, audio, .plyr video");
 				if (!player && !videoEl) throw new Error("Plyr player or media element not found");
 				const duration = player?.duration ?? videoEl?.duration ?? 0;
-				const fileUrl = player?.source || videoEl?.currentSrc || videoEl?.src || videoEl?.querySelector("source")?.getAttribute("src");
+				const fileUrl = player?.source || getVideoSrc(videoEl);
 				if (!fileUrl) throw new Error("Failed to find video url");
 				return {
 					url: videoId,
@@ -1654,7 +1785,7 @@ var vot = (function(exports) {
 			try {
 				return await (await this.fetch(`${this.API_ORIGIN}/api/v1/course/${courseId}/lessons`)).json();
 			} catch (err) {
-				Logger.error(`Failed to get CoursehunterLike lessons data by courseId: ${courseId}, because ${err.message}`);
+				Logger$1.error(`Failed to get CoursehunterLike lessons data by courseId: ${courseId}, because ${err.message}`);
 				return;
 			}
 		}
@@ -1678,7 +1809,7 @@ var vot = (function(exports) {
 				video_url: videoUrl,
 				translationHelp: [{
 					target: "video_file_url",
-					targetUrl: proxyMedia(videoUrl)
+					targetUrl: proxyMedia(videoUrl, "mp4", this.mediaProxy)
 				}],
 				duration,
 				title
@@ -1689,7 +1820,7 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
-	//#region node_modules/@vot.js/shared/dist/data/consts.js
+	//#region ../vot.js/packages/shared/dist/data/consts.js
 	var availableLangs = [
 		"auto",
 		"ru",
@@ -1713,17 +1844,6 @@ var vot = (function(exports) {
 		"vtt",
 		"json"
 	];
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/utils/dom.js
-	function querySelectorDeep(selector, root = document) {
-		const match = root.querySelector(selector);
-		if (match) return match;
-		for (const el of root.querySelectorAll("*")) if (el.shadowRoot) {
-			const nested = querySelectorDeep(selector, el.shadowRoot);
-			if (nested) return nested;
-		}
-		return null;
-	}
 	//#endregion
 	//#region node_modules/@vot.js/ext/dist/players/videojs.js
 	function isPreferredMedia(source) {
@@ -1788,7 +1908,7 @@ var vot = (function(exports) {
 					subtitles: this.getSubtitles()
 				};
 			} catch (err) {
-				Logger.error("Failed to get videojs video data", err.message);
+				Logger$1.error("Failed to get videojs video data", err.message);
 				return;
 			}
 		}
@@ -1841,7 +1961,7 @@ var vot = (function(exports) {
 				const url = typeof courseIdOrSlug === "string" && courseIdOrSlug.includes("-") ? `${this.API_ORIGIN}/onDemandCourses.v1?q=slug&slug=${courseIdOrSlug}` : `${this.API_ORIGIN}/onDemandCourses.v1/${courseIdOrSlug}`;
 				return (await (await this.fetch(url)).json())?.elements?.[0];
 			} catch (err) {
-				Logger.error(`Failed to get course data: ${courseIdOrSlug}`, err.message);
+				Logger$1.error(`Failed to get course data: ${courseIdOrSlug}`, err.message);
 				return;
 			}
 		}
@@ -1879,7 +1999,7 @@ var vot = (function(exports) {
 			else courseLang = normalizeLang$1(document.documentElement.lang || "en");
 			if (!availableLangs.includes(courseLang)) courseLang = "en";
 			const subtitleUrl = (data.subtitles.find((subtitle) => subtitle.language === courseLang) ?? data.subtitles?.[0])?.url;
-			if (!subtitleUrl) Logger.warn("Failed to find any subtitle file");
+			if (!subtitleUrl) Logger$1.warn("Failed to find any subtitle file");
 			const { url, duration } = data;
 			const translationHelp = subtitleUrl ? [{
 				target: "subtitles_file_url",
@@ -1971,7 +2091,7 @@ var vot = (function(exports) {
 					videoUrl = this.getVideoUrlFromDocument(doc);
 				}
 			} catch (err) {
-				Logger.error("Failed to fetch DataCamp page for DOMParser", err instanceof Error ? err.message : String(err));
+				Logger$1.error("Failed to fetch DataCamp page for DOMParser", err instanceof Error ? err.message : String(err));
 			}
 			if (!videoUrl) return;
 			return {
@@ -2015,7 +2135,7 @@ var vot = (function(exports) {
 			const source = sources.find((s) => s.src.includes("www.douyin.com/aweme/v1/play/"));
 			if (!source) return;
 			return {
-				url: proxyMedia(source.src),
+				url: proxyMedia(source.src, "mp4", this.mediaProxy),
 				duration,
 				isStream,
 				...availableLangs.includes(lang) ? { detectedLanguage: lang } : {}
@@ -2025,6 +2145,334 @@ var vot = (function(exports) {
 			const pathId = /video\/([\d]+)/.exec(url.pathname)?.[0];
 			if (pathId) return pathId;
 			return DouyinHelper.getPlayer()?.config.vid;
+		}
+	};
+	//#endregion
+	//#region node_modules/@vot.js/ext/dist/helpers/vimeo.js
+	var VimeoHelper = class extends BaseHelper {
+		API_KEY = "";
+		DEFAULT_SITE_ORIGIN = "https://vimeo.com";
+		SITE_ORIGIN = this.service?.url?.slice(0, -1) ?? this.DEFAULT_SITE_ORIGIN;
+		isErrorData(data) {
+			return Object.hasOwn(data, "error");
+		}
+		isPrivatePlayer() {
+			return this.referer && !this.referer.includes("vimeo.com") && this.origin.endsWith("player.vimeo.com");
+		}
+		toPublicUrl(videoId) {
+			const [id, hash] = videoId.split(":", 2);
+			return hash ? `${this.DEFAULT_SITE_ORIGIN}/${id}/${hash}` : `${this.DEFAULT_SITE_ORIGIN}/${id}`;
+		}
+		returnPublicBaseData(videoId) {
+			const baseData = this.returnBaseData(videoId);
+			if (!baseData) return;
+			return {
+				...baseData,
+				url: this.toPublicUrl(videoId)
+			};
+		}
+		normalizePublicVideoUrl(url, videoId) {
+			try {
+				const parsed = new URL(url);
+				if (parsed.hostname === "player.vimeo.com") return this.toPublicUrl(videoId);
+				if (parsed.hostname.endsWith("vimeo.com")) {
+					const colonMatch = /^\/(\d+):([a-z0-9]+)$/i.exec(parsed.pathname);
+					if (colonMatch) return `${this.DEFAULT_SITE_ORIGIN}/${colonMatch[1]}/${colonMatch[2]}`;
+				}
+			} catch {}
+			return url;
+		}
+		async getViewerData() {
+			try {
+				const data = await (await this.fetch("https://vimeo.com/_next/viewer")).json();
+				const { apiUrl, jwt } = data;
+				this.API_ORIGIN = `https://${apiUrl}`;
+				this.API_KEY = `jwt ${jwt}`;
+				return data;
+			} catch (err) {
+				Logger$1.error(`Failed to get default viewer data.`, err.message);
+				return false;
+			}
+		}
+		async getVideoInfo(videoId) {
+			try {
+				const params = new URLSearchParams({ fields: "name,link,description,duration" }).toString();
+				const data = await (await this.fetch(`${this.API_ORIGIN}/videos/${videoId}?${params}`, { headers: { Authorization: this.API_KEY } })).json();
+				if (this.isErrorData(data)) throw new Error(data.developer_message ?? data.error);
+				return data;
+			} catch (err) {
+				Logger$1.error(`Failed to get video info by video ID: ${videoId}`, err.message);
+				return false;
+			}
+		}
+		async getPrivateVideoSource(files) {
+			try {
+				const { default_cdn, cdns } = files.dash;
+				const cdnUrl = cdns[default_cdn].url;
+				const res = await this.fetch(cdnUrl);
+				if (res.status !== 200) throw new VideoHelperError(await res.text());
+				const data = await res.json();
+				const baseUrl = new URL(data.base_url, cdnUrl);
+				const videoData = data.audio.find((v) => v.mime_type === "audio/mp4" && v.format === "dash");
+				if (!videoData) throw new VideoHelperError("Failed to find video data");
+				const segmentUrl = videoData.segments?.[0]?.url;
+				if (!segmentUrl) throw new VideoHelperError("Failed to find first segment url");
+				const [videoName, videoParams] = segmentUrl.split("?", 2);
+				const params = new URLSearchParams(videoParams);
+				params.delete("range");
+				return new URL(`${videoData.base_url}${videoName}?${params.toString()}`, baseUrl).href;
+			} catch (err) {
+				Logger$1.error(`Failed to get private video source`, err.message);
+				return false;
+			}
+		}
+		async getPrivateVideoInfo(videoId) {
+			try {
+				if (typeof playerConfig === "undefined") return;
+				const videoSource = await this.getPrivateVideoSource(playerConfig.request.files);
+				if (!videoSource) throw new VideoHelperError("Failed to get private video source");
+				const { video: { title, duration }, request: { text_tracks: subs } } = playerConfig;
+				return {
+					url: `${this.SITE_ORIGIN}/${videoId}`,
+					video_url: videoSource,
+					title,
+					duration,
+					subs
+				};
+			} catch (err) {
+				Logger$1.error(`Failed to get private video info by video ID: ${videoId}`, err.message);
+				return false;
+			}
+		}
+		async getSubsInfo(videoId) {
+			try {
+				const params = new URLSearchParams({
+					per_page: "100",
+					fields: "language,type,link"
+				}).toString();
+				const content = await (await this.fetch(`${this.API_ORIGIN}/videos/${videoId}/texttracks?${params}`, { headers: { Authorization: this.API_KEY } })).json();
+				if (this.isErrorData(content)) throw new Error(content.developer_message ?? content.error);
+				return content.data;
+			} catch (err) {
+				Logger$1.error(`Failed to get subtitles info by video ID: ${videoId}`, err.message);
+				return [];
+			}
+		}
+		async getVideoData(videoId) {
+			if (videoId.includes("?app_id=")) {
+				const [embedId] = videoId.split("?");
+				return this.returnBaseData(embedId);
+			}
+			if (this.isPrivatePlayer()) {
+				const videoInfo = await this.getPrivateVideoInfo(videoId);
+				if (!videoInfo) return;
+				const { url, subs, video_url, title, duration } = videoInfo;
+				const subtitles = subs.map((sub) => ({
+					language: normalizeLang$1(sub.lang),
+					source: "vimeo",
+					format: "vtt",
+					url: new URL(sub.url, this.SITE_ORIGIN).href,
+					isAutoGenerated: sub.lang.includes("autogenerated")
+				}));
+				const translationHelp = subtitles.length ? [{
+					target: "video_file_url",
+					targetUrl: video_url
+				}, {
+					target: "subtitles_file_url",
+					targetUrl: subtitles[0].url
+				}] : null;
+				return {
+					...translationHelp ? {
+						url,
+						translationHelp
+					} : { url: video_url },
+					subtitles,
+					title,
+					duration
+				};
+			}
+			if (!this.extraInfo) return this.returnPublicBaseData(videoId);
+			if (videoId.includes("/")) videoId = videoId.replace("/", ":");
+			if (!await this.getViewerData()) return this.returnPublicBaseData(videoId);
+			const videoInfo = await this.getVideoInfo(videoId);
+			if (!videoInfo) return this.returnPublicBaseData(videoId);
+			const subtitles = (await this.getSubsInfo(videoId)).map((caption) => ({
+				language: normalizeLang$1(caption.language),
+				source: "vimeo",
+				format: "vtt",
+				url: caption.link,
+				isAutoGenerated: caption.language.includes("autogen")
+			}));
+			const { link, duration, name: title, description } = videoInfo;
+			return {
+				url: this.normalizePublicVideoUrl(link, videoId),
+				title,
+				description,
+				subtitles,
+				duration
+			};
+		}
+		async getVideoId(url) {
+			const normalizedPathname = url.pathname.replace(/\/+$/, "");
+			const embedId = /video\/[^/]+$/.exec(normalizedPathname)?.[0];
+			const appId = url.searchParams.get("app_id");
+			if (embedId && appId) return `${embedId}?app_id=${appId}`;
+			if (this.isPrivatePlayer()) return embedId;
+			if (embedId) {
+				const hash = url.searchParams.get("h");
+				const videoId = embedId.replace("video/", "");
+				return hash ? `${videoId}/${hash}` : videoId;
+			}
+			const categoriesVideoId = /channels\/[^/]+\/([^/]+)/.exec(normalizedPathname)?.[1] ?? /groups\/[^/]+\/videos\/([^/]+)/.exec(normalizedPathname)?.[1] ?? /(showcase|album)\/[^/]+\/video\/([^/]+)/.exec(normalizedPathname)?.[2];
+			if (categoriesVideoId) return categoriesVideoId;
+			return /([^/]+\/)?[^/]+$/.exec(normalizedPathname)?.[0];
+		}
+	};
+	//#endregion
+	//#region node_modules/@vot.js/ext/dist/helpers/dropout.js
+	var CONFIG_URL_RE = /^https:\/\/player\.vimeo\.com\/video\/[a-z0-9_-]+\/config/i;
+	var CONFIG_WAIT_TIMEOUT = 1e4;
+	var CONFIG_WAIT_INTERVAL = 500;
+	function isPlayerConfig(data) {
+		if (!data || typeof data !== "object") return false;
+		const config = data;
+		return Boolean((config.request?.files || config.files) && (config.video || config.request));
+	}
+	function normalizeConfigUrl(value) {
+		if (!value) return;
+		let url = value.replaceAll("\\/", "/").replaceAll("\\u0026", "&").replaceAll("&amp;", "&");
+		if (url.startsWith("//")) url = `https:${url}`;
+		if (url.startsWith("/video/")) url = `https://player.vimeo.com${url}`;
+		return CONFIG_URL_RE.test(url) ? url : void 0;
+	}
+	function findConfigUrl() {
+		const candidates = [];
+		try {
+			candidates.push(...performance.getEntriesByType("resource").map((entry) => entry.name));
+		} catch {}
+		candidates.push(...Array.from(document.querySelectorAll("iframe[src], script[src]"), (el) => el.src));
+		const html = document.documentElement?.innerHTML ?? "";
+		candidates.push(...html.match(/https?:\\?\/\\?\/player\.vimeo\.com\\?\/video\\?\/\d+\\?\/config[^"'<>\s\\]*/gi) ?? [], ...html.match(/\/video\/\d+\/config[^"'<>\s]*/gi) ?? []);
+		return candidates.map(normalizeConfigUrl).find(Boolean);
+	}
+	function getDomTextTracks() {
+		return Array.from(document.querySelectorAll("track[src][kind=\"captions\"], track[src][kind=\"subtitles\"]"), (track) => ({
+			lang: track.srclang || track.getAttribute("srclang") || "auto",
+			url: track.src,
+			kind: track.kind
+		})).filter((track) => Boolean(track.url));
+	}
+	function getCdnUrl(group) {
+		return (group?.default_cdn ? group.cdns?.[group.default_cdn]?.url : void 0) ?? Object.values(group?.cdns ?? {})[0]?.url;
+	}
+	function distanceTo360p(item) {
+		return Math.abs((item.height ?? 360) - 360);
+	}
+	function getTrackCodec(track) {
+		return [
+			track.codecs,
+			track.codec,
+			track.mime_type,
+			track.id,
+			track.quality
+		].filter(Boolean).join(" ").toLowerCase();
+	}
+	var DropoutHelper = class extends VimeoHelper {
+		config;
+		isPrivatePlayer() {
+			return true;
+		}
+		async fetchConfig(configUrl) {
+			try {
+				const res = await this.fetch(configUrl, {
+					credentials: "include",
+					headers: { Accept: "application/json" }
+				});
+				if (!res.ok) throw new VideoHelperError(`Vimeo config request failed: ${res.status}`);
+				const config = await res.json();
+				return isPlayerConfig(config) ? config : void 0;
+			} catch (err) {
+				Logger$1.error("Failed to fetch Dropout player config", err.message);
+				return;
+			}
+		}
+		async getConfig() {
+			if (this.config) return this.config;
+			if (typeof playerConfig !== "undefined" && isPlayerConfig(playerConfig)) {
+				this.config = playerConfig;
+				return this.config;
+			}
+			const deadline = Date.now() + CONFIG_WAIT_TIMEOUT;
+			let configUrl = findConfigUrl();
+			while (!configUrl && Date.now() < deadline) {
+				await new Promise((resolve) => setTimeout(resolve, CONFIG_WAIT_INTERVAL));
+				configUrl = findConfigUrl();
+			}
+			if (!configUrl) return;
+			this.config = await this.fetchConfig(configUrl);
+			return this.config;
+		}
+		async getDashAudioSource(dashCdnUrl) {
+			const res = await this.fetch(dashCdnUrl);
+			if (res.status !== 200) throw new VideoHelperError(await res.text());
+			const data = await res.json();
+			const baseUrl = new URL(data.base_url ?? "", dashCdnUrl);
+			const tracks = [...data.audio ?? [], ...data.video ?? []].filter((track) => track.format === "dash" && track.segments?.length);
+			const audioTracks = tracks.filter((track) => track.mime_type === "audio/mp4");
+			const track = audioTracks.find((t) => /mp4a|aac/.test(getTrackCodec(t))) ?? audioTracks.find((t) => !/opus|vorbis/.test(getTrackCodec(t))) ?? audioTracks[0] ?? tracks[0];
+			if (!track) return;
+			const segmentUrl = track.segments?.[0]?.url;
+			if (!segmentUrl) throw new VideoHelperError("Failed to find first segment url");
+			const [segmentName, segmentParams = ""] = segmentUrl.split("?", 2);
+			const params = new URLSearchParams(segmentParams);
+			params.delete("range");
+			const query = params.toString();
+			return new URL(`${track.base_url ?? ""}${segmentName}${query ? `?${query}` : ""}`, baseUrl).href;
+		}
+		async getPrivateVideoSource(files) {
+			try {
+				const progressiveSource = files?.progressive?.filter((item) => item.url).reduce((best, item) => !best || distanceTo360p(item) < distanceTo360p(best) ? item : best, void 0)?.url;
+				if (progressiveSource) return progressiveSource;
+				const dashCdnUrl = getCdnUrl(files?.dash);
+				const hlsSource = files?.hls?.url ?? getCdnUrl(files?.hls);
+				if (/(?:[?&]qsr=1(?:&|$)|\/prot\/cXNyPTE(?:\/|$))/i.test(String(dashCdnUrl)) && hlsSource) return hlsSource;
+				if (dashCdnUrl) try {
+					const dashSource = await this.getDashAudioSource(dashCdnUrl);
+					if (dashSource) return dashSource;
+				} catch (err) {
+					Logger$1.error("Failed to get Dropout DASH source, trying HLS", err.message);
+				}
+				if (hlsSource) return hlsSource;
+				throw new VideoHelperError("Failed to find playable private video source");
+			} catch (err) {
+				Logger$1.error("Failed to get Dropout private video source", err.message);
+				return false;
+			}
+		}
+		async getPrivateVideoInfo(videoId) {
+			try {
+				const config = await this.getConfig();
+				if (!config) throw new VideoHelperError("Failed to get Vimeo player config");
+				const request = config.request ?? config;
+				const videoSource = await this.getPrivateVideoSource(request.files ?? config.files);
+				if (!videoSource) throw new VideoHelperError("Failed to get private video source");
+				const configSubs = request.text_tracks ?? request.textTracks ?? [];
+				const subs = configSubs.length ? configSubs : getDomTextTracks();
+				const video = config.video ?? {};
+				return {
+					url: `${this.SITE_ORIGIN}/${videoId}`,
+					video_url: videoSource,
+					title: video.title ?? video.name ?? "",
+					duration: video.duration ?? 0,
+					subs
+				};
+			} catch (err) {
+				Logger$1.error(`Failed to get Dropout video info by video ID: ${videoId}`, err.message);
+				return false;
+			}
+		}
+		async getVideoId(url) {
+			return /videos\/([^/?#]+)/.exec(url.pathname)?.[1] ?? url.pathname;
 		}
 	};
 	//#endregion
@@ -2049,7 +2497,7 @@ var vot = (function(exports) {
 			try {
 				return await (await this.fetch(`${this.API_ORIGIN}/post.json?hash_id=${videoId}`)).json();
 			} catch (err) {
-				Logger.error(`Failed to get epicgames post info by videoId: ${videoId}.`, err.message);
+				Logger$1.error(`Failed to get epicgames post info by videoId: ${videoId}.`, err.message);
 				return false;
 			}
 		}
@@ -2141,7 +2589,7 @@ var vot = (function(exports) {
 		getVideoDataBySource(videoId) {
 			const url = document.querySelector(".icms.video > source[type=\"video/mp4\"][data-quality=\"360\"]")?.src;
 			if (!url) return this.returnBaseData(videoId);
-			return { url: proxyMedia(url) };
+			return { url: proxyMedia(url, "mp4", this.mediaProxy) };
 		}
 		getVideoDataByNext(videoId) {
 			try {
@@ -2151,13 +2599,13 @@ var vot = (function(exports) {
 				const videoUrl = assets.find((asset) => asset.height === 360 && asset.url.includes(".mp4"))?.url;
 				if (!videoUrl) throw new VideoDataError("Not found video URL in assets");
 				return {
-					url: proxyMedia(videoUrl),
+					url: proxyMedia(videoUrl, "mp4", this.mediaProxy),
 					duration,
 					title,
 					description
 				};
 			} catch (err) {
-				Logger.warn(`Failed to get ign video data by video ID: ${videoId}, because ${err.message}. Using clear link instead...`);
+				Logger$1.warn(`Failed to get ign video data by video ID: ${videoId}, because ${err.message}. Using clear link instead...`);
 				return this.returnBaseData(videoId);
 			}
 		}
@@ -2177,6 +2625,56 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
+	//#region node_modules/@vot.js/ext/dist/helpers/kinopoisk.js
+	function parseKinopoiskWidgetDocument(doc) {
+		const raw = doc.querySelector("script[data-state]")?.textContent;
+		return raw ? decodeKinopoiskState(raw) : void 0;
+	}
+	function getKinopoiskShownFilmId(doc) {
+		const link = doc.querySelector("a[href*=\"kinopoisk.ru/film/\"], a[href*=\"kinopoisk.ru/series/\"]");
+		return link ? parseKinopoiskFilmId(new URL(link.href)) : void 0;
+	}
+	function getKinopoiskLoadedContentIds() {
+		return performance.getEntriesByType("resource").map((entry) => /\/vod-content\/(\w+)\//.exec(entry.name)?.[1]).filter((id) => !!id).reverse();
+	}
+	var KinopoiskHelper = class extends BaseHelper {
+		API_ORIGIN = KINOPOISK_WIDGET_ORIGIN;
+		async getWidgetState(videoId) {
+			if (window.location.hostname === "widgets.kinopoisk.ru") {
+				const state = parseKinopoiskWidgetDocument(document);
+				const ref = parseKinopoiskVideoId(videoId);
+				if (ref && state?.models?.trailers?.[ref.trailerId]) return state;
+			}
+			return fetchKinopoiskWidgetState(this.fetch, videoId);
+		}
+		async getShownTrailerRef(ref) {
+			const contentIds = getKinopoiskLoadedContentIds();
+			const filmId = getKinopoiskShownFilmId(document);
+			if (!contentIds.length && (!filmId || filmId === ref.filmId)) return ref;
+			const state = await this.getWidgetState(buildKinopoiskVideoId(ref)).catch(() => void 0);
+			for (const contentId of contentIds) {
+				const shown = findKinopoiskTrailerRef(state, (trailer) => trailer.videoContentId === contentId);
+				if (shown) return shown;
+			}
+			return filmId && filmId !== ref.filmId && findKinopoiskTrailerRef(state, (trailer) => String(trailer.filmId) === filmId) || ref;
+		}
+		async getVideoData(videoId) {
+			try {
+				return await getKinopoiskVideoData((id) => this.getWidgetState(id), videoId, this.video?.duration);
+			} catch (err) {
+				const message = err instanceof Error ? err.message : String(err);
+				console.error("[VOT] KinopoiskHelper error:", message);
+				throw err instanceof VideoHelperError ? err : new VideoHelperError(message);
+			}
+		}
+		async getVideoId(url) {
+			const ref = parseKinopoiskUrl(url);
+			if (ref) return buildKinopoiskVideoId(url.hostname === "widgets.kinopoisk.ru" ? await this.getShownTrailerRef(ref) : ref);
+			const iframe = Array.from(document.querySelectorAll("iframe[src*=\"widgets.kinopoisk.ru/discovery/\"]")).findLast((frame) => frame.src && frame.getClientRects().length);
+			return iframe ? getKinopoiskVideoId(new URL(iframe.src, url)) : void 0;
+		}
+	};
+	//#endregion
 	//#region node_modules/@vot.js/ext/dist/helpers/joidatabase.js
 	var JOIDatabaseHelper = class extends BaseHelper {
 		async getVideoData(videoId) {
@@ -2192,7 +2690,7 @@ var vot = (function(exports) {
 					title
 				};
 			} catch {
-				Logger.error(`Failed to extract video data. Using base data for videoId: ${videoId}`);
+				Logger$1.error(`Failed to extract video data. Using base data for videoId: ${videoId}`);
 				return baseData;
 			}
 		}
@@ -2274,7 +2772,7 @@ var vot = (function(exports) {
 					title
 				};
 			} catch (err) {
-				Logger.error(`Failed to get kick clip info by clipId: ${clipId}.`, err.message);
+				Logger$1.error(`Failed to get kick clip info by clipId: ${clipId}.`, err.message);
 				return;
 			}
 		}
@@ -2288,7 +2786,7 @@ var vot = (function(exports) {
 					title
 				};
 			} catch (err) {
-				Logger.error(`Failed to get kick video info by videoId: ${videoId}.`, err.message);
+				Logger$1.error(`Failed to get kick video info by videoId: ${videoId}.`, err.message);
 				return;
 			}
 		}
@@ -2324,7 +2822,7 @@ var vot = (function(exports) {
 					}, [])
 				};
 			} catch (err) {
-				Logger.error(`Failed to get Kickstarter data by videoId: ${videoId}`, err.message);
+				Logger$1.error(`Failed to get Kickstarter data by videoId: ${videoId}`, err.message);
 				return;
 			}
 		}
@@ -2366,7 +2864,7 @@ var vot = (function(exports) {
 					...secureJSON
 				};
 			} catch (err) {
-				Logger.error(`Failed to get kodik secure data by videoPath: ${videoPath}.`, err.message);
+				Logger$1.error(`Failed to get kodik secure data by videoPath: ${videoPath}.`, err.message);
 				return false;
 			}
 		}
@@ -2396,7 +2894,7 @@ var vot = (function(exports) {
 					})
 				})).json();
 			} catch (err) {
-				Logger.error(`Failed to get kodik video data (type: ${videoType}, id: ${id}, hash: ${hash})`, err.message);
+				Logger$1.error(`Failed to get kodik video data (type: ${videoType}, id: ${id}, hash: ${hash})`, err.message);
 				return false;
 			}
 		}
@@ -2421,7 +2919,7 @@ var vot = (function(exports) {
 				video_url: videoUrl,
 				translationHelp: [{
 					target: "video_file_url",
-					targetUrl: proxyMedia(new URL(videoUrl))
+					targetUrl: proxyMedia(new URL(videoUrl), "mp4", this.mediaProxy)
 				}]
 			};
 		}
@@ -2438,7 +2936,7 @@ var vot = (function(exports) {
 			if (!data) return;
 			const { url, duration, subtitles } = data;
 			return {
-				url: proxyMedia(new URL(url)),
+				url: proxyMedia(new URL(url), "mp4", this.mediaProxy),
 				duration,
 				subtitles
 			};
@@ -2448,8 +2946,8 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
-	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/varint.js
-	function varint64read() {
+	//#region ../vot.js/node_modules/@bufbuild/protobuf/dist/esm/wire/varint.js
+	function varint64read$1() {
 		const buf = this.buf;
 		let pos = this.pos;
 		let lo = 0;
@@ -2488,8 +2986,8 @@ var vot = (function(exports) {
 		}
 		throw new Error("invalid varint");
 	}
-	var TWO_PWR_32_DBL = 4294967296;
-	function int64FromString(dec) {
+	var TWO_PWR_32_DBL$1 = 4294967296;
+	function int64FromString$1(dec) {
 		const minus = dec[0] === "-";
 		if (minus) dec = dec.slice(1);
 		const base = 1e6;
@@ -2499,27 +2997,27 @@ var vot = (function(exports) {
 			const digit1e6 = Number(dec.slice(begin, end));
 			highBits *= base;
 			lowBits = lowBits * base + digit1e6;
-			if (lowBits >= TWO_PWR_32_DBL) {
-				highBits = highBits + (lowBits / TWO_PWR_32_DBL | 0);
-				lowBits = lowBits % TWO_PWR_32_DBL;
+			if (lowBits >= TWO_PWR_32_DBL$1) {
+				highBits = highBits + (lowBits / TWO_PWR_32_DBL$1 | 0);
+				lowBits = lowBits % TWO_PWR_32_DBL$1;
 			}
 		}
 		add1e6digit(-24, -18);
 		add1e6digit(-18, -12);
 		add1e6digit(-12, -6);
 		add1e6digit(-6);
-		return minus ? negate(lowBits, highBits) : newBits(lowBits, highBits);
+		return minus ? negate$1(lowBits, highBits) : newBits$1(lowBits, highBits);
 	}
-	function int64ToString(lo, hi) {
-		let bits = newBits(lo, hi);
+	function int64ToString$1(lo, hi) {
+		let bits = newBits$1(lo, hi);
 		const negative = bits.hi & 2147483648;
-		if (negative) bits = negate(bits.lo, bits.hi);
-		const result = uInt64ToString(bits.lo, bits.hi);
+		if (negative) bits = negate$1(bits.lo, bits.hi);
+		const result = uInt64ToString$1(bits.lo, bits.hi);
 		return negative ? "-" + result : result;
 	}
-	function uInt64ToString(lo, hi) {
-		({lo, hi} = toUnsigned(lo, hi));
-		if (hi <= 2097151) return String(TWO_PWR_32_DBL * hi + lo);
+	function uInt64ToString$1(lo, hi) {
+		({lo, hi} = toUnsigned$1(lo, hi));
+		if (hi <= 2097151) return String(TWO_PWR_32_DBL$1 * hi + lo);
 		const low = lo & 16777215;
 		const mid = (lo >>> 24 | hi << 8) & 16777215;
 		const high = hi >> 16 & 65535;
@@ -2535,31 +3033,31 @@ var vot = (function(exports) {
 			digitC += Math.floor(digitB / base);
 			digitB %= base;
 		}
-		return digitC.toString() + decimalFrom1e7WithLeadingZeros(digitB) + decimalFrom1e7WithLeadingZeros(digitA);
+		return digitC.toString() + decimalFrom1e7WithLeadingZeros$1(digitB) + decimalFrom1e7WithLeadingZeros$1(digitA);
 	}
-	function toUnsigned(lo, hi) {
+	function toUnsigned$1(lo, hi) {
 		return {
 			lo: lo >>> 0,
 			hi: hi >>> 0
 		};
 	}
-	function newBits(lo, hi) {
+	function newBits$1(lo, hi) {
 		return {
 			lo: lo | 0,
 			hi: hi | 0
 		};
 	}
-	function negate(lowBits, highBits) {
+	function negate$1(lowBits, highBits) {
 		highBits = ~highBits;
 		if (lowBits) lowBits = ~lowBits + 1;
 		else highBits += 1;
-		return newBits(lowBits, highBits);
+		return newBits$1(lowBits, highBits);
 	}
-	var decimalFrom1e7WithLeadingZeros = (digit1e7) => {
+	var decimalFrom1e7WithLeadingZeros$1 = (digit1e7) => {
 		const partial = String(digit1e7);
 		return "0000000".slice(partial.length) + partial;
 	};
-	function varint32read() {
+	function varint32read$1() {
 		let b = this.buf[this.pos++];
 		if ((b & 128) === 0) {
 			this.assertBounds();
@@ -2592,9 +3090,9 @@ var vot = (function(exports) {
 		return result >>> 0;
 	}
 	//#endregion
-	//#region node_modules/@bufbuild/protobuf/dist/esm/proto-int64.js
-	var protoInt64 = makeInt64Support();
-	function makeInt64Support() {
+	//#region ../vot.js/node_modules/@bufbuild/protobuf/dist/esm/proto-int64.js
+	var protoInt64$1 = makeInt64Support$1();
+	function makeInt64Support$1() {
 		const dv = new DataView(new ArrayBuffer(8));
 		if (typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (!!globalThis.Deno || !!globalThis.Bun || typeof process != "object" || typeof process.env != "object" || process.env.BUF_BIGINT_DISABLE !== "1")) {
 			const MIN = BigInt("-9223372036854775808");
@@ -2645,47 +3143,47 @@ var vot = (function(exports) {
 			supported: false,
 			parse(value) {
 				if (typeof value != "string") value = value.toString();
-				assertInt64String(value);
+				assertInt64String$1(value);
 				return value;
 			},
 			uParse(value) {
 				if (typeof value != "string") value = value.toString();
-				assertUInt64String(value);
+				assertUInt64String$1(value);
 				return value;
 			},
 			enc(value) {
 				if (typeof value != "string") value = value.toString();
-				assertInt64String(value);
-				return int64FromString(value);
+				assertInt64String$1(value);
+				return int64FromString$1(value);
 			},
 			uEnc(value) {
 				if (typeof value != "string") value = value.toString();
-				assertUInt64String(value);
-				return int64FromString(value);
+				assertUInt64String$1(value);
+				return int64FromString$1(value);
 			},
 			dec(lo, hi) {
-				return int64ToString(lo, hi);
+				return int64ToString$1(lo, hi);
 			},
 			uDec(lo, hi) {
-				return uInt64ToString(lo, hi);
+				return uInt64ToString$1(lo, hi);
 			}
 		};
 	}
-	function assertInt64String(value) {
+	function assertInt64String$1(value) {
 		if (!/^-?[0-9]+$/.test(value)) throw new Error("invalid int64: " + value);
 	}
-	function assertUInt64String(value) {
+	function assertUInt64String$1(value) {
 		if (!/^[0-9]+$/.test(value)) throw new Error("invalid uint64: " + value);
 	}
 	//#endregion
-	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/text-encoding.js
-	var te$1;
-	function configureTextEncoding(textEncoding) {
+	//#region ../vot.js/node_modules/@bufbuild/protobuf/dist/esm/wire/text-encoding.js
+	var te$2;
+	function configureTextEncoding$1(textEncoding) {
 		var _a;
-		te$1 = Object.assign(Object.assign({}, textEncoding), { encodeUtf8Into: (_a = textEncoding.encodeUtf8Into) !== null && _a !== void 0 ? _a : emulateEncodeInto(textEncoding.encodeUtf8.bind(textEncoding)) });
+		te$2 = Object.assign(Object.assign({}, textEncoding), { encodeUtf8Into: (_a = textEncoding.encodeUtf8Into) !== null && _a !== void 0 ? _a : emulateEncodeInto$1(textEncoding.encodeUtf8.bind(textEncoding)) });
 	}
-	function getTextEncoding() {
-		if (!te$1) {
+	function getTextEncoding$1() {
+		if (!te$2) {
 			const globals = globalThis;
 			if (!globals.TextEncoder || !globals.TextDecoder) throw new Error("encoding API missing: install TextEncoder and TextDecoder on globalThis");
 			const textEncoder = new globals.TextEncoder();
@@ -2715,11 +3213,11 @@ var vot = (function(exports) {
 			if (nativeStringIsWellFormed) config.checkUtf8 = (text) => {
 				return nativeStringIsWellFormed.call(text);
 			};
-			configureTextEncoding(config);
+			configureTextEncoding$1(config);
 		}
-		return te$1;
+		return te$2;
 	}
-	function emulateEncodeInto(encodeUtf8) {
+	function emulateEncodeInto$1(encodeUtf8) {
 		return (text, dest) => {
 			const bytes = encodeUtf8(text);
 			dest.set(bytes);
@@ -2727,8 +3225,8 @@ var vot = (function(exports) {
 		};
 	}
 	//#endregion
-	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/binary-encoding.js
-	var WireType;
+	//#region ../vot.js/node_modules/@bufbuild/protobuf/dist/esm/wire/binary-encoding.js
+	var WireType$1;
 	(function(WireType) {
 		WireType[WireType["Varint"] = 0] = "Varint";
 		WireType[WireType["Bit64"] = 1] = "Bit64";
@@ -2736,19 +3234,19 @@ var vot = (function(exports) {
 		WireType[WireType["StartGroup"] = 3] = "StartGroup";
 		WireType[WireType["EndGroup"] = 4] = "EndGroup";
 		WireType[WireType["Bit32"] = 5] = "Bit32";
-	})(WireType || (WireType = {}));
-	var BinaryWriter = class {
+	})(WireType$1 || (WireType$1 = {}));
+	var BinaryWriter$1 = class {
 		constructor(encodeUtf8) {
 			this.stackPos = [];
-			this.encodeUtf8Into = encodeUtf8 ? emulateEncodeInto(encodeUtf8) : getTextEncoding().encodeUtf8Into;
-			this.buffer = EMPTY_BUFFER;
-			this.viewCache = EMPTY_VIEW;
+			this.encodeUtf8Into = encodeUtf8 ? emulateEncodeInto$1(encodeUtf8) : getTextEncoding$1().encodeUtf8Into;
+			this.buffer = EMPTY_BUFFER$1;
+			this.viewCache = EMPTY_VIEW$1;
 			this.pos = 0;
 		}
 		ensureCapacity(size) {
 			const required = this.pos + size;
 			if (required > this.buffer.length) {
-				let newLen = this.buffer.length || INITIAL_SIZE;
+				let newLen = this.buffer.length || INITIAL_SIZE$1;
 				while (newLen < required) newLen *= 2;
 				const newBuf = new Uint8Array(newLen);
 				if (this.pos > 0) newBuf.set(this.buffer);
@@ -2771,18 +3269,18 @@ var vot = (function(exports) {
 		}
 		fork() {
 			this.stackPos.push(this.pos);
-			this.ensureCapacity(DEFAULT_LEN_PREFIX_SIZE);
+			this.ensureCapacity(DEFAULT_LEN_PREFIX_SIZE$1);
 			this.buffer[this.pos++] = 0;
 			return this;
 		}
 		join() {
 			const forkPos = this.stackPos.pop();
 			if (forkPos === void 0) throw new Error("invalid state, fork stack empty");
-			const len = this.pos - forkPos - DEFAULT_LEN_PREFIX_SIZE;
-			const lenPrefixSize = varint32Size(len);
-			if (lenPrefixSize > DEFAULT_LEN_PREFIX_SIZE) {
-				this.ensureCapacity(lenPrefixSize - DEFAULT_LEN_PREFIX_SIZE);
-				this.buffer.copyWithin(forkPos + lenPrefixSize, forkPos + DEFAULT_LEN_PREFIX_SIZE, this.pos);
+			const len = this.pos - forkPos - DEFAULT_LEN_PREFIX_SIZE$1;
+			const lenPrefixSize = varint32Size$1(len);
+			if (lenPrefixSize > DEFAULT_LEN_PREFIX_SIZE$1) {
+				this.ensureCapacity(lenPrefixSize - DEFAULT_LEN_PREFIX_SIZE$1);
+				this.buffer.copyWithin(forkPos + lenPrefixSize, forkPos + DEFAULT_LEN_PREFIX_SIZE$1, this.pos);
 			}
 			this.pos = forkPos;
 			this.uint32(len);
@@ -2799,7 +3297,7 @@ var vot = (function(exports) {
 			return this;
 		}
 		uint32(value) {
-			assertUInt32(value);
+			assertUInt32$1(value);
 			this.ensureCapacity(5);
 			if (value < 128) {
 				this.buffer[this.pos++] = value;
@@ -2813,7 +3311,7 @@ var vot = (function(exports) {
 			return this;
 		}
 		int32(value) {
-			assertInt32(value);
+			assertInt32$1(value);
 			if (value >= 0) return this.uint32(value);
 			this.ensureCapacity(10);
 			for (let i = 0; i < 9; i++) {
@@ -2835,7 +3333,7 @@ var vot = (function(exports) {
 		string(value) {
 			if (typeof value !== "string") value = String(value);
 			const len = value.length;
-			if (len <= ASCII_MAX_LENGTH) {
+			if (len <= ASCII_MAX_LENGTH$1) {
 				this.ensureCapacity(len + 1);
 				const ascii = this.buffer;
 				let pos = this.pos;
@@ -2852,18 +3350,18 @@ var vot = (function(exports) {
 				}
 			}
 			this.ensureCapacity(len * 3 + 5);
-			const lenPrefixSizeGuess = varint32Size(len);
+			const lenPrefixSizeGuess = varint32Size$1(len);
 			const buf = this.buffer;
 			const start = this.pos;
 			const { written } = this.encodeUtf8Into(value, buf.subarray(start + lenPrefixSizeGuess));
-			const lenPrefixSize = varint32Size(written);
+			const lenPrefixSize = varint32Size$1(written);
 			if (lenPrefixSize != lenPrefixSizeGuess) buf.copyWithin(start + lenPrefixSize, start + lenPrefixSizeGuess, start + lenPrefixSizeGuess + written);
 			this.uint32(written);
 			this.pos += written;
 			return this;
 		}
 		float(value) {
-			assertFloat32(value);
+			assertFloat32$1(value);
 			this.ensureCapacity(4);
 			this.view().setFloat32(this.pos, value, true);
 			this.pos += 4;
@@ -2876,25 +3374,25 @@ var vot = (function(exports) {
 			return this;
 		}
 		fixed32(value) {
-			assertUInt32(value);
+			assertUInt32$1(value);
 			this.ensureCapacity(4);
 			this.view().setUint32(this.pos, value, true);
 			this.pos += 4;
 			return this;
 		}
 		sfixed32(value) {
-			assertInt32(value);
+			assertInt32$1(value);
 			this.ensureCapacity(4);
 			this.view().setInt32(this.pos, value, true);
 			this.pos += 4;
 			return this;
 		}
 		sint32(value) {
-			assertInt32(value);
+			assertInt32$1(value);
 			return this.uint32((value << 1 ^ value >> 31) >>> 0);
 		}
 		sfixed64(value) {
-			const tc = protoInt64.enc(value);
+			const tc = protoInt64$1.enc(value);
 			this.ensureCapacity(8);
 			const view = this.view();
 			view.setInt32(this.pos, tc.lo, true);
@@ -2903,7 +3401,7 @@ var vot = (function(exports) {
 			return this;
 		}
 		fixed64(value) {
-			const tc = protoInt64.uEnc(value);
+			const tc = protoInt64$1.uEnc(value);
 			this.ensureCapacity(8);
 			const view = this.view();
 			view.setInt32(this.pos, tc.lo, true);
@@ -2912,15 +3410,15 @@ var vot = (function(exports) {
 			return this;
 		}
 		int64(value) {
-			const tc = protoInt64.enc(value);
+			const tc = protoInt64$1.enc(value);
 			return this.writeVarint64(tc.lo, tc.hi);
 		}
 		sint64(value) {
-			const tc = protoInt64.enc(value), sign = tc.hi >> 31, lo = tc.lo << 1 ^ sign, hi = (tc.hi << 1 | tc.lo >>> 31) ^ sign;
+			const tc = protoInt64$1.enc(value), sign = tc.hi >> 31, lo = tc.lo << 1 ^ sign, hi = (tc.hi << 1 | tc.lo >>> 31) ^ sign;
 			return this.writeVarint64(lo, hi);
 		}
 		uint64(value) {
-			const tc = protoInt64.uEnc(value);
+			const tc = protoInt64$1.uEnc(value);
 			return this.writeVarint64(tc.lo, tc.hi);
 		}
 		writeVarint64(lo, hi) {
@@ -2957,25 +3455,25 @@ var vot = (function(exports) {
 			return this;
 		}
 	};
-	var INITIAL_SIZE = 128;
-	var DEFAULT_LEN_PREFIX_SIZE = 1;
-	var EMPTY_BUFFER = new Uint8Array(0);
-	var EMPTY_VIEW = new DataView(EMPTY_BUFFER.buffer);
-	var ASCII_MAX_LENGTH = 32;
-	function varint32Size(value) {
+	var INITIAL_SIZE$1 = 128;
+	var DEFAULT_LEN_PREFIX_SIZE$1 = 1;
+	var EMPTY_BUFFER$1 = new Uint8Array(0);
+	var EMPTY_VIEW$1 = new DataView(EMPTY_BUFFER$1.buffer);
+	var ASCII_MAX_LENGTH$1 = 32;
+	function varint32Size$1(value) {
 		if (value < 128) return 1;
 		if (value < 16384) return 2;
 		if (value < 2097152) return 3;
 		if (value < 268435456) return 4;
 		return 5;
 	}
-	var BinaryReader = class {
-		constructor(buf, decodeUtf8 = getTextEncoding().decodeUtf8) {
+	var BinaryReader$1 = class {
+		constructor(buf, decodeUtf8 = getTextEncoding$1().decodeUtf8) {
 			this.decodeUtf8 = decodeUtf8;
 			this.varint64Lo = 0;
 			this.varint64Hi = 0;
-			this.varint64 = varint64read;
-			this.uint32 = varint32read;
+			this.varint64 = varint64read$1;
+			this.uint32 = varint32read$1;
 			this.buf = buf;
 			this.len = buf.length;
 			this.pos = 0;
@@ -2994,22 +3492,22 @@ var vot = (function(exports) {
 		skip(wireType, fieldNo, recursionLimit = 100) {
 			let start = this.pos;
 			switch (wireType) {
-				case WireType.Varint:
+				case WireType$1.Varint:
 					while (this.buf[this.pos++] & 128);
 					break;
-				case WireType.Bit64: this.pos += 4;
-				case WireType.Bit32:
+				case WireType$1.Bit64: this.pos += 4;
+				case WireType$1.Bit32:
 					this.pos += 4;
 					break;
-				case WireType.LengthDelimited:
+				case WireType$1.LengthDelimited:
 					let len = this.uint32();
 					this.pos += len;
 					break;
-				case WireType.StartGroup:
+				case WireType$1.StartGroup:
 					if (recursionLimit <= 0) throw new Error("maximum recursion depth reached");
 					for (;;) {
 						const [fn, wt] = this.tag();
-						if (wt === WireType.EndGroup) {
+						if (wt === WireType$1.EndGroup) {
 							if (fieldNo !== void 0 && fn !== fieldNo) throw new Error("invalid end group tag");
 							break;
 						}
@@ -3033,11 +3531,11 @@ var vot = (function(exports) {
 		}
 		int64() {
 			this.varint64();
-			return protoInt64.dec(this.varint64Lo, this.varint64Hi);
+			return protoInt64$1.dec(this.varint64Lo, this.varint64Hi);
 		}
 		uint64() {
 			this.varint64();
-			return protoInt64.uDec(this.varint64Lo, this.varint64Hi);
+			return protoInt64$1.uDec(this.varint64Lo, this.varint64Hi);
 		}
 		sint64() {
 			this.varint64();
@@ -3046,7 +3544,7 @@ var vot = (function(exports) {
 			let s = -(lo & 1);
 			lo = (lo >>> 1 | (hi & 1) << 31) ^ s;
 			hi = hi >>> 1 ^ s;
-			return protoInt64.dec(lo, hi);
+			return protoInt64$1.dec(lo, hi);
 		}
 		bool() {
 			const b = this.buf[this.pos];
@@ -3064,10 +3562,10 @@ var vot = (function(exports) {
 			return this.view.getInt32((this.pos += 4) - 4, true);
 		}
 		fixed64() {
-			return protoInt64.uDec(this.sfixed32(), this.sfixed32());
+			return protoInt64$1.uDec(this.sfixed32(), this.sfixed32());
 		}
 		sfixed64() {
-			return protoInt64.dec(this.sfixed32(), this.sfixed32());
+			return protoInt64$1.dec(this.sfixed32(), this.sfixed32());
 		}
 		float() {
 			return this.view.getFloat32((this.pos += 4) - 4, true);
@@ -3084,7 +3582,7 @@ var vot = (function(exports) {
 		string(strict) {
 			const bytes = this.bytes();
 			const len = bytes.length;
-			if (len <= ASCII_MAX_LENGTH) {
+			if (len <= ASCII_MAX_LENGTH$1) {
 				const codes = new Array(len);
 				for (let i = 0; i < len; i++) {
 					const byte = bytes[i];
@@ -3096,17 +3594,17 @@ var vot = (function(exports) {
 			return this.decodeUtf8(bytes, strict);
 		}
 	};
-	function assertInt32(arg) {
+	function assertInt32$1(arg) {
 		if (typeof arg == "string") arg = Number(arg);
 		else if (typeof arg != "number") throw new Error("invalid int32: " + typeof arg);
 		if (!Number.isInteger(arg) || arg > 2147483647 || arg < -2147483648) throw new Error("invalid int32: " + arg);
 	}
-	function assertUInt32(arg) {
+	function assertUInt32$1(arg) {
 		if (typeof arg == "string") arg = Number(arg);
 		else if (typeof arg != "number") throw new Error("invalid uint32: " + typeof arg);
 		if (!Number.isInteger(arg) || arg > 4294967295 || arg < 0) throw new Error("invalid uint32: " + arg);
 	}
-	function assertFloat32(arg) {
+	function assertFloat32$1(arg) {
 		if (typeof arg == "string") {
 			const o = arg;
 			arg = Number(arg);
@@ -3115,7 +3613,7 @@ var vot = (function(exports) {
 		if (Number.isFinite(arg) && (arg > 34028234663852886e22 || arg < -34028234663852886e22)) throw new Error("invalid float32: " + arg);
 	}
 	//#endregion
-	//#region node_modules/@vot.js/shared/dist/protos/yandex.js
+	//#region ../vot.js/packages/shared/dist/protos/yandex.js
 	var StreamInterval;
 	(function(StreamInterval) {
 		StreamInterval[StreamInterval["NO_CONNECTION"] = 0] = "NO_CONNECTION";
@@ -3150,13 +3648,13 @@ var vot = (function(exports) {
 		};
 	}
 	var VideoTranslationHelpObject = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.target !== "") writer.uint32(10).string(message.target);
 			if (message.targetUrl !== "") writer.uint32(18).string(message.targetUrl);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseVideoTranslationHelpObject();
 			while (reader.pos < end) {
@@ -3219,7 +3717,7 @@ var vot = (function(exports) {
 		};
 	}
 	var VideoTranslationRequest = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.url !== "") writer.uint32(26).string(message.url);
 			if (message.deviceId !== void 0) writer.uint32(34).string(message.deviceId);
 			if (message.firstRequest !== false) writer.uint32(40).bool(message.firstRequest);
@@ -3239,7 +3737,7 @@ var vot = (function(exports) {
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseVideoTranslationRequest();
 			while (reader.pos < end) {
@@ -3396,7 +3894,7 @@ var vot = (function(exports) {
 		};
 	}
 	var VideoTranslationResponse = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.url !== void 0) writer.uint32(10).string(message.url);
 			if (message.duration !== void 0) writer.uint32(17).double(message.duration);
 			if (message.status !== 0) writer.uint32(32).int32(message.status);
@@ -3412,7 +3910,7 @@ var vot = (function(exports) {
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseVideoTranslationResponse();
 			while (reader.pos < end) {
@@ -3534,7 +4032,7 @@ var vot = (function(exports) {
 		};
 	}
 	var VideoTranslationCacheItem = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.status !== 0) writer.uint32(8).int32(message.status);
 			if (message.remainingTime !== void 0) writer.uint32(16).int32(message.remainingTime);
 			if (message.message !== void 0) writer.uint32(26).string(message.message);
@@ -3545,7 +4043,7 @@ var vot = (function(exports) {
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseVideoTranslationCacheItem();
 			while (reader.pos < end) {
@@ -3623,7 +4121,7 @@ var vot = (function(exports) {
 		};
 	}
 	var VideoTranslationCacheRequest = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.url !== "") writer.uint32(10).string(message.url);
 			if (message.duration !== 0) writer.uint32(17).double(message.duration);
 			if (message.language !== "") writer.uint32(26).string(message.language);
@@ -3631,7 +4129,7 @@ var vot = (function(exports) {
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseVideoTranslationCacheRequest();
 			while (reader.pos < end) {
@@ -3694,13 +4192,13 @@ var vot = (function(exports) {
 		};
 	}
 	var VideoTranslationCacheResponse = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.default !== void 0) VideoTranslationCacheItem.encode(message.default, writer.uint32(10).fork()).join();
 			if (message.cloning !== void 0) VideoTranslationCacheItem.encode(message.cloning, writer.uint32(18).fork()).join();
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseVideoTranslationCacheResponse();
 			while (reader.pos < end) {
@@ -3749,13 +4247,13 @@ var vot = (function(exports) {
 		};
 	}
 	var VideoLangCacheRequest = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.url !== "") writer.uint32(10).string(message.url);
 			if (message.title !== "") writer.uint32(18).string(message.title);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseVideoLangCacheRequest();
 			while (reader.pos < end) {
@@ -3805,14 +4303,14 @@ var vot = (function(exports) {
 		};
 	}
 	var VideoLangCacheResponse = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.url !== "") writer.uint32(10).string(message.url);
 			if (message.status !== 0) writer.uint32(24).int32(message.status);
 			if (message.unknown1 !== 0) writer.uint32(40).int32(message.unknown1);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseVideoLangCacheResponse();
 			while (reader.pos < end) {
@@ -3868,13 +4366,13 @@ var vot = (function(exports) {
 		};
 	}
 	var AudioBufferObject = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.audioFile.length !== 0) writer.uint32(18).bytes(message.audioFile);
 			if (message.fileId !== "") writer.uint32(10).string(message.fileId);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseAudioBufferObject();
 			while (reader.pos < end) {
@@ -3923,13 +4421,13 @@ var vot = (function(exports) {
 		};
 	}
 	var PartialAudioBufferObject = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.audioFile.length !== 0) writer.uint32(18).bytes(message.audioFile);
 			if (message.chunkId !== 0) writer.uint32(8).int32(message.chunkId);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBasePartialAudioBufferObject();
 			while (reader.pos < end) {
@@ -3980,7 +4478,7 @@ var vot = (function(exports) {
 		};
 	}
 	var ChunkAudioObject = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.audioBuffer !== void 0) PartialAudioBufferObject.encode(message.audioBuffer, writer.uint32(10).fork()).join();
 			if (message.audioPartsLength !== 0) writer.uint32(16).int32(message.audioPartsLength);
 			if (message.fileId !== "") writer.uint32(26).string(message.fileId);
@@ -3988,7 +4486,7 @@ var vot = (function(exports) {
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseChunkAudioObject();
 			while (reader.pos < end) {
@@ -4053,7 +4551,7 @@ var vot = (function(exports) {
 		};
 	}
 	var VideoTranslationAudioRequest = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.translationId !== "") writer.uint32(10).string(message.translationId);
 			if (message.url !== "") writer.uint32(18).string(message.url);
 			if (message.partialAudioInfo !== void 0) ChunkAudioObject.encode(message.partialAudioInfo, writer.uint32(34).fork()).join();
@@ -4061,7 +4559,7 @@ var vot = (function(exports) {
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseVideoTranslationAudioRequest();
 			while (reader.pos < end) {
@@ -4124,13 +4622,13 @@ var vot = (function(exports) {
 		};
 	}
 	var VideoTranslationAudioResponse = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.status !== 0) writer.uint32(8).int32(message.status);
 			for (const v of message.remainingChunks) writer.uint32(18).string(v);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseVideoTranslationAudioResponse();
 			while (reader.pos < end) {
@@ -4184,7 +4682,7 @@ var vot = (function(exports) {
 		};
 	}
 	var SubtitlesObject = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.language !== "") writer.uint32(10).string(message.language);
 			if (message.url !== "") writer.uint32(18).string(message.url);
 			if (message.hasTranslation !== false) writer.uint32(24).bool(message.hasTranslation);
@@ -4195,7 +4693,7 @@ var vot = (function(exports) {
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseSubtitlesObject();
 			while (reader.pos < end) {
@@ -4279,13 +4777,13 @@ var vot = (function(exports) {
 		};
 	}
 	var SubtitlesRequest = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.url !== "") writer.uint32(10).string(message.url);
 			if (message.language !== "") writer.uint32(18).string(message.language);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseSubtitlesRequest();
 			while (reader.pos < end) {
@@ -4334,13 +4832,13 @@ var vot = (function(exports) {
 		};
 	}
 	var SubtitlesResponse = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.waiting !== false) writer.uint32(8).bool(message.waiting);
 			for (const v of message.subtitles) SubtitlesObject.encode(v, writer.uint32(18).fork()).join();
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseSubtitlesResponse();
 			while (reader.pos < end) {
@@ -4389,13 +4887,13 @@ var vot = (function(exports) {
 		};
 	}
 	var StreamTranslationObject = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.url !== "") writer.uint32(10).string(message.url);
 			if (message.timestamp !== "") writer.uint32(18).string(message.timestamp);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseStreamTranslationObject();
 			while (reader.pos < end) {
@@ -4447,7 +4945,7 @@ var vot = (function(exports) {
 		};
 	}
 	var StreamTranslationRequest = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.url !== "") writer.uint32(10).string(message.url);
 			if (message.language !== "") writer.uint32(18).string(message.language);
 			if (message.responseLanguage !== "") writer.uint32(26).string(message.responseLanguage);
@@ -4456,7 +4954,7 @@ var vot = (function(exports) {
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseStreamTranslationRequest();
 			while (reader.pos < end) {
@@ -4527,14 +5025,14 @@ var vot = (function(exports) {
 		};
 	}
 	var StreamTranslationResponse = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.interval !== 0) writer.uint32(8).int32(message.interval);
 			if (message.translatedInfo !== void 0) StreamTranslationObject.encode(message.translatedInfo, writer.uint32(18).fork()).join();
 			if (message.pingId !== void 0) writer.uint32(24).int32(message.pingId);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseStreamTranslationResponse();
 			while (reader.pos < end) {
@@ -4587,12 +5085,12 @@ var vot = (function(exports) {
 		return { pingId: 0 };
 	}
 	var StreamPingRequest = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.pingId !== 0) writer.uint32(8).int32(message.pingId);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseStreamPingRequest();
 			while (reader.pos < end) {
@@ -4632,13 +5130,13 @@ var vot = (function(exports) {
 		};
 	}
 	var YandexSessionRequest = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.uuid !== "") writer.uint32(10).string(message.uuid);
 			if (message.module !== "") writer.uint32(18).string(message.module);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseYandexSessionRequest();
 			while (reader.pos < end) {
@@ -4687,13 +5185,13 @@ var vot = (function(exports) {
 		};
 	}
 	var YandexSessionResponse = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.secretKey !== "") writer.uint32(10).string(message.secretKey);
 			if (message.expires !== 0) writer.uint32(16).int32(message.expires);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseYandexSessionResponse();
 			while (reader.pos < end) {
@@ -4758,7 +5256,7 @@ var vot = (function(exports) {
 		return value !== null && value !== void 0;
 	}
 	//#endregion
-	//#region node_modules/@vot.js/shared/dist/types/helpers/bannedvideo.js
+	//#region ../vot.js/packages/shared/dist/types/helpers/bannedvideo.js
 	var TypeName;
 	(function(TypeName) {
 		TypeName["Channel"] = "Channel";
@@ -4800,7 +5298,7 @@ var vot = (function(exports) {
 					}]
 				};
 			} catch (err) {
-				Logger.error(`Failed to get Loom video data, because: ${err.message}`);
+				Logger$1.error(`Failed to get Loom video data, because: ${err.message}`);
 				return this.returnBaseData(videoId);
 			}
 		}
@@ -4816,7 +5314,7 @@ var vot = (function(exports) {
 			try {
 				return await (await this.fetch(`${this.API_ORIGIN}/+/video/meta/${videoId}?xemail=&ajax_call=1&func_name=&mna=&mnb=&ext=1&_=${Date.now()}`)).json();
 			} catch (err) {
-				Logger.error("Failed to get mail.ru video data", err.message);
+				Logger$1.error("Failed to get mail.ru video data", err.message);
 				return;
 			}
 		}
@@ -4835,12 +5333,8 @@ var vot = (function(exports) {
 	var MediafileHelper = class extends BaseHelper {
 		DEFAULT_SITE_ORIGIN = "https://mediafile.cc";
 		SITE_ORIGIN = this.service?.url?.slice(0, -1) ?? this.DEFAULT_SITE_ORIGIN;
-		getVideoSrc() {
-			const video = this.video instanceof HTMLVideoElement ? this.video : document.querySelector("video");
-			return video?.src || video?.currentSrc || video?.querySelector("source[src]")?.src || void 0;
-		}
 		async getVideoData(videoId) {
-			const videoSource = this.getVideoSrc();
+			const videoSource = getVideoSrc(this.video instanceof HTMLVideoElement ? this.video : document.querySelector("video"));
 			if (!videoSource) return;
 			return {
 				url: `${this.SITE_ORIGIN}/${videoId}`,
@@ -5066,7 +5560,7 @@ var vot = (function(exports) {
 			if (!data) return;
 			const { url, duration, subtitles } = data;
 			const baseData = this.returnBaseData(videoId);
-			const videoUrl = proxyMedia(new URL(url));
+			const videoUrl = proxyMedia(new URL(url), "mp4", this.mediaProxy);
 			if (!baseData) return {
 				url: videoUrl,
 				duration,
@@ -5094,7 +5588,7 @@ var vot = (function(exports) {
 			try {
 				return await (await this.fetch(`${this.API_ORIGIN}/posts/${postId}?json-api-use-default-includes=false`)).json();
 			} catch (err) {
-				Logger.error(`Failed to get patreon posts by postId: ${postId}.`, err.message);
+				Logger$1.error(`Failed to get patreon posts by postId: ${postId}.`, err.message);
 				return false;
 			}
 		}
@@ -5146,16 +5640,16 @@ var vot = (function(exports) {
 				if (!source || !rnd) throw new VideoHelperError("Failed to find video source or rnd");
 				const getFileUrl = new URL(source);
 				getFileUrl.searchParams.append("rnd", rnd);
-				Logger.log("PornTN get_file link", getFileUrl.href);
+				Logger$1.log("PornTN get_file link", getFileUrl.href);
 				const cdnResponse = await this.fetch(getFileUrl.href, { method: "head" });
 				const cdnUrl = new URL(cdnResponse.url);
-				Logger.log("PornTN cdn link", cdnUrl.href);
+				Logger$1.log("PornTN cdn link", cdnUrl.href);
 				return {
-					url: proxyMedia(cdnUrl),
+					url: proxyMedia(cdnUrl, "mp4", this.mediaProxy),
 					title
 				};
 			} catch (err) {
-				Logger.error(`Failed to get PornTN data by videoId: ${videoId}`, err.message);
+				Logger$1.error(`Failed to get PornTN data by videoId: ${videoId}`, err.message);
 				return;
 			}
 		}
@@ -5168,10 +5662,11 @@ var vot = (function(exports) {
 	var PreserveTubeHelper = class extends BaseHelper {
 		async getVideoData(videoId) {
 			try {
-				if (!videoId) throw new VideoHelperError("Failed to find PreserveTube video ID");
-				return { url: `https://s3.archive.party/preservetube/${videoId}.mp4` };
+				const videoUrl = getVideoSrc(document.querySelector("#video-player") ?? this.video);
+				if (!videoUrl || videoUrl.startsWith("blob:") || !videoUrl.includes(".mp4") && !videoUrl.includes(".webm")) throw new VideoHelperError("Failed to find PreserveTube video url");
+				return { url: videoUrl };
 			} catch (err) {
-				Logger.error(`Failed to get PreserveTube data by videoId: ${videoId}`, err.message);
+				Logger$1.error(`Failed to get PreserveTube data by videoId: ${videoId}`, err.message);
 				return;
 			}
 		}
@@ -5206,7 +5701,7 @@ var vot = (function(exports) {
 				if (!audioUrl) throw new VideoHelperError("Failed to extract audio URL from DASH MPD");
 				return { url: audioUrl };
 			} catch (err) {
-				Logger.error(`Failed to get reddit video data by video ID: ${videoId}`, err.message);
+				Logger$1.error(`Failed to get reddit video data by video ID: ${videoId}`, err.message);
 				return;
 			}
 		}
@@ -5222,7 +5717,7 @@ var vot = (function(exports) {
 			if (!videoEl) return;
 			let videoSrc = videoEl.getAttribute("src");
 			if (!videoSrc) return;
-			if (videoSrc.endsWith(".MP4")) videoSrc = proxyMedia(videoSrc);
+			if (videoSrc.endsWith(".MP4")) videoSrc = proxyMedia(videoSrc, "mp4", this.mediaProxy);
 			return {
 				videoId,
 				url: videoSrc
@@ -5301,7 +5796,7 @@ var vot = (function(exports) {
 					headers: { "Content-Type": "application/json" }
 				})).json();
 			} catch (err) {
-				Logger.error("Failed to request kaltura data", err.message);
+				Logger$1.error("Failed to request kaltura data", err.message);
 				return;
 			}
 		}
@@ -5320,7 +5815,7 @@ var vot = (function(exports) {
 				const entryId = video.videoId;
 				return await this.requestKaltura(kalturaDomain, partnerId, entryId);
 			} catch (err) {
-				Logger.error("Failed to get kaltura data", err.message);
+				Logger$1.error("Failed to get kaltura data", err.message);
 				return;
 			}
 		}
@@ -5395,9 +5890,48 @@ var vot = (function(exports) {
 	};
 	//#endregion
 	//#region node_modules/@vot.js/ext/dist/helpers/tiktok.js
-	var TikTokHelper = class extends BaseHelper {
+	var TikTokHelper = class TikTokHelper extends BaseHelper {
+		static PLAYER_CLASS = ".tiktok-web-player";
+		static getPlayer(video) {
+			const playerEl = video?.closest(TikTokHelper.PLAYER_CLASS);
+			if (!playerEl) return;
+			const returnNode = playerEl[Object.keys(playerEl).find((key) => key.startsWith("__reactFiber$"))]?.return;
+			return {
+				videoDetail: returnNode?.return?.memoizedProps,
+				player: returnNode?.memoizedProps?.player
+			};
+		}
+		async getVideoData(videoId) {
+			try {
+				const playerData = TikTokHelper.getPlayer(this.video);
+				if (!playerData) return this.returnBaseData(videoId);
+				const videoDetail = playerData.videoDetail;
+				const duration = videoDetail?.videoSource.duration ?? playerData.player?.bitrateList?.[0]?.duration;
+				const subtitles = videoDetail?.subtitleList.map((item) => ({
+					source: "tiktok",
+					format: "vtt",
+					language: normalizeLang$1(item.language),
+					url: item.url[1]
+				}));
+				return {
+					...this.returnBaseData(videoId),
+					duration,
+					subtitles
+				};
+			} catch {
+				return this.returnBaseData(videoId);
+			}
+		}
 		async getVideoId(url) {
-			return /([^/]+)\/video\/([^/]+)/.exec(url.pathname)?.[0];
+			const videoId = /([^/]+)\/video\/([^/]+)/.exec(url.pathname)?.[0];
+			if (videoId) return videoId;
+			const playerEl = this.video?.closest(TikTokHelper.PLAYER_CLASS);
+			if (!playerEl) return;
+			const parsedVideoId = /xgwrapper-\d+-(\d+)/.exec(playerEl.id)?.[1];
+			if (!parsedVideoId) return;
+			const authorUsername = playerEl.closest("[data-e2e=\"feed-video\"]")?.parentElement?.querySelector("[data-e2e=\"video-author-avatar\"]")?.getAttribute("href")?.slice(1);
+			if (!authorUsername) return;
+			return `${authorUsername}/video/${parsedVideoId}`;
 		}
 	};
 	//#endregion
@@ -5465,7 +5999,7 @@ var vot = (function(exports) {
 	};
 	//#endregion
 	//#region node_modules/@vot.js/ext/dist/helpers/udemy.js
-	function isObject(value) {
+	function isObject$1(value) {
 		return typeof value === "object" && value !== null;
 	}
 	function isUrlCandidate(value) {
@@ -5478,10 +6012,10 @@ var vot = (function(exports) {
 		return (Array.isArray(source.Video) ? source.Video : Array.isArray(source.video) ? source.video : []).filter(isUrlCandidate);
 	}
 	function getOutputCandidates(data) {
-		if (!isObject(data)) return [];
+		if (!isObject$1(data)) return [];
 		const result = [];
 		for (const [fallbackLabel, value] of Object.entries(data)) {
-			if (!isObject(value) || typeof value.url !== "string") continue;
+			if (!isObject$1(value) || typeof value.url !== "string") continue;
 			result.push({
 				src: value.url,
 				type: typeof value.type === "string" ? value.type : void 0,
@@ -5587,7 +6121,7 @@ var vot = (function(exports) {
 				if (this.isErrorData(data)) throw new VideoHelperError(data.detail ?? "unknown error");
 				return data;
 			} catch (err) {
-				Logger.error(`Failed to get lecture data by courseId: ${courseId} and lectureId: ${lectureId}`, err.message);
+				Logger$1.error(`Failed to get lecture data by courseId: ${courseId} and lectureId: ${lectureId}`, err.message);
 				return;
 			}
 		}
@@ -5599,7 +6133,7 @@ var vot = (function(exports) {
 				if (this.isErrorData(data2)) throw new VideoHelperError(data2.detail ?? "unknown error");
 				return data2;
 			} catch (err) {
-				Logger.error(`Failed to get course lang by courseId: ${courseId}`, err.message);
+				Logger$1.error(`Failed to get course lang by courseId: ${courseId}`, err.message);
 				return;
 			}
 		}
@@ -5654,7 +6188,7 @@ var vot = (function(exports) {
 		}
 		findSubtitleUrl(captions, detectedLanguage) {
 			if (!Array.isArray(captions)) return;
-			const captionsWithDownload = captions.filter((caption) => isObject(caption) && (typeof caption.url === "string" || typeof caption.download_url === "string"));
+			const captionsWithDownload = captions.filter((caption) => isObject$1(caption) && (typeof caption.url === "string" || typeof caption.download_url === "string"));
 			const subtitle = captionsWithDownload.find((caption) => this.getCaptionLocale(caption) === detectedLanguage) ?? captionsWithDownload.find((caption) => this.getCaptionLocale(caption) === "en") ?? captionsWithDownload[0];
 			return subtitle?.url ?? subtitle?.download_url;
 		}
@@ -5662,7 +6196,7 @@ var vot = (function(exports) {
 			const moduleData = this.getModuleData();
 			const courseId = this.getCourseId(moduleData);
 			const lectureId = this.getLectureId(videoId);
-			Logger.log(`[Udemy] courseId: ${courseId}, lectureId: ${lectureId}`);
+			Logger$1.log(`[Udemy] courseId: ${courseId}, lectureId: ${lectureId}`);
 			if (!lectureId || !courseId) return;
 			const lectureData = await this.getLectureData(courseId, lectureId);
 			if (!lectureData) return;
@@ -5673,7 +6207,7 @@ var vot = (function(exports) {
 			const downloadUrls = assetWithExtraUrls.download_urls;
 			const videoUrl = this.findVideoUrl(media_sources, streamUrls, downloadUrls, assetWithExtraUrls.stream_url ?? assetWithExtraUrls.streamUrl, assetWithExtraUrls.external_url, assetWithExtraUrls.data?.outputs, view_html);
 			if (!videoUrl) {
-				Logger.log("Failed to find video file in asset sources", asset);
+				Logger$1.log("Failed to find video file in asset sources", asset);
 				return;
 			}
 			let courseLang = "en";
@@ -5681,7 +6215,7 @@ var vot = (function(exports) {
 			if (typeof courseLocale === "string") courseLang = normalizeLang$1(courseLocale);
 			if (!availableLangs.includes(courseLang)) courseLang = "en";
 			const subtitleUrl = this.findSubtitleUrl(captions, courseLang);
-			if (!subtitleUrl) Logger.log("Failed to find subtitle file in captions", captions);
+			if (!subtitleUrl) Logger$1.log("Failed to find subtitle file in captions", captions);
 			return {
 				...subtitleUrl ? {
 					url: this.service?.url + videoId,
@@ -5704,187 +6238,6 @@ var vot = (function(exports) {
 		}
 		async getVideoId(url) {
 			return url.pathname.slice(1);
-		}
-	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/vimeo.js
-	var VimeoHelper = class extends BaseHelper {
-		API_KEY = "";
-		DEFAULT_SITE_ORIGIN = "https://vimeo.com";
-		SITE_ORIGIN = this.service?.url?.slice(0, -1) ?? this.DEFAULT_SITE_ORIGIN;
-		isErrorData(data) {
-			return Object.hasOwn(data, "error");
-		}
-		isPrivatePlayer() {
-			return this.referer && !this.referer.includes("vimeo.com") && this.origin.endsWith("player.vimeo.com");
-		}
-		toPublicUrl(videoId) {
-			const [id, hash] = videoId.split(":", 2);
-			return hash ? `${this.DEFAULT_SITE_ORIGIN}/${id}/${hash}` : `${this.DEFAULT_SITE_ORIGIN}/${id}`;
-		}
-		returnPublicBaseData(videoId) {
-			const baseData = this.returnBaseData(videoId);
-			if (!baseData) return;
-			return {
-				...baseData,
-				url: this.toPublicUrl(videoId)
-			};
-		}
-		normalizePublicVideoUrl(url, videoId) {
-			try {
-				const parsed = new URL(url);
-				if (parsed.hostname === "player.vimeo.com") return this.toPublicUrl(videoId);
-				if (parsed.hostname.endsWith("vimeo.com")) {
-					const colonMatch = /^\/(\d+):([a-z0-9]+)$/i.exec(parsed.pathname);
-					if (colonMatch) return `${this.DEFAULT_SITE_ORIGIN}/${colonMatch[1]}/${colonMatch[2]}`;
-				}
-			} catch {}
-			return url;
-		}
-		async getViewerData() {
-			try {
-				const data = await (await this.fetch("https://vimeo.com/_next/viewer")).json();
-				const { apiUrl, jwt } = data;
-				this.API_ORIGIN = `https://${apiUrl}`;
-				this.API_KEY = `jwt ${jwt}`;
-				return data;
-			} catch (err) {
-				Logger.error(`Failed to get default viewer data.`, err.message);
-				return false;
-			}
-		}
-		async getVideoInfo(videoId) {
-			try {
-				const params = new URLSearchParams({ fields: "name,link,description,duration" }).toString();
-				const data = await (await this.fetch(`${this.API_ORIGIN}/videos/${videoId}?${params}`, { headers: { Authorization: this.API_KEY } })).json();
-				if (this.isErrorData(data)) throw new Error(data.developer_message ?? data.error);
-				return data;
-			} catch (err) {
-				Logger.error(`Failed to get video info by video ID: ${videoId}`, err.message);
-				return false;
-			}
-		}
-		async getPrivateVideoSource(files) {
-			try {
-				const { default_cdn, cdns } = files.dash;
-				const cdnUrl = cdns[default_cdn].url;
-				const res = await this.fetch(cdnUrl);
-				if (res.status !== 200) throw new VideoHelperError(await res.text());
-				const data = await res.json();
-				const baseUrl = new URL(data.base_url, cdnUrl);
-				const videoData = data.audio.find((v) => v.mime_type === "audio/mp4" && v.format === "dash");
-				if (!videoData) throw new VideoHelperError("Failed to find video data");
-				const segmentUrl = videoData.segments?.[0]?.url;
-				if (!segmentUrl) throw new VideoHelperError("Failed to find first segment url");
-				const [videoName, videoParams] = segmentUrl.split("?", 2);
-				const params = new URLSearchParams(videoParams);
-				params.delete("range");
-				return new URL(`${videoData.base_url}${videoName}?${params.toString()}`, baseUrl).href;
-			} catch (err) {
-				Logger.error(`Failed to get private video source`, err.message);
-				return false;
-			}
-		}
-		async getPrivateVideoInfo(videoId) {
-			try {
-				if (typeof playerConfig === "undefined") return;
-				const videoSource = await this.getPrivateVideoSource(playerConfig.request.files);
-				if (!videoSource) throw new VideoHelperError("Failed to get private video source");
-				const { video: { title, duration }, request: { text_tracks: subs } } = playerConfig;
-				return {
-					url: `${this.SITE_ORIGIN}/${videoId}`,
-					video_url: videoSource,
-					title,
-					duration,
-					subs
-				};
-			} catch (err) {
-				Logger.error(`Failed to get private video info by video ID: ${videoId}`, err.message);
-				return false;
-			}
-		}
-		async getSubsInfo(videoId) {
-			try {
-				const params = new URLSearchParams({
-					per_page: "100",
-					fields: "language,type,link"
-				}).toString();
-				const content = await (await this.fetch(`${this.API_ORIGIN}/videos/${videoId}/texttracks?${params}`, { headers: { Authorization: this.API_KEY } })).json();
-				if (this.isErrorData(content)) throw new Error(content.developer_message ?? content.error);
-				return content.data;
-			} catch (err) {
-				Logger.error(`Failed to get subtitles info by video ID: ${videoId}`, err.message);
-				return [];
-			}
-		}
-		async getVideoData(videoId) {
-			if (videoId.includes("?app_id=")) {
-				const [embedId] = videoId.split("?");
-				return this.returnBaseData(embedId);
-			}
-			if (this.isPrivatePlayer()) {
-				const videoInfo = await this.getPrivateVideoInfo(videoId);
-				if (!videoInfo) return;
-				const { url, subs, video_url, title, duration } = videoInfo;
-				const subtitles = subs.map((sub) => ({
-					language: normalizeLang$1(sub.lang),
-					source: "vimeo",
-					format: "vtt",
-					url: new URL(sub.url, this.SITE_ORIGIN).href,
-					isAutoGenerated: sub.lang.includes("autogenerated")
-				}));
-				const translationHelp = subtitles.length ? [{
-					target: "video_file_url",
-					targetUrl: video_url
-				}, {
-					target: "subtitles_file_url",
-					targetUrl: subtitles[0].url
-				}] : null;
-				return {
-					...translationHelp ? {
-						url,
-						translationHelp
-					} : { url: video_url },
-					subtitles,
-					title,
-					duration
-				};
-			}
-			if (!this.extraInfo) return this.returnPublicBaseData(videoId);
-			if (videoId.includes("/")) videoId = videoId.replace("/", ":");
-			if (!await this.getViewerData()) return this.returnPublicBaseData(videoId);
-			const videoInfo = await this.getVideoInfo(videoId);
-			if (!videoInfo) return this.returnPublicBaseData(videoId);
-			const subtitles = (await this.getSubsInfo(videoId)).map((caption) => ({
-				language: normalizeLang$1(caption.language),
-				source: "vimeo",
-				format: "vtt",
-				url: caption.link,
-				isAutoGenerated: caption.language.includes("autogen")
-			}));
-			const { link, duration, name: title, description } = videoInfo;
-			return {
-				url: this.normalizePublicVideoUrl(link, videoId),
-				title,
-				description,
-				subtitles,
-				duration
-			};
-		}
-		async getVideoId(url) {
-			const normalizedPathname = url.pathname.replace(/\/+$/, "");
-			const embedId = /video\/[^/]+$/.exec(normalizedPathname)?.[0];
-			const appId = url.searchParams.get("app_id");
-			if (embedId && appId) return `${embedId}?app_id=${appId}`;
-			if (this.isPrivatePlayer()) return embedId;
-			if (embedId) {
-				const hash = url.searchParams.get("h");
-				const videoId = embedId.replace("video/", "");
-				return hash ? `${videoId}/${hash}` : videoId;
-			}
-			const categoriesVideoId = /channels\/[^/]+\/([^/]+)/.exec(normalizedPathname)?.[1] ?? /groups\/[^/]+\/videos\/([^/]+)/.exec(normalizedPathname)?.[1] ?? /(showcase|album)\/[^/]+\/video\/([^/]+)/.exec(normalizedPathname)?.[2];
-			if (categoriesVideoId) return categoriesVideoId;
-			return /([^/]+\/)?[^/]+$/.exec(normalizedPathname)?.[0];
 		}
 	};
 	//#endregion
@@ -5917,7 +6270,7 @@ var vot = (function(exports) {
 					subtitles
 				};
 			} catch (err) {
-				Logger.error(`Failed to get VK video data, because: ${err.message}`);
+				Logger$1.error(`Failed to get VK video data, because: ${err.message}`);
 				return this.returnBaseData(videoId);
 			}
 		}
@@ -5986,7 +6339,7 @@ var vot = (function(exports) {
 		randomUUID = typeof webCrypto.randomUUID === "function" ? webCrypto.randomUUID.bind(webCrypto) : void 0;
 	}));
 	//#endregion
-	//#region node_modules/@vot.js/shared/dist/secure.js
+	//#region ../vot.js/packages/shared/dist/secure.js
 	var { componentVersion, chromiumRevision } = config_default$1;
 	async function getCrypto() {
 		if (typeof window !== "undefined" && window.crypto) return window.crypto;
@@ -6035,7 +6388,7 @@ var vot = (function(exports) {
 			const signature = await signHMAC("SHA-1", hmacKey, utf8Encoder.encode(salt));
 			return btoa(String.fromCharCode(...new Uint8Array(signature)));
 		} catch (err) {
-			Logger.error(err);
+			Logger$1.error(err);
 			return false;
 		}
 	}
@@ -6087,7 +6440,7 @@ var vot = (function(exports) {
 				const urlParams = await this.getHashURLParams(pathname);
 				return await (await this.fetch(`${this.API_ORIGIN + pathname}&${urlParams}`, { headers: this.HEADERS })).json();
 			} catch (err) {
-				Logger.error(`Failed to get weverse post preview by postId: ${postId}`, err.message);
+				Logger$1.error(`Failed to get weverse post preview by postId: ${postId}`, err.message);
 				return false;
 			}
 		}
@@ -6103,7 +6456,7 @@ var vot = (function(exports) {
 					headers: this.HEADERS
 				})).json();
 			} catch (err) {
-				Logger.error(`Failed to get weverse InKey by videoId: ${videoId}`, err.message);
+				Logger$1.error(`Failed to get weverse InKey by videoId: ${videoId}`, err.message);
 				return false;
 			}
 		}
@@ -6126,7 +6479,7 @@ var vot = (function(exports) {
 				}).toString();
 				return await (await this.fetch(`https://global.apis.naver.com/rmcnmv/rmcnmv/vod/play/v2.0/${infraVideoId}?` + urlParams, { headers: this.HEADERS })).json();
 			} catch (err) {
-				Logger.error(`Failed to get weverse video info (infraVideoId: ${infraVideoId}, inkey: ${inkey}, serviceId: ${serviceId}`, err.message);
+				Logger$1.error(`Failed to get weverse video info (infraVideoId: ${infraVideoId}, inkey: ${inkey}, serviceId: ${serviceId}`, err.message);
 				return false;
 			}
 		}
@@ -6213,7 +6566,7 @@ var vot = (function(exports) {
 					}]
 				};
 			} catch (err) {
-				Logger.error(`Failed to get yandex disk video data by video ID: ${videoId}, because ${err.message}`);
+				Logger$1.error(`Failed to get yandex disk video data by video ID: ${videoId}, because ${err.message}`);
 				return;
 			}
 		}
@@ -6294,7 +6647,7 @@ var vot = (function(exports) {
 					}]
 				};
 				const downloadUrl = await this.getDownloadUrl(path, sk);
-				const proxiedUrl = proxyMedia(new URL(downloadUrl));
+				const proxiedUrl = proxyMedia(new URL(downloadUrl), "mp4", this.mediaProxy);
 				return {
 					url: `https://yadi.sk${videoId}`,
 					video_url: downloadUrl,
@@ -6307,7 +6660,7 @@ var vot = (function(exports) {
 					}]
 				};
 			} catch (err) {
-				Logger.error(`Failed to get yandex disk video data by disk video ID: ${videoId}`, err.message);
+				Logger$1.error(`Failed to get yandex disk video data by disk video ID: ${videoId}`, err.message);
 				return;
 			}
 		}
@@ -6388,7 +6741,7 @@ var vot = (function(exports) {
 			return false;
 		}
 		static videoSeek(video, time) {
-			Logger.log("videoSeek", time);
+			Logger$1.log("videoSeek", time);
 			video.currentTime = (YoutubeHelper.getPlayer()?.getProgressState()?.seekableEnd ?? video.currentTime) - time;
 		}
 		static getPoToken() {
@@ -6445,7 +6798,7 @@ var vot = (function(exports) {
 				});
 				return result;
 			}, []);
-			Logger.log("youtube subtitles:", subtitles);
+			Logger$1.log("youtube subtitles:", subtitles);
 			return subtitles;
 		}
 		static getLanguage() {
@@ -6566,6 +6919,7 @@ var vot = (function(exports) {
 		[VideoService$1.ign]: IgnHelper,
 		[VideoService$1.bunkr]: BunkrHelper,
 		[VideoService$1.imdb]: IMDbHelper,
+		[VideoService$1.kinopoisk]: KinopoiskHelper,
 		[VideoService$1.telegram]: TelegramHelper,
 		[VideoService$1.niconico]: NicoNicoHelper,
 		[VideoService$1.noodlemagazine]: NoodleMagazineHelper,
@@ -6580,7 +6934,8 @@ var vot = (function(exports) {
 		[ExtVideoService.deeplearningai]: DeeplearningAIHelper,
 		[ExtVideoService.netacad]: NetacadHelper,
 		[ExtVideoService.mediafile]: MediafileHelper,
-		[ExtVideoService.skilljar]: SkilljarHelper
+		[ExtVideoService.skilljar]: SkilljarHelper,
+		[ExtVideoService.dropout]: DropoutHelper
 	};
 	var VideoHelper = class {
 		helpersData;
@@ -6654,69 +7009,7 @@ var vot = (function(exports) {
 		};
 	}
 	//#endregion
-	//#region src/bootstrap/bootState.ts
-	var MAIN_BOOT_KEY = "__VOT_MAIN_BOOT_STATE__";
-	var BOOTSTRAP_STATUSES = new Set([
-		"idle",
-		"booting",
-		"booted",
-		"failed"
-	]);
-	function isBootstrapStatus(value) {
-		return BOOTSTRAP_STATUSES.has(value);
-	}
-	function isBootstrapState(value) {
-		if (!value || typeof value !== "object") return false;
-		return isBootstrapStatus(value.status);
-	}
-	function getOrCreateBootState(bootKey = MAIN_BOOT_KEY) {
-		const scope = globalThis;
-		const existing = scope[bootKey];
-		if (isBootstrapState(existing)) return existing;
-		const created = {
-			status: "idle",
-			error: null
-		};
-		scope[bootKey] = created;
-		return created;
-	}
-	//#endregion
-	//#region src/bootstrap/iframeInteractor.ts
-	var iframeInteractorInitialized = false;
-	var IFRAME_CONFIGS = {
-		"https://dev.epicgames.com": {
-			targetOrigin: "https://dev.epicgames.com",
-			dataFilter: (data) => typeof data === "string" && data.startsWith("getVideoId:"),
-			extractVideoId: (url) => url.pathname.split("/").at(-2) ?? null,
-			responseFormatter: (videoId, data) => `${typeof data === "string" ? data : ""}:${videoId}`
-		},
-		"https://www.dailymotion.com": {
-			targetOrigin: "https://geo.dailymotion.com",
-			dataFilter: (data) => typeof data === "string" && data.startsWith("getVideoId:"),
-			extractVideoId: (url) => /(?:^|\/)video\/([^/]+)/.exec(url.pathname)?.[1] ?? null,
-			responseFormatter: (videoId) => `getVideoId:${videoId}`
-		}
-	};
-	function initIframeInteractor() {
-		if (iframeInteractorInitialized) return;
-		iframeInteractorInitialized = true;
-		const currentConfig = IFRAME_CONFIGS[globalThis.location.origin];
-		if (!currentConfig) return;
-		globalThis.addEventListener("message", (event) => {
-			try {
-				if (event.origin !== currentConfig.targetOrigin) return;
-				if (!currentConfig.dataFilter(event.data)) return;
-				const videoId = currentConfig.extractVideoId(new URL(globalThis.location.href));
-				if (!videoId) return;
-				const response = currentConfig.responseFormatter(videoId, event.data);
-				event.source?.postMessage(response, currentConfig.targetOrigin);
-			} catch (error) {
-				console.error("Iframe communication error:", error);
-			}
-		});
-	}
-	//#endregion
-	//#region src/config/auth.ts
+	//#region src/modules/auth/consts.ts
 	var YANDEX_AUTH_CLIENT_ID = "1666fbe22f3749c581002a4f97b2592d";
 	var YANDEX_AUTH_ORIGIN = "https://oauth.yandex.ru";
 	var YANDEX_AUTH_URL = `${YANDEX_AUTH_ORIGIN}/authorize`;
@@ -6725,274 +7018,6 @@ var vot = (function(exports) {
 	var YANDEX_AUTH_AVATAR_BASE = "https://avatars.mds.yandex.net/get-yapic";
 	var YANDEX_USER_INFO_URL = "https://login.yandex.ru/info";
 	var YANDEX_TOKEN_DEFAULT_LIFETIME = 3153418e4;
-	//#endregion
-	//#region src/types/core/auth/message.ts
-	var AUTH_DATA_MESSAGE_SOURCE = "vot-auth";
-	var AUTH_DATA_MESSAGE_TYPE = "auth-data";
-	//#endregion
-	//#region src/core/auth/message.ts
-	function createAuthDataMessage(data) {
-		return {
-			source: AUTH_DATA_MESSAGE_SOURCE,
-			type: AUTH_DATA_MESSAGE_TYPE,
-			data
-		};
-	}
-	function isAuthDataMessage(value) {
-		if (!value || typeof value !== "object") return false;
-		const candidate = value;
-		return candidate.source === "vot-auth" && candidate.type === "auth-data";
-	}
-	async function handleAuthCallbackPage() {
-		if (globalThis.location.pathname !== "/verification_code") return;
-		const { state, code } = Object.fromEntries(new URLSearchParams(globalThis.location.search));
-		if (!state || !code) throw new Error("[VOT] Missing state or code value");
-		const target = globalThis.opener;
-		if (!target || typeof target.postMessage !== "function") return;
-		target.postMessage(createAuthDataMessage({
-			state,
-			code
-		}), "*");
-		globalThis.close();
-	}
-	//#endregion
-	//#region src/config/config.ts
-	var workerHost = "api.browser.yandex.ru";
-	var m3u8ProxyHost = "media-proxy.toil.cc/v1/proxy/m3u8";
-	var proxyWorkerHostMode1 = "vot-worker.vtrans.eu.cc";
-	var PROXY_WORKER_HOST = "vot-worker.eu.cc";
-	var foswlyTranslateUrl = "https://translate-backend.transly.eu.cc/v2";
-	var detectRustServerUrl = "https://rust-server-531j.onrender.com/detect";
-	var repoPath = "ilyhalight/voice-over-translation";
-	var contentUrl = `https://raw.githubusercontent.com/${repoPath}`;
-	var repositoryUrl = `https://github.com/${repoPath}`;
-	var DEFAULT_TRANSLATION_SERVICE = "yandexbrowser";
-	var DEFAULT_DETECT_SERVICE = "yandexbrowser";
-	var PROXY_ONLY_COUNTRIES = [
-		"UA",
-		"LV",
-		"LT"
-	];
-	var DEFAULT_AUTO_HIDE_DELAY = 1e3;
-	var actualCompatVersion = "2026-08-18";
-	//#endregion
-	//#region src/utils/debug.ts
-	var log = (...text) => {
-		console.log("%c[VOT DEBUG]", "background: #3700ffff; color: #fff; padding: 5px;", ...text);
-	};
-	var warn = (...text) => {
-		console.warn("%c[VOT DEBUG]", "background: #e1ff00ff; color: #fff; padding: 5px;", ...text);
-	};
-	var error = (...text) => {
-		console.error("%c[VOT DEBUG]", "background: #F2452D; color: #fff; padding: 5px;", ...text);
-	};
-	var debug = {
-		log,
-		warn,
-		error
-	};
-	//#endregion
-	//#region src/utils/errors.ts
-	function stringifyUnknownObject(value) {
-		const seen = new WeakSet();
-		try {
-			return JSON.stringify(value, (_key, currentValue) => {
-				if (typeof currentValue !== "object" || currentValue === null) return currentValue;
-				if (seen.has(currentValue)) return "[Circular]";
-				seen.add(currentValue);
-				return currentValue;
-			}) ?? null;
-		} catch {
-			return null;
-		}
-	}
-	function extractNestedMessage(error) {
-		const candidates = [
-			error?.data?.message,
-			error?.error?.message,
-			error?.message
-		];
-		for (const candidate of candidates) if (typeof candidate === "string" && candidate) return candidate;
-		return null;
-	}
-	function formatObjectError(error, fallback) {
-		const nestedMessage = extractNestedMessage(error);
-		if (nestedMessage) return nestedMessage;
-		const serialized = stringifyUnknownObject(error);
-		if (serialized && serialized !== "{}") return serialized;
-		const ctorName = error.constructor?.name;
-		return ctorName ? `[${ctorName}]` : fallback;
-	}
-	function formatPrimitiveError(error, fallback) {
-		if (typeof error === "number" || typeof error === "boolean" || typeof error === "bigint") return `${error}`;
-		if (typeof error === "symbol") return error.description ? `Symbol(${error.description})` : "Symbol";
-		if (typeof error === "function") return error.name ? `[Function ${error.name}]` : "[Function]";
-		return fallback;
-	}
-	function toErrorMessage(error, fallback = "Unknown error") {
-		if (error instanceof Error) return error.message || fallback;
-		if (typeof error === "string") return error || fallback;
-		if (error === null || error === void 0) return fallback;
-		if (typeof error === "object") return formatObjectError(error, fallback);
-		return formatPrimitiveError(error, fallback);
-	}
-	function getErrorMessage(error) {
-		return toErrorMessage(error, "");
-	}
-	function isAbortError(err) {
-		const anyErr = err;
-		return typeof DOMException !== "undefined" && anyErr instanceof DOMException && anyErr.name === "AbortError" || anyErr instanceof Error && anyErr.name === "AbortError" || anyErr?.message === "AbortError";
-	}
-	function makeAbortError(reason = "Aborted") {
-		if (reason instanceof Error && isAbortError(reason)) return reason;
-		const message = reason instanceof Error ? reason.message : String(reason ?? "Aborted");
-		try {
-			return new DOMException(message, "AbortError");
-		} catch {
-			const err = new Error(message);
-			err.name = "AbortError";
-			return err;
-		}
-	}
-	function safeNestedGet(value, path) {
-		let current = value;
-		for (const key of path) {
-			if (current == null || typeof current !== "object") return;
-			current = current[key];
-		}
-		return current;
-	}
-	//#endregion
-	//#region src/utils/abort.ts
-	var NEVER_ABORTED_SIGNAL = new AbortController().signal;
-	function throwIfAborted(signal) {
-		try {
-			signal.throwIfAborted();
-		} catch (e) {
-			if (signal.aborted || isAbortError(e)) throw makeAbortError();
-			throw e instanceof Error ? e : new Error(String(e));
-		}
-	}
-	function createTimeoutSignal(timeoutMs, external) {
-		if (!(Number.isFinite(timeoutMs) && timeoutMs > 0)) return {
-			signal: external ?? NEVER_ABORTED_SIGNAL,
-			cleanup: () => {}
-		};
-		const controller = new AbortController();
-		let timeoutId;
-		let cleaned = false;
-		const cleanup = () => {
-			if (cleaned) return;
-			cleaned = true;
-			if (timeoutId !== void 0) {
-				clearTimeout(timeoutId);
-				timeoutId = void 0;
-			}
-			external?.removeEventListener("abort", onExternalAbort);
-		};
-		const onExternalAbort = () => {
-			cleanup();
-			controller.abort(external?.reason);
-		};
-		if (external) {
-			external.addEventListener("abort", onExternalAbort, { once: true });
-			if (external.aborted) {
-				onExternalAbort();
-				return {
-					signal: controller.signal,
-					cleanup
-				};
-			}
-		}
-		timeoutId = setTimeout(() => {
-			cleanup();
-			controller.abort(makeAbortError("Timeout"));
-		}, timeoutMs);
-		return {
-			signal: controller.signal,
-			cleanup
-		};
-	}
-	function createAbortableDelay(delayMs, signal, options) {
-		return new Promise((resolve, reject) => {
-			if (signal.aborted) {
-				reject(makeAbortError());
-				return;
-			}
-			let settled = false;
-			const timeoutId = setTimeout(() => {
-				if (settled) return;
-				settled = true;
-				signal.removeEventListener("abort", onAbort);
-				resolve();
-			}, delayMs);
-			options?.onScheduled?.(timeoutId);
-			function onAbort() {
-				if (settled) return;
-				settled = true;
-				clearTimeout(timeoutId);
-				reject(makeAbortError());
-			}
-			signal.addEventListener("abort", onAbort, { once: true });
-		});
-	}
-	function createAbortableWaiter(signal, timeoutMs, options) {
-		let settled = false;
-		let _resolve;
-		let _reject;
-		const promise = new Promise((res, rej) => {
-			_resolve = res;
-			_reject = rej;
-		});
-		let timeoutId;
-		const cleanup = () => {
-			if (settled) return;
-			settled = true;
-			if (timeoutId !== void 0) {
-				clearTimeout(timeoutId);
-				timeoutId = void 0;
-			}
-			options?.onSettled?.();
-		};
-		if (typeof AbortSignal.any === "function") {
-			const timeoutSignal = AbortSignal.timeout(timeoutMs);
-			options?.onScheduled?.(void 0);
-			const combined = AbortSignal.any([signal, timeoutSignal].filter(Boolean));
-			const onAbort = () => {
-				cleanup();
-				_reject(makeAbortError(timeoutSignal.aborted ? "Timeout" : "Aborted"));
-			};
-			if (combined.aborted) onAbort();
-			else combined.addEventListener("abort", onAbort, { once: true });
-		} else {
-			const onAbort = () => {
-				cleanup();
-				_reject(makeAbortError());
-			};
-			signal.addEventListener("abort", onAbort, { once: true });
-			if (signal.aborted) onAbort();
-			else {
-				timeoutId = setTimeout(() => {
-					cleanup();
-					_reject(makeAbortError("Timeout"));
-				}, timeoutMs);
-				options?.onScheduled?.(timeoutId);
-			}
-		}
-		return {
-			promise,
-			settle: {
-				resolve: () => {
-					cleanup();
-					_resolve();
-				},
-				reject: (error) => {
-					cleanup();
-					_reject(error);
-				}
-			}
-		};
-	}
 	var browserInfo = __toESM(__commonJSMin(((exports, module) => {
 		(function(e, t) {
 			"object" == typeof exports && "object" == typeof module ? module.exports = t() : "function" == typeof define && define.amd ? define([], t) : "object" == typeof exports ? exports.bowser = t() : e.bowser = t();
@@ -8709,14 +8734,266 @@ var vot = (function(exports) {
 		}));
 	}))(), 1).default.getParser(globalThis.navigator.userAgent).getResult();
 	//#endregion
-	//#region src/utils/number.ts
-	function clampNumber(value, min, max) {
-		if (!Number.isFinite(value)) return min;
-		if (max < min) return min;
-		return Math.max(min, Math.min(max, value));
+	//#region src/utils/debug.ts
+	var log = (...text) => {
+		console.log("%c[VOT DEBUG]", "background: #3700ffff; color: #fff; padding: 5px;", ...text);
+	};
+	var warn = (...text) => {
+		console.warn("%c[VOT DEBUG]", "background: #e1ff00ff; color: #fff; padding: 5px;", ...text);
+	};
+	var error = (...text) => {
+		console.error("%c[VOT DEBUG]", "background: #F2452D; color: #fff; padding: 5px;", ...text);
+	};
+	var debug = {
+		log,
+		warn,
+		error
+	};
+	//#endregion
+	//#region src/config/config.ts
+	var workerHost = "api.browser.yandex.ru";
+	var m3u8ProxyHost = "media-proxy.toil.cc/v1/proxy/m3u8";
+	var proxyWorkerHostMode1 = "vot-worker.vtrans.eu.cc";
+	var PROXY_WORKER_HOST = "vot-worker.eu.cc";
+	var repoPath = "ilyhalight/voice-over-translation";
+	var contentUrl = `https://raw.githubusercontent.com/${repoPath}`;
+	var repositoryUrl = `https://github.com/${repoPath}`;
+	var PROXY_ONLY_COUNTRIES = [
+		"UA",
+		"LV",
+		"LT"
+	];
+	var DEFAULT_AUTO_HIDE_DELAY = 1e3;
+	var actualCompatVersion = "2026-08-18";
+	//#endregion
+	//#region src/utils/json.ts
+	function stringifyCircularSafe(value, { sortKeys = false } = {}) {
+		const seen = new WeakSet();
+		return JSON.stringify(value, (_key, val) => {
+			if (typeof val !== "object" || val === null) return val;
+			if (seen.has(val)) return "[Circular]";
+			seen.add(val);
+			if (!sortKeys || Array.isArray(val)) return val;
+			const sorted = {};
+			const keys = Object.keys(val).sort((a, b) => a.localeCompare(b));
+			for (const key of keys) sorted[key] = val[key];
+			return sorted;
+		});
 	}
-	function clampNumberWithSortedBounds(value, min, max) {
-		return Math.min(Math.max(value, Math.min(min, max)), Math.max(min, max));
+	//#endregion
+	//#region src/utils/errors.ts
+	function stringifyUnknownObject(value) {
+		try {
+			return stringifyCircularSafe(value) ?? null;
+		} catch {
+			return null;
+		}
+	}
+	function extractNestedMessage(error) {
+		const candidates = [
+			error?.data?.message,
+			error?.error?.message,
+			error?.message
+		];
+		for (const candidate of candidates) if (typeof candidate === "string" && candidate) return candidate;
+		return null;
+	}
+	function formatObjectError(error, fallback) {
+		const nestedMessage = extractNestedMessage(error);
+		if (nestedMessage) return nestedMessage;
+		const serialized = stringifyUnknownObject(error);
+		if (serialized && serialized !== "{}") return serialized;
+		const ctorName = error.constructor?.name;
+		return ctorName ? `[${ctorName}]` : fallback;
+	}
+	function formatPrimitiveError(error, fallback) {
+		if (typeof error === "number" || typeof error === "boolean" || typeof error === "bigint") return `${error}`;
+		if (typeof error === "symbol") return error.description ? `Symbol(${error.description})` : "Symbol";
+		if (typeof error === "function") return error.name ? `[Function ${error.name}]` : "[Function]";
+		return fallback;
+	}
+	function toErrorMessage(error, fallback = "Unknown error") {
+		if (error instanceof Error) return error.message || fallback;
+		if (typeof error === "string") return error || fallback;
+		if (error === null || error === void 0) return fallback;
+		if (typeof error === "object") return formatObjectError(error, fallback);
+		return formatPrimitiveError(error, fallback);
+	}
+	function getErrorMessage(error) {
+		return toErrorMessage(error, "");
+	}
+	function isAbortError(err) {
+		const anyErr = err;
+		return typeof DOMException !== "undefined" && anyErr instanceof DOMException && anyErr.name === "AbortError" || anyErr instanceof Error && anyErr.name === "AbortError" || anyErr?.message === "AbortError";
+	}
+	function categorizeFailure(error) {
+		const { status, error: nested } = error ?? {};
+		if (typeof status === "number" && status > 0) return `status:${status}`;
+		let text = "";
+		if (typeof error === "string") text = error;
+		else if (error instanceof Error) text = error.message;
+		else if (typeof nested === "string") text = nested;
+		const httpStatus = /\bHTTP (\d{3})\b/.exec(text);
+		if (httpStatus) return `status:${httpStatus[1]}`;
+		if (/time.?out/i.test(text)) return "timeout";
+		if (/abort/i.test(text)) return "abort";
+		if (/network|failed to fetch|connect|refused|offline|dns/i.test(text)) return "network";
+		return "unknown";
+	}
+	function makeAbortError(reason = "Aborted") {
+		if (reason instanceof Error && isAbortError(reason)) return reason;
+		const message = reason instanceof Error ? reason.message : String(reason ?? "Aborted");
+		try {
+			return new DOMException(message, "AbortError");
+		} catch {
+			const err = new Error(message);
+			err.name = "AbortError";
+			return err;
+		}
+	}
+	function safeNestedGet(value, path) {
+		let current = value;
+		for (const key of path) {
+			if (current == null || typeof current !== "object") return;
+			current = current[key];
+		}
+		return current;
+	}
+	//#endregion
+	//#region src/utils/abort.ts
+	var NEVER_ABORTED_SIGNAL = new AbortController().signal;
+	function throwIfAborted(signal) {
+		try {
+			signal.throwIfAborted();
+		} catch (e) {
+			if (signal.aborted || isAbortError(e)) throw makeAbortError();
+			throw e instanceof Error ? e : new Error(String(e));
+		}
+	}
+	function createTimeoutSignal(timeoutMs, external) {
+		if (!(Number.isFinite(timeoutMs) && timeoutMs > 0)) return {
+			signal: external ?? NEVER_ABORTED_SIGNAL,
+			cleanup: () => {}
+		};
+		const controller = new AbortController();
+		let timeoutId;
+		let cleaned = false;
+		const cleanup = () => {
+			if (cleaned) return;
+			cleaned = true;
+			if (timeoutId !== void 0) {
+				clearTimeout(timeoutId);
+				timeoutId = void 0;
+			}
+			external?.removeEventListener("abort", onExternalAbort);
+		};
+		const onExternalAbort = () => {
+			cleanup();
+			controller.abort(external?.reason);
+		};
+		if (external) {
+			external.addEventListener("abort", onExternalAbort, { once: true });
+			if (external.aborted) {
+				onExternalAbort();
+				return {
+					signal: controller.signal,
+					cleanup
+				};
+			}
+		}
+		timeoutId = setTimeout(() => {
+			cleanup();
+			controller.abort(makeAbortError("Timeout"));
+		}, timeoutMs);
+		return {
+			signal: controller.signal,
+			cleanup
+		};
+	}
+	function createAbortableDelay(delayMs, signal, options) {
+		return new Promise((resolve, reject) => {
+			if (signal.aborted) {
+				reject(makeAbortError());
+				return;
+			}
+			let settled = false;
+			const timeoutId = setTimeout(() => {
+				if (settled) return;
+				settled = true;
+				signal.removeEventListener("abort", onAbort);
+				resolve();
+			}, delayMs);
+			options?.onScheduled?.(timeoutId);
+			function onAbort() {
+				if (settled) return;
+				settled = true;
+				clearTimeout(timeoutId);
+				reject(makeAbortError());
+			}
+			signal.addEventListener("abort", onAbort, { once: true });
+		});
+	}
+	function createAbortableWaiter(signal, timeoutMs, options) {
+		let settled = false;
+		let _resolve;
+		let _reject;
+		const promise = new Promise((res, rej) => {
+			_resolve = res;
+			_reject = rej;
+		});
+		let timeoutId;
+		const cleanup = () => {
+			if (settled) return;
+			settled = true;
+			if (timeoutId !== void 0) {
+				clearTimeout(timeoutId);
+				timeoutId = void 0;
+			}
+			options?.onSettled?.();
+		};
+		if (typeof AbortSignal.any === "function") {
+			const timeoutSignal = AbortSignal.timeout(timeoutMs);
+			options?.onScheduled?.(void 0);
+			const combined = AbortSignal.any([signal, timeoutSignal].filter(Boolean));
+			const onAbort = () => {
+				cleanup();
+				_reject(makeAbortError(timeoutSignal.aborted ? "Timeout" : "Aborted"));
+			};
+			if (combined.aborted) onAbort();
+			else combined.addEventListener("abort", onAbort, { once: true });
+		} else {
+			const onAbort = () => {
+				cleanup();
+				_reject(makeAbortError());
+			};
+			signal.addEventListener("abort", onAbort, { once: true });
+			if (signal.aborted) onAbort();
+			else {
+				timeoutId = setTimeout(() => {
+					cleanup();
+					_reject(makeAbortError("Timeout"));
+				}, timeoutMs);
+				options?.onScheduled?.(timeoutId);
+			}
+		}
+		return {
+			promise,
+			settle: {
+				resolve: () => {
+					cleanup();
+					_resolve();
+				},
+				reject: (error) => {
+					cleanup();
+					_reject(error);
+				}
+			}
+		};
+	}
+	//#endregion
+	//#region src/utils/http.ts
+	function normalizeHttpMethod(method) {
+		return (method || "GET").toUpperCase();
 	}
 	//#endregion
 	//#region src/utils/localization.ts
@@ -8766,21 +9043,6 @@ var vot = (function(exports) {
 	function stripAsciiControlChars(value) {
 		return value.replace(ASCII_CONTROL_CHARS_RE, "");
 	}
-	function stableStringify(value) {
-		const seen = new WeakSet();
-		return JSON.stringify(value, (_key, val) => {
-			if (val && typeof val === "object") {
-				if (seen.has(val)) return "[Circular]";
-				seen.add(val);
-				if (Array.isArray(val)) return val;
-				const sorted = {};
-				const keys = Object.keys(val).sort((a, b) => a.localeCompare(b));
-				for (const key of keys) sorted[key] = val[key];
-				return sorted;
-			}
-			return val;
-		});
-	}
 	function fnv1a32ToKeyPart(str) {
 		let hash = 2166136261;
 		let i = 0;
@@ -8820,31 +9082,35 @@ var vot = (function(exports) {
 			});
 			return "shared";
 		} catch (err) {
-			if (err instanceof DOMException && err.name === "AbortError") return "shared";
+			if (isAbortError(err)) return "shared";
 			return "error";
 		}
 	}
-	function triggerBlobDownload(blob, filename) {
-		const url = URL.createObjectURL(blob);
+	function clickDownloadAnchor(href, filename, { stopPropagation = true } = {}) {
 		const anchor = document.createElement("a");
-		anchor.href = url;
+		anchor.href = href;
 		anchor.download = filename;
-		anchor.rel = "noopener noreferrer";
 		anchor.target = "_blank";
-		anchor.style.position = "fixed";
-		anchor.style.left = "-9999px";
-		anchor.style.top = "0";
-		anchor.addEventListener("click", (event) => {
+		anchor.rel = "noopener noreferrer";
+		anchor.style.display = "none";
+		if (stopPropagation) anchor.addEventListener("click", (event) => {
 			event.stopPropagation();
 		}, { once: true });
-		(document.body ?? document.documentElement).append(anchor);
 		try {
+			(document.body ?? document.documentElement).append(anchor);
 			anchor.click();
 			return true;
 		} catch {
 			return false;
 		} finally {
 			anchor.remove();
+		}
+	}
+	function triggerBlobDownload(blob, filename) {
+		const url = URL.createObjectURL(blob);
+		try {
+			return clickDownloadAnchor(url, filename);
+		} finally {
 			revokeObjectUrlLater(url);
 		}
 	}
@@ -8868,9 +9134,6 @@ var vot = (function(exports) {
 	}
 	var getTimestamp = () => Math.floor(Date.now() / 1e3);
 	var getHeaders = (headers) => headers ? Object.fromEntries(new Headers(headers)) : {};
-	function clamp(value, min = 0, max = 100) {
-		return clampNumberWithSortedBounds(value, min, max);
-	}
 	function toFlatObj(data) {
 		const out = {};
 		const stack = Object.entries(data);
@@ -8899,9 +9162,6 @@ var vot = (function(exports) {
 		if (!Number.isFinite(ttlMs) || ttlMs <= 0) return createdAtMs;
 		return ttlMs >= Number.MAX_SAFE_INTEGER - createdAtMs ? Number.MAX_SAFE_INTEGER : createdAtMs + ttlMs;
 	}
-	function normalizeMethod(method) {
-		return (method || "GET").toUpperCase();
-	}
 	function resolveBodyKey(body) {
 		if (body == null) return "";
 		if (typeof body === "string") return body;
@@ -8911,7 +9171,7 @@ var vot = (function(exports) {
 		inFlightRequests = new Map();
 		async execute(context, options, fetcher) {
 			if (!options || options.ttlMs <= 0) return fetcher();
-			const method = normalizeMethod(context.method);
+			const method = normalizeHttpMethod(context.method);
 			const key = options.key ?? this.buildDefaultCacheKey(context);
 			if (!key) return fetcher();
 			const ttlMs = options.ttlMs;
@@ -8956,7 +9216,7 @@ var vot = (function(exports) {
 			return response;
 		}
 		buildDefaultCacheKey(context) {
-			const method = normalizeMethod(context.method);
+			const method = normalizeHttpMethod(context.method);
 			if (method === "GET") return `${method}:${context.url}`;
 			const bodyKey = resolveBodyKey(context.body);
 			if (bodyKey === void 0) return void 0;
@@ -9043,17 +9303,26 @@ var vot = (function(exports) {
 	var GOOGLEVIDEO_HOST_SUFFIX = "googlevideo.com";
 	var HEADER_LINE_RE = /^(\w[\w-]*):\s*(\S.*)$/;
 	var URL_SCHEME_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
-	var scriptHandler = typeof GM_info === "undefined" ? void 0 : GM_info?.scriptHandler;
+	var gmFetchFailureHandler;
+	function setGmFetchFailureHandler(handler) {
+		gmFetchFailureHandler = handler;
+	}
+	var scriptHandler = getGMInfo()?.scriptHandler;
 	function getScriptTitle() {
-		if (typeof GM_info === "undefined") return "VOT";
-		return GM_info?.script?.name || "VOT";
+		const safeGMInfo = getGMInfo();
+		if (!safeGMInfo) return "VOT";
+		return safeGMInfo?.script?.name || "VOT";
 	}
 	function getCallbackGmXhr() {
 		const gmXhr = typeof GM_xmlhttpRequest === "undefined" ? globalThis.GM_xmlhttpRequest : GM_xmlhttpRequest;
 		return typeof gmXhr === "function" ? gmXhr : void 0;
 	}
+	function getGMRuntime() {
+		if (typeof GM !== "undefined") return GM;
+		return globalThis.GM;
+	}
 	function getPromiseGmXhr() {
-		const gm = typeof GM === "undefined" ? globalThis.GM : GM;
+		const gm = getGMRuntime();
 		const gmXhr = gm?.xmlHttpRequest ?? gm?.xmlhttpRequest;
 		return typeof gmXhr === "function" ? gmXhr.bind(gm) : void 0;
 	}
@@ -9061,7 +9330,7 @@ var vot = (function(exports) {
 		return !!(getCallbackGmXhr() || getPromiseGmXhr());
 	}
 	var IS_PROXY_ONLY_EXTENSION = browserInfo.browser?.name === "Safari" || !["Tampermonkey", "Violentmonkey"].includes(scriptHandler);
-	var isGM4Supported = typeof GM !== "undefined" || globalThis.GM !== void 0;
+	var isGM4Supported = Boolean(getGMRuntime());
 	var isSupportGMXhr = hasSupportedGmXhr();
 	function getRequestHost(url) {
 		const normalizedUrl = url.trim();
@@ -9091,9 +9360,7 @@ var vot = (function(exports) {
 		return url.url;
 	}
 	function resolveRequestMethod(url, method) {
-		if (method) return method.toUpperCase();
-		if (url instanceof Request) return (url.method || "GET").toUpperCase();
-		return "GET";
+		return normalizeHttpMethod(method ?? (url instanceof Request ? url.method : void 0));
 	}
 	function parseResponseHeaders(rawHeaders) {
 		if (typeof rawHeaders !== "string" || rawHeaders.length === 0) return {};
@@ -9248,13 +9515,14 @@ var vot = (function(exports) {
 	}
 	async function gmXhrFetch(urlStr, timeout, fetchOptions) {
 		const headers = getHeaders(fetchOptions.headers);
-		const method = (fetchOptions.method || "GET").toUpperCase();
+		const method = normalizeHttpMethod(fetchOptions.method);
 		debug.log("[GM_fetch] GM_xmlhttpRequest start", {
 			url: urlStr,
 			method,
 			timeout,
 			headerCount: Object.keys(headers).length
 		});
+		const attempts = [];
 		const callbackGmXhr = getCallbackGmXhr();
 		if (callbackGmXhr) {
 			debug.log("[GM_fetch] attempting callback-style GM_xmlhttpRequest");
@@ -9262,6 +9530,10 @@ var vot = (function(exports) {
 				return await executeCallbackGmXhr(callbackGmXhr, urlStr, timeout, fetchOptions, method, headers);
 			} catch (error) {
 				if (isAbortError(error)) throw error;
+				attempts.push({
+					approach: "GM_xmlhttpRequest",
+					category: categorizeFailure(error)
+				});
 				debug.warn("[GM_fetch] callback-style GM_xmlhttpRequest failed", {
 					url: urlStr,
 					method,
@@ -9269,13 +9541,25 @@ var vot = (function(exports) {
 				});
 			}
 		}
+		if (!callbackGmXhr) attempts.push({
+			approach: "GM_xmlhttpRequest",
+			category: "unavailable"
+		});
 		const promiseGmXhr = getPromiseGmXhr();
+		if (!promiseGmXhr) attempts.push({
+			approach: "GM.xmlHttpRequest",
+			category: "unavailable"
+		});
 		if (promiseGmXhr) {
 			debug.log("[GM_fetch] attempting promise-style GM.xmlHttpRequest");
 			try {
 				return await executePromiseGmXhr(promiseGmXhr, urlStr, timeout, fetchOptions, method, headers);
 			} catch (error) {
 				if (isAbortError(error)) throw error;
+				attempts.push({
+					approach: "GM.xmlHttpRequest",
+					category: categorizeFailure(error)
+				});
 				debug.warn("[GM_fetch] promise-style GM.xmlHttpRequest failed", {
 					url: urlStr,
 					method,
@@ -9284,7 +9568,17 @@ var vot = (function(exports) {
 			}
 		}
 		debug.warn("[GM_fetch] none of the GM approaches worked");
-		throw new Error("All GM approaches failed");
+		const lastCategory = attempts.at(-1)?.category;
+		const failure = new Error("All GM approaches failed", { cause: lastCategory ? new Error(lastCategory) : void 0 });
+		try {
+			gmFetchFailureHandler?.({
+				error: failure,
+				host: getRequestHost(urlStr),
+				method,
+				attempts
+			});
+		} catch {}
+		throw failure;
 	}
 	async function GM_fetch(url, opts = {}) {
 		const { timeout = 15e3, forceGmXhr = false, responseCache, ...fetchOptions } = opts;
@@ -9363,6 +9657,12 @@ var vot = (function(exports) {
 			body: fetchOptions.body
 		}, responseCache, performRequest);
 	}
+	function getGMInfo() {
+		return typeof GM_info === "undefined" ? void 0 : GM_info;
+	}
+	//#endregion
+	//#region src/utils/iframeConnector.ts
+	var isIframe = () => globalThis.self !== globalThis.top;
 	//#endregion
 	//#region src/types/storage.ts
 	var AUTO_SUBTITLE_LANGUAGE_VALUE = "auto";
@@ -9372,6 +9672,7 @@ var vot = (function(exports) {
 		"autoPauseOnTranslate",
 		"autoSubtitles",
 		"dontTranslateLanguages",
+		"dontTranslateByYTMusic",
 		"enabledAutoVolume",
 		"enabledSmartDucking",
 		"autoVolume",
@@ -9395,10 +9696,12 @@ var vot = (function(exports) {
 		"newAudioPlayer",
 		"showPiPButton",
 		"translateAPIErrors",
+		"sendErrorReports",
 		"translationService",
 		"detectService",
 		"translationHotkey",
 		"subtitlesHotkey",
+		"pipHotkey",
 		"m3u8ProxyHost",
 		"proxyWorkerHost",
 		"translateProxyEnabled",
@@ -9418,12 +9721,12 @@ var vot = (function(exports) {
 	];
 	//#endregion
 	//#region src/utils/storage.ts
-	function parseStoredValue(rawValue) {
-		if (rawValue === null) return;
+	function parseStoredValue(rawValue, fallback) {
+		if (rawValue === null) return fallback;
 		try {
 			return JSON.parse(rawValue);
 		} catch {
-			return;
+			return fallback;
 		}
 	}
 	async function migrateAugust2026(data) {
@@ -9453,20 +9756,16 @@ var vot = (function(exports) {
 		shouldUseSyntheticListeners(support) {
 			return !support.promiseAddValueChangeListener && !support.legacyAddValueChangeListener;
 		}
-		getGMRuntime() {
-			if (typeof GM !== "undefined") return GM;
-			return globalThis.GM;
-		}
 		resolveSupport() {
 			if (this.support) return this.support;
-			const gm = this.getGMRuntime();
+			const gm = getGMRuntime();
 			const support = {
 				legacyGet: typeof GM_getValue === "function",
 				legacySet: typeof GM_setValue === "function",
 				legacyDelete: typeof GM_deleteValue === "function",
 				legacyList: typeof GM_listValues === "function",
-				legacyAddValueChangeListener: typeof globalThis.GM_addValueChangeListener === "function",
-				legacyRemoveValueChangeListener: typeof globalThis.GM_removeValueChangeListener === "function",
+				legacyAddValueChangeListener: typeof GM_addValueChangeListener === "function",
+				legacyRemoveValueChangeListener: typeof GM_removeValueChangeListener === "function",
 				promiseGet: isGM4Supported && typeof gm?.getValue === "function",
 				promiseGetValues: isGM4Supported && typeof gm?.getValues === "function",
 				promiseSet: isGM4Supported && typeof gm?.setValue === "function",
@@ -9485,13 +9784,7 @@ var vot = (function(exports) {
 		}
 		syncGetByName(name, def, support) {
 			if (support.legacyGet) return GM_getValue(name, def);
-			const val = globalThis.localStorage.getItem(name);
-			if (val === null) return def;
-			try {
-				return JSON.parse(val);
-			} catch {
-				return def;
-			}
+			return parseStoredValue(globalThis.localStorage.getItem(name), def);
 		}
 		async getRaw(name, def) {
 			const support = this.resolveSupport();
@@ -9561,7 +9854,7 @@ var vot = (function(exports) {
 		}
 		addValueChangeListener(name, listener) {
 			const support = this.resolveSupport();
-			const gm = this.getGMRuntime();
+			const gm = getGMRuntime();
 			if (support.promiseAddValueChangeListener) {
 				const addListener = gm?.addValueChangeListener;
 				const removeListener = support.promiseRemoveValueChangeListener ? gm?.removeValueChangeListener : void 0;
@@ -9569,8 +9862,8 @@ var vot = (function(exports) {
 				if (unsubscribe) return unsubscribe;
 			}
 			if (support.legacyAddValueChangeListener) {
-				const addListener = globalThis.GM_addValueChangeListener;
-				const removeListener = support.legacyRemoveValueChangeListener ? globalThis.GM_removeValueChangeListener : void 0;
+				const addListener = GM_addValueChangeListener;
+				const removeListener = support.legacyRemoveValueChangeListener ? GM_removeValueChangeListener : void 0;
 				const unsubscribe = this.registerGMListener(addListener, removeListener, name, listener);
 				if (unsubscribe) return unsubscribe;
 			}
@@ -9631,6 +9924,407 @@ var vot = (function(exports) {
 		scope[VOT_STORAGE_GLOBAL_KEY] = created;
 		return created;
 	})();
+	//#endregion
+	//#region src/modules/telemetry/event.ts
+	var SENTRY_DSN = "https://fc1094f48d7348878978df534e30c96d@ingest.nirel.cc/1";
+	var SENTRY_KEY = "fc1094f48d7348878978df534e30c96d";
+	var SENTRY_CLIENT = "vot";
+	var ENVELOPE_URL = "https://ingest.nirel.cc/api/1/envelope/";
+	var V8_FRAME_RE = /^\s*at (?:(.+?) \()?(.+?):(\d+):(\d+)\)?\s*$/;
+	var GECKO_FRAME_RE = /^(.*?)@(.+?):(\d+):(\d+)\s*$/;
+	var URL_RE = /https?:\/\/[^\s"'<>)]+/g;
+	var JSON_SNIPPET_RE = /"[\s\S]*"(?:\.\.\.)? is not valid JSON/;
+	var UUID_RE = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
+	var HEX_ID_RE = /\b(?=[0-9a-f]*\d)[0-9a-f]{8,}\b/gi;
+	var MAX_CAUSE_DEPTH = 5;
+	var EXTENSION_ORIGIN_RE = /^((?:chrome|moz|safari-web)-extension:\/\/)[^/]+/;
+	var VOT_FRAME_RE = /^(?:(?:chrome|moz|safari-web)-extension:\/\/|user-script:|app:\/\/\/)/;
+	var PAGE_FILENAME = "<page>";
+	function normalizeFilename(filename) {
+		const cleaned = filename.replace(/[?#].*$/, "");
+		if (!VOT_FRAME_RE.test(cleaned)) return {
+			filename: PAGE_FILENAME,
+			inApp: false
+		};
+		return {
+			filename: cleaned.replace(EXTENSION_ORIGIN_RE, "$1extension"),
+			inApp: true
+		};
+	}
+	function parseFrameLine(line) {
+		const match = V8_FRAME_RE.exec(line) ?? GECKO_FRAME_RE.exec(line);
+		if (!match) return null;
+		const [, fn, rawFilename, lineno, colno] = match;
+		const { filename, inApp } = normalizeFilename(rawFilename);
+		return {
+			filename,
+			...fn && { function: fn.replace(URL_RE, "<url>") },
+			lineno: Number(lineno),
+			colno: Number(colno),
+			...inApp && { in_app: true }
+		};
+	}
+	function parseStack(stack) {
+		if (!stack) return [];
+		const frames = [];
+		for (const line of stack.split("\n")) {
+			const frame = parseFrameLine(line);
+			if (frame) frames.push(frame);
+		}
+		return frames.reverse();
+	}
+	function createEventId() {
+		const bytes = crypto.getRandomValues(new Uint8Array(16));
+		return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+	}
+	function toError(value) {
+		return value instanceof Error ? value : new Error(toErrorMessage(value));
+	}
+	function scrubMessage(message) {
+		return message.replace(URL_RE, "<url>").replace(JSON_SNIPPET_RE, "<body> is not valid JSON");
+	}
+	function normalizeMessage(message) {
+		return scrubMessage(message).replace(UUID_RE, "<id>").replace(HEX_ID_RE, "<id>").replace(/\d+/g, "<n>");
+	}
+	function collectCauses(error) {
+		const chain = [error];
+		const seen = new Set(chain);
+		let current = error;
+		while (chain.length <= MAX_CAUSE_DEPTH) {
+			const cause = current?.cause;
+			if (cause == null || seen.has(cause)) break;
+			seen.add(cause);
+			chain.push(cause);
+			current = cause;
+		}
+		return chain.reverse();
+	}
+	function toExceptionValue(value) {
+		if (!(value instanceof Error)) return {
+			type: "Error",
+			value: scrubMessage(toErrorMessage(value))
+		};
+		const frames = parseStack(value.stack);
+		return {
+			type: value.name,
+			value: scrubMessage(value.message),
+			...frames.length > 0 && { stacktrace: { frames } }
+		};
+	}
+	function buildEvent(error, context) {
+		const { source, service } = context.tags;
+		return {
+			event_id: createEventId(),
+			timestamp: Date.now() / 1e3,
+			platform: "javascript",
+			level: context.level ?? "error",
+			release: `vot@${context.version}`,
+			environment: context.environment,
+			tags: context.tags,
+			...context.contexts && { contexts: context.contexts },
+			...context.extra && { extra: context.extra },
+			fingerprint: [
+				error.name,
+				source,
+				service,
+				normalizeMessage(error.message)
+			].filter((part) => Boolean(part)),
+			exception: { values: collectCauses(error).map(toExceptionValue) }
+		};
+	}
+	function buildEnvelope(event) {
+		return [
+			JSON.stringify({
+				event_id: event.event_id,
+				sent_at: new Date().toISOString(),
+				dsn: SENTRY_DSN
+			}),
+			JSON.stringify({ type: "event" }),
+			JSON.stringify(event)
+		].join("\n");
+	}
+	function buildAuthHeader(version) {
+		return `Sentry sentry_version=7, sentry_key=${SENTRY_KEY}, sentry_client=${SENTRY_CLIENT}/${version}`;
+	}
+	//#endregion
+	//#region src/modules/telemetry/context.ts
+	var PROXY_MODES = [
+		"direct",
+		"proxy-client",
+		"proxy-full"
+	];
+	function compactTags(tags) {
+		return Object.fromEntries(Object.entries(tags).filter(([, value]) => Boolean(value)));
+	}
+	function formatDetails({ name, version }) {
+		return name && (version ? `${name} ${version}` : name);
+	}
+	function getAudioPlayer(newAudioPlayer) {
+		if (newAudioPlayer === void 0) return void 0;
+		return newAudioPlayer ? "web-audio" : "audio-element";
+	}
+	function buildEnvironmentTags(env) {
+		return compactTags({
+			build: env.build,
+			host: env.host,
+			in_iframe: String(env.inIframe),
+			browser: formatDetails(env.browser),
+			script_handler: env.scriptHandler,
+			script_handler_version: env.scriptHandlerVersion
+		});
+	}
+	function buildContexts({ browser, os }) {
+		const contexts = {};
+		for (const [key, { name, version }] of [["browser", browser], ["os", os]]) if (name) contexts[key] = compactTags({
+			name,
+			version
+		});
+		return contexts;
+	}
+	function getTranslationTags({ site, data, videoData }, langs = {}) {
+		return compactTags({
+			service: site?.host,
+			from_lang: langs.from,
+			to_lang: langs.to,
+			proxy_mode: data?.translateProxyEnabled === void 0 ? void 0 : PROXY_MODES[data.translateProxyEnabled],
+			audio_player: getAudioPlayer(data?.newAudioPlayer),
+			is_stream: videoData ? String(Boolean(videoData.isStream)) : void 0
+		});
+	}
+	function getMediaErrorCode(value) {
+		const candidates = [value, value?.error];
+		for (const candidate of candidates) {
+			const { code } = candidate ?? {};
+			if (typeof code === "number" && code >= 1 && code <= 4 && candidate.constructor?.name === "MediaError") return code;
+		}
+	}
+	function getAudioFailureTags(error, stage) {
+		const mediaErrorCode = getMediaErrorCode(error);
+		return compactTags({
+			audio_stage: stage,
+			audio_failure: categorizeFailure(error),
+			media_error_code: mediaErrorCode === void 0 ? void 0 : String(mediaErrorCode)
+		});
+	}
+	var SESSION_MODULES = [
+		"video-translation",
+		"summarization",
+		"neuroapi",
+		"neuroedit"
+	];
+	function getSessionFailureTags(error, module) {
+		const detail = error?.data?.data;
+		let failure;
+		if (detail === void 0) failure = categorizeFailure(error);
+		else if (typeof detail === "string") failure = categorizeFailure(detail);
+		else failure = "bad_response";
+		return compactTags({
+			session_module: SESSION_MODULES.includes(module) ? module : "other",
+			session_failure: failure
+		});
+	}
+	function selectStrategyFailuresToReport(failures, downloadSucceeded) {
+		return (downloadSucceeded ? failures : failures.slice(0, -1)).filter(({ error }) => categorizeFailure(error) !== "abort").map((failure) => ({
+			...failure,
+			recovered: downloadSucceeded
+		}));
+	}
+	//#endregion
+	//#region src/modules/telemetry/reporter.ts
+	var MAX_EVENTS_PER_SESSION = 20;
+	var PUBLIC_HOSTS = [
+		workerHost,
+		PROXY_WORKER_HOST,
+		proxyWorkerHostMode1,
+		m3u8ProxyHost.split("/")[0],
+		"youtube.com",
+		"googlevideo.com"
+	];
+	function toPublicHost(host) {
+		if (!host) return void 0;
+		const lower = host.toLowerCase();
+		return PUBLIC_HOSTS.find((known) => lower === known || lower.endsWith(`.${known}`)) ?? "other";
+	}
+	function isExpectedError(error) {
+		const { name, message } = error ?? {};
+		return isAbortError(error) || name === "VOTLocalizedError" || name === "NotAllowedError" || name === "VideoDataError" && typeof message === "string" && message.startsWith("Entered unsupported link");
+	}
+	function redactError(error, message) {
+		const redacted = new Error(message);
+		redacted.name = error.name;
+		const header = `${error.name}: ${error.message}`;
+		redacted.stack = error.stack?.startsWith(header) ? error.stack.slice(header.length) : error.stack;
+		return redacted;
+	}
+	var YANDEX_REFUSAL_MESSAGE = "Yandex couldn't translate video";
+	function classifyLevel(error) {
+		const { name, message } = error ?? {};
+		return name === "VOTJSError" && message === YANDEX_REFUSAL_MESSAGE ? "warning" : "error";
+	}
+	function isObject(value) {
+		return typeof value === "object" && value !== null;
+	}
+	function createReporter({ isEnabled, getRuntimeInfo, send }) {
+		const reportedKeys = new Set();
+		const capturedErrors = new WeakSet();
+		let eventCount = 0;
+		return async function report(error, options) {
+			if (isExpectedError(error)) return;
+			if (!await isEnabled()) return;
+			const normalized = toError(error);
+			const involved = [error, ...collectCauses(normalized)].filter(isObject);
+			if (involved.some((item) => capturedErrors.has(item))) return;
+			for (const item of involved) capturedErrors.add(item);
+			const reported = options.redactedMessage === void 0 ? normalized : redactError(normalized, options.redactedMessage);
+			const key = `${reported.name}:${reported.message}:${options.dedupeKey ?? ""}`;
+			if (options.dedupe !== false && reportedKeys.has(key)) return;
+			if (eventCount >= MAX_EVENTS_PER_SESSION) return;
+			reportedKeys.add(key);
+			eventCount++;
+			const { version, environment, env } = getRuntimeInfo();
+			await send(buildEvent(reported, {
+				version,
+				environment,
+				level: options.level ?? classifyLevel(error),
+				tags: compactTags({
+					...buildEnvironmentTags(env),
+					...options.tags,
+					source: options.source,
+					operation: options.operation
+				}),
+				contexts: buildContexts(env),
+				extra: options.extra
+			}));
+		};
+	}
+	function createGmFetchFailureHandler(capture) {
+		return ({ error, host, method, attempts }) => {
+			if (host === "ingest.nirel.cc") return;
+			capture(error, {
+				source: "network",
+				operation: "GM_fetch",
+				dedupe: false,
+				tags: compactTags({
+					request_host: toPublicHost(host),
+					request_method: method
+				}),
+				extra: { attempts: attempts.map(({ approach, category }) => `${approach}: ${category}`) }
+			});
+		};
+	}
+	//#endregion
+	//#region src/modules/telemetry/client.ts
+	function isInIframe() {
+		try {
+			return isIframe();
+		} catch {
+			return true;
+		}
+	}
+	function getEnvironmentInfo$1() {
+		const gmInfo = getGMInfo();
+		return {
+			build: "userscript",
+			host: globalThis.location.hostname,
+			inIframe: isInIframe(),
+			browser: browserInfo.browser,
+			os: browserInfo.os,
+			scriptHandler: gmInfo?.scriptHandler,
+			scriptHandlerVersion: gmInfo?.version
+		};
+	}
+	function getRuntimeInfo() {
+		return {
+			version: "1.11.17",
+			environment: "master",
+			env: getEnvironmentInfo$1()
+		};
+	}
+	async function sendEvent(event) {
+		await GM_fetch(ENVELOPE_URL, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/x-sentry-envelope",
+				"X-Sentry-Auth": buildAuthHeader("1.11.17")
+			},
+			body: buildEnvelope(event),
+			forceGmXhr: true,
+			timeout: 1e4
+		});
+	}
+	var report = createReporter({
+		isEnabled: () => votStorage.get("sendErrorReports", true),
+		getRuntimeInfo,
+		send: sendEvent
+	});
+	function captureException(error, options) {
+		report(error, options).catch((err) => {
+			debug.log("[telemetry] failed to report error", err);
+		});
+	}
+	setGmFetchFailureHandler(createGmFetchFailureHandler(captureException));
+	//#endregion
+	//#region src/bootstrap/bootState.ts
+	var MAIN_BOOT_KEY = "__VOT_MAIN_BOOT_STATE__";
+	var BOOTSTRAP_STATUSES = new Set([
+		"idle",
+		"booting",
+		"booted",
+		"failed"
+	]);
+	function isBootstrapStatus(value) {
+		return BOOTSTRAP_STATUSES.has(value);
+	}
+	function isBootstrapState(value) {
+		if (!value || typeof value !== "object") return false;
+		return isBootstrapStatus(value.status);
+	}
+	function getOrCreateBootState(bootKey = MAIN_BOOT_KEY) {
+		const scope = globalThis;
+		const existing = scope[bootKey];
+		if (isBootstrapState(existing)) return existing;
+		const created = {
+			status: "idle",
+			error: null
+		};
+		scope[bootKey] = created;
+		return created;
+	}
+	//#endregion
+	//#region src/bootstrap/iframeInteractor.ts
+	var iframeInteractorInitialized = false;
+	var IFRAME_CONFIGS = {
+		"https://dev.epicgames.com": {
+			targetOrigin: "https://dev.epicgames.com",
+			dataFilter: (data) => typeof data === "string" && data.startsWith("getVideoId:"),
+			extractVideoId: (url) => url.pathname.split("/").at(-2) ?? null,
+			responseFormatter: (videoId, data) => `${typeof data === "string" ? data : ""}:${videoId}`
+		},
+		"https://www.dailymotion.com": {
+			targetOrigin: "https://geo.dailymotion.com",
+			dataFilter: (data) => typeof data === "string" && data.startsWith("getVideoId:"),
+			extractVideoId: (url) => /(?:^|\/)video\/([^/]+)/.exec(url.pathname)?.[1] ?? null,
+			responseFormatter: (videoId) => `getVideoId:${videoId}`
+		}
+	};
+	function initIframeInteractor() {
+		if (iframeInteractorInitialized) return;
+		iframeInteractorInitialized = true;
+		const currentConfig = IFRAME_CONFIGS[globalThis.location.origin];
+		if (!currentConfig) return;
+		globalThis.addEventListener("message", (event) => {
+			try {
+				if (event.origin !== currentConfig.targetOrigin) return;
+				if (!currentConfig.dataFilter(event.data)) return;
+				const videoId = currentConfig.extractVideoId(new URL(globalThis.location.href));
+				if (!videoId) return;
+				const response = currentConfig.responseFormatter(videoId, event.data);
+				event.source?.postMessage(response, currentConfig.targetOrigin);
+			} catch (error) {
+				console.error("Iframe communication error:", error);
+			}
+		});
+	}
 	var en_default = {
 		recommended: "recommended",
 		translateVideo: "Translate video",
@@ -9650,6 +10344,7 @@ var vot = (function(exports) {
 		translationTakeApproximatelyMinute: "The translation will take approximately {0} minutes",
 		requestTranslationFailed: "Failed to request video translation",
 		audioNotReceived: "Audio link not received",
+		VOTYouTubeSignInSuggested: "Sign in to YouTube and try translation again",
 		VOTFailedDownloadAudio: "Failed to download audio",
 		audioFormatNotSupported: "The audio format is not supported",
 		VOTAutoTranslate: "Translate on open",
@@ -9899,7 +10594,12 @@ var vot = (function(exports) {
 		VOTDownloadTranslation: "Download translation",
 		VOTClose: "Close",
 		VOTSmartDuckingStrength: "Adaptive volume reduction strength",
-		VOTRetryTranslation: "Retry translation"
+		VOTRetryTranslation: "Retry translation",
+		VOTVideoIsMusic: "You've disabled translation for music videos",
+		DontTranslateByYTMusic: "Don't translate videos identified as music by YouTube Music",
+		VOTMusicDetectDesc: "Music detection is only available on YouTube",
+		sendErrorReports: "Send anonymous error reports",
+		sendErrorReportsDescription: "Helps us find and fix bugs. Only technical details are sent"
 	};
 	//#endregion
 	//#region src/localization/localizationProvider.ts
@@ -10049,7 +10749,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.11.16"), typeof GM_info === "undefined" ? "" : String(GM_info?.script?.version || ""));
+		return resolveRuntimeLocaleVersion(String("1.11.17"), String(getGMInfo()?.script?.version || ""));
 	}
 	var LocalizationProvider = class {
 		lang;
@@ -10193,8 +10893,35 @@ var vot = (function(exports) {
 		return localizationProviderReadyPromise;
 	}
 	//#endregion
-	//#region src/utils/iframeConnector.ts
-	var isIframe = () => globalThis.self !== globalThis.top;
+	//#region src/modules/auth/types/message.ts
+	var AUTH_DATA_MESSAGE_SOURCE = "vot-auth";
+	var AUTH_DATA_MESSAGE_TYPE = "auth-data";
+	//#endregion
+	//#region src/modules/auth/message.ts
+	function createAuthDataMessage(data) {
+		return {
+			source: AUTH_DATA_MESSAGE_SOURCE,
+			type: AUTH_DATA_MESSAGE_TYPE,
+			data
+		};
+	}
+	function isAuthDataMessage(value) {
+		if (!value || typeof value !== "object") return false;
+		const candidate = value;
+		return candidate.source === "vot-auth" && candidate.type === "auth-data";
+	}
+	async function handleAuthCallbackPage() {
+		if (globalThis.location.pathname !== "/verification_code") return;
+		const { state, code } = Object.fromEntries(new URLSearchParams(globalThis.location.search));
+		if (!state || !code) throw new Error("[VOT] Missing state or code value");
+		const target = globalThis.opener;
+		if (!target || typeof target.postMessage !== "function") return;
+		target.postMessage(createAuthDataMessage({
+			state,
+			code
+		}), "*");
+		globalThis.close();
+	}
 	//#endregion
 	//#region src/bootstrap/runtimeActivation.ts
 	var runtimeActivated = false;
@@ -10221,6 +10948,14 @@ var vot = (function(exports) {
 	//#endregion
 	//#region src/bootstrap/videoObserverBinding.ts
 	var boundObservers = new WeakSet();
+	function reportInitError(error, operation, videoHandler) {
+		captureException(error, {
+			source: "init",
+			operation,
+			dedupeKey: videoHandler?.videoData?.videoId,
+			tags: videoHandler && getTranslationTags({ site: videoHandler.site })
+		});
+	}
 	var RUNTIME_URL_HOSTS = new Set(["peertube", "directlink"]);
 	function bindObserverListeners(options) {
 		const { videoObserver, videosWrappers, ensureRuntimeActivated, getServicesCached, findContainer, createVideoHandler, resolveVideoId = (site, video) => getVideoID(site, {
@@ -10246,6 +10981,7 @@ var vot = (function(exports) {
 				await videoHandler.release();
 			} catch (error) {
 				console.error(`[VOT] Failed to release videoHandler (${reason})`, error);
+				reportInitError(error, "release", videoHandler);
 			} finally {
 				if (videosWrappers.get(video) === videoHandler) videosWrappers.delete(video);
 			}
@@ -10275,6 +11011,7 @@ var vot = (function(exports) {
 				await videoHandler.replaceVideo(newVideo);
 			} catch (error) {
 				console.error("[VOT] Failed to replace video element", error);
+				reportInitError(error, "replaceVideo", videoHandler);
 				return false;
 			}
 			if (videosWrappers.get(oldVideo) !== videoHandler) return videosWrappers.get(newVideo) === videoHandler;
@@ -10321,6 +11058,7 @@ var vot = (function(exports) {
 						await videoHandler.setCanPlay();
 					} catch (err) {
 						console.error("[VOT] Failed to get video data", err);
+						reportInitError(err, "setCanPlay", videoHandler);
 					}
 				} catch (err) {
 					if (videosWrappers.get(video) === videoHandler) {
@@ -10330,6 +11068,7 @@ var vot = (function(exports) {
 						await promotePendingVideo(container);
 					}
 					console.error("[VOT] Failed to initialize videoHandler", err);
+					reportInitError(err, "initVideoHandler", videoHandler);
 				}
 			} finally {
 				initializingVideos.delete(video);
@@ -10341,6 +11080,7 @@ var vot = (function(exports) {
 				return true;
 			} catch (err) {
 				console.error("[VOT] Failed to activate runtime", err);
+				reportInitError(err, "activateRuntime");
 				return false;
 			}
 		};
@@ -10421,6 +11161,13 @@ var vot = (function(exports) {
 		if (closest) return closest;
 		return walkCrossShadow(getNextCrossShadowTarget(current), selector, origin);
 	}
+	function isInputElement(element) {
+		const activeTag = element?.tagName?.toLowerCase?.() ?? "";
+		return ["input", "textarea"].includes(activeTag) || Boolean(element?.isContentEditable);
+	}
+	function getHostElement(root) {
+		return root instanceof ShadowRoot ? root.host : root;
+	}
 	//#endregion
 	//#region src/core/containerResolution.ts
 	function findConnectedContainerBySelector(video, selector) {
@@ -10435,13 +11182,17 @@ var vot = (function(exports) {
 	var joinParts = (...parts) => {
 		return parts.filter(Boolean).join(" ").trim() || UNKNOWN_VALUE;
 	};
-	function isDocumentHidden$1() {
+	function isDocumentHidden() {
 		return typeof document !== "undefined" && document.hidden;
+	}
+	function getNowMs() {
+		if (typeof performance !== "undefined" && typeof performance.now === "function") return performance.now();
+		return Date.now();
 	}
 	function getEnvironmentInfo() {
 		const os = joinParts(browserInfo.os?.name, browserInfo.os?.version);
 		const browser = joinParts(browserInfo.browser?.name, browserInfo.browser?.version);
-		const safeGMInfo = typeof GM_info === "undefined" ? void 0 : GM_info;
+		const safeGMInfo = getGMInfo();
 		return {
 			os,
 			browser,
@@ -10482,7 +11233,7 @@ var vot = (function(exports) {
 	}
 	function getDefaultRuntime() {
 		return {
-			nowMs: () => typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now(),
+			nowMs: () => getNowMs(),
 			setInterval: globalThis.setInterval.bind(globalThis),
 			clearInterval: globalThis.clearInterval.bind(globalThis),
 			queueMicrotask: (fn) => {
@@ -10511,7 +11262,7 @@ var vot = (function(exports) {
 		lastActivityAt;
 		onVisibilityChangeHandler = () => {
 			if (this.destroyed || !this.running) return;
-			if (isDocumentHidden$1()) this.clearIntervalTimer();
+			if (isDocumentHidden()) this.clearIntervalTimer();
 			else this.armInterval();
 			this.requestImmediateTick();
 		};
@@ -10587,7 +11338,7 @@ var vot = (function(exports) {
 			});
 		}
 		resolveMode(nowMs) {
-			if (isDocumentHidden$1()) return "hidden";
+			if (isDocumentHidden()) return "hidden";
 			return nowMs - this.lastActivityAt >= this.profile.idleAfterMs ? "idle" : "active";
 		}
 		clearIntervalTimer() {
@@ -11472,7 +12223,7 @@ var vot = (function(exports) {
 			const res = await this.request(path, body, this.mergeHeaders(vtransHeaders, apiTokenHeader, headers), void 0, fetchOpts);
 			if (!res.success) throw new VOTJSError("Failed to request video translation", res);
 			const translationData = YandexVOTProtobuf.decodeTranslationResponse(res.data);
-			Logger.log("translateVideo", translationData);
+			Logger$1.log("translateVideo", translationData);
 			const { status, translationId } = translationData;
 			switch (status) {
 				case VideoTranslationStatus.FAILED: throw new VOTJSError("Yandex couldn't translate video", translationData);
@@ -11519,7 +12270,7 @@ var vot = (function(exports) {
 					};
 				case VideoTranslationStatus.SESSION_REQUIRED: throw new VOTJSError("Yandex auth required to translate video. See docs for more info", translationData);
 				default:
-					Logger.error("Unknown response", translationData);
+					Logger$1.error("Unknown response", translationData);
 					throw new VOTJSError("Unknown response from Yandex", translationData);
 			}
 		}
@@ -11596,7 +12347,7 @@ var vot = (function(exports) {
 						result: translateResponse.translatedInfo
 					};
 				default:
-					Logger.error("Unknown response", translateResponse);
+					Logger$1.error("Unknown response", translateResponse);
 					throw new VOTJSError("Unknown response from Yandex", translateResponse);
 			}
 		}
@@ -12287,12 +13038,9 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
-	//#region src/core/cacheManager.ts
+	//#region src/modules/cache/manager.ts
 	var YANDEX_TTL_MS = 72e5;
 	var VOT_SESSION_STORAGE_KEY = "VOTSession";
-	function getCurrentUnixTimestampSeconds() {
-		return Math.floor(Date.now() / 1e3);
-	}
 	function isClientSession(value) {
 		if (!value || typeof value !== "object") return false;
 		const candidate = value;
@@ -12300,7 +13048,7 @@ var vot = (function(exports) {
 	}
 	function sanitizeVOTSessions(value) {
 		if (!value || typeof value !== "object") return {};
-		const now = getCurrentUnixTimestampSeconds();
+		const now = getTimestamp();
 		const entries = Object.entries(value).flatMap(([module, session]) => {
 			if (!isClientSession(session)) return [];
 			if (session.timestamp + session.expires <= now) return [];
@@ -12381,8 +13129,8 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
-	//#region src/core/fullscreenHelper.ts
-	var FullscreenHelper = class {
+	//#region src/modules/fullscreen/helper.ts
+	var FullscreenHelper = class FullscreenHelper {
 		container;
 		video;
 		fullscreenChangeListeners = new Set();
@@ -12394,15 +13142,13 @@ var vot = (function(exports) {
 			this.container = container;
 			this.video = video;
 		}
-		getFullscreenElement() {
+		static getFullscreenElement() {
 			const doc = document;
-			const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
-			if (!(fullscreenEl instanceof HTMLElement)) return null;
-			return fullscreenEl;
+			return doc.fullscreenElement ?? doc.webkitFullscreenElement ?? null;
 		}
 		getFullscreenInfo() {
-			const element = this.getFullscreenElement();
-			const isFullscreen = Boolean(element);
+			const fullscreenEl = FullscreenHelper.getFullscreenElement();
+			const element = fullscreenEl instanceof HTMLElement ? fullscreenEl : null;
 			if (!element) return {
 				element: null,
 				shadowRoot: null,
@@ -12412,7 +13158,7 @@ var vot = (function(exports) {
 			return {
 				element,
 				shadowRoot: element.shadowRoot ?? null,
-				isFullscreen,
+				isFullscreen: true,
 				belongsToCurrentVideo: this.isElementBelongsToCurrentVideo(element)
 			};
 		}
@@ -12479,52 +13225,38 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
-	//#region src/core/overlayMountTargets.ts
-	function resolveOverlayBaseContainer(container, site) {
-		return site.host === "youtube" && site.additionalData !== "mobile" ? container.parentElement ?? container : container;
-	}
-	function resolveOverlayMountTargets(input) {
-		const base = resolveOverlayBaseContainer(input.container, input.site);
-		const root = input.fullscreenRoot ?? base;
-		return {
-			base,
-			root,
-			portalContainer: base,
-			subtitlesMountContainer: root
-		};
-	}
+	//#region src/modules/translateText/consts.ts
+	var TRANSLATE_TEXT_SERVICES = ["yandexbrowser", "msedge"];
+	var DEFAULT_TRANSLATION_SERVICE = "yandexbrowser";
+	var DETECT_SERVICES = [...TRANSLATE_TEXT_SERVICES, "rust-server"];
+	var DEFAULT_DETECT_SERVICE = "yandexbrowser";
+	var FOSWLY_TRANSLATE_URL = "https://translate-backend.transly.eu.cc/v2";
+	var DETECT_RUST_SERVER_URL = "https://rust-server-531j.onrender.com/detect";
 	//#endregion
-	//#region src/core/translateApis.ts
+	//#region src/modules/translateText/service.ts
 	var SETTINGS_CACHE_TTL_MS = 5e3;
 	var IMMUTABLE_LOOKUP_CACHE_TTL_MS = Number.MAX_SAFE_INTEGER;
-	var cachedTranslationService = null;
-	var cachedTranslationServiceAt = 0;
-	var cachedDetectService = null;
-	var cachedDetectServiceAt = 0;
-	async function getTranslationServiceCached() {
-		const now = Date.now();
-		if (cachedTranslationService && now - cachedTranslationServiceAt < SETTINGS_CACHE_TTL_MS) return cachedTranslationService;
-		const service = await votStorage.get("translationService", DEFAULT_TRANSLATION_SERVICE);
-		cachedTranslationService = String(service);
-		cachedTranslationServiceAt = now;
-		return cachedTranslationService;
+	function createCachedSetting(key, allowed, fallback) {
+		let value = null;
+		let cachedAt = 0;
+		return async () => {
+			const now = Date.now();
+			if (value && now - cachedAt < SETTINGS_CACHE_TTL_MS) return value;
+			const stored = await votStorage.get(key, fallback);
+			value = allowed.includes(stored) ? stored : fallback;
+			cachedAt = now;
+			return value;
+		};
 	}
-	async function getDetectServiceCached() {
-		const now = Date.now();
-		if (cachedDetectService && now - cachedDetectServiceAt < SETTINGS_CACHE_TTL_MS) return cachedDetectService;
-		const service = await votStorage.get("detectService", DEFAULT_DETECT_SERVICE);
-		cachedDetectService = String(service);
-		cachedDetectServiceAt = now;
-		return cachedDetectService;
-	}
-	var foswlyServices = ["yandexbrowser", "msedge"];
+	var getTranslationService = createCachedSetting("translationService", TRANSLATE_TEXT_SERVICES, DEFAULT_TRANSLATION_SERVICE);
+	var getDetectService = createCachedSetting("detectService", DETECT_SERVICES, DEFAULT_DETECT_SERVICE);
+	var isFOSWLYError = (data) => {
+		return Object.hasOwn(data, "error");
+	};
 	var FOSWLYTranslateAPI = new class {
-		isFOSWLYError(data) {
-			return Object.hasOwn(data, "error");
-		}
 		async request(path, opts = {}) {
 			try {
-				const data = await (await GM_fetch(`${foswlyTranslateUrl}${path}`, {
+				const data = await (await GM_fetch(`${FOSWLY_TRANSLATE_URL}${path}`, {
 					timeout: 3e3,
 					responseCache: {
 						ttlMs: IMMUTABLE_LOOKUP_CACHE_TTL_MS,
@@ -12533,10 +13265,10 @@ var vot = (function(exports) {
 					},
 					...opts
 				})).json();
-				if (this.isFOSWLYError(data)) throw new Error(data.error);
+				if (isFOSWLYError(data)) throw new Error(data.error);
 				return data;
-			} catch (err) {
-				console.error(`[VOT] Failed to get data from FOSWLY Translate API, because ${err instanceof Error ? err.message : String(err)}`);
+			} catch (error) {
+				console.error(`[VOT] Failed to get data from FOSWLY Translate API, because ${toErrorMessage(error)}`);
 				return;
 			}
 		}
@@ -12570,7 +13302,7 @@ var vot = (function(exports) {
 	}();
 	var RustServerAPI = { async detect(text) {
 		try {
-			return await (await GM_fetch(detectRustServerUrl, {
+			return await (await GM_fetch(DETECT_RUST_SERVER_URL, {
 				method: "POST",
 				body: text,
 				timeout: 3e3,
@@ -12581,13 +13313,13 @@ var vot = (function(exports) {
 				}
 			})).text();
 		} catch (error) {
-			console.error(`[VOT] Error getting lang from text, because ${error.message}`);
+			console.error(`[VOT] Error getting lang from text, because ${toErrorMessage(error)}`);
 			return "en";
 		}
 	} };
 	async function translate(text, fromLang = "", toLang = "ru") {
 		if (fromLang && toLang && fromLang === toLang) return text;
-		const service = await getTranslationServiceCached();
+		const service = await getTranslationService();
 		switch (service) {
 			case "yandexbrowser":
 			case "msedge": {
@@ -12598,7 +13330,7 @@ var vot = (function(exports) {
 		}
 	}
 	async function detect(text) {
-		const service = await getDetectServiceCached();
+		const service = await getDetectService();
 		switch (service) {
 			case "yandexbrowser":
 			case "msedge": return await FOSWLYTranslateAPI.detect(text, service);
@@ -12606,7 +13338,29 @@ var vot = (function(exports) {
 			default: return "en";
 		}
 	}
-	var detectServices = [...foswlyServices, "rust-server"];
+	//#endregion
+	//#region src/core/overlayMountTargets.ts
+	function resolveOverlayBaseContainer(container, site) {
+		return site.host === "youtube" && site.additionalData !== "mobile" ? container.parentElement ?? container : container;
+	}
+	function resolveOverlayMountTargets(input) {
+		const base = resolveOverlayBaseContainer(input.container, input.site);
+		const root = input.fullscreenRoot ?? base;
+		return {
+			base,
+			root,
+			portalContainer: base,
+			subtitlesMountContainer: root
+		};
+	}
+	//#endregion
+	//#region src/audioDownloader/strategies/audioStrategy.ts
+	var SABR_STRATEGY = AudioDownloadType.WEB_SABR;
+	var WEB_ABR_STRATEGY = AudioDownloadType.WEB_ABR;
+	var WEB_MSE_PROXY_STRATEGY = AudioDownloadType.WEB_MSE_PROXY;
+	function isAudioBridgeStrategy(value) {
+		return value === SABR_STRATEGY || value === WEB_ABR_STRATEGY || value === WEB_MSE_PROXY_STRATEGY;
+	}
 	//#endregion
 	//#region src/audioDownloader/strategies/webAudioBridge.ts
 	var MESSAGE_TYPE$1 = "get-audio-chunks-by-mse-in-main-world";
@@ -12678,8 +13432,8 @@ var vot = (function(exports) {
 		}, "*");
 		const onMessage = (event) => {
 			const message = event.data;
-			const iframe = document.getElementById(`vot-mse-proxy-${messageId}`);
-			if (!message || event.source !== globalThis && event.source !== iframe?.contentWindow || message.messageId !== messageId || message.messageType !== MESSAGE_TYPE$1 || message.messageDirection !== "response") return;
+			const expectedOrigin = globalThis.location.origin;
+			if (!message || event.origin !== expectedOrigin || message.messageId !== messageId || message.messageType !== MESSAGE_TYPE$1 || message.messageDirection !== "response") return;
 			resetMessageTimeout();
 			if (message.isAborted) {
 				finish(makeAbortError(message.error));
@@ -12780,6 +13534,3892 @@ var vot = (function(exports) {
 		}
 		return result;
 	}
+	//#endregion
+	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/varint.js
+	function varint64read() {
+		const buf = this.buf;
+		let pos = this.pos;
+		let lo = 0;
+		let hi = 0;
+		for (let shift = 0; shift < 28; shift += 7) {
+			const b = buf[pos++];
+			lo |= (b & 127) << shift;
+			if ((b & 128) == 0) {
+				this.pos = pos;
+				this.assertBounds();
+				this.varint64Lo = lo;
+				this.varint64Hi = hi;
+				return;
+			}
+		}
+		const middleByte = buf[pos++];
+		lo |= (middleByte & 15) << 28;
+		hi = (middleByte & 112) >> 4;
+		if ((middleByte & 128) == 0) {
+			this.pos = pos;
+			this.assertBounds();
+			this.varint64Lo = lo;
+			this.varint64Hi = hi;
+			return;
+		}
+		for (let shift = 3; shift <= 31; shift += 7) {
+			const b = buf[pos++];
+			hi |= (b & 127) << shift;
+			if ((b & 128) == 0) {
+				this.pos = pos;
+				this.assertBounds();
+				this.varint64Lo = lo;
+				this.varint64Hi = hi;
+				return;
+			}
+		}
+		throw new Error("invalid varint");
+	}
+	var TWO_PWR_32_DBL = 4294967296;
+	function int64FromString(dec) {
+		const minus = dec[0] === "-";
+		if (minus) dec = dec.slice(1);
+		const base = 1e6;
+		let lowBits = 0;
+		let highBits = 0;
+		function add1e6digit(begin, end) {
+			const digit1e6 = Number(dec.slice(begin, end));
+			highBits *= base;
+			lowBits = lowBits * base + digit1e6;
+			if (lowBits >= TWO_PWR_32_DBL) {
+				highBits = highBits + (lowBits / TWO_PWR_32_DBL | 0);
+				lowBits = lowBits % TWO_PWR_32_DBL;
+			}
+		}
+		add1e6digit(-24, -18);
+		add1e6digit(-18, -12);
+		add1e6digit(-12, -6);
+		add1e6digit(-6);
+		return minus ? negate(lowBits, highBits) : newBits(lowBits, highBits);
+	}
+	function int64ToString(lo, hi) {
+		let bits = newBits(lo, hi);
+		const negative = bits.hi & 2147483648;
+		if (negative) bits = negate(bits.lo, bits.hi);
+		const result = uInt64ToString(bits.lo, bits.hi);
+		return negative ? "-" + result : result;
+	}
+	function uInt64ToString(lo, hi) {
+		({lo, hi} = toUnsigned(lo, hi));
+		if (hi <= 2097151) return String(TWO_PWR_32_DBL * hi + lo);
+		const low = lo & 16777215;
+		const mid = (lo >>> 24 | hi << 8) & 16777215;
+		const high = hi >> 16 & 65535;
+		let digitA = low + mid * 6777216 + high * 6710656;
+		let digitB = mid + high * 8147497;
+		let digitC = high * 2;
+		const base = 1e7;
+		if (digitA >= base) {
+			digitB += Math.floor(digitA / base);
+			digitA %= base;
+		}
+		if (digitB >= base) {
+			digitC += Math.floor(digitB / base);
+			digitB %= base;
+		}
+		return digitC.toString() + decimalFrom1e7WithLeadingZeros(digitB) + decimalFrom1e7WithLeadingZeros(digitA);
+	}
+	function toUnsigned(lo, hi) {
+		return {
+			lo: lo >>> 0,
+			hi: hi >>> 0
+		};
+	}
+	function newBits(lo, hi) {
+		return {
+			lo: lo | 0,
+			hi: hi | 0
+		};
+	}
+	function negate(lowBits, highBits) {
+		highBits = ~highBits;
+		if (lowBits) lowBits = ~lowBits + 1;
+		else highBits += 1;
+		return newBits(lowBits, highBits);
+	}
+	var decimalFrom1e7WithLeadingZeros = (digit1e7) => {
+		const partial = String(digit1e7);
+		return "0000000".slice(partial.length) + partial;
+	};
+	function varint32read() {
+		let b = this.buf[this.pos++];
+		if ((b & 128) === 0) {
+			this.assertBounds();
+			return b;
+		}
+		let result = b & 127;
+		b = this.buf[this.pos++];
+		result |= (b & 127) << 7;
+		if ((b & 128) === 0) {
+			this.assertBounds();
+			return result;
+		}
+		b = this.buf[this.pos++];
+		result |= (b & 127) << 14;
+		if ((b & 128) === 0) {
+			this.assertBounds();
+			return result;
+		}
+		b = this.buf[this.pos++];
+		result |= (b & 127) << 21;
+		if ((b & 128) === 0) {
+			this.assertBounds();
+			return result;
+		}
+		b = this.buf[this.pos++];
+		result |= (b & 15) << 28;
+		for (let readBytes = 5; (b & 128) !== 0 && readBytes < 10; readBytes++) b = this.buf[this.pos++];
+		if ((b & 128) !== 0) throw new Error("invalid varint");
+		this.assertBounds();
+		return result >>> 0;
+	}
+	//#endregion
+	//#region node_modules/@bufbuild/protobuf/dist/esm/proto-int64.js
+	var protoInt64 = makeInt64Support();
+	function makeInt64Support() {
+		const dv = new DataView(new ArrayBuffer(8));
+		if (typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (!!globalThis.Deno || !!globalThis.Bun || typeof process != "object" || typeof process.env != "object" || process.env.BUF_BIGINT_DISABLE !== "1")) {
+			const MIN = BigInt("-9223372036854775808");
+			const MAX = BigInt("9223372036854775807");
+			const UMIN = BigInt("0");
+			const UMAX = BigInt("18446744073709551615");
+			return {
+				zero: BigInt(0),
+				supported: true,
+				parse(value) {
+					const bi = typeof value == "bigint" ? value : BigInt(value);
+					if (bi > MAX || bi < MIN) throw new Error(`invalid int64: ${value}`);
+					return bi;
+				},
+				uParse(value) {
+					const bi = typeof value == "bigint" ? value : BigInt(value);
+					if (bi > UMAX || bi < UMIN) throw new Error(`invalid uint64: ${value}`);
+					return bi;
+				},
+				enc(value) {
+					dv.setBigInt64(0, this.parse(value), true);
+					return {
+						lo: dv.getInt32(0, true),
+						hi: dv.getInt32(4, true)
+					};
+				},
+				uEnc(value) {
+					dv.setBigInt64(0, this.uParse(value), true);
+					return {
+						lo: dv.getInt32(0, true),
+						hi: dv.getInt32(4, true)
+					};
+				},
+				dec(lo, hi) {
+					dv.setInt32(0, lo, true);
+					dv.setInt32(4, hi, true);
+					return dv.getBigInt64(0, true);
+				},
+				uDec(lo, hi) {
+					dv.setInt32(0, lo, true);
+					dv.setInt32(4, hi, true);
+					return dv.getBigUint64(0, true);
+				}
+			};
+		}
+		return {
+			zero: "0",
+			supported: false,
+			parse(value) {
+				if (typeof value != "string") value = value.toString();
+				assertInt64String(value);
+				return value;
+			},
+			uParse(value) {
+				if (typeof value != "string") value = value.toString();
+				assertUInt64String(value);
+				return value;
+			},
+			enc(value) {
+				if (typeof value != "string") value = value.toString();
+				assertInt64String(value);
+				return int64FromString(value);
+			},
+			uEnc(value) {
+				if (typeof value != "string") value = value.toString();
+				assertUInt64String(value);
+				return int64FromString(value);
+			},
+			dec(lo, hi) {
+				return int64ToString(lo, hi);
+			},
+			uDec(lo, hi) {
+				return uInt64ToString(lo, hi);
+			}
+		};
+	}
+	function assertInt64String(value) {
+		if (!/^-?[0-9]+$/.test(value)) throw new Error("invalid int64: " + value);
+	}
+	function assertUInt64String(value) {
+		if (!/^[0-9]+$/.test(value)) throw new Error("invalid uint64: " + value);
+	}
+	//#endregion
+	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/text-encoding.js
+	var te$1;
+	function configureTextEncoding(textEncoding) {
+		var _a;
+		te$1 = Object.assign(Object.assign({}, textEncoding), { encodeUtf8Into: (_a = textEncoding.encodeUtf8Into) !== null && _a !== void 0 ? _a : emulateEncodeInto(textEncoding.encodeUtf8.bind(textEncoding)) });
+	}
+	function getTextEncoding() {
+		if (!te$1) {
+			const globals = globalThis;
+			if (!globals.TextEncoder || !globals.TextDecoder) throw new Error("encoding API missing: install TextEncoder and TextDecoder on globalThis");
+			const textEncoder = new globals.TextEncoder();
+			const textDecoder = new globals.TextDecoder();
+			let textDecoderStrict;
+			const config = {
+				encodeUtf8(text) {
+					return textEncoder.encode(text);
+				},
+				decodeUtf8(bytes, strict) {
+					if (strict) {
+						if (!textDecoderStrict) textDecoderStrict = new globals.TextDecoder("utf-8", { fatal: true });
+						return textDecoderStrict.decode(bytes);
+					}
+					return textDecoder.decode(bytes);
+				},
+				checkUtf8(text) {
+					try {
+						return true;
+					} catch (_) {
+						return false;
+					}
+				}
+			};
+			if (textEncoder.encodeInto) config.encodeUtf8Into = textEncoder.encodeInto.bind(textEncoder);
+			const nativeStringIsWellFormed = String.prototype.isWellFormed;
+			if (nativeStringIsWellFormed) config.checkUtf8 = (text) => {
+				return nativeStringIsWellFormed.call(text);
+			};
+			configureTextEncoding(config);
+		}
+		return te$1;
+	}
+	function emulateEncodeInto(encodeUtf8) {
+		return (text, dest) => {
+			const bytes = encodeUtf8(text);
+			dest.set(bytes);
+			return { written: bytes.byteLength };
+		};
+	}
+	//#endregion
+	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/binary-encoding.js
+	var WireType;
+	(function(WireType) {
+		WireType[WireType["Varint"] = 0] = "Varint";
+		WireType[WireType["Bit64"] = 1] = "Bit64";
+		WireType[WireType["LengthDelimited"] = 2] = "LengthDelimited";
+		WireType[WireType["StartGroup"] = 3] = "StartGroup";
+		WireType[WireType["EndGroup"] = 4] = "EndGroup";
+		WireType[WireType["Bit32"] = 5] = "Bit32";
+	})(WireType || (WireType = {}));
+	var BinaryWriter = class {
+		constructor(encodeUtf8) {
+			this.stackPos = [];
+			this.encodeUtf8Into = encodeUtf8 ? emulateEncodeInto(encodeUtf8) : getTextEncoding().encodeUtf8Into;
+			this.buffer = EMPTY_BUFFER;
+			this.viewCache = EMPTY_VIEW;
+			this.pos = 0;
+		}
+		ensureCapacity(size) {
+			const required = this.pos + size;
+			if (required > this.buffer.length) {
+				let newLen = this.buffer.length || INITIAL_SIZE;
+				while (newLen < required) newLen *= 2;
+				const newBuf = new Uint8Array(newLen);
+				if (this.pos > 0) newBuf.set(this.buffer);
+				this.buffer = newBuf;
+			}
+		}
+		view() {
+			const bytes = this.buffer;
+			const view = this.viewCache;
+			if (view.byteLength === bytes.byteLength) return view;
+			const newView = new DataView(bytes.buffer);
+			this.viewCache = newView;
+			return newView;
+		}
+		finish() {
+			const result = this.buffer.slice(0, this.pos);
+			this.pos = 0;
+			this.stackPos = [];
+			return result;
+		}
+		fork() {
+			this.stackPos.push(this.pos);
+			this.ensureCapacity(DEFAULT_LEN_PREFIX_SIZE);
+			this.buffer[this.pos++] = 0;
+			return this;
+		}
+		join() {
+			const forkPos = this.stackPos.pop();
+			if (forkPos === void 0) throw new Error("invalid state, fork stack empty");
+			const len = this.pos - forkPos - DEFAULT_LEN_PREFIX_SIZE;
+			const lenPrefixSize = varint32Size(len);
+			if (lenPrefixSize > DEFAULT_LEN_PREFIX_SIZE) {
+				this.ensureCapacity(lenPrefixSize - DEFAULT_LEN_PREFIX_SIZE);
+				this.buffer.copyWithin(forkPos + lenPrefixSize, forkPos + DEFAULT_LEN_PREFIX_SIZE, this.pos);
+			}
+			this.pos = forkPos;
+			this.uint32(len);
+			this.pos += len;
+			return this;
+		}
+		tag(fieldNo, type) {
+			return this.uint32((fieldNo << 3 | type) >>> 0);
+		}
+		raw(chunk) {
+			this.ensureCapacity(chunk.length);
+			this.buffer.set(chunk, this.pos);
+			this.pos += chunk.length;
+			return this;
+		}
+		uint32(value) {
+			assertUInt32(value);
+			this.ensureCapacity(5);
+			if (value < 128) {
+				this.buffer[this.pos++] = value;
+				return this;
+			}
+			while (value > 127) {
+				this.buffer[this.pos++] = value & 127 | 128;
+				value >>>= 7;
+			}
+			this.buffer[this.pos++] = value;
+			return this;
+		}
+		int32(value) {
+			assertInt32(value);
+			if (value >= 0) return this.uint32(value);
+			this.ensureCapacity(10);
+			for (let i = 0; i < 9; i++) {
+				this.buffer[this.pos++] = value & 127 | 128;
+				value >>= 7;
+			}
+			this.buffer[this.pos++] = 1;
+			return this;
+		}
+		bool(value) {
+			this.ensureCapacity(1);
+			this.buffer[this.pos++] = value ? 1 : 0;
+			return this;
+		}
+		bytes(value) {
+			this.uint32(value.byteLength);
+			return this.raw(value);
+		}
+		string(value) {
+			if (typeof value !== "string") value = String(value);
+			const len = value.length;
+			if (len <= ASCII_MAX_LENGTH) {
+				this.ensureCapacity(len + 1);
+				const ascii = this.buffer;
+				let pos = this.pos;
+				ascii[pos++] = len;
+				let i = 0;
+				for (; i < len; i++) {
+					const code = value.charCodeAt(i);
+					if (code > 127) break;
+					ascii[pos++] = code;
+				}
+				if (i == len) {
+					this.pos = pos;
+					return this;
+				}
+			}
+			this.ensureCapacity(len * 3 + 5);
+			const lenPrefixSizeGuess = varint32Size(len);
+			const buf = this.buffer;
+			const start = this.pos;
+			const { written } = this.encodeUtf8Into(value, buf.subarray(start + lenPrefixSizeGuess));
+			const lenPrefixSize = varint32Size(written);
+			if (lenPrefixSize != lenPrefixSizeGuess) buf.copyWithin(start + lenPrefixSize, start + lenPrefixSizeGuess, start + lenPrefixSizeGuess + written);
+			this.uint32(written);
+			this.pos += written;
+			return this;
+		}
+		float(value) {
+			assertFloat32(value);
+			this.ensureCapacity(4);
+			this.view().setFloat32(this.pos, value, true);
+			this.pos += 4;
+			return this;
+		}
+		double(value) {
+			this.ensureCapacity(8);
+			this.view().setFloat64(this.pos, value, true);
+			this.pos += 8;
+			return this;
+		}
+		fixed32(value) {
+			assertUInt32(value);
+			this.ensureCapacity(4);
+			this.view().setUint32(this.pos, value, true);
+			this.pos += 4;
+			return this;
+		}
+		sfixed32(value) {
+			assertInt32(value);
+			this.ensureCapacity(4);
+			this.view().setInt32(this.pos, value, true);
+			this.pos += 4;
+			return this;
+		}
+		sint32(value) {
+			assertInt32(value);
+			return this.uint32((value << 1 ^ value >> 31) >>> 0);
+		}
+		sfixed64(value) {
+			const tc = protoInt64.enc(value);
+			this.ensureCapacity(8);
+			const view = this.view();
+			view.setInt32(this.pos, tc.lo, true);
+			view.setInt32(this.pos + 4, tc.hi, true);
+			this.pos += 8;
+			return this;
+		}
+		fixed64(value) {
+			const tc = protoInt64.uEnc(value);
+			this.ensureCapacity(8);
+			const view = this.view();
+			view.setInt32(this.pos, tc.lo, true);
+			view.setInt32(this.pos + 4, tc.hi, true);
+			this.pos += 8;
+			return this;
+		}
+		int64(value) {
+			const tc = protoInt64.enc(value);
+			return this.writeVarint64(tc.lo, tc.hi);
+		}
+		sint64(value) {
+			const tc = protoInt64.enc(value), sign = tc.hi >> 31, lo = tc.lo << 1 ^ sign, hi = (tc.hi << 1 | tc.lo >>> 31) ^ sign;
+			return this.writeVarint64(lo, hi);
+		}
+		uint64(value) {
+			const tc = protoInt64.uEnc(value);
+			return this.writeVarint64(tc.lo, tc.hi);
+		}
+		writeVarint64(lo, hi) {
+			this.ensureCapacity(10);
+			const buf = this.buffer;
+			let pos = this.pos;
+			for (let i = 0; i < 28; i = i + 7) {
+				const shift = lo >>> i;
+				const hasNext = !(shift >>> 7 == 0 && hi == 0);
+				buf[pos++] = (hasNext ? shift | 128 : shift) & 255;
+				if (!hasNext) {
+					this.pos = pos;
+					return this;
+				}
+			}
+			const splitBits = lo >>> 28 & 15 | (hi & 7) << 4;
+			const hasMoreBits = !(hi >> 3 == 0);
+			buf[pos++] = (hasMoreBits ? splitBits | 128 : splitBits) & 255;
+			if (!hasMoreBits) {
+				this.pos = pos;
+				return this;
+			}
+			for (let i = 3; i < 31; i = i + 7) {
+				const shift = hi >>> i;
+				const hasNext = !(shift >>> 7 == 0);
+				buf[pos++] = (hasNext ? shift | 128 : shift) & 255;
+				if (!hasNext) {
+					this.pos = pos;
+					return this;
+				}
+			}
+			buf[pos++] = hi >>> 31 & 1;
+			this.pos = pos;
+			return this;
+		}
+	};
+	var INITIAL_SIZE = 128;
+	var DEFAULT_LEN_PREFIX_SIZE = 1;
+	var EMPTY_BUFFER = new Uint8Array(0);
+	var EMPTY_VIEW = new DataView(EMPTY_BUFFER.buffer);
+	var ASCII_MAX_LENGTH = 32;
+	function varint32Size(value) {
+		if (value < 128) return 1;
+		if (value < 16384) return 2;
+		if (value < 2097152) return 3;
+		if (value < 268435456) return 4;
+		return 5;
+	}
+	var BinaryReader = class {
+		constructor(buf, decodeUtf8 = getTextEncoding().decodeUtf8) {
+			this.decodeUtf8 = decodeUtf8;
+			this.varint64Lo = 0;
+			this.varint64Hi = 0;
+			this.varint64 = varint64read;
+			this.uint32 = varint32read;
+			this.buf = buf;
+			this.len = buf.length;
+			this.pos = 0;
+			this.view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+		}
+		tag() {
+			const start = this.pos;
+			const tag = this.uint32();
+			const bytesRead = this.pos - start;
+			if (bytesRead > 5 || bytesRead == 5 && this.buf[this.pos - 1] > 15) throw new Error("illegal tag: varint overflows uint32");
+			const fieldNo = tag >>> 3;
+			const wireType = tag & 7;
+			if (fieldNo <= 0 || wireType > 5) throw new Error("illegal tag: field no " + fieldNo + " wire type " + wireType);
+			return [fieldNo, wireType];
+		}
+		skip(wireType, fieldNo, recursionLimit = 100) {
+			let start = this.pos;
+			switch (wireType) {
+				case WireType.Varint:
+					while (this.buf[this.pos++] & 128);
+					break;
+				case WireType.Bit64: this.pos += 4;
+				case WireType.Bit32:
+					this.pos += 4;
+					break;
+				case WireType.LengthDelimited:
+					let len = this.uint32();
+					this.pos += len;
+					break;
+				case WireType.StartGroup:
+					if (recursionLimit <= 0) throw new Error("maximum recursion depth reached");
+					for (;;) {
+						const [fn, wt] = this.tag();
+						if (wt === WireType.EndGroup) {
+							if (fieldNo !== void 0 && fn !== fieldNo) throw new Error("invalid end group tag");
+							break;
+						}
+						this.skip(wt, fn, recursionLimit - 1);
+					}
+					break;
+				default: throw new Error("cant skip wire type " + wireType);
+			}
+			this.assertBounds();
+			return this.buf.subarray(start, this.pos);
+		}
+		assertBounds() {
+			if (this.pos > this.len) throw new RangeError("premature EOF");
+		}
+		int32() {
+			return this.uint32() | 0;
+		}
+		sint32() {
+			let zze = this.uint32();
+			return zze >>> 1 ^ -(zze & 1);
+		}
+		int64() {
+			this.varint64();
+			return protoInt64.dec(this.varint64Lo, this.varint64Hi);
+		}
+		uint64() {
+			this.varint64();
+			return protoInt64.uDec(this.varint64Lo, this.varint64Hi);
+		}
+		sint64() {
+			this.varint64();
+			let lo = this.varint64Lo;
+			let hi = this.varint64Hi;
+			let s = -(lo & 1);
+			lo = (lo >>> 1 | (hi & 1) << 31) ^ s;
+			hi = hi >>> 1 ^ s;
+			return protoInt64.dec(lo, hi);
+		}
+		bool() {
+			const b = this.buf[this.pos];
+			if (b < 128) {
+				this.pos++;
+				return b !== 0;
+			}
+			this.varint64();
+			return this.varint64Lo !== 0 || this.varint64Hi !== 0;
+		}
+		fixed32() {
+			return this.view.getUint32((this.pos += 4) - 4, true);
+		}
+		sfixed32() {
+			return this.view.getInt32((this.pos += 4) - 4, true);
+		}
+		fixed64() {
+			return protoInt64.uDec(this.sfixed32(), this.sfixed32());
+		}
+		sfixed64() {
+			return protoInt64.dec(this.sfixed32(), this.sfixed32());
+		}
+		float() {
+			return this.view.getFloat32((this.pos += 4) - 4, true);
+		}
+		double() {
+			return this.view.getFloat64((this.pos += 8) - 8, true);
+		}
+		bytes() {
+			let len = this.uint32(), start = this.pos;
+			this.pos += len;
+			this.assertBounds();
+			return this.buf.subarray(start, start + len);
+		}
+		string(strict) {
+			const bytes = this.bytes();
+			const len = bytes.length;
+			if (len <= ASCII_MAX_LENGTH) {
+				const codes = new Array(len);
+				for (let i = 0; i < len; i++) {
+					const byte = bytes[i];
+					if (byte > 127) return this.decodeUtf8(bytes, strict);
+					codes[i] = byte;
+				}
+				return String.fromCharCode.apply(String, codes);
+			}
+			return this.decodeUtf8(bytes, strict);
+		}
+	};
+	function assertInt32(arg) {
+		if (typeof arg == "string") arg = Number(arg);
+		else if (typeof arg != "number") throw new Error("invalid int32: " + typeof arg);
+		if (!Number.isInteger(arg) || arg > 2147483647 || arg < -2147483648) throw new Error("invalid int32: " + arg);
+	}
+	function assertUInt32(arg) {
+		if (typeof arg == "string") arg = Number(arg);
+		else if (typeof arg != "number") throw new Error("invalid uint32: " + typeof arg);
+		if (!Number.isInteger(arg) || arg > 4294967295 || arg < 0) throw new Error("invalid uint32: " + arg);
+	}
+	function assertFloat32(arg) {
+		if (typeof arg == "string") {
+			const o = arg;
+			arg = Number(arg);
+			if (Number.isNaN(arg) && o !== "NaN") throw new Error("invalid float32: " + o);
+		} else if (typeof arg != "number") throw new Error("invalid float32: " + typeof arg);
+		if (Number.isFinite(arg) && (arg > 34028234663852886e22 || arg < -34028234663852886e22)) throw new Error("invalid float32: " + arg);
+	}
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/misc/common.js
+	function createBaseFormatId() {
+		return {
+			itag: 0,
+			lastModified: "0",
+			xtags: ""
+		};
+	}
+	var FormatId = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.itag !== void 0 && message.itag !== 0) writer.uint32(8).int32(message.itag);
+			if (message.lastModified !== void 0 && message.lastModified !== "0") writer.uint32(16).uint64(message.lastModified);
+			if (message.xtags !== void 0 && message.xtags !== "") writer.uint32(26).string(message.xtags);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseFormatId();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.itag = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.lastModified = reader.uint64().toString();
+						continue;
+					case 3:
+						if (tag !== 26) break;
+						message.xtags = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseRange() {
+		return {
+			legacyStart: 0,
+			legacyEnd: 0,
+			start: 0,
+			end: 0
+		};
+	}
+	var Range = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.legacyStart !== void 0 && message.legacyStart !== 0) writer.uint32(8).int32(message.legacyStart);
+			if (message.legacyEnd !== void 0 && message.legacyEnd !== 0) writer.uint32(16).int32(message.legacyEnd);
+			if (message.start !== void 0 && message.start !== 0) writer.uint32(24).int32(message.start);
+			if (message.end !== void 0 && message.end !== 0) writer.uint32(32).int32(message.end);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseRange();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.legacyStart = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.legacyEnd = reader.int32();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.start = reader.int32();
+						continue;
+					case 4:
+						if (tag !== 32) break;
+						message.end = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseAuthorizedFormat() {
+		return {
+			trackType: 0,
+			isHdr: false
+		};
+	}
+	var AuthorizedFormat = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.trackType !== void 0 && message.trackType !== 0) writer.uint32(8).int32(message.trackType);
+			if (message.isHdr !== void 0 && message.isHdr !== false) writer.uint32(16).bool(message.isHdr);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseAuthorizedFormat();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.trackType = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.isHdr = reader.bool();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBasePlaybackAuthorization() {
+		return {
+			authorizedFormats: [],
+			sabrLicenseConstraint: new Uint8Array(0)
+		};
+	}
+	var PlaybackAuthorization = {
+		encode(message, writer = new BinaryWriter()) {
+			for (const v of message.authorizedFormats) AuthorizedFormat.encode(v, writer.uint32(10).fork()).join();
+			if (message.sabrLicenseConstraint !== void 0 && message.sabrLicenseConstraint.length !== 0) writer.uint32(18).bytes(message.sabrLicenseConstraint);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBasePlaybackAuthorization();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.authorizedFormats.push(AuthorizedFormat.decode(reader, reader.uint32()));
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.sabrLicenseConstraint = reader.bytes();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/format_initialization_metadata.js
+	function createBaseFormatInitializationMetadata() {
+		return {
+			videoId: "",
+			formatId: void 0,
+			endTimeMs: "0",
+			endSegmentNumber: "0",
+			mimeType: "",
+			initRange: void 0,
+			indexRange: void 0,
+			field8: "0",
+			durationUnits: "0",
+			durationTimescale: "0"
+		};
+	}
+	var FormatInitializationMetadata = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.videoId !== void 0 && message.videoId !== "") writer.uint32(10).string(message.videoId);
+			if (message.formatId !== void 0) FormatId.encode(message.formatId, writer.uint32(18).fork()).join();
+			if (message.endTimeMs !== void 0 && message.endTimeMs !== "0") writer.uint32(24).int64(message.endTimeMs);
+			if (message.endSegmentNumber !== void 0 && message.endSegmentNumber !== "0") writer.uint32(32).int64(message.endSegmentNumber);
+			if (message.mimeType !== void 0 && message.mimeType !== "") writer.uint32(42).string(message.mimeType);
+			if (message.initRange !== void 0) Range.encode(message.initRange, writer.uint32(50).fork()).join();
+			if (message.indexRange !== void 0) Range.encode(message.indexRange, writer.uint32(58).fork()).join();
+			if (message.field8 !== void 0 && message.field8 !== "0") writer.uint32(64).int64(message.field8);
+			if (message.durationUnits !== void 0 && message.durationUnits !== "0") writer.uint32(72).int64(message.durationUnits);
+			if (message.durationTimescale !== void 0 && message.durationTimescale !== "0") writer.uint32(80).int64(message.durationTimescale);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseFormatInitializationMetadata();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.videoId = reader.string();
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.formatId = FormatId.decode(reader, reader.uint32());
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.endTimeMs = reader.int64().toString();
+						continue;
+					case 4:
+						if (tag !== 32) break;
+						message.endSegmentNumber = reader.int64().toString();
+						continue;
+					case 5:
+						if (tag !== 42) break;
+						message.mimeType = reader.string();
+						continue;
+					case 6:
+						if (tag !== 50) break;
+						message.initRange = Range.decode(reader, reader.uint32());
+						continue;
+					case 7:
+						if (tag !== 58) break;
+						message.indexRange = Range.decode(reader, reader.uint32());
+						continue;
+					case 8:
+						if (tag !== 64) break;
+						message.field8 = reader.int64().toString();
+						continue;
+					case 9:
+						if (tag !== 72) break;
+						message.durationUnits = reader.int64().toString();
+						continue;
+					case 10:
+						if (tag !== 80) break;
+						message.durationTimescale = reader.int64().toString();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/time_range.js
+	function createBaseTimeRange() {
+		return {
+			startTicks: "0",
+			durationTicks: "0",
+			timescale: 0
+		};
+	}
+	var TimeRange = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.startTicks !== void 0 && message.startTicks !== "0") writer.uint32(8).int64(message.startTicks);
+			if (message.durationTicks !== void 0 && message.durationTicks !== "0") writer.uint32(16).int64(message.durationTicks);
+			if (message.timescale !== void 0 && message.timescale !== 0) writer.uint32(24).int32(message.timescale);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseTimeRange();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.startTicks = reader.int64().toString();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.durationTicks = reader.int64().toString();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.timescale = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/media_header.js
+	function createBaseMediaHeader() {
+		return {
+			headerId: 0,
+			videoId: "",
+			itag: 0,
+			lmt: "0",
+			xtags: "",
+			startRange: "0",
+			compressionAlgorithm: 0,
+			isInitSeg: false,
+			sequenceNumber: 0,
+			bitrateBps: "0",
+			startMs: "0",
+			durationMs: "0",
+			formatId: void 0,
+			contentLength: "0",
+			timeRange: void 0,
+			sequenceLmt: "0"
+		};
+	}
+	var MediaHeader = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.headerId !== void 0 && message.headerId !== 0) writer.uint32(8).uint32(message.headerId);
+			if (message.videoId !== void 0 && message.videoId !== "") writer.uint32(18).string(message.videoId);
+			if (message.itag !== void 0 && message.itag !== 0) writer.uint32(24).int32(message.itag);
+			if (message.lmt !== void 0 && message.lmt !== "0") writer.uint32(32).uint64(message.lmt);
+			if (message.xtags !== void 0 && message.xtags !== "") writer.uint32(42).string(message.xtags);
+			if (message.startRange !== void 0 && message.startRange !== "0") writer.uint32(48).int64(message.startRange);
+			if (message.compressionAlgorithm !== void 0 && message.compressionAlgorithm !== 0) writer.uint32(56).int32(message.compressionAlgorithm);
+			if (message.isInitSeg !== void 0 && message.isInitSeg !== false) writer.uint32(64).bool(message.isInitSeg);
+			if (message.sequenceNumber !== void 0 && message.sequenceNumber !== 0) writer.uint32(72).int32(message.sequenceNumber);
+			if (message.bitrateBps !== void 0 && message.bitrateBps !== "0") writer.uint32(80).int64(message.bitrateBps);
+			if (message.startMs !== void 0 && message.startMs !== "0") writer.uint32(88).int64(message.startMs);
+			if (message.durationMs !== void 0 && message.durationMs !== "0") writer.uint32(96).int64(message.durationMs);
+			if (message.formatId !== void 0) FormatId.encode(message.formatId, writer.uint32(106).fork()).join();
+			if (message.contentLength !== void 0 && message.contentLength !== "0") writer.uint32(112).int64(message.contentLength);
+			if (message.timeRange !== void 0) TimeRange.encode(message.timeRange, writer.uint32(122).fork()).join();
+			if (message.sequenceLmt !== void 0 && message.sequenceLmt !== "0") writer.uint32(128).uint64(message.sequenceLmt);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseMediaHeader();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.headerId = reader.uint32();
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.videoId = reader.string();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.itag = reader.int32();
+						continue;
+					case 4:
+						if (tag !== 32) break;
+						message.lmt = reader.uint64().toString();
+						continue;
+					case 5:
+						if (tag !== 42) break;
+						message.xtags = reader.string();
+						continue;
+					case 6:
+						if (tag !== 48) break;
+						message.startRange = reader.int64().toString();
+						continue;
+					case 7:
+						if (tag !== 56) break;
+						message.compressionAlgorithm = reader.int32();
+						continue;
+					case 8:
+						if (tag !== 64) break;
+						message.isInitSeg = reader.bool();
+						continue;
+					case 9:
+						if (tag !== 72) break;
+						message.sequenceNumber = reader.int32();
+						continue;
+					case 10:
+						if (tag !== 80) break;
+						message.bitrateBps = reader.int64().toString();
+						continue;
+					case 11:
+						if (tag !== 88) break;
+						message.startMs = reader.int64().toString();
+						continue;
+					case 12:
+						if (tag !== 96) break;
+						message.durationMs = reader.int64().toString();
+						continue;
+					case 13:
+						if (tag !== 106) break;
+						message.formatId = FormatId.decode(reader, reader.uint32());
+						continue;
+					case 14:
+						if (tag !== 112) break;
+						message.contentLength = reader.int64().toString();
+						continue;
+					case 15:
+						if (tag !== 122) break;
+						message.timeRange = TimeRange.decode(reader, reader.uint32());
+						continue;
+					case 16:
+						if (tag !== 128) break;
+						message.sequenceLmt = reader.uint64().toString();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/buffered_range.js
+	function createBaseBufferedRange() {
+		return {
+			formatId: void 0,
+			startTimeMs: "0",
+			durationMs: "0",
+			startSegmentIndex: 0,
+			endSegmentIndex: 0,
+			timeRange: void 0,
+			field9: void 0,
+			field11: void 0,
+			field12: void 0
+		};
+	}
+	var BufferedRange = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.formatId !== void 0) FormatId.encode(message.formatId, writer.uint32(10).fork()).join();
+			if (message.startTimeMs !== "0") writer.uint32(16).int64(message.startTimeMs);
+			if (message.durationMs !== "0") writer.uint32(24).int64(message.durationMs);
+			if (message.startSegmentIndex !== 0) writer.uint32(32).int32(message.startSegmentIndex);
+			if (message.endSegmentIndex !== 0) writer.uint32(40).int32(message.endSegmentIndex);
+			if (message.timeRange !== void 0) TimeRange.encode(message.timeRange, writer.uint32(50).fork()).join();
+			if (message.field9 !== void 0) BufferedRange_UnknownMessage1.encode(message.field9, writer.uint32(74).fork()).join();
+			if (message.field11 !== void 0) BufferedRange_UnknownMessage2.encode(message.field11, writer.uint32(90).fork()).join();
+			if (message.field12 !== void 0) BufferedRange_UnknownMessage2.encode(message.field12, writer.uint32(98).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseBufferedRange();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.formatId = FormatId.decode(reader, reader.uint32());
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.startTimeMs = reader.int64().toString();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.durationMs = reader.int64().toString();
+						continue;
+					case 4:
+						if (tag !== 32) break;
+						message.startSegmentIndex = reader.int32();
+						continue;
+					case 5:
+						if (tag !== 40) break;
+						message.endSegmentIndex = reader.int32();
+						continue;
+					case 6:
+						if (tag !== 50) break;
+						message.timeRange = TimeRange.decode(reader, reader.uint32());
+						continue;
+					case 9:
+						if (tag !== 74) break;
+						message.field9 = BufferedRange_UnknownMessage1.decode(reader, reader.uint32());
+						continue;
+					case 11:
+						if (tag !== 90) break;
+						message.field11 = BufferedRange_UnknownMessage2.decode(reader, reader.uint32());
+						continue;
+					case 12:
+						if (tag !== 98) break;
+						message.field12 = BufferedRange_UnknownMessage2.decode(reader, reader.uint32());
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseBufferedRange_UnknownMessage1() {
+		return { field1: [] };
+	}
+	var BufferedRange_UnknownMessage1 = {
+		encode(message, writer = new BinaryWriter()) {
+			for (const v of message.field1) BufferedRange_UnknownMessage1_UnknownInnerMessage.encode(v, writer.uint32(10).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseBufferedRange_UnknownMessage1();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.field1.push(BufferedRange_UnknownMessage1_UnknownInnerMessage.decode(reader, reader.uint32()));
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseBufferedRange_UnknownMessage1_UnknownInnerMessage() {
+		return {
+			videoId: "",
+			lmt: "0"
+		};
+	}
+	var BufferedRange_UnknownMessage1_UnknownInnerMessage = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.videoId !== void 0 && message.videoId !== "") writer.uint32(10).string(message.videoId);
+			if (message.lmt !== void 0 && message.lmt !== "0") writer.uint32(16).uint64(message.lmt);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseBufferedRange_UnknownMessage1_UnknownInnerMessage();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.videoId = reader.string();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.lmt = reader.uint64().toString();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseBufferedRange_UnknownMessage2() {
+		return {
+			field1: 0,
+			field2: 0,
+			field3: 0
+		};
+	}
+	var BufferedRange_UnknownMessage2 = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.field1 !== void 0 && message.field1 !== 0) writer.uint32(8).int32(message.field1);
+			if (message.field2 !== void 0 && message.field2 !== 0) writer.uint32(16).int32(message.field2);
+			if (message.field3 !== void 0 && message.field3 !== 0) writer.uint32(24).int32(message.field3);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseBufferedRange_UnknownMessage2();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.field1 = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.field2 = reader.int32();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.field3 = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/media_capabilities.js
+	function createBaseMediaCapabilities() {
+		return {
+			videoFormatCapabilities: [],
+			audioFormatCapabilities: [],
+			hdrModeBitmask: 0
+		};
+	}
+	var MediaCapabilities = {
+		encode(message, writer = new BinaryWriter()) {
+			for (const v of message.videoFormatCapabilities) MediaCapabilities_VideoFormatCapability.encode(v, writer.uint32(10).fork()).join();
+			for (const v of message.audioFormatCapabilities) MediaCapabilities_AudioFormatCapability.encode(v, writer.uint32(18).fork()).join();
+			if (message.hdrModeBitmask !== void 0 && message.hdrModeBitmask !== 0) writer.uint32(40).int32(message.hdrModeBitmask);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseMediaCapabilities();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.videoFormatCapabilities.push(MediaCapabilities_VideoFormatCapability.decode(reader, reader.uint32()));
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.audioFormatCapabilities.push(MediaCapabilities_AudioFormatCapability.decode(reader, reader.uint32()));
+						continue;
+					case 5:
+						if (tag !== 40) break;
+						message.hdrModeBitmask = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseMediaCapabilities_VideoFormatCapability() {
+		return {
+			videoCodec: 0,
+			maxHeight: 0,
+			maxWidth: 0,
+			maxFramerate: 0,
+			maxBitrateBps: 0,
+			is10BitSupported: false
+		};
+	}
+	var MediaCapabilities_VideoFormatCapability = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.videoCodec !== void 0 && message.videoCodec !== 0) writer.uint32(8).int32(message.videoCodec);
+			if (message.maxHeight !== void 0 && message.maxHeight !== 0) writer.uint32(24).int32(message.maxHeight);
+			if (message.maxWidth !== void 0 && message.maxWidth !== 0) writer.uint32(32).int32(message.maxWidth);
+			if (message.maxFramerate !== void 0 && message.maxFramerate !== 0) writer.uint32(88).int32(message.maxFramerate);
+			if (message.maxBitrateBps !== void 0 && message.maxBitrateBps !== 0) writer.uint32(96).int32(message.maxBitrateBps);
+			if (message.is10BitSupported !== void 0 && message.is10BitSupported !== false) writer.uint32(120).bool(message.is10BitSupported);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseMediaCapabilities_VideoFormatCapability();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.videoCodec = reader.int32();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.maxHeight = reader.int32();
+						continue;
+					case 4:
+						if (tag !== 32) break;
+						message.maxWidth = reader.int32();
+						continue;
+					case 11:
+						if (tag !== 88) break;
+						message.maxFramerate = reader.int32();
+						continue;
+					case 12:
+						if (tag !== 96) break;
+						message.maxBitrateBps = reader.int32();
+						continue;
+					case 15:
+						if (tag !== 120) break;
+						message.is10BitSupported = reader.bool();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseMediaCapabilities_AudioFormatCapability() {
+		return {
+			audioCodec: 0,
+			numChannels: 0,
+			maxBitrateBps: 0,
+			spatialCapabilityBitmask: 0
+		};
+	}
+	var MediaCapabilities_AudioFormatCapability = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.audioCodec !== void 0 && message.audioCodec !== 0) writer.uint32(8).int32(message.audioCodec);
+			if (message.numChannels !== void 0 && message.numChannels !== 0) writer.uint32(16).int32(message.numChannels);
+			if (message.maxBitrateBps !== void 0 && message.maxBitrateBps !== 0) writer.uint32(24).int32(message.maxBitrateBps);
+			if (message.spatialCapabilityBitmask !== void 0 && message.spatialCapabilityBitmask !== 0) writer.uint32(48).int32(message.spatialCapabilityBitmask);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseMediaCapabilities_AudioFormatCapability();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.audioCodec = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.numChannels = reader.int32();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.maxBitrateBps = reader.int32();
+						continue;
+					case 6:
+						if (tag !== 48) break;
+						message.spatialCapabilityBitmask = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/playback_cookie.js
+	function createBasePlaybackCookie() {
+		return {
+			resolution: 0,
+			field2: 0,
+			videoFmt: void 0,
+			audioFmt: void 0
+		};
+	}
+	var PlaybackCookie = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.resolution !== void 0 && message.resolution !== 0) writer.uint32(8).int32(message.resolution);
+			if (message.field2 !== void 0 && message.field2 !== 0) writer.uint32(16).int32(message.field2);
+			if (message.videoFmt !== void 0) FormatId.encode(message.videoFmt, writer.uint32(58).fork()).join();
+			if (message.audioFmt !== void 0) FormatId.encode(message.audioFmt, writer.uint32(66).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBasePlaybackCookie();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.resolution = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.field2 = reader.int32();
+						continue;
+					case 7:
+						if (tag !== 58) break;
+						message.videoFmt = FormatId.decode(reader, reader.uint32());
+						continue;
+					case 8:
+						if (tag !== 66) break;
+						message.audioFmt = FormatId.decode(reader, reader.uint32());
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/client_abr_state.js
+	function createBaseClientAbrState() {
+		return {
+			timeSinceLastManualFormatSelectionMs: "0",
+			lastManualDirection: 0,
+			lastManualSelectedResolution: 0,
+			detailedNetworkType: 0,
+			clientViewportWidth: 0,
+			clientViewportHeight: 0,
+			clientBitrateCapBytesPerSec: "0",
+			stickyResolution: 0,
+			clientViewportIsFlexible: false,
+			bandwidthEstimate: "0",
+			minAudioQuality: 0,
+			maxAudioQuality: 0,
+			videoQualitySetting: 0,
+			audioRoute: 0,
+			playerTimeMs: "0",
+			timeSinceLastSeek: "0",
+			dataSaverMode: false,
+			networkMeteredState: 0,
+			visibility: 0,
+			playbackRate: 0,
+			elapsedWallTimeMs: "0",
+			mediaCapabilities: void 0,
+			timeSinceLastActionMs: "0",
+			enabledTrackTypesBitfield: 0,
+			maxPacingRate: 0,
+			playerState: "0",
+			drcEnabled: false,
+			field48: 0,
+			field50: 0,
+			field51: 0,
+			sabrReportRequestCancellationInfo: 0,
+			disableStreamingXhr: false,
+			field57: "0",
+			preferVp9: false,
+			av1QualityThreshold: 0,
+			field60: 0,
+			isPrefetch: false,
+			sabrSupportQualityConstraints: false,
+			sabrLicenseConstraint: new Uint8Array(0),
+			allowProximaLiveLatency: 0,
+			sabrForceProxima: 0,
+			field67: 0,
+			sabrForceMaxNetworkInterruptionDurationMs: "0",
+			audioTrackId: "",
+			enableVoiceBoost: false,
+			playbackAuthorization: void 0
+		};
+	}
+	var ClientAbrState = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.timeSinceLastManualFormatSelectionMs !== void 0 && message.timeSinceLastManualFormatSelectionMs !== "0") writer.uint32(104).int64(message.timeSinceLastManualFormatSelectionMs);
+			if (message.lastManualDirection !== void 0 && message.lastManualDirection !== 0) writer.uint32(112).sint32(message.lastManualDirection);
+			if (message.lastManualSelectedResolution !== void 0 && message.lastManualSelectedResolution !== 0) writer.uint32(128).int32(message.lastManualSelectedResolution);
+			if (message.detailedNetworkType !== void 0 && message.detailedNetworkType !== 0) writer.uint32(136).int32(message.detailedNetworkType);
+			if (message.clientViewportWidth !== void 0 && message.clientViewportWidth !== 0) writer.uint32(144).int32(message.clientViewportWidth);
+			if (message.clientViewportHeight !== void 0 && message.clientViewportHeight !== 0) writer.uint32(152).int32(message.clientViewportHeight);
+			if (message.clientBitrateCapBytesPerSec !== void 0 && message.clientBitrateCapBytesPerSec !== "0") writer.uint32(160).int64(message.clientBitrateCapBytesPerSec);
+			if (message.stickyResolution !== void 0 && message.stickyResolution !== 0) writer.uint32(168).int32(message.stickyResolution);
+			if (message.clientViewportIsFlexible !== void 0 && message.clientViewportIsFlexible !== false) writer.uint32(176).bool(message.clientViewportIsFlexible);
+			if (message.bandwidthEstimate !== void 0 && message.bandwidthEstimate !== "0") writer.uint32(184).int64(message.bandwidthEstimate);
+			if (message.minAudioQuality !== void 0 && message.minAudioQuality !== 0) writer.uint32(192).int32(message.minAudioQuality);
+			if (message.maxAudioQuality !== void 0 && message.maxAudioQuality !== 0) writer.uint32(200).int32(message.maxAudioQuality);
+			if (message.videoQualitySetting !== void 0 && message.videoQualitySetting !== 0) writer.uint32(208).int32(message.videoQualitySetting);
+			if (message.audioRoute !== void 0 && message.audioRoute !== 0) writer.uint32(216).int32(message.audioRoute);
+			if (message.playerTimeMs !== void 0 && message.playerTimeMs !== "0") writer.uint32(224).int64(message.playerTimeMs);
+			if (message.timeSinceLastSeek !== void 0 && message.timeSinceLastSeek !== "0") writer.uint32(232).int64(message.timeSinceLastSeek);
+			if (message.dataSaverMode !== void 0 && message.dataSaverMode !== false) writer.uint32(240).bool(message.dataSaverMode);
+			if (message.networkMeteredState !== void 0 && message.networkMeteredState !== 0) writer.uint32(256).int32(message.networkMeteredState);
+			if (message.visibility !== void 0 && message.visibility !== 0) writer.uint32(272).int32(message.visibility);
+			if (message.playbackRate !== void 0 && message.playbackRate !== 0) writer.uint32(285).float(message.playbackRate);
+			if (message.elapsedWallTimeMs !== void 0 && message.elapsedWallTimeMs !== "0") writer.uint32(288).int64(message.elapsedWallTimeMs);
+			if (message.mediaCapabilities !== void 0) MediaCapabilities.encode(message.mediaCapabilities, writer.uint32(306).fork()).join();
+			if (message.timeSinceLastActionMs !== void 0 && message.timeSinceLastActionMs !== "0") writer.uint32(312).int64(message.timeSinceLastActionMs);
+			if (message.enabledTrackTypesBitfield !== void 0 && message.enabledTrackTypesBitfield !== 0) writer.uint32(320).int32(message.enabledTrackTypesBitfield);
+			if (message.maxPacingRate !== void 0 && message.maxPacingRate !== 0) writer.uint32(344).int32(message.maxPacingRate);
+			if (message.playerState !== void 0 && message.playerState !== "0") writer.uint32(352).int64(message.playerState);
+			if (message.drcEnabled !== void 0 && message.drcEnabled !== false) writer.uint32(368).bool(message.drcEnabled);
+			if (message.field48 !== void 0 && message.field48 !== 0) writer.uint32(384).int32(message.field48);
+			if (message.field50 !== void 0 && message.field50 !== 0) writer.uint32(400).int32(message.field50);
+			if (message.field51 !== void 0 && message.field51 !== 0) writer.uint32(408).int32(message.field51);
+			if (message.sabrReportRequestCancellationInfo !== void 0 && message.sabrReportRequestCancellationInfo !== 0) writer.uint32(432).int32(message.sabrReportRequestCancellationInfo);
+			if (message.disableStreamingXhr !== void 0 && message.disableStreamingXhr !== false) writer.uint32(448).bool(message.disableStreamingXhr);
+			if (message.field57 !== void 0 && message.field57 !== "0") writer.uint32(456).int64(message.field57);
+			if (message.preferVp9 !== void 0 && message.preferVp9 !== false) writer.uint32(464).bool(message.preferVp9);
+			if (message.av1QualityThreshold !== void 0 && message.av1QualityThreshold !== 0) writer.uint32(472).int32(message.av1QualityThreshold);
+			if (message.field60 !== void 0 && message.field60 !== 0) writer.uint32(480).int32(message.field60);
+			if (message.isPrefetch !== void 0 && message.isPrefetch !== false) writer.uint32(488).bool(message.isPrefetch);
+			if (message.sabrSupportQualityConstraints !== void 0 && message.sabrSupportQualityConstraints !== false) writer.uint32(496).bool(message.sabrSupportQualityConstraints);
+			if (message.sabrLicenseConstraint !== void 0 && message.sabrLicenseConstraint.length !== 0) writer.uint32(506).bytes(message.sabrLicenseConstraint);
+			if (message.allowProximaLiveLatency !== void 0 && message.allowProximaLiveLatency !== 0) writer.uint32(512).int32(message.allowProximaLiveLatency);
+			if (message.sabrForceProxima !== void 0 && message.sabrForceProxima !== 0) writer.uint32(528).int32(message.sabrForceProxima);
+			if (message.field67 !== void 0 && message.field67 !== 0) writer.uint32(536).int32(message.field67);
+			if (message.sabrForceMaxNetworkInterruptionDurationMs !== void 0 && message.sabrForceMaxNetworkInterruptionDurationMs !== "0") writer.uint32(544).int64(message.sabrForceMaxNetworkInterruptionDurationMs);
+			if (message.audioTrackId !== void 0 && message.audioTrackId !== "") writer.uint32(554).string(message.audioTrackId);
+			if (message.enableVoiceBoost !== void 0 && message.enableVoiceBoost !== false) writer.uint32(608).bool(message.enableVoiceBoost);
+			if (message.playbackAuthorization !== void 0) PlaybackAuthorization.encode(message.playbackAuthorization, writer.uint32(634).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseClientAbrState();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 13:
+						if (tag !== 104) break;
+						message.timeSinceLastManualFormatSelectionMs = reader.int64().toString();
+						continue;
+					case 14:
+						if (tag !== 112) break;
+						message.lastManualDirection = reader.sint32();
+						continue;
+					case 16:
+						if (tag !== 128) break;
+						message.lastManualSelectedResolution = reader.int32();
+						continue;
+					case 17:
+						if (tag !== 136) break;
+						message.detailedNetworkType = reader.int32();
+						continue;
+					case 18:
+						if (tag !== 144) break;
+						message.clientViewportWidth = reader.int32();
+						continue;
+					case 19:
+						if (tag !== 152) break;
+						message.clientViewportHeight = reader.int32();
+						continue;
+					case 20:
+						if (tag !== 160) break;
+						message.clientBitrateCapBytesPerSec = reader.int64().toString();
+						continue;
+					case 21:
+						if (tag !== 168) break;
+						message.stickyResolution = reader.int32();
+						continue;
+					case 22:
+						if (tag !== 176) break;
+						message.clientViewportIsFlexible = reader.bool();
+						continue;
+					case 23:
+						if (tag !== 184) break;
+						message.bandwidthEstimate = reader.int64().toString();
+						continue;
+					case 24:
+						if (tag !== 192) break;
+						message.minAudioQuality = reader.int32();
+						continue;
+					case 25:
+						if (tag !== 200) break;
+						message.maxAudioQuality = reader.int32();
+						continue;
+					case 26:
+						if (tag !== 208) break;
+						message.videoQualitySetting = reader.int32();
+						continue;
+					case 27:
+						if (tag !== 216) break;
+						message.audioRoute = reader.int32();
+						continue;
+					case 28:
+						if (tag !== 224) break;
+						message.playerTimeMs = reader.int64().toString();
+						continue;
+					case 29:
+						if (tag !== 232) break;
+						message.timeSinceLastSeek = reader.int64().toString();
+						continue;
+					case 30:
+						if (tag !== 240) break;
+						message.dataSaverMode = reader.bool();
+						continue;
+					case 32:
+						if (tag !== 256) break;
+						message.networkMeteredState = reader.int32();
+						continue;
+					case 34:
+						if (tag !== 272) break;
+						message.visibility = reader.int32();
+						continue;
+					case 35:
+						if (tag !== 285) break;
+						message.playbackRate = reader.float();
+						continue;
+					case 36:
+						if (tag !== 288) break;
+						message.elapsedWallTimeMs = reader.int64().toString();
+						continue;
+					case 38:
+						if (tag !== 306) break;
+						message.mediaCapabilities = MediaCapabilities.decode(reader, reader.uint32());
+						continue;
+					case 39:
+						if (tag !== 312) break;
+						message.timeSinceLastActionMs = reader.int64().toString();
+						continue;
+					case 40:
+						if (tag !== 320) break;
+						message.enabledTrackTypesBitfield = reader.int32();
+						continue;
+					case 43:
+						if (tag !== 344) break;
+						message.maxPacingRate = reader.int32();
+						continue;
+					case 44:
+						if (tag !== 352) break;
+						message.playerState = reader.int64().toString();
+						continue;
+					case 46:
+						if (tag !== 368) break;
+						message.drcEnabled = reader.bool();
+						continue;
+					case 48:
+						if (tag !== 384) break;
+						message.field48 = reader.int32();
+						continue;
+					case 50:
+						if (tag !== 400) break;
+						message.field50 = reader.int32();
+						continue;
+					case 51:
+						if (tag !== 408) break;
+						message.field51 = reader.int32();
+						continue;
+					case 54:
+						if (tag !== 432) break;
+						message.sabrReportRequestCancellationInfo = reader.int32();
+						continue;
+					case 56:
+						if (tag !== 448) break;
+						message.disableStreamingXhr = reader.bool();
+						continue;
+					case 57:
+						if (tag !== 456) break;
+						message.field57 = reader.int64().toString();
+						continue;
+					case 58:
+						if (tag !== 464) break;
+						message.preferVp9 = reader.bool();
+						continue;
+					case 59:
+						if (tag !== 472) break;
+						message.av1QualityThreshold = reader.int32();
+						continue;
+					case 60:
+						if (tag !== 480) break;
+						message.field60 = reader.int32();
+						continue;
+					case 61:
+						if (tag !== 488) break;
+						message.isPrefetch = reader.bool();
+						continue;
+					case 62:
+						if (tag !== 496) break;
+						message.sabrSupportQualityConstraints = reader.bool();
+						continue;
+					case 63:
+						if (tag !== 506) break;
+						message.sabrLicenseConstraint = reader.bytes();
+						continue;
+					case 64:
+						if (tag !== 512) break;
+						message.allowProximaLiveLatency = reader.int32();
+						continue;
+					case 66:
+						if (tag !== 528) break;
+						message.sabrForceProxima = reader.int32();
+						continue;
+					case 67:
+						if (tag !== 536) break;
+						message.field67 = reader.int32();
+						continue;
+					case 68:
+						if (tag !== 544) break;
+						message.sabrForceMaxNetworkInterruptionDurationMs = reader.int64().toString();
+						continue;
+					case 69:
+						if (tag !== 554) break;
+						message.audioTrackId = reader.string();
+						continue;
+					case 76:
+						if (tag !== 608) break;
+						message.enableVoiceBoost = reader.bool();
+						continue;
+					case 79:
+						if (tag !== 634) break;
+						message.playbackAuthorization = PlaybackAuthorization.decode(reader, reader.uint32());
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/streamer_context.js
+	function createBaseStreamerContext() {
+		return {
+			clientInfo: void 0,
+			poToken: new Uint8Array(0),
+			playbackCookie: new Uint8Array(0),
+			field4: new Uint8Array(0),
+			sabrContexts: [],
+			unsentSabrContexts: [],
+			field7: "",
+			field8: void 0
+		};
+	}
+	var StreamerContext = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.clientInfo !== void 0) StreamerContext_ClientInfo.encode(message.clientInfo, writer.uint32(10).fork()).join();
+			if (message.poToken !== void 0 && message.poToken.length !== 0) writer.uint32(18).bytes(message.poToken);
+			if (message.playbackCookie !== void 0 && message.playbackCookie.length !== 0) writer.uint32(26).bytes(message.playbackCookie);
+			if (message.field4 !== void 0 && message.field4.length !== 0) writer.uint32(34).bytes(message.field4);
+			for (const v of message.sabrContexts) StreamerContext_SabrContext.encode(v, writer.uint32(42).fork()).join();
+			writer.uint32(50).fork();
+			for (const v of message.unsentSabrContexts) writer.int32(v);
+			writer.join();
+			if (message.field7 !== void 0 && message.field7 !== "") writer.uint32(58).string(message.field7);
+			if (message.field8 !== void 0) StreamerContext_UnknownMessage1.encode(message.field8, writer.uint32(66).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseStreamerContext();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.clientInfo = StreamerContext_ClientInfo.decode(reader, reader.uint32());
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.poToken = reader.bytes();
+						continue;
+					case 3:
+						if (tag !== 26) break;
+						message.playbackCookie = reader.bytes();
+						continue;
+					case 4:
+						if (tag !== 34) break;
+						message.field4 = reader.bytes();
+						continue;
+					case 5:
+						if (tag !== 42) break;
+						message.sabrContexts.push(StreamerContext_SabrContext.decode(reader, reader.uint32()));
+						continue;
+					case 6:
+						if (tag === 48) {
+							message.unsentSabrContexts.push(reader.int32());
+							continue;
+						}
+						if (tag === 50) {
+							const end2 = reader.uint32() + reader.pos;
+							while (reader.pos < end2) message.unsentSabrContexts.push(reader.int32());
+							continue;
+						}
+						break;
+					case 7:
+						if (tag !== 58) break;
+						message.field7 = reader.string();
+						continue;
+					case 8:
+						if (tag !== 66) break;
+						message.field8 = StreamerContext_UnknownMessage1.decode(reader, reader.uint32());
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseStreamerContext_ClientInfo() {
+		return {
+			deviceMake: "",
+			deviceModel: "",
+			clientName: 0,
+			clientVersion: "",
+			osName: "",
+			osVersion: "",
+			acceptLanguage: "",
+			acceptRegion: "",
+			screenWidthPoints: 0,
+			screenHeightPoints: 0,
+			screenWidthInches: 0,
+			screenHeightInches: 0,
+			screenPixelDensity: 0,
+			clientFormFactor: 0,
+			gmscoreVersionCode: 0,
+			windowWidthPoints: 0,
+			windowHeightPoints: 0,
+			androidSdkVersion: 0,
+			screenDensityFloat: 0,
+			utcOffsetMinutes: "0",
+			timeZone: "",
+			chipset: "",
+			glDeviceInfo: void 0
+		};
+	}
+	var StreamerContext_ClientInfo = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.deviceMake !== void 0 && message.deviceMake !== "") writer.uint32(98).string(message.deviceMake);
+			if (message.deviceModel !== void 0 && message.deviceModel !== "") writer.uint32(106).string(message.deviceModel);
+			if (message.clientName !== void 0 && message.clientName !== 0) writer.uint32(128).int32(message.clientName);
+			if (message.clientVersion !== void 0 && message.clientVersion !== "") writer.uint32(138).string(message.clientVersion);
+			if (message.osName !== void 0 && message.osName !== "") writer.uint32(146).string(message.osName);
+			if (message.osVersion !== void 0 && message.osVersion !== "") writer.uint32(154).string(message.osVersion);
+			if (message.acceptLanguage !== void 0 && message.acceptLanguage !== "") writer.uint32(170).string(message.acceptLanguage);
+			if (message.acceptRegion !== void 0 && message.acceptRegion !== "") writer.uint32(178).string(message.acceptRegion);
+			if (message.screenWidthPoints !== void 0 && message.screenWidthPoints !== 0) writer.uint32(296).int32(message.screenWidthPoints);
+			if (message.screenHeightPoints !== void 0 && message.screenHeightPoints !== 0) writer.uint32(304).int32(message.screenHeightPoints);
+			if (message.screenWidthInches !== void 0 && message.screenWidthInches !== 0) writer.uint32(317).float(message.screenWidthInches);
+			if (message.screenHeightInches !== void 0 && message.screenHeightInches !== 0) writer.uint32(325).float(message.screenHeightInches);
+			if (message.screenPixelDensity !== void 0 && message.screenPixelDensity !== 0) writer.uint32(328).int32(message.screenPixelDensity);
+			if (message.clientFormFactor !== void 0 && message.clientFormFactor !== 0) writer.uint32(368).int32(message.clientFormFactor);
+			if (message.gmscoreVersionCode !== void 0 && message.gmscoreVersionCode !== 0) writer.uint32(400).int32(message.gmscoreVersionCode);
+			if (message.windowWidthPoints !== void 0 && message.windowWidthPoints !== 0) writer.uint32(440).int32(message.windowWidthPoints);
+			if (message.windowHeightPoints !== void 0 && message.windowHeightPoints !== 0) writer.uint32(448).int32(message.windowHeightPoints);
+			if (message.androidSdkVersion !== void 0 && message.androidSdkVersion !== 0) writer.uint32(512).int32(message.androidSdkVersion);
+			if (message.screenDensityFloat !== void 0 && message.screenDensityFloat !== 0) writer.uint32(525).float(message.screenDensityFloat);
+			if (message.utcOffsetMinutes !== void 0 && message.utcOffsetMinutes !== "0") writer.uint32(536).int64(message.utcOffsetMinutes);
+			if (message.timeZone !== void 0 && message.timeZone !== "") writer.uint32(642).string(message.timeZone);
+			if (message.chipset !== void 0 && message.chipset !== "") writer.uint32(738).string(message.chipset);
+			if (message.glDeviceInfo !== void 0) StreamerContext_GLDeviceInfo.encode(message.glDeviceInfo, writer.uint32(818).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseStreamerContext_ClientInfo();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 12:
+						if (tag !== 98) break;
+						message.deviceMake = reader.string();
+						continue;
+					case 13:
+						if (tag !== 106) break;
+						message.deviceModel = reader.string();
+						continue;
+					case 16:
+						if (tag !== 128) break;
+						message.clientName = reader.int32();
+						continue;
+					case 17:
+						if (tag !== 138) break;
+						message.clientVersion = reader.string();
+						continue;
+					case 18:
+						if (tag !== 146) break;
+						message.osName = reader.string();
+						continue;
+					case 19:
+						if (tag !== 154) break;
+						message.osVersion = reader.string();
+						continue;
+					case 21:
+						if (tag !== 170) break;
+						message.acceptLanguage = reader.string();
+						continue;
+					case 22:
+						if (tag !== 178) break;
+						message.acceptRegion = reader.string();
+						continue;
+					case 37:
+						if (tag !== 296) break;
+						message.screenWidthPoints = reader.int32();
+						continue;
+					case 38:
+						if (tag !== 304) break;
+						message.screenHeightPoints = reader.int32();
+						continue;
+					case 39:
+						if (tag !== 317) break;
+						message.screenWidthInches = reader.float();
+						continue;
+					case 40:
+						if (tag !== 325) break;
+						message.screenHeightInches = reader.float();
+						continue;
+					case 41:
+						if (tag !== 328) break;
+						message.screenPixelDensity = reader.int32();
+						continue;
+					case 46:
+						if (tag !== 368) break;
+						message.clientFormFactor = reader.int32();
+						continue;
+					case 50:
+						if (tag !== 400) break;
+						message.gmscoreVersionCode = reader.int32();
+						continue;
+					case 55:
+						if (tag !== 440) break;
+						message.windowWidthPoints = reader.int32();
+						continue;
+					case 56:
+						if (tag !== 448) break;
+						message.windowHeightPoints = reader.int32();
+						continue;
+					case 64:
+						if (tag !== 512) break;
+						message.androidSdkVersion = reader.int32();
+						continue;
+					case 65:
+						if (tag !== 525) break;
+						message.screenDensityFloat = reader.float();
+						continue;
+					case 67:
+						if (tag !== 536) break;
+						message.utcOffsetMinutes = reader.int64().toString();
+						continue;
+					case 80:
+						if (tag !== 642) break;
+						message.timeZone = reader.string();
+						continue;
+					case 92:
+						if (tag !== 738) break;
+						message.chipset = reader.string();
+						continue;
+					case 102:
+						if (tag !== 818) break;
+						message.glDeviceInfo = StreamerContext_GLDeviceInfo.decode(reader, reader.uint32());
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseStreamerContext_GLDeviceInfo() {
+		return {
+			glRenderer: "",
+			glEsVersionMajor: 0,
+			glEsVersionMinor: 0
+		};
+	}
+	var StreamerContext_GLDeviceInfo = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.glRenderer !== void 0 && message.glRenderer !== "") writer.uint32(10).string(message.glRenderer);
+			if (message.glEsVersionMajor !== void 0 && message.glEsVersionMajor !== 0) writer.uint32(16).int32(message.glEsVersionMajor);
+			if (message.glEsVersionMinor !== void 0 && message.glEsVersionMinor !== 0) writer.uint32(24).int32(message.glEsVersionMinor);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseStreamerContext_GLDeviceInfo();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.glRenderer = reader.string();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.glEsVersionMajor = reader.int32();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.glEsVersionMinor = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseStreamerContext_SabrContext() {
+		return {
+			type: 0,
+			value: new Uint8Array(0)
+		};
+	}
+	var StreamerContext_SabrContext = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.type !== void 0 && message.type !== 0) writer.uint32(8).int32(message.type);
+			if (message.value !== void 0 && message.value.length !== 0) writer.uint32(18).bytes(message.value);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseStreamerContext_SabrContext();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.type = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.value = reader.bytes();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseStreamerContext_UnknownMessage1() {
+		return {
+			field1: new Uint8Array(0),
+			field2: void 0
+		};
+	}
+	var StreamerContext_UnknownMessage1 = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.field1 !== void 0 && message.field1.length !== 0) writer.uint32(10).bytes(message.field1);
+			if (message.field2 !== void 0) StreamerContext_UnknownMessage1_UnknownInnerMessage1.encode(message.field2, writer.uint32(18).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseStreamerContext_UnknownMessage1();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.field1 = reader.bytes();
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.field2 = StreamerContext_UnknownMessage1_UnknownInnerMessage1.decode(reader, reader.uint32());
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseStreamerContext_UnknownMessage1_UnknownInnerMessage1() {
+		return {
+			code: 0,
+			message: ""
+		};
+	}
+	var StreamerContext_UnknownMessage1_UnknownInnerMessage1 = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.code !== void 0 && message.code !== 0) writer.uint32(8).int32(message.code);
+			if (message.message !== void 0 && message.message !== "") writer.uint32(18).string(message.message);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseStreamerContext_UnknownMessage1_UnknownInnerMessage1();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.code = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.message = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/video_playback_abr_request.js
+	function createBaseVideoPlaybackAbrRequest() {
+		return {
+			clientAbrState: void 0,
+			selectedFormatIds: [],
+			bufferedRanges: [],
+			playerTimeMs: "0",
+			videoPlaybackUstreamerConfig: new Uint8Array(0),
+			field6: void 0,
+			preferredAudioFormatIds: [],
+			preferredVideoFormatIds: [],
+			preferredSubtitleFormatIds: [],
+			streamerContext: void 0,
+			field21: void 0,
+			field22: 0,
+			field23: 0,
+			field1000: []
+		};
+	}
+	var VideoPlaybackAbrRequest = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.clientAbrState !== void 0) ClientAbrState.encode(message.clientAbrState, writer.uint32(10).fork()).join();
+			for (const v of message.selectedFormatIds) FormatId.encode(v, writer.uint32(18).fork()).join();
+			for (const v of message.bufferedRanges) BufferedRange.encode(v, writer.uint32(26).fork()).join();
+			if (message.playerTimeMs !== void 0 && message.playerTimeMs !== "0") writer.uint32(32).int64(message.playerTimeMs);
+			if (message.videoPlaybackUstreamerConfig !== void 0 && message.videoPlaybackUstreamerConfig.length !== 0) writer.uint32(42).bytes(message.videoPlaybackUstreamerConfig);
+			if (message.field6 !== void 0) UnknownMessage1.encode(message.field6, writer.uint32(50).fork()).join();
+			for (const v of message.preferredAudioFormatIds) FormatId.encode(v, writer.uint32(130).fork()).join();
+			for (const v of message.preferredVideoFormatIds) FormatId.encode(v, writer.uint32(138).fork()).join();
+			for (const v of message.preferredSubtitleFormatIds) FormatId.encode(v, writer.uint32(146).fork()).join();
+			if (message.streamerContext !== void 0) StreamerContext.encode(message.streamerContext, writer.uint32(154).fork()).join();
+			if (message.field21 !== void 0) UnknownMessage2.encode(message.field21, writer.uint32(170).fork()).join();
+			if (message.field22 !== void 0 && message.field22 !== 0) writer.uint32(176).int32(message.field22);
+			if (message.field23 !== void 0 && message.field23 !== 0) writer.uint32(184).int32(message.field23);
+			for (const v of message.field1000) UnknownMessage3.encode(v, writer.uint32(8002).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseVideoPlaybackAbrRequest();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.clientAbrState = ClientAbrState.decode(reader, reader.uint32());
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.selectedFormatIds.push(FormatId.decode(reader, reader.uint32()));
+						continue;
+					case 3:
+						if (tag !== 26) break;
+						message.bufferedRanges.push(BufferedRange.decode(reader, reader.uint32()));
+						continue;
+					case 4:
+						if (tag !== 32) break;
+						message.playerTimeMs = reader.int64().toString();
+						continue;
+					case 5:
+						if (tag !== 42) break;
+						message.videoPlaybackUstreamerConfig = reader.bytes();
+						continue;
+					case 6:
+						if (tag !== 50) break;
+						message.field6 = UnknownMessage1.decode(reader, reader.uint32());
+						continue;
+					case 16:
+						if (tag !== 130) break;
+						message.preferredAudioFormatIds.push(FormatId.decode(reader, reader.uint32()));
+						continue;
+					case 17:
+						if (tag !== 138) break;
+						message.preferredVideoFormatIds.push(FormatId.decode(reader, reader.uint32()));
+						continue;
+					case 18:
+						if (tag !== 146) break;
+						message.preferredSubtitleFormatIds.push(FormatId.decode(reader, reader.uint32()));
+						continue;
+					case 19:
+						if (tag !== 154) break;
+						message.streamerContext = StreamerContext.decode(reader, reader.uint32());
+						continue;
+					case 21:
+						if (tag !== 170) break;
+						message.field21 = UnknownMessage2.decode(reader, reader.uint32());
+						continue;
+					case 22:
+						if (tag !== 176) break;
+						message.field22 = reader.int32();
+						continue;
+					case 23:
+						if (tag !== 184) break;
+						message.field23 = reader.int32();
+						continue;
+					case 1e3:
+						if (tag !== 8002) break;
+						message.field1000.push(UnknownMessage3.decode(reader, reader.uint32()));
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseUnknownMessage1() {
+		return {
+			formatId: void 0,
+			lmt: "0",
+			sequenceNumber: 0,
+			timeRange: void 0,
+			field5: 0
+		};
+	}
+	var UnknownMessage1 = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.formatId !== void 0) FormatId.encode(message.formatId, writer.uint32(10).fork()).join();
+			if (message.lmt !== void 0 && message.lmt !== "0") writer.uint32(16).sint64(message.lmt);
+			if (message.sequenceNumber !== void 0 && message.sequenceNumber !== 0) writer.uint32(24).int32(message.sequenceNumber);
+			if (message.timeRange !== void 0) TimeRange.encode(message.timeRange, writer.uint32(34).fork()).join();
+			if (message.field5 !== void 0 && message.field5 !== 0) writer.uint32(40).int32(message.field5);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseUnknownMessage1();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.formatId = FormatId.decode(reader, reader.uint32());
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.lmt = reader.sint64().toString();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.sequenceNumber = reader.int32();
+						continue;
+					case 4:
+						if (tag !== 34) break;
+						message.timeRange = TimeRange.decode(reader, reader.uint32());
+						continue;
+					case 5:
+						if (tag !== 40) break;
+						message.field5 = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseUnknownMessage2() {
+		return {
+			field1: [],
+			field2: new Uint8Array(0),
+			field3: "",
+			field4: 0,
+			field5: 0,
+			field6: ""
+		};
+	}
+	var UnknownMessage2 = {
+		encode(message, writer = new BinaryWriter()) {
+			for (const v of message.field1) writer.uint32(10).string(v);
+			if (message.field2 !== void 0 && message.field2.length !== 0) writer.uint32(18).bytes(message.field2);
+			if (message.field3 !== void 0 && message.field3 !== "") writer.uint32(26).string(message.field3);
+			if (message.field4 !== void 0 && message.field4 !== 0) writer.uint32(32).int32(message.field4);
+			if (message.field5 !== void 0 && message.field5 !== 0) writer.uint32(40).int32(message.field5);
+			if (message.field6 !== void 0 && message.field6 !== "") writer.uint32(50).string(message.field6);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseUnknownMessage2();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.field1.push(reader.string());
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.field2 = reader.bytes();
+						continue;
+					case 3:
+						if (tag !== 26) break;
+						message.field3 = reader.string();
+						continue;
+					case 4:
+						if (tag !== 32) break;
+						message.field4 = reader.int32();
+						continue;
+					case 5:
+						if (tag !== 40) break;
+						message.field5 = reader.int32();
+						continue;
+					case 6:
+						if (tag !== 50) break;
+						message.field6 = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseUnknownMessage3() {
+		return {
+			formatIds: [],
+			ud: [],
+			clipId: ""
+		};
+	}
+	var UnknownMessage3 = {
+		encode(message, writer = new BinaryWriter()) {
+			for (const v of message.formatIds) FormatId.encode(v, writer.uint32(10).fork()).join();
+			for (const v of message.ud) BufferedRange.encode(v, writer.uint32(18).fork()).join();
+			if (message.clipId !== void 0 && message.clipId !== "") writer.uint32(26).string(message.clipId);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseUnknownMessage3();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.formatIds.push(FormatId.decode(reader, reader.uint32()));
+						continue;
+					case 2:
+						if (tag !== 18) break;
+						message.ud.push(BufferedRange.decode(reader, reader.uint32()));
+						continue;
+					case 3:
+						if (tag !== 26) break;
+						message.clipId = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/next_request_policy.js
+	function createBaseNextRequestPolicy() {
+		return {
+			targetAudioReadaheadMs: 0,
+			targetVideoReadaheadMs: 0,
+			maxTimeSinceLastRequestMs: 0,
+			backoffTimeMs: 0,
+			minAudioReadaheadMs: 0,
+			minVideoReadaheadMs: 0,
+			playbackCookie: void 0,
+			videoId: ""
+		};
+	}
+	var NextRequestPolicy = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.targetAudioReadaheadMs !== void 0 && message.targetAudioReadaheadMs !== 0) writer.uint32(8).int32(message.targetAudioReadaheadMs);
+			if (message.targetVideoReadaheadMs !== void 0 && message.targetVideoReadaheadMs !== 0) writer.uint32(16).int32(message.targetVideoReadaheadMs);
+			if (message.maxTimeSinceLastRequestMs !== void 0 && message.maxTimeSinceLastRequestMs !== 0) writer.uint32(24).int32(message.maxTimeSinceLastRequestMs);
+			if (message.backoffTimeMs !== void 0 && message.backoffTimeMs !== 0) writer.uint32(32).int32(message.backoffTimeMs);
+			if (message.minAudioReadaheadMs !== void 0 && message.minAudioReadaheadMs !== 0) writer.uint32(40).int32(message.minAudioReadaheadMs);
+			if (message.minVideoReadaheadMs !== void 0 && message.minVideoReadaheadMs !== 0) writer.uint32(48).int32(message.minVideoReadaheadMs);
+			if (message.playbackCookie !== void 0) PlaybackCookie.encode(message.playbackCookie, writer.uint32(58).fork()).join();
+			if (message.videoId !== void 0 && message.videoId !== "") writer.uint32(66).string(message.videoId);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseNextRequestPolicy();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.targetAudioReadaheadMs = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.targetVideoReadaheadMs = reader.int32();
+						continue;
+					case 3:
+						if (tag !== 24) break;
+						message.maxTimeSinceLastRequestMs = reader.int32();
+						continue;
+					case 4:
+						if (tag !== 32) break;
+						message.backoffTimeMs = reader.int32();
+						continue;
+					case 5:
+						if (tag !== 40) break;
+						message.minAudioReadaheadMs = reader.int32();
+						continue;
+					case 6:
+						if (tag !== 48) break;
+						message.minVideoReadaheadMs = reader.int32();
+						continue;
+					case 7:
+						if (tag !== 58) break;
+						message.playbackCookie = PlaybackCookie.decode(reader, reader.uint32());
+						continue;
+					case 8:
+						if (tag !== 66) break;
+						message.videoId = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/sabr_error.js
+	function createBaseSabrError() {
+		return {
+			type: "",
+			code: 0
+		};
+	}
+	var SabrError = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.type !== void 0 && message.type !== "") writer.uint32(10).string(message.type);
+			if (message.code !== void 0 && message.code !== 0) writer.uint32(16).int32(message.code);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseSabrError();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.type = reader.string();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.code = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/sabr_redirect.js
+	function createBaseSabrRedirect() {
+		return { url: "" };
+	}
+	var SabrRedirect = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.url !== void 0 && message.url !== "") writer.uint32(10).string(message.url);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseSabrRedirect();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.url = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/reload_player_response.js
+	function createBaseReloadPlaybackParams() {
+		return { token: "" };
+	}
+	var ReloadPlaybackParams = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.token !== void 0 && message.token !== "") writer.uint32(10).string(message.token);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseReloadPlaybackParams();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.token = reader.string();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	function createBaseReloadPlaybackContext() {
+		return { reloadPlaybackParams: void 0 };
+	}
+	var ReloadPlaybackContext = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.reloadPlaybackParams !== void 0) ReloadPlaybackParams.encode(message.reloadPlaybackParams, writer.uint32(10).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseReloadPlaybackContext();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 10) break;
+						message.reloadPlaybackParams = ReloadPlaybackParams.decode(reader, reader.uint32());
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/sabr_context_update.js
+	var SabrContextUpdate_SabrContextWritePolicy = {
+		UNSPECIFIED: 0,
+		0: "UNSPECIFIED",
+		OVERWRITE: 1,
+		1: "OVERWRITE",
+		KEEP_EXISTING: 2,
+		2: "KEEP_EXISTING",
+		UNRECOGNIZED: -1,
+		"-1": "UNRECOGNIZED"
+	};
+	function createBaseSabrContextUpdate() {
+		return {
+			type: 0,
+			scope: 0,
+			value: new Uint8Array(0),
+			sendByDefault: false,
+			writePolicy: 0
+		};
+	}
+	var SabrContextUpdate = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.type !== void 0 && message.type !== 0) writer.uint32(8).int32(message.type);
+			if (message.scope !== void 0 && message.scope !== 0) writer.uint32(16).int32(message.scope);
+			if (message.value !== void 0 && message.value.length !== 0) writer.uint32(26).bytes(message.value);
+			if (message.sendByDefault !== void 0 && message.sendByDefault !== false) writer.uint32(32).bool(message.sendByDefault);
+			if (message.writePolicy !== void 0 && message.writePolicy !== 0) writer.uint32(40).int32(message.writePolicy);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseSabrContextUpdate();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.type = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.scope = reader.int32();
+						continue;
+					case 3:
+						if (tag !== 26) break;
+						message.value = reader.bytes();
+						continue;
+					case 4:
+						if (tag !== 32) break;
+						message.sendByDefault = reader.bool();
+						continue;
+					case 5:
+						if (tag !== 40) break;
+						message.writePolicy = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/sabr_context_sending_policy.js
+	function createBaseSabrContextSendingPolicy() {
+		return {
+			startPolicy: [],
+			stopPolicy: [],
+			discardPolicy: []
+		};
+	}
+	var SabrContextSendingPolicy = {
+		encode(message, writer = new BinaryWriter()) {
+			writer.uint32(10).fork();
+			for (const v of message.startPolicy) writer.int32(v);
+			writer.join();
+			writer.uint32(18).fork();
+			for (const v of message.stopPolicy) writer.int32(v);
+			writer.join();
+			writer.uint32(26).fork();
+			for (const v of message.discardPolicy) writer.int32(v);
+			writer.join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseSabrContextSendingPolicy();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag === 8) {
+							message.startPolicy.push(reader.int32());
+							continue;
+						}
+						if (tag === 10) {
+							const end2 = reader.uint32() + reader.pos;
+							while (reader.pos < end2) message.startPolicy.push(reader.int32());
+							continue;
+						}
+						break;
+					case 2:
+						if (tag === 16) {
+							message.stopPolicy.push(reader.int32());
+							continue;
+						}
+						if (tag === 18) {
+							const end2 = reader.uint32() + reader.pos;
+							while (reader.pos < end2) message.stopPolicy.push(reader.int32());
+							continue;
+						}
+						break;
+					case 3:
+						if (tag === 24) {
+							message.discardPolicy.push(reader.int32());
+							continue;
+						}
+						if (tag === 26) {
+							const end2 = reader.uint32() + reader.pos;
+							while (reader.pos < end2) message.discardPolicy.push(reader.int32());
+							continue;
+						}
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/stream_protection_status.js
+	function createBaseStreamProtectionStatus() {
+		return {
+			status: 0,
+			maxRetries: 0
+		};
+	}
+	var StreamProtectionStatus = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.status !== void 0 && message.status !== 0) writer.uint32(8).int32(message.status);
+			if (message.maxRetries !== void 0 && message.maxRetries !== 0) writer.uint32(16).int32(message.maxRetries);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const end = length === void 0 ? reader.len : reader.pos + length;
+			const message = createBaseStreamProtectionStatus();
+			while (reader.pos < end) {
+				const tag = reader.uint32();
+				switch (tag >>> 3) {
+					case 1:
+						if (tag !== 8) break;
+						message.status = reader.int32();
+						continue;
+					case 2:
+						if (tag !== 16) break;
+						message.maxRetries = reader.int32();
+						continue;
+				}
+				if ((tag & 7) === 4 || tag === 0) break;
+				reader.skip(tag & 7);
+			}
+			return message;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/ump_part_id.js
+	var UMPPartId = {
+		UNKNOWN: 0,
+		0: "UNKNOWN",
+		ONESIE_HEADER: 10,
+		10: "ONESIE_HEADER",
+		ONESIE_DATA: 11,
+		11: "ONESIE_DATA",
+		ONESIE_ENCRYPTED_MEDIA: 12,
+		12: "ONESIE_ENCRYPTED_MEDIA",
+		MEDIA_HEADER: 20,
+		20: "MEDIA_HEADER",
+		MEDIA: 21,
+		21: "MEDIA",
+		MEDIA_END: 22,
+		22: "MEDIA_END",
+		CONFIG: 30,
+		30: "CONFIG",
+		LIVE_METADATA: 31,
+		31: "LIVE_METADATA",
+		HOSTNAME_CHANGE_HINT_DEPRECATED: 32,
+		32: "HOSTNAME_CHANGE_HINT_DEPRECATED",
+		LIVE_METADATA_PROMISE: 33,
+		33: "LIVE_METADATA_PROMISE",
+		LIVE_METADATA_PROMISE_CANCELLATION: 34,
+		34: "LIVE_METADATA_PROMISE_CANCELLATION",
+		NEXT_REQUEST_POLICY: 35,
+		35: "NEXT_REQUEST_POLICY",
+		USTREAMER_VIDEO_AND_FORMAT_METADATA: 36,
+		36: "USTREAMER_VIDEO_AND_FORMAT_METADATA",
+		FORMAT_SELECTION_CONFIG: 37,
+		37: "FORMAT_SELECTION_CONFIG",
+		USTREAMER_SELECTED_MEDIA_STREAM: 38,
+		38: "USTREAMER_SELECTED_MEDIA_STREAM",
+		FORMAT_INITIALIZATION_METADATA: 42,
+		42: "FORMAT_INITIALIZATION_METADATA",
+		SABR_REDIRECT: 43,
+		43: "SABR_REDIRECT",
+		SABR_ERROR: 44,
+		44: "SABR_ERROR",
+		SABR_SEEK: 45,
+		45: "SABR_SEEK",
+		RELOAD_PLAYER_RESPONSE: 46,
+		46: "RELOAD_PLAYER_RESPONSE",
+		PLAYBACK_START_POLICY: 47,
+		47: "PLAYBACK_START_POLICY",
+		ALLOWED_CACHED_FORMATS: 48,
+		48: "ALLOWED_CACHED_FORMATS",
+		START_BW_SAMPLING_HINT: 49,
+		49: "START_BW_SAMPLING_HINT",
+		PAUSE_BW_SAMPLING_HINT: 50,
+		50: "PAUSE_BW_SAMPLING_HINT",
+		SELECTABLE_FORMATS: 51,
+		51: "SELECTABLE_FORMATS",
+		REQUEST_IDENTIFIER: 52,
+		52: "REQUEST_IDENTIFIER",
+		REQUEST_CANCELLATION_POLICY: 53,
+		53: "REQUEST_CANCELLATION_POLICY",
+		ONESIE_PREFETCH_REJECTION: 54,
+		54: "ONESIE_PREFETCH_REJECTION",
+		TIMELINE_CONTEXT: 55,
+		55: "TIMELINE_CONTEXT",
+		REQUEST_PIPELINING: 56,
+		56: "REQUEST_PIPELINING",
+		SABR_CONTEXT_UPDATE: 57,
+		57: "SABR_CONTEXT_UPDATE",
+		STREAM_PROTECTION_STATUS: 58,
+		58: "STREAM_PROTECTION_STATUS",
+		SABR_CONTEXT_SENDING_POLICY: 59,
+		59: "SABR_CONTEXT_SENDING_POLICY",
+		LAWNMOWER_POLICY: 60,
+		60: "LAWNMOWER_POLICY",
+		SABR_ACK: 61,
+		61: "SABR_ACK",
+		END_OF_TRACK: 62,
+		62: "END_OF_TRACK",
+		CACHE_LOAD_POLICY: 63,
+		63: "CACHE_LOAD_POLICY",
+		LAWNMOWER_MESSAGING_POLICY: 64,
+		64: "LAWNMOWER_MESSAGING_POLICY",
+		PREWARM_CONNECTION: 65,
+		65: "PREWARM_CONNECTION",
+		PLAYBACK_DEBUG_INFO: 66,
+		66: "PLAYBACK_DEBUG_INFO",
+		SNACKBAR_MESSAGE: 67,
+		67: "SNACKBAR_MESSAGE",
+		UNRECOGNIZED: -1,
+		"-1": "UNRECOGNIZED"
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/src/utils/Logger.js
+	var LogLevel = {
+		NONE: 0,
+		0: "NONE",
+		ERROR: 1,
+		1: "ERROR",
+		WARN: 2,
+		2: "WARN",
+		INFO: 3,
+		3: "INFO",
+		DEBUG: 4,
+		4: "DEBUG",
+		ALL: 99,
+		99: "ALL"
+	};
+	var Logger = class Logger {
+		constructor() {
+			this.currentLogLevels = new Set([LogLevel.INFO, LogLevel.ERROR]);
+		}
+		static getInstance() {
+			if (!Logger.instance) Logger.instance = new Logger();
+			return Logger.instance;
+		}
+		setLogLevels(...levels) {
+			if (levels.length === 0 || levels.includes(LogLevel.NONE)) this.currentLogLevels = new Set();
+			else if (levels.includes(LogLevel.ALL)) this.currentLogLevels = new Set([
+				LogLevel.ERROR,
+				LogLevel.WARN,
+				LogLevel.INFO,
+				LogLevel.DEBUG
+			]);
+			else this.currentLogLevels = new Set(levels.filter((level) => level !== LogLevel.NONE && level !== LogLevel.ALL));
+		}
+		getLogLevels() {
+			return new Set(this.currentLogLevels);
+		}
+		log(level, tag, ...messages) {
+			if (level !== LogLevel.NONE && this.currentLogLevels.has(level)) {
+				const prefix = `[${LogLevel[level]}] [${tag}]`;
+				switch (level) {
+					case LogLevel.ERROR:
+						console.error(prefix, ...messages);
+						break;
+					case LogLevel.WARN:
+						console.warn(prefix, ...messages);
+						break;
+					case LogLevel.INFO:
+						console.info(prefix, ...messages);
+						break;
+					case LogLevel.DEBUG: console.debug(prefix, ...messages);
+				}
+			}
+		}
+		error(tag, ...messages) {
+			this.log(LogLevel.ERROR, tag, ...messages);
+		}
+		warn(tag, ...messages) {
+			this.log(LogLevel.WARN, tag, ...messages);
+		}
+		info(tag, ...messages) {
+			this.log(LogLevel.INFO, tag, ...messages);
+		}
+		debug(tag, ...messages) {
+			this.log(LogLevel.DEBUG, tag, ...messages);
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/src/utils/shared.js
+	var MAX_INT32_VALUE = "2147483647";
+	var EnabledTrackTypes = {
+		VIDEO_AND_AUDIO: 0,
+		0: "VIDEO_AND_AUDIO",
+		AUDIO_ONLY: 1,
+		1: "AUDIO_ONLY",
+		VIDEO_ONLY: 2,
+		2: "VIDEO_ONLY"
+	};
+	function base64ToU8(base64) {
+		const standard_base64 = base64.replace(/-/g, "+").replace(/_/g, "/");
+		const padded_base64 = standard_base64.padEnd(standard_base64.length + (4 - standard_base64.length % 4) % 4, "=");
+		return new Uint8Array(atob(padded_base64).split("").map((char) => char.charCodeAt(0)));
+	}
+	function concatenateChunks(chunks) {
+		const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+		const result = new Uint8Array(totalLength);
+		let offset = 0;
+		for (const chunk of chunks) {
+			result.set(chunk, offset);
+			offset += chunk.length;
+		}
+		return result;
+	}
+	function wait(ms) {
+		return new Promise((resolve) => setTimeout(resolve, ms));
+	}
+	//#endregion
+	//#region node_modules/googlevideo/dist/src/utils/EventEmitterLike.js
+	var __classPrivateFieldSet = function(receiver, state, value, kind, f) {
+		if (kind === "m") throw new TypeError("Private method is not writable");
+		if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+		if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
+		return kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value), value;
+	};
+	var __classPrivateFieldGet = function(receiver, state, kind, f) {
+		if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+		if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
+		return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
+	};
+	var _CustomEvent_detail;
+	var _EventEmitterLike_legacyListeners;
+	var CustomEvent$1 = class extends Event {
+		constructor(type, options) {
+			super(type, options);
+			_CustomEvent_detail.set(this, void 0);
+			__classPrivateFieldSet(this, _CustomEvent_detail, options?.detail ?? null, "f");
+		}
+		get detail() {
+			return __classPrivateFieldGet(this, _CustomEvent_detail, "f");
+		}
+	};
+	_CustomEvent_detail = new WeakMap();
+	var EventEmitterLike = class extends EventTarget {
+		constructor() {
+			super();
+			_EventEmitterLike_legacyListeners.set(this, new Map());
+		}
+		emit(type, ...args) {
+			const event = new CustomEvent$1(type, { detail: args });
+			this.dispatchEvent(event);
+		}
+		on(type, listener) {
+			const wrapper = (ev) => {
+				if (ev instanceof CustomEvent$1) listener(...ev.detail);
+				else listener(ev);
+			};
+			__classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").set(listener, {
+				type,
+				wrapper
+			});
+			this.addEventListener(type, wrapper);
+		}
+		once(type, listener) {
+			const wrapper = (ev) => {
+				if (ev instanceof CustomEvent$1) listener(...ev.detail);
+				else listener(ev);
+				this.off(type, listener);
+			};
+			__classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").set(listener, {
+				type,
+				wrapper
+			});
+			this.addEventListener(type, wrapper);
+		}
+		off(type, listener) {
+			const listenerData = __classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").get(listener);
+			if (listenerData && listenerData.type === type) {
+				this.removeEventListener(type, listenerData.wrapper);
+				__classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").delete(listener);
+			}
+		}
+		removeAllListeners(type) {
+			if (type) {
+				for (const [listener, listenerData] of __classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").entries()) if (listenerData.type === type) {
+					this.removeEventListener(type, listenerData.wrapper);
+					__classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").delete(listener);
+				}
+			} else for (const [listener, listenerData] of __classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").entries()) {
+				this.removeEventListener(listenerData.type, listenerData.wrapper);
+				__classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").delete(listener);
+			}
+		}
+	};
+	_EventEmitterLike_legacyListeners = new WeakMap();
+	//#endregion
+	//#region node_modules/googlevideo/dist/src/utils/formatKeyUtils.js
+	function createKey(itag, xtags) {
+		return `${itag || ""}:${xtags || ""}`;
+	}
+	function fromFormat(format) {
+		if (!format) return void 0;
+		return createKey(format.itag, format.xtags);
+	}
+	function fromMediaHeader(mediaHeader) {
+		return createKey(mediaHeader.itag, mediaHeader.xtags);
+	}
+	function fromFormatInitializationMetadata(formatInitMetadata) {
+		if (!formatInitMetadata.formatId) return "";
+		return createKey(formatInitMetadata.formatId.itag, formatInitMetadata.formatId.xtags);
+	}
+	//#endregion
+	//#region node_modules/googlevideo/dist/src/utils/sabrStreamUtils.js
+	function getMediaType(initializedFormat) {
+		return initializedFormat.formatInitializationMetadata?.mimeType?.includes("video") ? "video" : "audio";
+	}
+	function getTotalDownloadedDuration(initializedFormat) {
+		return Array.from(initializedFormat.downloadedSegments.values()).reduce((sum, segment) => sum + parseInt(segment.durationMs || "0"), 0);
+	}
+	function filterFormatsByType(formats, isAudio) {
+		return formats.filter((format) => {
+			if (!format.mimeType) return false;
+			return isAudio ? format.mimeType.includes("audio") : format.mimeType.includes("video");
+		});
+	}
+	function chooseFormat(formats, formatOption, preferences) {
+		if (!formats.length) return void 0;
+		const typeFormats = filterFormatsByType(formats, preferences.isAudio);
+		if (!typeFormats.length) return void 0;
+		if (typeof formatOption === "number") return typeFormats.find((format) => format.itag === formatOption);
+		if (formatOption && typeof formatOption !== "function") return formatOption;
+		if (typeof formatOption === "function") return formatOption(typeFormats);
+		let filteredFormats = typeFormats;
+		if (preferences.language) filteredFormats = filteredFormats.filter((format) => format.language === preferences.language);
+		if (preferences.quality) filteredFormats = filteredFormats.filter((format) => preferences.isAudio ? !!format.audioQuality?.toLowerCase().includes(preferences.quality?.toLowerCase() || "") : !!format.qualityLabel?.toLowerCase().includes(preferences.quality?.toLowerCase() || ""));
+		if (preferences.isAudio) {
+			if (preferences.preferOpus) filteredFormats = applyMimeTypeFilter(filteredFormats, "opus");
+		} else if (preferences.preferH264) filteredFormats = filteredFormats.filter((format) => !!format.mimeType && format.mimeType.includes("mp4") && format.mimeType.includes("avc"));
+		if (preferences.preferWebM) filteredFormats = applyMimeTypeFilter(filteredFormats, "webm");
+		else if (preferences.preferMP4) filteredFormats = applyMimeTypeFilter(filteredFormats, "mp4");
+		return preferences.isAudio ? filteredFormats.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0] : filteredFormats.sort((a, b) => (b.height || 0) - (a.height || 0))[0];
+	}
+	function applyMimeTypeFilter(formats, mimeTypePart) {
+		return formats.filter((format) => format.mimeType?.includes(mimeTypePart));
+	}
+	//#endregion
+	//#region node_modules/googlevideo/dist/src/core/CompositeBuffer.js
+	var CompositeBuffer = class CompositeBuffer {
+		constructor(chunks = []) {
+			this.chunks = [];
+			this.currentChunkOffset = this.currentChunkIndex = 0;
+			this.currentDataView = void 0;
+			this.totalLength = 0;
+			chunks.forEach((chunk) => this.append(chunk));
+		}
+		append(chunk) {
+			if (chunk instanceof Uint8Array) {
+				if (this.canMergeWithLastChunk(chunk)) {
+					const lastChunk = this.chunks[this.chunks.length - 1];
+					this.chunks[this.chunks.length - 1] = new Uint8Array(lastChunk.buffer, lastChunk.byteOffset, lastChunk.length + chunk.length);
+					this.resetFocus();
+				} else this.chunks.push(chunk);
+				this.totalLength += chunk.length;
+			} else chunk.chunks.forEach((c) => this.append(c));
+		}
+		split(position) {
+			const extractedBuffer = new CompositeBuffer();
+			const remainingBuffer = new CompositeBuffer();
+			const iterator = this.chunks[Symbol.iterator]();
+			let item = iterator.next();
+			while (!item.done) {
+				const chunk = item.value;
+				if (position >= chunk.length) {
+					extractedBuffer.append(chunk);
+					position -= chunk.length;
+				} else if (position > 0) {
+					extractedBuffer.append(new Uint8Array(chunk.buffer, chunk.byteOffset, position));
+					remainingBuffer.append(new Uint8Array(chunk.buffer, chunk.byteOffset + position, chunk.length - position));
+					position = 0;
+				} else remainingBuffer.append(chunk);
+				item = iterator.next();
+			}
+			return {
+				extractedBuffer,
+				remainingBuffer
+			};
+		}
+		getLength() {
+			return this.totalLength;
+		}
+		canReadBytes(position, length) {
+			return position + length <= this.totalLength;
+		}
+		getUint8(position) {
+			this.focus(position);
+			return this.chunks[this.currentChunkIndex][position - this.currentChunkOffset];
+		}
+		focus(position) {
+			if (!this.isFocused(position)) {
+				if (position < this.currentChunkOffset) this.resetFocus();
+				while (this.currentChunkOffset + this.chunks[this.currentChunkIndex].length <= position && this.currentChunkIndex < this.chunks.length - 1) {
+					this.currentChunkOffset += this.chunks[this.currentChunkIndex].length;
+					this.currentChunkIndex += 1;
+				}
+				this.currentDataView = void 0;
+			}
+		}
+		isFocused(position) {
+			return position >= this.currentChunkOffset && position < this.currentChunkOffset + this.chunks[this.currentChunkIndex].length;
+		}
+		resetFocus() {
+			this.currentDataView = void 0;
+			this.currentChunkIndex = 0;
+			this.currentChunkOffset = 0;
+		}
+		canMergeWithLastChunk(chunk) {
+			if (this.chunks.length === 0) return false;
+			const lastChunk = this.chunks[this.chunks.length - 1];
+			return lastChunk.buffer === chunk.buffer && lastChunk.byteOffset + lastChunk.length === chunk.byteOffset;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/src/core/UmpReader.js
+	var UmpReader = class {
+		constructor(compositeBuffer) {
+			this.compositeBuffer = compositeBuffer;
+		}
+		read(handlePart) {
+			while (true) {
+				let offset = 0;
+				const [partType, newOffset] = this.readVarInt(offset);
+				offset = newOffset;
+				const [partSize, finalOffset] = this.readVarInt(offset);
+				offset = finalOffset;
+				if (partType < 0 || partSize < 0) break;
+				if (!this.compositeBuffer.canReadBytes(offset, partSize)) {
+					if (!this.compositeBuffer.canReadBytes(offset, 1)) break;
+					return {
+						type: partType,
+						size: partSize,
+						data: this.compositeBuffer
+					};
+				}
+				const splitResult = this.compositeBuffer.split(offset).remainingBuffer.split(partSize);
+				offset = 0;
+				handlePart({
+					type: partType,
+					size: partSize,
+					data: splitResult.extractedBuffer
+				});
+				this.compositeBuffer = splitResult.remainingBuffer;
+			}
+		}
+		readVarInt(offset) {
+			let byteLength;
+			if (this.compositeBuffer.canReadBytes(offset, 1)) {
+				const firstByte = this.compositeBuffer.getUint8(offset);
+				byteLength = firstByte < 128 ? 1 : firstByte < 192 ? 2 : firstByte < 224 ? 3 : firstByte < 240 ? 4 : 5;
+			} else byteLength = 0;
+			if (byteLength < 1 || !this.compositeBuffer.canReadBytes(offset, byteLength)) return [-1, offset];
+			let value;
+			switch (byteLength) {
+				case 1:
+					value = this.compositeBuffer.getUint8(offset++);
+					break;
+				case 2: {
+					const byte1 = this.compositeBuffer.getUint8(offset++);
+					const byte2 = this.compositeBuffer.getUint8(offset++);
+					value = (byte1 & 63) + 64 * byte2;
+					break;
+				}
+				case 3: {
+					const byte1 = this.compositeBuffer.getUint8(offset++);
+					const byte2 = this.compositeBuffer.getUint8(offset++);
+					const byte3 = this.compositeBuffer.getUint8(offset++);
+					value = (byte1 & 31) + 32 * (byte2 + 256 * byte3);
+					break;
+				}
+				case 4: {
+					const byte1 = this.compositeBuffer.getUint8(offset++);
+					const byte2 = this.compositeBuffer.getUint8(offset++);
+					const byte3 = this.compositeBuffer.getUint8(offset++);
+					const byte4 = this.compositeBuffer.getUint8(offset++);
+					value = (byte1 & 15) + 16 * (byte2 + 256 * (byte3 + 256 * byte4));
+					break;
+				}
+				default: {
+					const tempOffset = offset + 1;
+					this.compositeBuffer.focus(tempOffset);
+					if (this.canReadFromCurrentChunk(tempOffset, 4)) value = this.getCurrentDataView().getUint32(tempOffset - this.compositeBuffer.currentChunkOffset, true);
+					else {
+						const byte3 = this.compositeBuffer.getUint8(tempOffset + 2) + 256 * this.compositeBuffer.getUint8(tempOffset + 3);
+						value = this.compositeBuffer.getUint8(tempOffset) + 256 * (this.compositeBuffer.getUint8(tempOffset + 1) + 256 * byte3);
+					}
+					offset += 5;
+					break;
+				}
+			}
+			return [value, offset];
+		}
+		canReadFromCurrentChunk(offset, length) {
+			return offset - this.compositeBuffer.currentChunkOffset + length <= this.compositeBuffer.chunks[this.compositeBuffer.currentChunkIndex].length;
+		}
+		getCurrentDataView() {
+			if (!this.compositeBuffer.currentDataView) {
+				const currentChunk = this.compositeBuffer.chunks[this.compositeBuffer.currentChunkIndex];
+				this.compositeBuffer.currentDataView = new DataView(currentChunk.buffer, currentChunk.byteOffset, currentChunk.length);
+			}
+			return this.compositeBuffer.currentDataView;
+		}
+	};
+	//#endregion
+	//#region node_modules/googlevideo/dist/src/core/SabrStream.js
+	var TAG = "SabrStream";
+	var DEFAULT_MAX_RETRIES = 10;
+	var MAX_BACKOFF_MS = 8e3;
+	var BACKOFF_MULTIPLIER = 500;
+	var DEFAULT_STALL_DETECTION_MS = 3e4;
+	var MAX_STALLS = 5;
+	var SabrStream = class extends EventEmitterLike {
+		on(event, listener) {
+			super.on(event, listener);
+		}
+		once(event, listener) {
+			super.once(event, listener);
+		}
+		constructor(config = {}) {
+			super();
+			this.logger = Logger.getInstance();
+			this.formatIds = [];
+			this.umpPartHandlers = new Map([
+				[UMPPartId.FORMAT_INITIALIZATION_METADATA, this.handleFormatInitializationMetadata.bind(this)],
+				[UMPPartId.NEXT_REQUEST_POLICY, this.handleNextRequestPolicy.bind(this)],
+				[UMPPartId.SABR_ERROR, this.handleSabrError.bind(this)],
+				[UMPPartId.SABR_REDIRECT, this.handleSabrRedirect.bind(this)],
+				[UMPPartId.SABR_CONTEXT_UPDATE, this.handleSabrContextUpdate.bind(this)],
+				[UMPPartId.SABR_CONTEXT_SENDING_POLICY, this.handleSabrContextSendingPolicy.bind(this)],
+				[UMPPartId.STREAM_PROTECTION_STATUS, this.handleStreamProtectionStatus.bind(this)],
+				[UMPPartId.RELOAD_PLAYER_RESPONSE, this.handleReloadPlayerResponse.bind(this)],
+				[UMPPartId.MEDIA_HEADER, this.handleMediaHeader.bind(this)],
+				[UMPPartId.MEDIA, this.handleMedia.bind(this)],
+				[UMPPartId.MEDIA_END, this.handleMediaEnd.bind(this)]
+			]);
+			this.sabrContexts = new Map();
+			this.activeSabrContextTypes = new Set();
+			this.initializedFormatsMap = new Map();
+			this.partialSegmentQueue = new Map();
+			this.requestNumber = 0;
+			this.durationMs = Infinity;
+			this.mediaHeadersProcessed = false;
+			this._errored = false;
+			this._aborted = false;
+			this.progressTracker = {
+				lastProgressTime: Date.now(),
+				lastDownloadedDuration: 0,
+				stallCount: 0
+			};
+			this.fetchFunction = config?.fetch || fetch;
+			this.serverAbrStreamingUrl = config.serverAbrStreamingUrl;
+			this.videoPlaybackUstreamerConfig = config.videoPlaybackUstreamerConfig;
+			this.clientInfo = config.clientInfo;
+			this.poToken = config.poToken;
+			this.durationMs = config.durationMs || Infinity;
+			this.formatIds = config.formats || [];
+			this.videoStream = new ReadableStream({ start: (controller) => {
+				this.videoController = controller;
+			} });
+			this.audioStream = new ReadableStream({ start: (controller) => {
+				this.audioController = controller;
+			} });
+		}
+		setPoToken(poToken) {
+			this.poToken = poToken;
+		}
+		setServerAbrFormats(formats) {
+			this.formatIds.push(...formats);
+		}
+		setDurationMs(durationMs) {
+			this.durationMs = durationMs;
+		}
+		setStreamingURL(url) {
+			this.serverAbrStreamingUrl = url;
+		}
+		setUstreamerConfig(config) {
+			this.videoPlaybackUstreamerConfig = config;
+		}
+		setClientInfo(clientInfo) {
+			this.clientInfo = clientInfo;
+		}
+		abort() {
+			this.logger.debug(TAG, "Aborting download process");
+			this._aborted = true;
+			this.abortController?.abort();
+			this.videoController?.error(new Error("Download aborted."));
+			this.audioController?.error(new Error("Download aborted."));
+			this.resetState();
+			this.emit("abort");
+		}
+		getState() {
+			if (!this.mainFormat) throw new Error("Main format is not initialized, cannot get state.");
+			const playerTimeMs = getTotalDownloadedDuration(this.mainFormat);
+			const initializedFormats = [];
+			for (const [formatKey, format] of this.initializedFormatsMap.entries()) initializedFormats.push({
+				formatKey,
+				formatInitializationMetadata: format.formatInitializationMetadata,
+				downloadedSegments: Array.from(format.downloadedSegments.entries()),
+				lastMediaHeaders: format.lastMediaHeaders
+			});
+			return {
+				durationMs: this.durationMs,
+				requestNumber: this.requestNumber,
+				activeSabrContexts: Array.from(this.activeSabrContextTypes),
+				sabrContextUpdates: Array.from(this.sabrContexts.entries()),
+				formatToDiscard: this.formatToDiscard,
+				cachedBufferedRanges: this.cachedBufferedRanges || [],
+				nextRequestPolicy: this.nextRequestPolicy,
+				initializedFormats,
+				playerTimeMs
+			};
+		}
+		async start(options) {
+			const { videoFormat, audioFormat } = this.selectFormats(options);
+			this.setupStreamingProcess(videoFormat, audioFormat, options).then();
+			return {
+				videoStream: this.videoStream,
+				audioStream: this.audioStream,
+				selectedFormats: {
+					videoFormat,
+					audioFormat
+				}
+			};
+		}
+		async setupStreamingProcess(videoFormat, audioFormat, options) {
+			try {
+				this._errored = false;
+				this._aborted = false;
+				let playerTimeMs = 0;
+				if (options.state && this.restoreState(videoFormat, audioFormat, options.state)) playerTimeMs = options.state.playerTimeMs || 0;
+				const maxRetries = options.maxRetries !== void 0 ? options.maxRetries : DEFAULT_MAX_RETRIES;
+				const enabledTrackTypesBitfield = options.enabledTrackTypes ?? EnabledTrackTypes.VIDEO_AND_AUDIO;
+				const abrState = {
+					playerTimeMs,
+					audioTrackId: audioFormat.audioTrackId,
+					playbackRate: 1,
+					stickyResolution: videoFormat.height || 360,
+					drcEnabled: audioFormat.isDrc,
+					clientViewportIsFlexible: false,
+					visibility: 1,
+					enabledTrackTypesBitfield
+				};
+				if (abrState.enabledTrackTypesBitfield === 1 || abrState.enabledTrackTypesBitfield === 2) this.formatToDiscard = abrState.enabledTrackTypesBitfield === 1 ? fromFormat(videoFormat) : fromFormat(audioFormat);
+				while (parseInt(abrState.playerTimeMs) < this.durationMs) {
+					if (this._aborted) {
+						this.logger.debug(TAG, "Download process aborted, exiting streaming loop.");
+						break;
+					}
+					this.logger.debug(TAG, `Starting new segment fetch at playback position: ${abrState.playerTimeMs}ms`);
+					this.mainFormat = abrState.enabledTrackTypesBitfield === 1 ? this.initializedFormatsMap.get(fromFormat(audioFormat) || "") : this.initializedFormatsMap.get(fromFormat(videoFormat) || "");
+					if (this.mainFormat) this.validateAndCorrectDuration(this.mainFormat.formatInitializationMetadata);
+					abrState.playerTimeMs = this.mainFormat ? getTotalDownloadedDuration(this.mainFormat) : 0;
+					const { shouldStop } = this.checkForStall({
+						playerTimeMs: abrState.playerTimeMs,
+						stallDetectionMs: options.stallDetectionMs
+					});
+					if (shouldStop) break;
+					abrState.playerTimeMs = abrState.playerTimeMs.toString();
+					if (!await this.executeWithRetry(() => this.fetchAndProcessSegments(abrState, audioFormat, videoFormat), maxRetries)) break;
+				}
+			} catch (error) {
+				if (!this._aborted) this.errorHandler(error, true);
+			} finally {
+				if (!this._aborted) {
+					this.validateDownloadedSegments();
+					if (!this._errored) {
+						this.videoController?.close();
+						this.audioController?.close();
+					}
+					this.resetState();
+					this.emit("finish");
+				}
+			}
+		}
+		restoreState(videoFormat, audioFormat, state) {
+			this.resetState();
+			if (!state || typeof state !== "object" || !state.initializedFormats || !Array.isArray(state.initializedFormats) || !state.durationMs || !state.playerTimeMs) {
+				this.logger.warn(TAG, "Invalid or corrupt state object provided. Starting fresh.");
+				return false;
+			}
+			const expectedVideoFormatKey = fromFormat(videoFormat) || "";
+			const expectedAudioFormatKey = fromFormat(audioFormat) || "";
+			for (const format of state.initializedFormats) {
+				const { formatKey, formatInitializationMetadata, downloadedSegments, lastMediaHeaders } = format;
+				if (formatKey !== expectedVideoFormatKey && formatKey !== expectedAudioFormatKey) {
+					this.logger.warn(TAG, `State contains an unexpected format key "${formatKey}". It will be ignored.`);
+					continue;
+				}
+				this.initializedFormatsMap.set(formatKey, {
+					formatInitializationMetadata,
+					downloadedSegments: new Map(downloadedSegments),
+					lastMediaHeaders: lastMediaHeaders || []
+				});
+			}
+			if (!this.initializedFormatsMap.has(expectedVideoFormatKey) || !this.initializedFormatsMap.has(expectedAudioFormatKey)) {
+				this.logger.warn(TAG, "State is missing required format data for the selected video/audio formats. Starting fresh.");
+				this.resetState();
+				return false;
+			}
+			this.durationMs = state.durationMs;
+			this.requestNumber = state.requestNumber || 0;
+			this.activeSabrContextTypes = new Set(state.activeSabrContexts || []);
+			this.sabrContexts = new Map(state.sabrContextUpdates || []);
+			this.formatToDiscard = state.formatToDiscard;
+			this.cachedBufferedRanges = state.cachedBufferedRanges || [];
+			this.nextRequestPolicy = state.nextRequestPolicy;
+			return true;
+		}
+		checkForStall(options) {
+			const currentTime = Date.now();
+			const currentProgress = options.playerTimeMs;
+			const stallThreshold = options.stallDetectionMs || DEFAULT_STALL_DETECTION_MS;
+			if (currentProgress > this.progressTracker.lastDownloadedDuration) {
+				this.progressTracker.lastProgressTime = currentTime;
+				this.progressTracker.lastDownloadedDuration = currentProgress;
+				this.progressTracker.stallCount = 0;
+				return {
+					shouldStop: false,
+					stalled: false
+				};
+			} else if (currentTime - this.progressTracker.lastProgressTime > stallThreshold) {
+				this.progressTracker.stallCount++;
+				this.logger.warn(TAG, `Stream stalled for ${stallThreshold}ms (stall #${this.progressTracker.stallCount})`);
+				if (this.progressTracker.stallCount >= MAX_STALLS) throw new Error(`Stream stalled ${MAX_STALLS} times, aborting`);
+				this.progressTracker.lastProgressTime = currentTime;
+				if (Math.abs(this.durationMs - currentProgress) < 5e3) {
+					this.logger.warn(TAG, "Stream is close to completion, but stalled. Checking if we have the last segment.");
+					const endSegmentNumber = parseInt(this.mainFormat?.formatInitializationMetadata.endSegmentNumber || "0") || -1;
+					const lastSegment = this.mainFormat?.downloadedSegments.get(endSegmentNumber);
+					if (lastSegment && lastSegment.segmentNumber === endSegmentNumber) {
+						this.logger.warn(TAG, "Last segment is already downloaded. Stopping further processing.");
+						return {
+							shouldStop: true,
+							stalled: true
+						};
+					}
+				}
+				return {
+					shouldStop: false,
+					stalled: true
+				};
+			}
+			return {
+				shouldStop: false,
+				stalled: false
+			};
+		}
+		selectFormats(options) {
+			const videoFormat = chooseFormat(this.formatIds, options.videoFormat, {
+				quality: options.videoQuality,
+				preferWebM: options.preferWebM,
+				preferH264: options.preferH264,
+				preferMP4: options.preferMP4,
+				isAudio: false
+			});
+			const audioFormat = chooseFormat(this.formatIds, options.audioFormat, {
+				quality: options.audioQuality,
+				language: options.audioLanguage,
+				preferOpus: options.preferOpus,
+				preferMP4: options.preferMP4,
+				preferWebM: options.preferWebM,
+				isAudio: true
+			});
+			if (this.durationMs < 0) throw new Error("Invalid duration");
+			if (!videoFormat || !audioFormat) throw new Error("No suitable formats found for download");
+			return {
+				videoFormat,
+				audioFormat
+			};
+		}
+		async fetchAndProcessSegments(abrState, selectedAudioFormat, selectedVideoFormat) {
+			const initializedVideoFormat = this.initializedFormatsMap.get(fromFormat(selectedVideoFormat) || "");
+			const initializedAudioFormat = this.initializedFormatsMap.get(fromFormat(selectedAudioFormat) || "");
+			if (!this.cachedBufferedRanges?.length) this.cachedBufferedRanges = this.buildBufferedRanges(initializedVideoFormat, initializedAudioFormat);
+			const requestBody = this.buildRequestBody(abrState, selectedAudioFormat, selectedVideoFormat);
+			this.mediaHeadersProcessed = false;
+			const response = await this.makeStreamingRequest(requestBody);
+			const processedParts = await this.processStreamingResponse(response);
+			if (!processedParts.length) throw new Error("No valid parts received from server.");
+			else if ((this.streamProtectionStatus?.status || 0) >= 2 && !processedParts.includes(UMPPartId.MEDIA)) throw new Error("No media parts or protocol updates received from server.");
+			if (processedParts.includes(UMPPartId.MEDIA_HEADER) && initializedVideoFormat?.lastMediaHeaders?.length && initializedAudioFormat?.lastMediaHeaders?.length || abrState.enabledTrackTypesBitfield !== 0 && this.mainFormat?.lastMediaHeaders?.length) this.mediaHeadersProcessed = true;
+		}
+		buildBufferedRanges(initializedVideoFormat, initializedAudioFormat) {
+			const bufferedRanges = [];
+			const formats = [initializedVideoFormat, initializedAudioFormat];
+			for (const initializedFormat of formats) {
+				if (!initializedFormat?.lastMediaHeaders.length) continue;
+				if (fromFormatInitializationMetadata(initializedFormat.formatInitializationMetadata) === this.formatToDiscard) continue;
+				const mediaHeaders = initializedFormat.lastMediaHeaders;
+				const durationMs = mediaHeaders.reduce((sum, header) => sum + parseInt(header.durationMs || "0"), 0);
+				bufferedRanges.push({
+					durationMs: durationMs.toString(),
+					formatId: initializedFormat.formatInitializationMetadata.formatId,
+					startTimeMs: String(mediaHeaders[0].startMs || "0"),
+					startSegmentIndex: mediaHeaders[0].sequenceNumber || 1,
+					endSegmentIndex: mediaHeaders[mediaHeaders.length - 1].sequenceNumber || 1,
+					timeRange: {
+						durationTicks: durationMs.toString(),
+						startTicks: mediaHeaders[0].startMs,
+						timescale: mediaHeaders[0].timeRange?.timescale
+					}
+				});
+				initializedFormat.lastMediaHeaders = [];
+			}
+			return bufferedRanges;
+		}
+		buildRequestBody(abrState, selectedAudioFormat, selectedVideoFormat) {
+			if (!this.videoPlaybackUstreamerConfig) throw new Error("Video playback ustreamer config must be set before starting.");
+			if (!this.clientInfo) throw new Error("Client info must be set before starting.");
+			const bufferedRanges = this.cachedBufferedRanges || [];
+			const { sabrContexts, unsentSabrContexts } = this.prepareSabrContexts();
+			const { selectedFormatIds, updatedBufferedRanges } = this.prepareFormatSelections([selectedVideoFormat, selectedAudioFormat], bufferedRanges);
+			return VideoPlaybackAbrRequest.encode({
+				clientAbrState: abrState,
+				preferredAudioFormatIds: [selectedAudioFormat],
+				preferredVideoFormatIds: [selectedVideoFormat],
+				preferredSubtitleFormatIds: [],
+				selectedFormatIds,
+				videoPlaybackUstreamerConfig: base64ToU8(this.videoPlaybackUstreamerConfig),
+				streamerContext: {
+					sabrContexts,
+					unsentSabrContexts,
+					poToken: this.poToken ? base64ToU8(this.poToken) : void 0,
+					playbackCookie: this.nextRequestPolicy?.playbackCookie ? PlaybackCookie.encode(this.nextRequestPolicy.playbackCookie).finish() : void 0,
+					clientInfo: this.clientInfo
+				},
+				bufferedRanges: updatedBufferedRanges,
+				field1000: []
+			}).finish();
+		}
+		prepareSabrContexts() {
+			const sabrContexts = [];
+			const unsentSabrContexts = [];
+			for (const ctxUpdate of this.sabrContexts.values()) if (this.activeSabrContextTypes.has(ctxUpdate.type)) sabrContexts.push(ctxUpdate);
+			else unsentSabrContexts.push(ctxUpdate.type);
+			return {
+				sabrContexts,
+				unsentSabrContexts
+			};
+		}
+		prepareFormatSelections(formats, currentBufferedRanges) {
+			const selectedFormatIds = [];
+			const updatedBufferedRanges = [...currentBufferedRanges];
+			const formatsInitialized = this.initializedFormatsMap.size > 0;
+			for (const format of formats) {
+				const formatKey = fromFormat(format);
+				const shouldDiscard = this.formatToDiscard && formatKey === this.formatToDiscard;
+				if (shouldDiscard) updatedBufferedRanges.push({
+					formatId: format,
+					durationMs: MAX_INT32_VALUE,
+					startTimeMs: String(0),
+					startSegmentIndex: parseInt(MAX_INT32_VALUE),
+					endSegmentIndex: parseInt(MAX_INT32_VALUE),
+					timeRange: {
+						durationTicks: MAX_INT32_VALUE,
+						startTicks: "0",
+						timescale: 1e3
+					}
+				});
+				if (formatsInitialized || shouldDiscard) selectedFormatIds.push(format);
+			}
+			return {
+				selectedFormatIds,
+				updatedBufferedRanges
+			};
+		}
+		async makeStreamingRequest(body) {
+			if (!this.serverAbrStreamingUrl) throw new Error("Server ABR streaming URL not configured.");
+			const url = new URL(this.serverAbrStreamingUrl);
+			url.searchParams.set("rn", this.requestNumber.toString());
+			this.abortController = new AbortController();
+			const timeoutId = setTimeout(() => this.abortController?.abort(), 6e4);
+			try {
+				return await this.fetchFunction(url, {
+					method: "POST",
+					headers: {
+						"content-type": "application/x-protobuf",
+						"accept-encoding": "identity",
+						"accept": "application/vnd.yt-ump"
+					},
+					body,
+					signal: this.abortController.signal
+				});
+			} finally {
+				clearTimeout(timeoutId);
+				this.requestNumber += 1;
+			}
+		}
+		async processStreamingResponse(response) {
+			if (!response.ok) throw new Error(`Server returned ${response.status} ${response.statusText}`);
+			if (response.headers.get("content-type") !== "application/vnd.yt-ump") throw new Error(`Unexpected content type from server: ${response.headers.get("content-type")}`);
+			const reader = response.body.getReader();
+			let dataReceived = false;
+			let partialPart;
+			const processedParts = [];
+			while (true) {
+				if (this.abortController?.signal?.aborted && !this._aborted) throw new Error("Stream was aborted.");
+				const { done, value } = await reader.read();
+				if (done) {
+					if (!dataReceived) throw new Error("Received empty response from server.");
+					break;
+				}
+				dataReceived = true;
+				let chunk;
+				if (partialPart) {
+					chunk = partialPart.data;
+					chunk.append(value);
+				} else chunk = new CompositeBuffer([value]);
+				partialPart = new UmpReader(chunk).read((part) => {
+					processedParts.push(part.type);
+					const handler = this.umpPartHandlers.get(part.type);
+					if (handler) handler(part);
+				});
+			}
+			return processedParts;
+		}
+		async executeWithRetry(fetchFn, maxRetries) {
+			const backoffTimeMs = this.nextRequestPolicy?.backoffTimeMs || 0;
+			if (backoffTimeMs > 0) {
+				this.logger.debug(TAG, `Respecting server backoff policy: waiting ${backoffTimeMs}ms before request`);
+				await wait(backoffTimeMs);
+			}
+			for (let attempt = 1; attempt <= maxRetries + 1; attempt++) try {
+				await fetchFn();
+				if (this.mediaHeadersProcessed) this.cachedBufferedRanges = void 0;
+				return true;
+			} catch (e) {
+				const error = e;
+				if (this._aborted) {
+					this.logger.debug(TAG, "Download process aborted, skipping retry.");
+					return false;
+				}
+				if (attempt > maxRetries) {
+					this.logger.error(TAG, `Maximum retries (${maxRetries}) exceeded while fetching segment: ${error.message}`);
+					this.errorHandler(error, true);
+					break;
+				}
+				const retryBackoffMs = Math.min(BACKOFF_MULTIPLIER * Math.pow(2, attempt - 1), MAX_BACKOFF_MS);
+				this.logger.warn(TAG, `Segment fetch attempt ${attempt}/${maxRetries + 1} failed - retrying in ${retryBackoffMs}ms`, error);
+				await wait(retryBackoffMs);
+			} finally {
+				this.partialSegmentQueue.clear();
+			}
+			return false;
+		}
+		decodePart(part, decoder) {
+			if (!part.data.chunks.length) return void 0;
+			try {
+				return decoder.decode(concatenateChunks(part.data.chunks));
+			} catch {
+				return;
+			}
+		}
+		handleFormatInitializationMetadata(part) {
+			const formatInitMetadata = this.decodePart(part, FormatInitializationMetadata);
+			if (!formatInitMetadata) return;
+			const formatIdKey = fromFormatInitializationMetadata(formatInitMetadata);
+			const initializedFormat = {
+				formatInitializationMetadata: formatInitMetadata,
+				downloadedSegments: new Map(),
+				lastMediaHeaders: []
+			};
+			this.initializedFormatsMap.set(formatIdKey, initializedFormat);
+			this.logger.debug(TAG, `Initialized format: ${formatIdKey}`);
+			this.emit("formatInitialization", initializedFormat);
+		}
+		handleNextRequestPolicy(part) {
+			this.nextRequestPolicy = this.decodePart(part, NextRequestPolicy);
+		}
+		handleSabrError(part) {
+			const sabrError = this.decodePart(part, SabrError);
+			if (!sabrError) return;
+			throw new Error(`SABR Error: ${sabrError.type} - ${sabrError.code}`);
+		}
+		handleSabrRedirect(part) {
+			const sabrRedirect = this.decodePart(part, SabrRedirect);
+			if (!sabrRedirect) return;
+			if (sabrRedirect.url) {
+				this.serverAbrStreamingUrl = sabrRedirect.url;
+				this.logger.debug(TAG, `Redirecting to ${this.serverAbrStreamingUrl}`);
+			}
+		}
+		handleSabrContextUpdate(part) {
+			const sabrContextUpdate = this.decodePart(part, SabrContextUpdate);
+			if (!sabrContextUpdate) return;
+			if (sabrContextUpdate.type !== void 0 && sabrContextUpdate.value?.length) {
+				if (sabrContextUpdate.writePolicy === SabrContextUpdate_SabrContextWritePolicy.KEEP_EXISTING && this.sabrContexts.has(sabrContextUpdate.type)) {
+					this.logger.debug(TAG, `Skipping SABR context update for type ${sabrContextUpdate.type}`);
+					return;
+				}
+				this.sabrContexts.set(sabrContextUpdate.type, sabrContextUpdate);
+				if (sabrContextUpdate.sendByDefault) this.activeSabrContextTypes.add(sabrContextUpdate.type);
+				this.logger.debug(TAG, `Received SABR context update (type: ${sabrContextUpdate.type}, sendByDefault: ${sabrContextUpdate.sendByDefault})`);
+			}
+		}
+		handleSabrContextSendingPolicy(part) {
+			const sabrContextSendingPolicy = this.decodePart(part, SabrContextSendingPolicy);
+			if (!sabrContextSendingPolicy) return;
+			for (const startPolicy of sabrContextSendingPolicy.startPolicy) if (!this.activeSabrContextTypes.has(startPolicy)) {
+				this.activeSabrContextTypes.add(startPolicy);
+				this.logger.debug(TAG, `Activated SABR context for type ${startPolicy}`);
+			}
+			for (const stopPolicy of sabrContextSendingPolicy.stopPolicy) if (this.activeSabrContextTypes.has(stopPolicy)) {
+				this.activeSabrContextTypes.delete(stopPolicy);
+				this.logger.debug(TAG, `Deactivated SABR context for type ${stopPolicy}`);
+			}
+			for (const discardPolicy of sabrContextSendingPolicy.discardPolicy) if (this.sabrContexts.has(discardPolicy)) {
+				this.sabrContexts.delete(discardPolicy);
+				this.logger.debug(TAG, `Discarded SABR context for type ${discardPolicy}`);
+			}
+		}
+		handleStreamProtectionStatus(part) {
+			this.streamProtectionStatus = this.decodePart(part, StreamProtectionStatus);
+			if (!this.streamProtectionStatus) return;
+			this.emit("streamProtectionStatusUpdate", this.streamProtectionStatus);
+			if (this.streamProtectionStatus.status === 3) throw new Error("Cannot proceed with stream: attestation required");
+			else if (this.streamProtectionStatus.status === 2) this.logger.warn(TAG, "Attestation pending.");
+		}
+		handleReloadPlayerResponse(part) {
+			const reloadPlaybackContext = this.decodePart(part, ReloadPlaybackContext);
+			if (!reloadPlaybackContext) return;
+			const errorMessage = "Player response reload requested by server";
+			this.logger.debug(TAG, `${errorMessage} (token: ${reloadPlaybackContext.reloadPlaybackParams?.token}`);
+			this.emit("reloadPlayerResponse", reloadPlaybackContext);
+			throw new Error(errorMessage);
+		}
+		handleMediaHeader(part) {
+			const mediaHeader = this.decodePart(part, MediaHeader);
+			if (!mediaHeader) return;
+			const headerId = mediaHeader.headerId || 0;
+			const formatIdKey = fromMediaHeader(mediaHeader);
+			const segmentNumber = mediaHeader.isInitSeg ? 0 : mediaHeader.sequenceNumber || 0;
+			const durationMs = mediaHeader.durationMs || Math.ceil(parseInt(mediaHeader.timeRange?.durationTicks || "0") / (mediaHeader.timeRange?.timescale || 0) * 1e3).toString();
+			const initializedFormat = this.initializedFormatsMap.get(formatIdKey);
+			if (!initializedFormat) {
+				this.logger.warn(TAG, `No initialized format found for key: ${formatIdKey} (segment ${segmentNumber})`);
+				return;
+			}
+			const mediaType = getMediaType(initializedFormat);
+			if (initializedFormat.downloadedSegments.has(segmentNumber)) {
+				this.logger.debug(TAG, `Segment ${formatIdKey} (segment: ${segmentNumber}) already downloaded. Ignoring.`);
+				return;
+			}
+			this.partialSegmentQueue.set(headerId, {
+				formatIdKey,
+				segmentNumber,
+				durationMs,
+				mediaHeader,
+				bufferedChunks: []
+			});
+			this.logger.debug(TAG, `Enqueued ${mediaType} segment ${segmentNumber} (Header ID: ${headerId}, key: ${formatIdKey}, duration: ${durationMs}ms)`);
+		}
+		handleMedia(part) {
+			const headerId = part.data.getUint8(0);
+			const segment = this.partialSegmentQueue.get(headerId);
+			if (!segment) {
+				this.logger.debug(TAG, `Received Media part for an unknown Header ID: ${headerId}`);
+				return;
+			}
+			if (!this.initializedFormatsMap.get(segment.formatIdKey)) {
+				this.logger.warn(TAG, `No initialized format found for key ${segment.formatIdKey} (segment ${segment.segmentNumber})`);
+				return;
+			}
+			const dataBuffer = part.data.split(1).remainingBuffer;
+			for (const chunk of dataBuffer.chunks) segment.bufferedChunks.push(chunk);
+		}
+		handleMediaEnd(part) {
+			const headerId = part.data.getUint8(0);
+			const segment = this.partialSegmentQueue.get(headerId);
+			if (!segment) {
+				this.logger.debug(TAG, `Received MediaEnd for an unknown Header ID: ${headerId}`);
+				return;
+			}
+			const loadedBytes = segment.bufferedChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+			if (loadedBytes !== parseInt(segment.mediaHeader.contentLength || "0")) {
+				this.logger.warn(TAG, `Content length mismatch for segment ${segment.segmentNumber} (Header ID: ${headerId}, key: ${segment.formatIdKey}, expected: ${segment.mediaHeader.contentLength}, received: ${loadedBytes})`);
+				this.partialSegmentQueue.delete(headerId);
+				return;
+			}
+			const initializedFormat = this.initializedFormatsMap.get(segment.formatIdKey);
+			if (initializedFormat) {
+				const mediaType = getMediaType(initializedFormat);
+				if (segment.bufferedChunks.length) for (const chunk of segment.bufferedChunks) if (mediaType === "audio") this.audioController?.enqueue(chunk);
+				else this.videoController?.enqueue(chunk);
+				this.logger.debug(TAG, `Received MediaEnd for ${mediaType} segment ${segment.segmentNumber} (Header ID: ${headerId}, key: ${segment.formatIdKey})`);
+				segment.bufferedChunks.length = 0;
+				segment.bufferedChunks = [];
+				initializedFormat.lastMediaHeaders.push(segment.mediaHeader);
+				initializedFormat.downloadedSegments.set(segment.segmentNumber, segment);
+				this.partialSegmentQueue.delete(headerId);
+			}
+		}
+		validateAndCorrectDuration(formatInitializationMetadata) {
+			const durationUnits = parseInt(formatInitializationMetadata.durationUnits || "0");
+			const durationTimescale = parseInt(formatInitializationMetadata.durationTimescale || "0");
+			if (durationTimescale === 0) {
+				this.logger.warn(TAG, "Invalid timescale (0) in format initialization metadata");
+				return;
+			}
+			const expectedDuration = Math.trunc(durationUnits / (durationTimescale / 1e3));
+			if (this.durationMs !== expectedDuration) {
+				this.durationMs = expectedDuration;
+				this.logger.debug(TAG, `Corrected stream duration to ${this.durationMs}ms based on format initialization metadata`);
+			}
+		}
+		validateDownloadedSegments() {
+			for (const [formatIdKey, initializedFormat] of this.initializedFormatsMap.entries()) {
+				if (formatIdKey === this.formatToDiscard) {
+					this.logger.debug(TAG, `Skipping validation for discarded format: ${formatIdKey}`);
+					continue;
+				}
+				const totalDuration = getTotalDownloadedDuration(initializedFormat);
+				const durationUnits = parseInt(initializedFormat.formatInitializationMetadata.durationUnits || "0");
+				const durationTimescale = parseInt(initializedFormat.formatInitializationMetadata.durationTimescale || "0");
+				const expectedDuration = durationTimescale ? durationUnits / (durationTimescale / 1e3) : 0;
+				const durationMismatch = Math.abs(totalDuration - expectedDuration);
+				if (expectedDuration > 0 && durationMismatch > expectedDuration * .01) {
+					const durationCoverage = Math.round(totalDuration / expectedDuration * 100);
+					this.logger.warn(TAG, `Incomplete stream for format ${formatIdKey}: downloaded ${totalDuration}ms (${durationCoverage}%), expected ${expectedDuration}ms`);
+				}
+				const segments = Array.from(initializedFormat.downloadedSegments.entries());
+				if (segments.length === 0) continue;
+				segments.sort(([numA], [numB]) => numA - numB);
+				const expectedSegmentCount = parseInt(initializedFormat.formatInitializationMetadata.endSegmentNumber || "0");
+				const missingSegments = [];
+				for (let i = 0; i <= expectedSegmentCount; i++) if (!initializedFormat.downloadedSegments.has(i)) missingSegments.push(i);
+				const uniqueSegmentCount = new Set(segments.map(([num]) => num)).size;
+				const hasDuplicates = uniqueSegmentCount !== segments.length;
+				if (missingSegments.length > 0) {
+					const message = `Format ${formatIdKey}: Missing segments: [${missingSegments.join(", ")}]. Expected range: 0-${expectedSegmentCount}. `;
+					this.logger.warn(TAG, message);
+					this.errorHandler(new Error(message), true);
+				} else this.logger.debug(TAG, `Format ${formatIdKey}: All ${expectedSegmentCount} segments present (100% coverage)`);
+				if (hasDuplicates) {
+					const message = `Format ${formatIdKey}: Found duplicate segment numbers (${segments.length} segments but ${uniqueSegmentCount} unique numbers)`;
+					this.logger.warn(TAG, message);
+					this.errorHandler(new Error(message), true);
+				}
+			}
+		}
+		resetState() {
+			this.initializedFormatsMap.clear();
+			this.partialSegmentQueue.clear();
+			this.activeSabrContextTypes.clear();
+			this.sabrContexts.clear();
+			this.nextRequestPolicy = void 0;
+			this.mainFormat = void 0;
+			this.requestNumber = 0;
+			this.cachedBufferedRanges = void 0;
+			this.mediaHeadersProcessed = false;
+			this.streamProtectionStatus = void 0;
+			this.formatToDiscard = void 0;
+			this.abortController = void 0;
+			this.progressTracker = {
+				lastProgressTime: Date.now(),
+				lastDownloadedDuration: 0,
+				stallCount: 0
+			};
+		}
+		errorHandler(error, notifyControllers = true) {
+			this.resetState();
+			this.logger.error(TAG, `Stream error: ${error.message}`);
+			if (notifyControllers) {
+				this._errored = true;
+				this.videoController?.error(error);
+				this.audioController?.error(error);
+			}
+		}
+	};
 	//#endregion
 	//#region src/audioDownloader/utils.ts
 	function normalizeAudioLanguageTag(value) {
@@ -22326,6 +26966,338 @@ var vot = (function(exports) {
 		return c;
 	})(se, n);
 	//#endregion
+	//#region src/audioDownloader/strategies/safariPageBridge.ts
+	var REQUEST_EVENT = "vot:safari-page-po-token:request";
+	var RESPONSE_EVENT = "vot:safari-page-po-token:response";
+	var BRIDGE_MARKER = "data-vot-safari-po-token-bridge";
+	var TOP_REQUEST_MESSAGE = "vot:safari-page-po-token:top-request";
+	var TOP_RESPONSE_MESSAGE = "vot:safari-page-po-token:top-response";
+	function isSafariBrowser() {
+		return browserInfo.browser?.name === "Safari";
+	}
+	function installSafariPageBridge() {
+		if (!isSafariBrowser()) return false;
+		if (document.documentElement.hasAttribute(BRIDGE_MARKER)) return true;
+		const script = document.createElement("script");
+		const nonceSource = document.querySelector("script[nonce]");
+		if (nonceSource?.nonce) script.nonce = nonceSource.nonce;
+		script.textContent = `(() => {
+    const REQUEST_EVENT = ${JSON.stringify(REQUEST_EVENT)};
+    const RESPONSE_EVENT = ${JSON.stringify(RESPONSE_EVENT)};
+    const MARKER = ${JSON.stringify(BRIDGE_MARKER)};
+    if (document.documentElement.hasAttribute(MARKER)) return;
+    document.documentElement.setAttribute(MARKER, "1");
+
+    const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    async function mint(binding) {
+      const keys = Object.getOwnPropertyNames(globalThis).filter(
+        (key) => key === "bevasrsg" || key.startsWith("havuokmhhs-"),
+      );
+      if (!keys.length) {
+        throw new Error("YouTube PO token provider is unavailable in page realm");
+      }
+
+      for (const key of keys) {
+        let bevasrs;
+        try {
+          bevasrs = globalThis[key]?.bevasrs;
+        } catch {
+          continue;
+        }
+        const wpc = bevasrs?.wpc;
+        if (typeof wpc !== "function") continue;
+
+        for (let attempt = 0; attempt < 10; attempt++) {
+          try {
+            const minter = await wpc.call(bevasrs);
+            const token = await minter?.mws?.({
+              c: binding,
+              mc: false,
+              me: false,
+            });
+            if (typeof token === "string" && token) return token;
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            if (!message.includes("SDF:notready")) break;
+          }
+          await delay(500);
+        }
+      }
+      throw new Error("YouTube PO token mint failed in page realm");
+    }
+
+    addEventListener(REQUEST_EVENT, async (event) => {
+      const detail = event?.detail;
+      const requestId = detail?.requestId;
+      const binding = detail?.binding;
+      if (typeof requestId !== "string" || typeof binding !== "string" || !binding) {
+        return;
+      }
+
+      try {
+        const token = await mint(binding);
+        dispatchEvent(new CustomEvent(RESPONSE_EVENT, {
+          detail: { requestId, token },
+        }));
+      } catch (error) {
+        dispatchEvent(new CustomEvent(RESPONSE_EVENT, {
+          detail: {
+            requestId,
+            error: error instanceof Error ? error.message : String(error),
+          },
+        }));
+      }
+    });
+  })();`;
+		(document.documentElement || document.head).append(script);
+		script.remove();
+		return document.documentElement.hasAttribute(BRIDGE_MARKER);
+	}
+	async function requestSafariPagePoTokenLocal(binding, signal) {
+		if (!isSafariBrowser()) return void 0;
+		signal.throwIfAborted();
+		if (!installSafariPageBridge()) {
+			debug.error("[VOT][PO_TOKEN] Safari page bridge injection failed");
+			return;
+		}
+		const requestId = crypto.randomUUID();
+		debug.log("[VOT][PO_TOKEN] trying Safari page-realm bridge", { bindingLength: binding.length });
+		return await new Promise((resolve, reject) => {
+			let settled = false;
+			const timeout = setTimeout(() => finish(void 0), 8e3);
+			const cleanup = () => {
+				clearTimeout(timeout);
+				removeEventListener(RESPONSE_EVENT, onResponse);
+				signal.removeEventListener("abort", onAbort);
+			};
+			const finish = (value) => {
+				if (settled) return;
+				settled = true;
+				cleanup();
+				resolve(value);
+			};
+			const onAbort = () => {
+				if (settled) return;
+				settled = true;
+				cleanup();
+				reject(signal.reason);
+			};
+			const onResponse = (event) => {
+				const detail = event.detail;
+				if (detail?.requestId !== requestId) return;
+				if (typeof detail.token === "string" && detail.token) {
+					finish(detail.token);
+					return;
+				}
+				if (detail.error) debug.error("[VOT][PO_TOKEN] Safari page-realm mint failed", { message: detail.error });
+				finish(void 0);
+			};
+			addEventListener(RESPONSE_EVENT, onResponse);
+			signal.addEventListener("abort", onAbort, { once: true });
+			dispatchEvent(new CustomEvent(REQUEST_EVENT, { detail: {
+				requestId,
+				binding
+			} }));
+		});
+	}
+	async function requestTopSafariPagePoToken(binding, signal) {
+		const requestId = crypto.randomUUID();
+		debug.log("[VOT][PO_TOKEN] requesting token from top YouTube player", { bindingLength: binding.length });
+		return await new Promise((resolve, reject) => {
+			let settled = false;
+			const timeout = setTimeout(() => finish(void 0), 8e3);
+			const cleanup = () => {
+				clearTimeout(timeout);
+				removeEventListener("message", onMessage);
+				signal.removeEventListener("abort", onAbort);
+			};
+			const finish = (value) => {
+				if (settled) return;
+				settled = true;
+				cleanup();
+				resolve(value);
+			};
+			const onAbort = () => {
+				if (settled) return;
+				settled = true;
+				cleanup();
+				reject(signal.reason);
+			};
+			const onMessage = (event) => {
+				if (event.source !== window.top || event.origin !== location.origin) return;
+				const data = event.data;
+				if (data?.type !== TOP_RESPONSE_MESSAGE || data.requestId !== requestId) return;
+				if (typeof data.token === "string" && data.token) {
+					debug.log("[VOT][PO_TOKEN] token received from top YouTube player", { tokenLength: data.token.length });
+					finish(data.token);
+				} else {
+					if (data.error) debug.error("[VOT][PO_TOKEN] top player token mint failed", { message: data.error });
+					finish(void 0);
+				}
+			};
+			addEventListener("message", onMessage);
+			signal.addEventListener("abort", onAbort, { once: true });
+			window.top?.postMessage({
+				type: TOP_REQUEST_MESSAGE,
+				requestId,
+				binding
+			}, location.origin);
+		});
+	}
+	async function requestSafariPagePoToken(binding, signal) {
+		if (!isSafariBrowser()) return void 0;
+		signal.throwIfAborted();
+		if (window !== window.top) return requestTopSafariPagePoToken(binding, signal);
+		return requestSafariPagePoTokenLocal(binding, signal);
+	}
+	//#endregion
+	//#region src/audioDownloader/strategies/youtubePage.ts
+	function getMainWorldWindow(targetWindow) {
+		try {
+			if (typeof unsafeWindow !== "undefined" && unsafeWindow) {
+				const unsafe = unsafeWindow;
+				if (unsafe.document && unsafe.location?.hostname.endsWith("youtube.com")) return unsafe;
+			}
+		} catch {}
+		try {
+			const unsafe = globalThis.unsafeWindow;
+			if (unsafe?.document && unsafe.location?.hostname.endsWith("youtube.com")) return unsafe;
+		} catch {}
+		try {
+			const wrapped = targetWindow.wrappedJSObject;
+			if (wrapped?.document && wrapped.location?.hostname.endsWith("youtube.com")) return wrapped;
+		} catch {}
+		return targetWindow;
+	}
+	function getTopPageWindow(targetWindow) {
+		const pageWindow = getMainWorldWindow(targetWindow);
+		try {
+			const top = pageWindow.top;
+			if (top?.document && top.location?.hostname.endsWith("youtube.com")) try {
+				return top.wrappedJSObject ?? top;
+			} catch {
+				return top;
+			}
+		} catch {}
+		return pageWindow;
+	}
+	//#endregion
+	//#region src/audioDownloader/strategies/youtubePoToken.ts
+	async function mintPagePoToken(pageWindow, binding, signal) {
+		const mainWindow = getTopPageWindow(pageWindow);
+		const realms = new Set([mainWindow]);
+		if (mainWindow !== pageWindow) realms.add(pageWindow);
+		try {
+			realms.add(mainWindow.parent);
+			realms.add(mainWindow.top);
+		} catch {}
+		debug.log("[VOT][PO_TOKEN] mint started", {
+			bindingLength: binding.length,
+			realmCount: realms.size
+		});
+		for (const realm of realms) {
+			let keys;
+			try {
+				keys = Object.getOwnPropertyNames(realm).filter((key) => key === "bevasrsg" || key.startsWith("havuokmhhs-"));
+			} catch {
+				continue;
+			}
+			for (const key of keys) {
+				let bevasrs;
+				try {
+					bevasrs = realm[key]?.bevasrs;
+				} catch {
+					continue;
+				}
+				const wpc = bevasrs?.wpc;
+				if (typeof wpc !== "function") continue;
+				for (let attempt = 0; attempt < 10; attempt++) {
+					if (signal.aborted) throw signal.reason;
+					try {
+						const token = await (await wpc.call(bevasrs))?.mws?.({
+							c: binding,
+							mc: false,
+							me: false
+						});
+						if (typeof token === "string" && token) {
+							debug.log("[VOT][PO_TOKEN] mint success", {
+								tokenLength: token.length,
+								provider: key,
+								attempt
+							});
+							return token;
+						}
+						debug.log("[VOT][PO_TOKEN] mint returned no token", {
+							provider: key,
+							attempt
+						});
+					} catch (error) {
+						const message = error instanceof Error ? error.message : String(error);
+						debug.log("[VOT][PO_TOKEN] mint attempt failed", {
+							provider: key,
+							attempt,
+							message
+						});
+						if (!message.includes("SDF:notready")) break;
+					}
+					await createAbortableDelay(500, signal);
+				}
+			}
+		}
+		const safariToken = await requestSafariPagePoToken(binding, signal);
+		if (safariToken) {
+			debug.log("[VOT][PO_TOKEN] Safari page-realm mint success", { tokenLength: safariToken.length });
+			return safariToken;
+		}
+		debug.error("[VOT][PO_TOKEN] mint failed", {
+			bindingLength: binding.length,
+			realmCount: realms.size
+		});
+	}
+	function selectGvsPoTokenBinding(videoId, options) {
+		if (options.experimentFlags.some((flags) => new URLSearchParams(flags).getAll("html5_generate_content_po_token").at(-1) === "true")) {
+			debug.log("[VOT][WEB_CREATOR] selecting GVS PO binding", {
+				kind: "video",
+				loggedIn: options.loggedIn,
+				hasDataSyncId: typeof options.dataSyncId === "string" && Boolean(options.dataSyncId),
+				reason: "html5_generate_content_po_token"
+			});
+			return {
+				kind: "video",
+				value: videoId
+			};
+		}
+		if (options.loggedIn && typeof options.dataSyncId === "string" && options.dataSyncId) {
+			debug.log("[VOT][WEB_CREATOR] selecting GVS PO binding", {
+				kind: "datasync",
+				loggedIn: true,
+				hasDataSyncId: true
+			});
+			return {
+				kind: "datasync",
+				value: options.dataSyncId
+			};
+		}
+		if (typeof options.visitorData === "string" && options.visitorData) {
+			debug.log("[VOT][WEB_CREATOR] selecting GVS PO binding", {
+				kind: "visitor",
+				loggedIn: options.loggedIn,
+				hasDataSyncId: typeof options.dataSyncId === "string" && Boolean(options.dataSyncId)
+			});
+			return {
+				kind: "visitor",
+				value: options.visitorData
+			};
+		}
+		debug.error("[VOT][WEB_CREATOR] no GVS PO binding available", {
+			loggedIn: options.loggedIn,
+			hasDataSyncId: typeof options.dataSyncId === "string" && Boolean(options.dataSyncId),
+			hasVisitorData: typeof options.visitorData === "string" && Boolean(options.visitorData)
+		});
+	}
+	//#endregion
 	//#region src/audioDownloader/strategies/webAbr.ts
 	var MEDIA_RANGE_SIZES = [
 		6e4,
@@ -22368,7 +27340,7 @@ var vot = (function(exports) {
 			debug.log("Audio downloader. client config unavailable", {
 				videoId,
 				client: "tv",
-				error: error instanceof Error ? error.message : String(error)
+				error: toErrorMessage(error)
 			});
 		}
 	}
@@ -22389,57 +27361,6 @@ var vot = (function(exports) {
 		}
 		return ranges;
 	}
-	async function mintPagePoToken(pageWindow, binding, signal) {
-		const realms = new Set([pageWindow]);
-		try {
-			realms.add(pageWindow.parent);
-			realms.add(pageWindow.top);
-		} catch {}
-		for (const realm of realms) {
-			let keys;
-			try {
-				keys = Object.getOwnPropertyNames(realm).filter((key) => key === "bevasrsg" || key.startsWith("havuokmhhs-"));
-			} catch {
-				continue;
-			}
-			for (const key of keys) {
-				let bevasrs;
-				try {
-					bevasrs = realm[key]?.bevasrs;
-				} catch {
-					continue;
-				}
-				const wpc = bevasrs?.wpc;
-				if (typeof wpc !== "function") continue;
-				for (let attempt = 0; attempt < 10; attempt++) {
-					if (signal.aborted) throw signal.reason;
-					try {
-						const token = await (await wpc.call(bevasrs))?.mws?.({
-							c: binding,
-							mc: false,
-							me: false
-						});
-						if (typeof token === "string" && token) return token;
-					} catch (error) {
-						if (!String(error).includes("SDF:notready")) break;
-					}
-					await createAbortableDelay(500, signal);
-				}
-			}
-		}
-	}
-	function selectGvsPoTokenBinding(videoId, options) {
-		if (options.experimentFlags.some((flags) => new URLSearchParams(flags).getAll("html5_generate_content_po_token").at(-1) === "true")) return {
-			kind: "video",
-			value: videoId
-		};
-		const value = options.loggedIn ? options.dataSyncId : options.visitorData;
-		if (typeof value !== "string" || !value) return;
-		return {
-			kind: options.loggedIn ? "datasync" : "visitor",
-			value
-		};
-	}
 	function getConfigValue(config, key) {
 		return config.get?.(key) ?? config.data_?.[key];
 	}
@@ -22453,7 +27374,7 @@ var vot = (function(exports) {
 			client: context.client
 		};
 	}
-	function buildContentPlaybackContext(signatureTimestamp) {
+	function buildContentPlaybackContext$1(signatureTimestamp) {
 		const context = { html5Preference: "HTML5_PREF_WANTS" };
 		const timestamp = Number(signatureTimestamp);
 		if (Number.isFinite(timestamp) && timestamp > 0) context.signatureTimestamp = timestamp;
@@ -22549,7 +27470,7 @@ var vot = (function(exports) {
 			}
 		} catch (error) {
 			signal.throwIfAborted();
-			debug.log("Audio downloader. web ABR config request failed", { error: error instanceof Error ? error.message : String(error) });
+			debug.log("Audio downloader. web ABR config request failed", { error: toErrorMessage(error) });
 		}
 		if (typeof data.INNERTUBE_API_KEY !== "string") throw new Error("Audio downloader. web ABR config is unavailable");
 		debug.log("Audio downloader. web ABR config recovered", {
@@ -22566,7 +27487,7 @@ var vot = (function(exports) {
 		client.originalUrl = `https://www.youtube.com/embed/${videoId}?html5=1`;
 		context.thirdParty ??= {};
 		context.thirdParty.embedUrl = "https://www.reddit.com/";
-		const contentPlaybackContext = buildContentPlaybackContext(extractedSignatureTimestamp ?? getConfigValue(config, "STS"));
+		const contentPlaybackContext = buildContentPlaybackContext$1(extractedSignatureTimestamp ?? getConfigValue(config, "STS"));
 		const encryptedHostFlags = getConfigValue(config, "WEB_PLAYER_CONTEXT_CONFIGS")?.WEB_PLAYER_CONTEXT_CONFIG_ID_EMBEDDED_PLAYER?.encryptedHostFlags;
 		if (typeof encryptedHostFlags === "string" && encryptedHostFlags) contentPlaybackContext.encryptedHostFlags = encryptedHostFlags;
 		return {
@@ -22662,7 +27583,7 @@ var vot = (function(exports) {
 		return solved;
 	}
 	var SIG_PATTERN = /^[A-Za-z0-9_-]{20,}={0,2}$/;
-	var N_PATTERN = /^[A-Za-z0-9_-]{4,}$/;
+	var N_PATTERN$1 = /^[A-Za-z0-9_-]{4,}$/;
 	function listPageFunctions(pageWindow) {
 		const found = [];
 		const seen = new Set();
@@ -22752,10 +27673,10 @@ var vot = (function(exports) {
 			} catch {}
 			if (challenge.n && transform) try {
 				if (factory) methods.set.call(instance, "n", challenge.n);
-				solution.n = validPageValue(methods.get.call(instance, "n"), challenge.n, N_PATTERN);
+				solution.n = validPageValue(methods.get.call(instance, "n"), challenge.n, N_PATTERN$1);
 				if (!solution.n) {
 					transform.call(instance);
-					solution.n = validPageValue(methods.get.call(instance, "n"), challenge.n, N_PATTERN);
+					solution.n = validPageValue(methods.get.call(instance, "n"), challenge.n, N_PATTERN$1);
 					if (!solution.signature) solution.signature = readSignature();
 				}
 			} catch {}
@@ -22806,7 +27727,7 @@ var vot = (function(exports) {
 		try {
 			return runChallengeSolver(targetWindow, preparedPlayer, signature, n);
 		} catch (error) {
-			errors.push(error instanceof Error ? error.message : String(error));
+			errors.push(toErrorMessage(error));
 		}
 		const sandbox = targetWindow.document.createElement("iframe");
 		sandbox.style.display = "none";
@@ -22818,7 +27739,7 @@ var vot = (function(exports) {
 			if (!realm) throw new Error("Challenge solver sandbox is unavailable");
 			return runChallengeSolver(realm, preparedPlayer, signature, n);
 		} catch (error) {
-			errors.push(error instanceof Error ? error.message : String(error));
+			errors.push(toErrorMessage(error));
 		} finally {
 			sandbox.remove();
 		}
@@ -22868,7 +27789,7 @@ var vot = (function(exports) {
 			signal.throwIfAborted();
 			const solved = {
 				signature: validPageValue(raw.signature, signature, SIG_PATTERN),
-				n: validPageValue(raw.n, n, N_PATTERN)
+				n: validPageValue(raw.n, n, N_PATTERN$1)
 			};
 			if (signature && !solved.signature || n && !solved.n) throw new Error("Audio downloader. YouTube challenge solve invalid");
 			astSolutions.set(key, solved);
@@ -22889,7 +27810,7 @@ var vot = (function(exports) {
 				}
 			} catch (error) {
 				signal.throwIfAborted();
-				errors.push(error instanceof Error ? error.message : String(error));
+				errors.push(toErrorMessage(error));
 				continue;
 			}
 			signal.throwIfAborted();
@@ -22905,7 +27826,7 @@ var vot = (function(exports) {
 			solved = await solve(signature, n);
 		} catch (error) {
 			signal.throwIfAborted();
-			errors.push(error instanceof Error ? error.message : String(error));
+			errors.push(toErrorMessage(error));
 			throw new Error(`Audio downloader. challenge solve failed (${errors.join(" | ")})`);
 		}
 		signal.throwIfAborted();
@@ -22914,7 +27835,7 @@ var vot = (function(exports) {
 		signal.throwIfAborted();
 	}
 	function buildTvDowngradedPlayerRequest(videoId, options = {}) {
-		const contentPlaybackContext = buildContentPlaybackContext(options.signatureTimestamp);
+		const contentPlaybackContext = buildContentPlaybackContext$1(options.signatureTimestamp);
 		return {
 			context: { client: {
 				clientName: "TVHTML5",
@@ -22941,13 +27862,13 @@ var vot = (function(exports) {
 		return {
 			context,
 			videoId,
-			playbackContext: { contentPlaybackContext: buildContentPlaybackContext(extractedSignatureTimestamp ?? getConfigValue(config, "STS")) },
+			playbackContext: { contentPlaybackContext: buildContentPlaybackContext$1(extractedSignatureTimestamp ?? getConfigValue(config, "STS")) },
 			contentCheckOk: true,
 			racyCheckOk: true
 		};
 	}
 	function buildWebCreatorPlayerRequest(videoId, options = {}) {
-		const contentPlaybackContext = buildContentPlaybackContext(options.signatureTimestamp);
+		const contentPlaybackContext = buildContentPlaybackContext$1(options.signatureTimestamp);
 		return {
 			context: { client: {
 				clientName: "WEB_CREATOR",
@@ -23107,7 +28028,7 @@ var vot = (function(exports) {
 					maxAttempts: WEB_ABR_RANGE_MAX_ATTEMPTS,
 					fatal,
 					refreshUrl: shouldRefreshUrl,
-					error: error instanceof Error ? error.message : String(error)
+					error: toErrorMessage(error)
 				});
 				if (!hasMoreAttempts) break;
 				if (fatal && refreshedFatal) break;
@@ -23332,12 +28253,12 @@ var vot = (function(exports) {
 					emitted: false,
 					bufferBeforeEmit: true,
 					elapsedMs: Math.round(performance.now() - startedAt),
-					error: error instanceof Error ? error.message : String(error)
+					error: toErrorMessage(error)
 				});
 				if (isFatalMediaError(error)) {
 					debug.log("Audio downloader. web ABR transport matrix aborted", {
 						transport,
-						error: error instanceof Error ? error.message : String(error)
+						error: toErrorMessage(error)
 					});
 					throw error;
 				}
@@ -23345,7 +28266,7 @@ var vot = (function(exports) {
 		}
 		throw lastError instanceof Error ? lastError : new Error("Audio downloader. All web ABR transports failed");
 	}
-	async function* getWebAbrAudioChunksImpl(targetWindow, videoId, signal, sourceLanguage) {
+	async function* getWebAbrAudioChunks$1(targetWindow, videoId, signal, sourceLanguage) {
 		const config = await resolveYtcfg(targetWindow, signal);
 		const apiKey = getConfigValue(config, "INNERTUBE_API_KEY");
 		if (typeof apiKey !== "string") throw new Error("Audio downloader. web ABR config is unavailable");
@@ -23393,6 +28314,7 @@ var vot = (function(exports) {
 		});
 		let lastError;
 		let emitted = false;
+		let loginRequiredSeen = false;
 		for (const name of [
 			"web_embedded",
 			"tv_downgraded",
@@ -23417,6 +28339,7 @@ var vot = (function(exports) {
 			const requestPlayer = async (authenticated = false) => {
 				const response = await postPlayer(authenticated);
 				const status = response.playabilityStatus?.status ?? "";
+				if (status === "LOGIN_REQUIRED") loginRequiredSeen = true;
 				if (!authenticated && authorization && /LOGIN_REQUIRED|AGE_CHECK_REQUIRED|CONTENT_CHECK_REQUIRED/.test(status)) {
 					debug.log("Audio downloader. retrying player with YouTube session", {
 						videoId,
@@ -23483,19 +28406,1182 @@ var vot = (function(exports) {
 				}
 			} catch (error) {
 				signal.throwIfAborted();
+				if (error instanceof Error && error.message === "YOUTUBE_SIGN_IN_SUGGESTED") throw error;
 				if (emitted) throw error;
 				debug.log("Audio downloader. player client format failed", {
 					videoId,
 					client: name,
-					error: error instanceof Error ? error.message : String(error)
+					error: toErrorMessage(error)
 				});
 				lastError = error;
 			}
 		}
+		if (loginRequiredSeen && !authorization) throw new Error("YOUTUBE_SIGN_IN_SUGGESTED", { cause: lastError });
 		const fallbackError = lastError instanceof Error ? lastError : new Error("Audio downloader. no playable audio formats");
 		if (/LOGIN_REQUIRED|UNPLAYABLE/.test(fallbackError.message)) throw new Error(`${fallbackError.message}. Anonymous playback and the available signed-in YouTube session were both unable to provide a playable audio stream`, { cause: fallbackError });
 		throw fallbackError;
 	}
+	//#endregion
+	//#region src/audioDownloader/strategies/youtubeSabrPlayer.ts
+	function readInitialPlayerResponseFromDocument(targetWindow) {
+		let scripts = [];
+		try {
+			scripts = [...getTopPageWindow(targetWindow).document.querySelectorAll("script:not([src])")];
+		} catch {
+			return;
+		}
+		const markers = [
+			"ytInitialPlayerResponse =",
+			"ytInitialPlayerResponse=",
+			"window[\"ytInitialPlayerResponse\"] =",
+			"window['ytInitialPlayerResponse'] ="
+		];
+		for (const script of scripts) {
+			const source = script.textContent ?? "";
+			if (!source.includes("ytInitialPlayerResponse")) continue;
+			for (const marker of markers) {
+				let cursor = 0;
+				while (cursor < source.length) {
+					const markerIndex = source.indexOf(marker, cursor);
+					if (markerIndex < 0) break;
+					let start = markerIndex + marker.length;
+					while (start < source.length && /\s/.test(source[start] ?? "")) start++;
+					if (source[start] !== "{") {
+						cursor = start + 1;
+						continue;
+					}
+					const end = findJsonValueEnd(source, start);
+					if (end < 0) break;
+					try {
+						const value = JSON.parse(source.slice(start, end));
+						if (value && typeof value === "object") return value;
+					} catch {}
+					cursor = end;
+				}
+			}
+		}
+	}
+	function getNativePlayerResponse(targetWindow, videoId) {
+		const candidates = [];
+		try {
+			const moviePlayer = getTopPageWindow(targetWindow).document.querySelector("#movie_player");
+			if (moviePlayer && typeof moviePlayer.getPlayerResponse === "function") {
+				const response = moviePlayer.getPlayerResponse();
+				if (response && typeof response === "object") candidates.push(response);
+			}
+		} catch {}
+		try {
+			if (targetWindow.ytInitialPlayerResponse) candidates.push(targetWindow.ytInitialPlayerResponse);
+		} catch {}
+		const documentResponse = readInitialPlayerResponseFromDocument(targetWindow);
+		if (documentResponse) candidates.push(documentResponse);
+		for (const value of candidates) {
+			const responseVideoId = value.videoDetails?.videoId;
+			if (responseVideoId && responseVideoId !== videoId) continue;
+			if (value.streamingData?.serverAbrStreamingUrl && value.playerConfig?.mediaCommonConfig?.mediaUstreamerRequestConfig?.videoPlaybackUstreamerConfig && value.streamingData?.adaptiveFormats?.length) return value;
+		}
+	}
+	function selectEconomyAudioFormat(formats) {
+		const audioOnly = formats.filter((format) => typeof format.itag === "number" && format.mimeType?.includes("audio/") && !format.mimeType?.includes("video/"));
+		const nonDrc = audioOnly.filter((format) => !isDrcAudioFormat(format));
+		const candidates = nonDrc.length > 0 ? nonDrc : audioOnly;
+		const contentLength = (format) => {
+			const value = Number(format.contentLength);
+			return Number.isFinite(value) && value > 0 ? value : Number.POSITIVE_INFINITY;
+		};
+		const bitrate = (format) => {
+			const value = Number(format.averageBitrate ?? format.bitrate);
+			return Number.isFinite(value) && value > 0 ? value : Number.POSITIVE_INFINITY;
+		};
+		return [...candidates].sort((a, b) => {
+			const sizeDiff = contentLength(a) - contentLength(b);
+			if (Number.isFinite(sizeDiff) && sizeDiff !== 0) return sizeDiff;
+			const bitrateDiff = bitrate(a) - bitrate(b);
+			if (Number.isFinite(bitrateDiff) && bitrateDiff !== 0) return bitrateDiff;
+			return (a.itag ?? Number.MAX_SAFE_INTEGER) - (b.itag ?? Number.MAX_SAFE_INTEGER);
+		})[0];
+	}
+	var N_PATTERN = /^[A-Za-z0-9_-]{4,}$/;
+	async function resolveSabrStreamingUrl(targetWindow, rawUrl, config, signal) {
+		signal.throwIfAborted();
+		const url = new URL(rawUrl);
+		const n = url.searchParams.get("n") ?? void 0;
+		if (!n) return url.toString();
+		const playerUrl = getPlayerUrl(config);
+		if (!playerUrl) throw new Error("Audio downloader. YouTube player URL is unavailable for SABR n solve");
+		const response = await targetWindow.fetch(playerUrl, { signal });
+		if (!response.ok) throw new Error(`Audio downloader. YouTube player request failed (${response.status})`);
+		const code = await response.text();
+		signal.throwIfAborted();
+		const solvedN = validPageValue(solveYouTubeChallenges(targetWindow, code, void 0, n).n, n, N_PATTERN);
+		if (!solvedN) throw new Error("Audio downloader. SABR n challenge solve invalid");
+		url.searchParams.set("n", solvedN);
+		return url.toString();
+	}
+	function buildContentPlaybackContext(signatureTimestamp) {
+		const context = { html5Preference: "HTML5_PREF_WANTS" };
+		const timestamp = Number(signatureTimestamp);
+		if (Number.isFinite(timestamp) && timestamp > 0) context.signatureTimestamp = timestamp;
+		return context;
+	}
+	function buildSabrPlayerRequest(config, videoId, extractedSignatureTimestamp) {
+		const rawContext = getConfigValue(config, "INNERTUBE_CONTEXT");
+		if (!rawContext || typeof rawContext !== "object") throw new Error("Audio downloader. web client context is unavailable");
+		const context = JSON.parse(JSON.stringify(rawContext));
+		context.client ??= {};
+		const client = context.client;
+		client.clientName = "WEB";
+		client.clientVersion = getConfigValue(config, "INNERTUBE_CLIENT_VERSION") ?? client.clientVersion;
+		client.originalUrl = `https://www.youtube.com/watch?v=${videoId}`;
+		delete context.thirdParty;
+		return {
+			context,
+			videoId,
+			playbackContext: { contentPlaybackContext: buildContentPlaybackContext(extractedSignatureTimestamp ?? getConfigValue(config, "STS")) },
+			contentCheckOk: true,
+			racyCheckOk: true
+		};
+	}
+	//#endregion
+	//#region src/audioDownloader/strategies/youtubeSabrSupport.ts
+	function toSabrFormat(format) {
+		const itag = Number(format.itag);
+		const bitrate = Number(format.bitrate ?? format.averageBitrate);
+		const approxDurationMs = Number(format.approxDurationMs);
+		const lastModified = String(format.lastModified ?? "");
+		if (!(itag > 0) || !(bitrate > 0) || !(approxDurationMs > 0) || !lastModified) return;
+		const language = getYoutubeAudioFormatLanguage(format) || void 0;
+		return {
+			itag,
+			lastModified,
+			xtags: format.xtags,
+			width: format.width,
+			height: format.height,
+			contentLength: Number(format.contentLength) || void 0,
+			audioTrackId: format.audioTrackId ?? format.audioTrack?.id,
+			mimeType: format.mimeType,
+			isDrc: isDrcAudioFormat(format),
+			quality: format.quality,
+			qualityLabel: format.qualityLabel,
+			averageBitrate: Number(format.averageBitrate) || void 0,
+			bitrate,
+			audioQuality: format.audioQuality,
+			approxDurationMs,
+			language,
+			isOriginal: format.audioTrack?.audioIsDefault === true
+		};
+	}
+	function encodeProtoVarint(value) {
+		const out = [];
+		let current = Math.max(0, Math.floor(value));
+		do {
+			let byte = current % 128;
+			current = Math.floor(current / 128);
+			if (current > 0) byte |= 128;
+			out.push(byte);
+		} while (current > 0);
+		return new Uint8Array(out);
+	}
+	function concatBytes(parts) {
+		const size = parts.reduce((sum, part) => sum + part.byteLength, 0);
+		const out = new Uint8Array(size);
+		let offset = 0;
+		for (const part of parts) {
+			out.set(part, offset);
+			offset += part.byteLength;
+		}
+		return out;
+	}
+	function readProtoVarintAt(bytes, offset) {
+		let value = 0;
+		let shift = 0;
+		let cursor = offset;
+		while (cursor < bytes.length && shift <= 49) {
+			const byte = bytes[cursor++];
+			value += (byte & 127) * 2 ** shift;
+			if ((byte & 128) === 0) return {
+				value,
+				next: cursor
+			};
+			shift += 7;
+		}
+		throw new Error("invalid protobuf varint");
+	}
+	function splitTopLevelProto(bytes) {
+		const out = [];
+		let offset = 0;
+		while (offset < bytes.length) {
+			const start = offset;
+			const tag = readProtoVarintAt(bytes, offset);
+			offset = tag.next;
+			const field = Math.floor(tag.value / 8);
+			const wire = tag.value & 7;
+			if (wire === 0) offset = readProtoVarintAt(bytes, offset).next;
+			else if (wire === 1) offset += 8;
+			else if (wire === 2) {
+				const length = readProtoVarintAt(bytes, offset);
+				offset = length.next + length.value;
+			} else if (wire === 5) offset += 4;
+			else throw new Error(`unsupported protobuf wire ${wire}`);
+			if (offset > bytes.length) throw new Error("truncated protobuf field");
+			out.push({
+				field,
+				start,
+				end: offset
+			});
+		}
+		return out;
+	}
+	function setGeneratedSabrAudioTrackId(generated, trackId) {
+		const topLevel = splitTopLevelProto(generated);
+		const encodedTrackId = new TextEncoder().encode(trackId);
+		const trackField = concatBytes([
+			encodeProtoVarint(554),
+			encodeProtoVarint(encodedTrackId.byteLength),
+			encodedTrackId
+		]);
+		const chunks = [];
+		let replacedClientAbrState = false;
+		for (const part of topLevel) {
+			if (part.field !== 1 || replacedClientAbrState) {
+				chunks.push(generated.slice(part.start, part.end));
+				continue;
+			}
+			const length = readProtoVarintAt(generated, readProtoVarintAt(generated, part.start).next);
+			const payloadStart = length.next;
+			const payloadEnd = payloadStart + length.value;
+			if (payloadEnd > part.end) throw new Error("truncated ClientAbrState");
+			const payload = generated.slice(payloadStart, payloadEnd);
+			const payloadChunks = splitTopLevelProto(payload).filter((field) => field.field !== 69).map((field) => payload.slice(field.start, field.end));
+			payloadChunks.push(trackField);
+			const patchedPayload = concatBytes(payloadChunks);
+			chunks.push(concatBytes([
+				encodeProtoVarint(10),
+				encodeProtoVarint(patchedPayload.byteLength),
+				patchedPayload
+			]));
+			replacedClientAbrState = true;
+		}
+		if (!replacedClientAbrState) throw new Error("SABR ClientAbrState field is unavailable");
+		return concatBytes(chunks);
+	}
+	function getYouTubeRuntimeAudioTracks(targetWindow) {
+		try {
+			const value = getTopPageWindow(targetWindow).document.querySelector("#movie_player")?.getAvailableAudioTracks?.();
+			return Array.isArray(value) ? value.filter((track) => Boolean(track && typeof track === "object")) : [];
+		} catch {
+			return [];
+		}
+	}
+	function getRuntimeAudioTrackId(track) {
+		let methodId;
+		try {
+			methodId = track.wM?.getId?.();
+		} catch {}
+		const id = typeof methodId === "string" ? methodId : track.wM?.id;
+		return typeof id === "string" && /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})?\.\d{1,3}$/.test(id) ? id : void 0;
+	}
+	function collectYouTubeSabrTrackDiscoveries(targetWindow) {
+		const pageWindow = getTopPageWindow(targetWindow);
+		const roots = [];
+		const addRoot = (value, source) => {
+			if (value != null) roots.push({
+				value,
+				source
+			});
+		};
+		try {
+			addRoot(pageWindow.ytInitialPlayerResponse, "ytInitialPlayerResponse");
+		} catch {}
+		try {
+			const player = pageWindow.document.querySelector("#movie_player");
+			if (player) {
+				for (const getter of [
+					"getPlayerResponse",
+					"getAudioTrack",
+					"getAudioTrackList",
+					"getAvailableAudioTracks"
+				]) try {
+					const fn = player[getter];
+					if (typeof fn === "function") addRoot(fn.call(player), `player.${getter}()`);
+				} catch {}
+				if (typeof player.getOption === "function") for (const [namespace, key] of [["audio", "tracklist"], ["audio", "track"]]) try {
+					addRoot(player.getOption(namespace, key), `player.getOption(${namespace},${key})`);
+				} catch {}
+				for (const key of [
+					"playerData",
+					"playerResponse",
+					"audioTracks",
+					"tracklist",
+					"config"
+				]) try {
+					addRoot(player[key], `player.${key}`);
+				} catch {}
+			}
+		} catch {}
+		const trackIdPattern = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})?\.\d{1,3}$/;
+		const found = new Map();
+		const seen = new WeakSet();
+		let visited = 0;
+		const walk = (value, depth, path, source) => {
+			if (value == null || depth > 9 || visited > 3e4) return;
+			if (typeof value === "string") {
+				if (trackIdPattern.test(value) && /audio/i.test(`${source}:${path}`)) found.set(`${value}|${source}|${path}`, {
+					trackId: value,
+					source: `${source}:${path}`
+				});
+				return;
+			}
+			if (typeof value !== "object") return;
+			if (seen.has(value)) return;
+			seen.add(value);
+			visited += 1;
+			const record = value;
+			for (const key of [
+				"trackId",
+				"audioTrackId",
+				"id"
+			]) {
+				const id = record[key];
+				if (typeof id === "string" && trackIdPattern.test(id) && (/audio/i.test(`${source}:${path}`) || key === "audioTrackId")) found.set(`${id}|${source}|${path}`, {
+					trackId: id,
+					raw: value,
+					source: `${source}:${path}`
+				});
+			}
+			const nestedAudioTrack = record.audioTrack;
+			if (nestedAudioTrack && typeof nestedAudioTrack === "object") {
+				const nestedId = nestedAudioTrack.id;
+				if (typeof nestedId === "string" && trackIdPattern.test(nestedId)) found.set(`${nestedId}|${source}|${path}.audioTrack`, {
+					trackId: nestedId,
+					raw: nestedAudioTrack,
+					source: `${source}:${path}.audioTrack`
+				});
+			}
+			let entries;
+			try {
+				entries = Array.isArray(value) ? value.slice(0, 400).map((child, index) => [String(index), child]) : Object.entries(record).slice(0, 400);
+			} catch {
+				return;
+			}
+			for (const [key, child] of entries) {
+				if (typeof child === "function") continue;
+				walk(child, depth + 1, path ? `${path}.${key}` : key, source);
+			}
+		};
+		for (const root of roots) walk(root.value, 0, "", root.source);
+		return [...found.values()];
+	}
+	function collectYouTubeSabrTrackIds(targetWindow) {
+		const runtimeIds = getYouTubeRuntimeAudioTracks(targetWindow).map(getRuntimeAudioTrackId).filter((id) => Boolean(id));
+		if (runtimeIds.length > 0) return [...new Set(runtimeIds)].sort();
+		return [...new Set(collectYouTubeSabrTrackDiscoveries(targetWindow).map((entry) => entry.trackId))].sort();
+	}
+	function switchYouTubeSabrAudioTrack(targetWindow, trackId) {
+		const pageWindow = getTopPageWindow(targetWindow);
+		try {
+			const player = pageWindow.document.querySelector("#movie_player");
+			if (!player || typeof player.setAudioTrack !== "function") return false;
+			const exact = getYouTubeRuntimeAudioTracks(targetWindow).find((track) => getRuntimeAudioTrackId(track) === trackId);
+			if (!exact) return false;
+			const current = player.getAudioTrack?.();
+			if (current && getRuntimeAudioTrackId(current) === trackId) return true;
+			player.setAudioTrack(exact);
+			return true;
+		} catch {
+			return false;
+		}
+	}
+	var VOT_SUPPORTED_SABR_SOURCE_LANGUAGES = new Set([
+		"ru",
+		"en",
+		"zh",
+		"ko",
+		"fr",
+		"it",
+		"es",
+		"de",
+		"ja"
+	].map((language) => normalizeAudioLanguageTag(language)).filter(Boolean));
+	function sabrTrackLanguage(trackId) {
+		return normalizeAudioLanguageTag(trackId.replace(/\.\d+$/, ""));
+	}
+	function isVotSupportedSabrTrack(trackId) {
+		const language = sabrTrackLanguage(trackId);
+		if (!language) return false;
+		if (VOT_SUPPORTED_SABR_SOURCE_LANGUAGES.has(language)) return true;
+		const base = language.split("-")[0];
+		return [...VOT_SUPPORTED_SABR_SOURCE_LANGUAGES].some((supported) => supported.split("-")[0] === base);
+	}
+	var WEB_ABR_RESOLVED_AUDIO_LANGUAGES = new Map();
+	function resolveSabrAudioTrackId(targetWindow, requestedLanguage) {
+		const requested = normalizeAudioLanguageTag(requestedLanguage);
+		const availableTrackIds = collectYouTubeSabrTrackIds(targetWindow);
+		const supportedAlternativeTrackIds = availableTrackIds.filter(isVotSupportedSabrTrack);
+		if (!requested || requested === "auto") return {
+			availableTrackIds,
+			supportedAlternativeTrackIds,
+			usedSupportedAlternative: false
+		};
+		if (availableTrackIds.length === 0) return {
+			availableTrackIds,
+			supportedAlternativeTrackIds,
+			usedSupportedAlternative: false
+		};
+		const exact = availableTrackIds.find((trackId) => sabrTrackLanguage(trackId) === requested);
+		if (exact) return {
+			trackId: exact,
+			availableTrackIds,
+			supportedAlternativeTrackIds,
+			usedSupportedAlternative: false
+		};
+		const requestedBase = requested.split("-")[0];
+		const baseMatches = availableTrackIds.filter((trackId) => sabrTrackLanguage(trackId).split("-")[0] === requestedBase);
+		if (baseMatches.length === 1) return {
+			trackId: baseMatches[0],
+			availableTrackIds,
+			supportedAlternativeTrackIds,
+			usedSupportedAlternative: false
+		};
+		if (baseMatches.length > 1) throw new Error(`Audio downloader. SABR audio language ${requestedLanguage} is ambiguous (matches: ${baseMatches.join(", ")})`);
+		return {
+			availableTrackIds,
+			supportedAlternativeTrackIds,
+			usedSupportedAlternative: false
+		};
+	}
+	async function waitForSabrAudioTrackId(targetWindow, signal, requestedLanguage, timeoutMs = 2e3) {
+		const requested = normalizeAudioLanguageTag(requestedLanguage);
+		if (!requested || requested === "auto") return resolveSabrAudioTrackId(targetWindow, requestedLanguage);
+		const startedAt = Date.now();
+		let lastAvailable = [];
+		while (Date.now() - startedAt < timeoutMs) {
+			signal.throwIfAborted();
+			const resolved = resolveSabrAudioTrackId(targetWindow, requestedLanguage);
+			lastAvailable = resolved.availableTrackIds;
+			if (resolved.trackId) return resolved;
+			await createAbortableDelay(250, signal);
+		}
+		if (lastAvailable.length === 0) return {
+			availableTrackIds: [],
+			supportedAlternativeTrackIds: [],
+			usedSupportedAlternative: false
+		};
+		throw new Error(`Audio downloader. SABR could not resolve requested audio language ${requestedLanguage} to a YouTube trackId within ${timeoutMs}ms (available: ${lastAvailable.join(", ")})`);
+	}
+	var VOT_SABR_INSTANCE_CONTEXT = new WeakMap();
+	//#endregion
+	//#region src/audioDownloader/strategies/youtubeSabr.ts
+	function readProtoVarint(bytes, start) {
+		let value = 0;
+		let shift = 0;
+		let offset = start;
+		while (offset < bytes.length && shift <= 35) {
+			const byte = bytes[offset++];
+			value += (byte & 127) * 2 ** shift;
+			if ((byte & 128) === 0) return {
+				value,
+				next: offset
+			};
+			shift += 7;
+		}
+		throw new Error("invalid protobuf varint");
+	}
+	function getGeneratedSabrAudioTrackId(bytes) {
+		try {
+			let offset = 0;
+			while (offset < bytes.length) {
+				const tag = readProtoVarint(bytes, offset);
+				offset = tag.next;
+				const field = Math.floor(tag.value / 8);
+				const wire = tag.value & 7;
+				if (wire !== 2) {
+					if (wire === 0) offset = readProtoVarint(bytes, offset).next;
+					else if (wire === 1) offset += 8;
+					else if (wire === 5) offset += 4;
+					else return void 0;
+					continue;
+				}
+				const length = readProtoVarint(bytes, offset);
+				const start = length.next;
+				const end = start + length.value;
+				if (end > bytes.length) return void 0;
+				if (field === 1) {
+					let inner = start;
+					while (inner < end) {
+						const innerTag = readProtoVarint(bytes, inner);
+						inner = innerTag.next;
+						const innerField = Math.floor(innerTag.value / 8);
+						const innerWire = innerTag.value & 7;
+						if (innerWire === 2) {
+							const innerLength = readProtoVarint(bytes, inner);
+							const valueStart = innerLength.next;
+							const valueEnd = valueStart + innerLength.value;
+							if (valueEnd > end) return void 0;
+							if (innerField === 69) {
+								const trackId = new TextDecoder().decode(bytes.slice(valueStart, valueEnd));
+								return /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})?\.\d{1,3}$/.test(trackId) ? trackId : void 0;
+							}
+							inner = valueEnd;
+						} else if (innerWire === 0) inner = readProtoVarint(bytes, inner).next;
+						else if (innerWire === 1) inner += 8;
+						else if (innerWire === 5) inner += 4;
+						else return void 0;
+					}
+				}
+				offset = end;
+			}
+		} catch {}
+	}
+	async function* trySabrAudioChunks(targetWindow, videoId, signal, sourceLanguage) {
+		debug.log("[VOT][SABR][PRIMARY] entered trySabrAudioChunks", { videoId });
+		WEB_ABR_RESOLVED_AUDIO_LANGUAGES.delete(videoId);
+		const config = await resolveYtcfg(targetWindow, signal);
+		const apiKey = getConfigValue(config, "INNERTUBE_API_KEY");
+		if (typeof apiKey !== "string") throw new Error("Audio downloader. SABR config is unavailable");
+		const body = buildSabrPlayerRequest(config, videoId, Number(getConfigValue(config, "STS")));
+		const context = body.context;
+		const clientVersion = String(context.client.clientVersion ?? "");
+		const visitorData = context.client.visitorData ?? getConfigValue(config, "VISITOR_DATA");
+		if (typeof visitorData === "string") context.client.visitorData = visitorData;
+		const dataSyncId = getConfigValue(config, "DATASYNC_ID");
+		const [firstSyncId, secondSyncId] = typeof dataSyncId === "string" ? dataSyncId.split("||") : [];
+		const authorization = await getYouTubeAuthorization(targetWindow, String(getConfigValue(config, "USER_SESSION_ID") ?? (secondSyncId || firstSyncId) ?? "") || void 0);
+		const auth = authorization ? {
+			authorization,
+			sessionIndex: getConfigValue(config, "SESSION_INDEX"),
+			delegatedSessionId: getConfigValue(config, "DELEGATED_SESSION_ID") ?? (secondSyncId ? firstSyncId : void 0)
+		} : {};
+		let player = await postInnertubePlayer(targetWindow, signal, apiKey, body, "1", clientVersion, {});
+		if (authorization && /LOGIN_REQUIRED|AGE_CHECK_REQUIRED|CONTENT_CHECK_REQUIRED/.test(player.playabilityStatus?.status ?? "")) player = await postInnertubePlayer(targetWindow, signal, apiKey, body, "1", clientVersion, auth);
+		const nativePlayer = getNativePlayerResponse(targetWindow, videoId);
+		if (nativePlayer) player = nativePlayer;
+		const playerServerAbrStreamingUrl = player.streamingData?.serverAbrStreamingUrl;
+		const requestedSabrLanguage = normalizeAudioLanguageTag(sourceLanguage);
+		const resolvedSabrTrack = await waitForSabrAudioTrackId(targetWindow, signal, sourceLanguage, 2e3);
+		const sabrAvailableTrackIds = resolvedSabrTrack.availableTrackIds;
+		if (resolvedSabrTrack.trackId) switchYouTubeSabrAudioTrack(targetWindow, resolvedSabrTrack.trackId);
+		const nativeSabrAudioTrackId = void 0;
+		let sabrAudioTrackId = resolvedSabrTrack.trackId;
+		let sabrTrackSelection;
+		if (resolvedSabrTrack.usedSupportedAlternative) {
+			new Set(resolvedSabrTrack.supportedAlternativeTrackIds);
+			sabrTrackSelection = "supported-alternative";
+		} else if (sabrAudioTrackId) sabrTrackSelection = "ui-language";
+		else if (sabrAvailableTrackIds.length === 0) {
+			sabrAudioTrackId = nativeSabrAudioTrackId;
+			sabrTrackSelection = requestedSabrLanguage && requestedSabrLanguage !== "auto" ? "native-only" : "native-auto";
+		} else throw new Error(`Audio downloader. SABR found no VOT-supported audio track (requested: ${sourceLanguage ?? "auto"}, available: ${sabrAvailableTrackIds.join(", ")})`);
+		const actualSabrLanguage = sabrAudioTrackId ? sabrTrackLanguage(sabrAudioTrackId) : requestedSabrLanguage || void 0;
+		WEB_ABR_RESOLVED_AUDIO_LANGUAGES.set(videoId, {
+			videoId,
+			requestedLanguage: requestedSabrLanguage || void 0,
+			actualLanguage: actualSabrLanguage,
+			trackId: sabrAudioTrackId,
+			selection: sabrTrackSelection
+		});
+		const serverAbrStreamingUrl = playerServerAbrStreamingUrl ? await resolveSabrStreamingUrl(targetWindow, playerServerAbrStreamingUrl, config, signal) : void 0;
+		const videoPlaybackUstreamerConfig = player.playerConfig?.mediaCommonConfig?.mediaUstreamerRequestConfig?.videoPlaybackUstreamerConfig;
+		if (!serverAbrStreamingUrl || !videoPlaybackUstreamerConfig) throw new Error("Audio downloader. SABR metadata is unavailable in player response");
+		const rawFormats = [...player.streamingData?.adaptiveFormats ?? [], ...player.streamingData?.formats ?? []];
+		const audioCandidates = rawFormats.filter((format) => format.mimeType?.includes("audio/") && !format.mimeType?.includes("video/"));
+		const normalizedSelectedTrackId = sabrAudioTrackId?.toLowerCase();
+		const requestedTrackLanguage = normalizedSelectedTrackId ? normalizeAudioLanguageTag(normalizedSelectedTrackId.split(".")[0]) : normalizeAudioLanguageTag(sourceLanguage);
+		const formatTrackId = (format) => format.audioTrackId ?? format.audioTrack?.id;
+		const exactTrackAudioCandidates = normalizedSelectedTrackId ? audioCandidates.filter((format) => formatTrackId(format)?.toLowerCase() === normalizedSelectedTrackId) : [];
+		const languageTrackAudioCandidates = exactTrackAudioCandidates.length === 0 && requestedTrackLanguage ? audioCandidates.filter((format) => audioLanguageMatches(getYoutubeAudioFormatLanguage(format), requestedTrackLanguage)) : [];
+		audioCandidates.some((format) => Boolean(formatTrackId(format) || normalizeAudioLanguageTag(getYoutubeAudioFormatLanguage(format))));
+		const nativeBoundUnscopedAudioCandidates = (exactTrackAudioCandidates.length === 0 && languageTrackAudioCandidates.length, []);
+		const selectedTrackAudioCandidates = exactTrackAudioCandidates.length > 0 ? exactTrackAudioCandidates : languageTrackAudioCandidates.length > 0 ? languageTrackAudioCandidates : nativeBoundUnscopedAudioCandidates.length > 0 ? nativeBoundUnscopedAudioCandidates : sabrAvailableTrackIds.length <= 1 ? audioCandidates : [];
+		if (selectedTrackAudioCandidates.length === 0) throw new Error(`Audio downloader. SABR has no concrete formats for selected track ${sabrAudioTrackId ?? "native/default"}; refusing array[0] fallback`);
+		const selected = selectEconomyAudioFormat(selectedTrackAudioCandidates);
+		if (!selected?.itag) throw new Error("Audio downloader. SABR audio format is unavailable");
+		const selectedSabr = toSabrFormat(selected);
+		if (!selectedSabr) throw new Error("Audio downloader. SABR selected format metadata is incomplete");
+		const selectedTrackAudioObjects = new Set(selectedTrackAudioCandidates);
+		const sabrFormatsForStream = rawFormats.flatMap((format) => {
+			if (format.mimeType?.includes("audio/") && !format.mimeType?.includes("video/") && !selectedTrackAudioObjects.has(format)) return [];
+			const converted = toSabrFormat(format);
+			return converted ? [converted] : [];
+		});
+		const nativeClient = getConfigValue(config, "INNERTUBE_CONTEXT")?.client ?? {};
+		const pageWindow = getTopPageWindow(targetWindow);
+		const clientInfo = {
+			clientName: Number(getConfigValue(config, "INNERTUBE_CONTEXT_CLIENT_NAME")) || 1,
+			clientVersion,
+			...typeof nativeClient.hl === "string" && nativeClient.hl ? { acceptLanguage: nativeClient.hl } : {},
+			...typeof nativeClient.deviceMake === "string" && nativeClient.deviceMake ? { deviceMake: nativeClient.deviceMake } : {},
+			...typeof nativeClient.deviceModel === "string" && nativeClient.deviceModel ? { deviceModel: nativeClient.deviceModel } : {},
+			...typeof nativeClient.osName === "string" && nativeClient.osName ? { osName: nativeClient.osName } : {},
+			...typeof nativeClient.osVersion === "string" && nativeClient.osVersion ? { osVersion: nativeClient.osVersion } : {}
+		};
+		const playerContexts = getConfigValue(config, "WEB_PLAYER_CONTEXT_CONFIGS");
+		const pageExperimentFlags = Object.values(playerContexts && typeof playerContexts === "object" ? playerContexts : {}).flatMap((entry) => typeof entry?.serializedExperimentFlags === "string" ? [entry.serializedExperimentFlags] : []);
+		const sabrPoTokenBinding = selectGvsPoTokenBinding(videoId, {
+			loggedIn: Boolean(authorization),
+			dataSyncId: player.responseContext?.mainAppWebResponseContext?.datasyncId ?? dataSyncId,
+			visitorData,
+			experimentFlags: pageExperimentFlags
+		});
+		const sabrPoToken = sabrPoTokenBinding ? await mintPagePoToken(targetWindow, sabrPoTokenBinding.value, signal) : void 0;
+		const readSabrVarint = (bytes, start) => {
+			let value = 0n;
+			let shift = 0n;
+			for (let offset = start; offset < bytes.length && offset < start + 10; offset++) {
+				const byte = bytes[offset];
+				value |= BigInt(byte & 127) << shift;
+				if ((byte & 128) === 0) return {
+					value,
+					next: offset + 1
+				};
+				shift += 7n;
+			}
+		};
+		const inspectSabrProto = (bytes) => {
+			const fields = [];
+			let offset = 0;
+			let parseError;
+			while (offset < bytes.length && fields.length < 512) {
+				const tag = readSabrVarint(bytes, offset);
+				if (!tag) {
+					parseError = `invalid tag at ${offset}`;
+					break;
+				}
+				offset = tag.next;
+				const field = Number(tag.value >> 3n);
+				const wireType = Number(tag.value & 7n);
+				if (!field) {
+					parseError = `field 0 at ${offset}`;
+					break;
+				}
+				if (wireType === 0) {
+					const item = readSabrVarint(bytes, offset);
+					if (!item) {
+						parseError = `invalid varint field ${field}`;
+						break;
+					}
+					offset = item.next;
+					fields.push({
+						field,
+						wireType,
+						value: item.value.toString()
+					});
+				} else if (wireType === 1) {
+					if (offset + 8 > bytes.length) {
+						parseError = `truncated fixed64 field ${field}`;
+						break;
+					}
+					fields.push({
+						field,
+						wireType,
+						length: 8
+					});
+					offset += 8;
+				} else if (wireType === 2) {
+					const length = readSabrVarint(bytes, offset);
+					if (!length) {
+						parseError = `invalid length field ${field}`;
+						break;
+					}
+					offset = length.next;
+					const size = Number(length.value);
+					if (!Number.isSafeInteger(size) || size < 0 || offset + size > bytes.length) {
+						parseError = `truncated bytes field ${field} length ${length.value}`;
+						break;
+					}
+					fields.push({
+						field,
+						wireType,
+						length: size
+					});
+					offset += size;
+				} else if (wireType === 5) {
+					if (offset + 4 > bytes.length) {
+						parseError = `truncated fixed32 field ${field}`;
+						break;
+					}
+					fields.push({
+						field,
+						wireType,
+						length: 4
+					});
+					offset += 4;
+				} else {
+					parseError = `unsupported wire type ${wireType} field ${field}`;
+					break;
+				}
+			}
+			const counts = {};
+			const lengths = {};
+			for (const item of fields) {
+				const key = String(item.field);
+				counts[key] = (counts[key] ?? 0) + 1;
+				if (item.length !== void 0) {
+					lengths[key] ??= [];
+					lengths[key].push(item.length);
+				}
+			}
+			return {
+				byteLength: bytes.byteLength,
+				fieldFingerprint: fields.map((item) => `${item.field}:${item.wireType}:${item.length ?? item.value ?? ""}`).join("|"),
+				fieldCounts: counts,
+				fieldLengths: lengths,
+				targetFields: Object.fromEntries([
+					1,
+					2,
+					3,
+					5,
+					16,
+					19
+				].map((field) => [String(field), {
+					count: counts[String(field)] ?? 0,
+					lengths: lengths[String(field)] ?? []
+				}])),
+				parseError: parseError ?? null,
+				parsedBytes: offset
+			};
+		};
+		let sabrRequestIndex = 0;
+		let consecutivePostBootstrapRequestsWithoutBufferedRanges = 0;
+		const fetchRealm = targetWindow;
+		const sabrDiagnosticFetch = async (input, init) => {
+			const index = ++sabrRequestIndex;
+			const RequestCtor = fetchRealm.Request;
+			const inputIsRequest = typeof RequestCtor !== "undefined" && input instanceof RequestCtor;
+			const requestInput = inputIsRequest ? input : void 0;
+			const requestUrl = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+			const url = new URL(requestUrl, targetWindow.location.href);
+			const isSabrRequest = url.hostname.endsWith("googlevideo.com") && url.pathname === "/videoplayback" && url.searchParams.get("sabr") === "1";
+			if (isSabrRequest) {}
+			const method = init?.method ?? requestInput?.method ?? "GET";
+			const body = init?.body ?? null;
+			const headers = new fetchRealm.Headers(init?.headers ?? requestInput?.headers);
+			if (isSabrRequest) {
+				headers.delete("content-type");
+				headers.delete("Content-Type");
+			}
+			let transportBody = body;
+			const BlobCtor = fetchRealm.Blob;
+			if (isSabrRequest && typeof BlobCtor !== "undefined" && body instanceof BlobCtor) transportBody = await body.arrayBuffer();
+			const headerEntries = Object.fromEntries(headers.entries());
+			if (body !== null) {
+				let bytes = null;
+				if (typeof body === "string") bytes = new TextEncoder().encode(body);
+				else if (body instanceof ArrayBuffer) bytes = new Uint8Array(body);
+				else if (ArrayBuffer.isView(body)) bytes = new Uint8Array(body.buffer, body.byteOffset, body.byteLength);
+				else if (typeof BlobCtor !== "undefined" && body instanceof BlobCtor) {}
+				if (bytes) {
+					const protobuf = inspectSabrProto(bytes);
+					const encodedAudioTrackId = getGeneratedSabrAudioTrackId(bytes);
+					if (index <= 3 || encodedAudioTrackId !== sabrAudioTrackId) {}
+					if (index > 1) {
+						consecutivePostBootstrapRequestsWithoutBufferedRanges = (protobuf.targetFields?.["3"]?.count ?? 0) > 0 ? 0 : consecutivePostBootstrapRequestsWithoutBufferedRanges + 1;
+						if (consecutivePostBootstrapRequestsWithoutBufferedRanges >= 8) throw new Error("SABR state did not produce buffered ranges after bootstrap");
+					}
+				}
+			}
+			const fetchWithGmFallback = async () => {
+				try {
+					const nativeInit = {
+						...init ?? {},
+						headers,
+						body: transportBody,
+						credentials: "include",
+						mode: "cors",
+						cache: "no-store",
+						redirect: "follow"
+					};
+					if (!inputIsRequest) return await targetWindow.fetch(url.toString(), nativeInit);
+					if (!RequestCtor) throw new Error("Audio downloader. SABR Request constructor is unavailable");
+					const rewrittenRequest = new RequestCtor(url.toString(), {
+						method,
+						headers,
+						body: transportBody ?? void 0,
+						credentials: "include",
+						mode: "cors",
+						cache: "no-store",
+						redirect: "follow",
+						signal: init?.signal ?? requestInput?.signal
+					});
+					return await targetWindow.fetch(rewrittenRequest);
+				} catch (nativeError) {
+					const gmGlobal = globalThis;
+					const callbackGm = gmGlobal.GM_xmlhttpRequest;
+					const promiseGm = gmGlobal.GM?.xmlHttpRequest ?? gmGlobal.GM?.xmlhttpRequest;
+					const gm = typeof callbackGm === "function" ? callbackGm : typeof promiseGm === "function" ? promiseGm.bind(gmGlobal.GM) : void 0;
+					if (typeof gm !== "function") throw nativeError;
+					let gmBody;
+					if (typeof transportBody === "string") gmBody = transportBody;
+					else if (transportBody instanceof ArrayBuffer) gmBody = transportBody.slice(0);
+					else if (ArrayBuffer.isView(transportBody)) gmBody = transportBody.buffer.slice(transportBody.byteOffset, transportBody.byteOffset + transportBody.byteLength);
+					else if (typeof BlobCtor !== "undefined" && transportBody instanceof BlobCtor) gmBody = await transportBody.arrayBuffer();
+					else if (transportBody !== null || requestInput?.body) throw nativeError;
+					return await new Promise((resolve, reject) => {
+						let settled = false;
+						let requestHandle;
+						const signal = init?.signal ?? requestInput?.signal;
+						const cleanup = () => signal?.removeEventListener("abort", onAbort);
+						const finishReject = (error) => {
+							if (settled) return;
+							settled = true;
+							cleanup();
+							reject(error);
+						};
+						const onAbort = () => {
+							try {
+								requestHandle?.abort?.();
+							} catch {}
+							finishReject(new DOMException("The operation was aborted.", "AbortError"));
+						};
+						if (signal?.aborted) {
+							onAbort();
+							return;
+						}
+						signal?.addEventListener("abort", onAbort, { once: true });
+						const parseHeaders = (raw) => {
+							const result = new fetchRealm.Headers();
+							for (const line of (raw ?? "").split(/\r?\n/)) {
+								const colon = line.indexOf(":");
+								if (colon > 0) try {
+									result.append(line.slice(0, colon).trim(), line.slice(colon + 1).trim());
+								} catch {}
+							}
+							return result;
+						};
+						const finishResolve = (gmResponse) => {
+							if (settled) return;
+							settled = true;
+							cleanup();
+							const responseHeaders = parseHeaders(gmResponse.responseHeaders);
+							resolve(new fetchRealm.Response(gmResponse.response ?? new ArrayBuffer(0), {
+								status: gmResponse.status || 200,
+								statusText: gmResponse.statusText ?? "",
+								headers: responseHeaders
+							}));
+						};
+						const details = {
+							method,
+							url: url.toString(),
+							headers: headerEntries,
+							data: gmBody,
+							responseType: "arraybuffer",
+							anonymous: false,
+							onload: finishResolve,
+							onerror: (gmError) => finishReject(gmError instanceof Error ? gmError : new TypeError("GM_xmlhttpRequest SABR request failed")),
+							ontimeout: () => finishReject(new TypeError("GM_xmlhttpRequest SABR request timed out")),
+							onabort: () => finishReject(new DOMException("The operation was aborted.", "AbortError"))
+						};
+						try {
+							requestHandle = gm(details);
+							if (requestHandle && typeof requestHandle.then === "function") requestHandle.then(finishResolve, finishReject);
+						} catch (gmError) {
+							finishReject(gmError);
+						}
+					});
+				}
+			};
+			const response = await fetchWithGmFallback();
+			if (response.body) {
+				const foreignReader = response.body.getReader();
+				const localBody = new ReadableStream({
+					async pull(controller) {
+						try {
+							const { value, done } = await foreignReader.read();
+							if (done) {
+								controller.close();
+								return;
+							}
+							if (!value) return;
+							const source = ArrayBuffer.isView(value) ? new Uint8Array(value.buffer, value.byteOffset, value.byteLength) : new Uint8Array(value);
+							const localChunk = new Uint8Array(source.byteLength);
+							localChunk.set(source);
+							controller.enqueue(localChunk);
+						} catch (error) {
+							controller.error(error);
+						}
+					},
+					cancel(reason) {
+						return foreignReader.cancel(reason);
+					}
+				});
+				return new Response(localBody, {
+					status: response.status,
+					statusText: response.statusText,
+					headers: new Headers(response.headers)
+				});
+			}
+			return response;
+		};
+		const sabrPrototype = SabrStream.prototype;
+		if (typeof sabrPrototype.buildRequestBody === "function" && !sabrPrototype.__votNativeAbrStatePatched) {
+			const originalBuildRequestBody = sabrPrototype.buildRequestBody;
+			sabrPrototype.buildRequestBody = function(abrState, selectedAudioFormat, selectedVideoFormat) {
+				const context = VOT_SABR_INSTANCE_CONTEXT.get(this);
+				const generated = originalBuildRequestBody.call(this, abrState, selectedAudioFormat, selectedVideoFormat);
+				if (!context) return generated;
+				context.buildIndex += 1;
+				try {
+					let selfBuilt = generated;
+					if (context.sabrAudioTrackId) selfBuilt = setGeneratedSabrAudioTrackId(selfBuilt, context.sabrAudioTrackId);
+					return selfBuilt;
+				} catch {
+					return generated;
+				}
+			};
+			sabrPrototype.__votNativeAbrStatePatched = true;
+		}
+		let stream;
+		stream = new SabrStream({
+			fetch: sabrDiagnosticFetch,
+			poToken: sabrPoToken,
+			serverAbrStreamingUrl,
+			videoPlaybackUstreamerConfig,
+			clientInfo,
+			formats: sabrFormatsForStream
+		});
+		VOT_SABR_INSTANCE_CONTEXT.set(stream, {
+			videoId,
+			sabrAudioTrackId,
+			buildIndex: 0,
+			pageWindow
+		});
+		debug.log("[VOT][SABR][PURE_ONLY] SabrStream created", {
+			videoId,
+			sabrAudioTrackId,
+			bootstrap: "playerResponse+SabrStream-generated-protobuf",
+			nativeSabrCapture: "disabled",
+			nativeBodyUsed: false,
+			nativeUrlUsed: false,
+			nativeCpnUsed: false,
+			nativeRnUsed: false,
+			serverAbrSource: "playerResponse",
+			onlySabrStrategy: "PURE_SELF_BUILT"
+		});
+		const abort = () => stream.abort();
+		signal.addEventListener("abort", abort, { once: true });
+		try {
+			const started = await stream.start({
+				audioFormat: selectedSabr,
+				videoFormat: (formats) => formats.filter((format) => format.mimeType?.includes("video/")).sort((a, b) => a.bitrate - b.bitrate)[0],
+				enabledTrackTypes: 1,
+				maxRetries: 3,
+				stallDetectionMs: 2e4
+			});
+			debug.log("[VOT][SABR][PURE_ONLY] SabrStream started", {
+				videoId,
+				sabrAudioTrackId
+			});
+			const audioReader = started.audioStream.getReader();
+			const pending = [];
+			let pendingSize = 0;
+			let readyChunk = null;
+			let total = 0;
+			const configuredMinChunkSize = Number(config_default$1.minChunkSize);
+			const minChunkSize = Number.isFinite(configuredMinChunkSize) && configuredMinChunkSize > 0 ? Math.floor(configuredMinChunkSize) : 5295308;
+			debug.log("[VOT][SABR] chunk config", {
+				configuredMinChunkSize: config_default$1.minChunkSize,
+				minChunkSize,
+				usedFallback: minChunkSize !== configuredMinChunkSize
+			});
+			try {
+				while (true) {
+					signal.throwIfAborted();
+					let result;
+					const readTimeoutMs = 25e3;
+					let timeoutId;
+					const timeout = new Promise((_, reject) => {
+						timeoutId = setTimeout(() => {
+							reject(new Error(`Audio downloader. SABR audio stream stalled for ${readTimeoutMs}ms`));
+						}, readTimeoutMs);
+					});
+					try {
+						result = await Promise.race([audioReader.read(), timeout]);
+					} finally {
+						if (timeoutId !== void 0) clearTimeout(timeoutId);
+					}
+					const { value, done } = result;
+					if (done) break;
+					if (!value?.byteLength) continue;
+					const copy = new Uint8Array(value.byteLength);
+					copy.set(new Uint8Array(value.buffer, value.byteOffset, value.byteLength));
+					total += copy.byteLength;
+					let copyOffset = 0;
+					while (copyOffset < copy.byteLength) {
+						const remaining = minChunkSize - pendingSize;
+						const take = Math.min(remaining, copy.byteLength - copyOffset);
+						pending.push(copy.subarray(copyOffset, copyOffset + take));
+						pendingSize += take;
+						copyOffset += take;
+						if (pendingSize >= minChunkSize) {
+							const nextChunk = concatBuffers(pending);
+							pending.length = 0;
+							pendingSize = 0;
+							if (readyChunk) {
+								debug.log("[VOT][SABR] yielding chunk", {
+									size: readyChunk.byteLength,
+									isLastChunk: false,
+									total,
+									pendingSize,
+									aborted: signal.aborted
+								});
+								yield {
+									buffer: readyChunk,
+									isLastChunk: false
+								};
+								debug.log("[VOT][SABR] resumed after yield", {
+									total,
+									aborted: signal.aborted
+								});
+							}
+							readyChunk = nextChunk;
+						}
+					}
+				}
+				if (pendingSize > 0) {
+					const tail = concatBuffers(pending);
+					pending.length = 0;
+					pendingSize = 0;
+					if (readyChunk) {
+						debug.log("[VOT][SABR] yielding chunk", {
+							size: readyChunk.byteLength,
+							isLastChunk: false,
+							total,
+							pendingSize,
+							aborted: signal.aborted
+						});
+						yield {
+							buffer: readyChunk,
+							isLastChunk: false
+						};
+						debug.log("[VOT][SABR] resumed after yield", {
+							total,
+							aborted: signal.aborted
+						});
+					}
+					readyChunk = tail;
+				}
+				if (total < 1 || !readyChunk) throw new Error("Audio downloader. SABR returned empty audio");
+				const expectedContentLength = Number(selected.contentLength);
+				if (Number.isFinite(expectedContentLength) && expectedContentLength > 0) {
+					if (expectedContentLength - total > Math.max(262144, expectedContentLength * .02)) throw new Error(`Audio downloader. SABR premature EOF (${total}/${expectedContentLength} bytes)`);
+				}
+				debug.log("[VOT][SABR] yielding final chunk", {
+					size: readyChunk.byteLength,
+					isLastChunk: true,
+					total,
+					aborted: signal.aborted
+				});
+				yield {
+					buffer: readyChunk,
+					isLastChunk: true
+				};
+				debug.log("[VOT][SABR] resumed after final yield", {
+					total,
+					aborted: signal.aborted
+				});
+			} catch (error) {
+				debug.error("[VOT][SABR] audio reader failed", {
+					error,
+					total,
+					pendingSize,
+					readyChunkSize: readyChunk?.byteLength ?? 0,
+					aborted: signal.aborted,
+					reason: signal.reason
+				});
+				throw error;
+			} finally {
+				debug.log("[VOT][SABR] releasing audio reader", {
+					total,
+					pendingSize,
+					readyChunkSize: readyChunk?.byteLength ?? 0,
+					aborted: signal.aborted,
+					reason: signal.reason
+				});
+				try {
+					audioReader.releaseLock();
+				} catch {}
+			}
+		} finally {
+			signal.removeEventListener("abort", abort);
+			stream.abort();
+		}
+	}
+	//#endregion
+	//#region src/audioDownloader/strategies/youtubeSabrStrategy.ts
+	var SABR_MAX_ATTEMPTS = 2;
+	var SABR_RETRY_DELAY_MS = 750;
+	var SABR_DOWNLOAD_QUEUE = new Map();
+	function isDeterministicSabrError(error) {
+		const message = error instanceof Error ? error.message : String(error);
+		return message.includes("SABR could not resolve requested audio language") || message.includes("SABR found no VOT-supported audio track") || message.includes("SABR audio language") && message.includes("is ambiguous") || message.includes("refusing array[0] fallback");
+	}
+	async function* getSabrAudioChunksImpl(targetWindow, videoId, signal, sourceLanguage) {
+		let lastError;
+		for (let attempt = 1; attempt <= SABR_MAX_ATTEMPTS; attempt++) {
+			const chunks = [];
+			let bytes = 0;
+			try {
+				for await (const chunk of trySabrAudioChunks(targetWindow, videoId, signal, sourceLanguage)) {
+					const buffer = chunk.buffer.slice();
+					chunks.push({
+						buffer,
+						isLastChunk: chunk.isLastChunk
+					});
+					bytes += buffer.byteLength;
+				}
+				if (!chunks.length) throw new Error("Audio downloader. SABR completed without audio chunks");
+				debug.log("Audio downloader. SABR completed", {
+					videoId,
+					attempt,
+					chunks: chunks.length,
+					bytes
+				});
+				yield* chunks;
+				return;
+			} catch (error) {
+				signal.throwIfAborted();
+				lastError = error;
+				debug.log("Audio downloader. SABR attempt failed", {
+					videoId,
+					attempt,
+					bufferedChunks: chunks.length,
+					bufferedBytes: bytes,
+					error: error instanceof Error ? error.message : String(error)
+				});
+				if (attempt < SABR_MAX_ATTEMPTS && !isDeterministicSabrError(error)) {
+					await createAbortableDelay(SABR_RETRY_DELAY_MS, signal);
+					continue;
+				}
+				break;
+			}
+		}
+		throw lastError instanceof Error ? lastError : new Error(String(lastError ?? "Audio downloader. SABR failed"));
+	}
+	async function* getSabrAudioChunks(targetWindow, videoId, signal, sourceLanguage) {
+		const queueKey = String(videoId);
+		const previous = SABR_DOWNLOAD_QUEUE.get(queueKey) ?? Promise.resolve();
+		const hadPrevious = SABR_DOWNLOAD_QUEUE.has(queueKey);
+		let releaseCurrent;
+		const current = new Promise((resolve) => {
+			releaseCurrent = resolve;
+		});
+		SABR_DOWNLOAD_QUEUE.set(queueKey, current);
+		debug.log("Audio downloader. SABR queued", {
+			videoId,
+			hasPrevious: hadPrevious
+		});
+		try {
+			await previous;
+			signal.throwIfAborted();
+			yield* getSabrAudioChunksImpl(targetWindow, videoId, signal, sourceLanguage);
+		} finally {
+			releaseCurrent?.();
+			if (SABR_DOWNLOAD_QUEUE.get(queueKey) === current) SABR_DOWNLOAD_QUEUE.delete(queueKey);
+			debug.log("Audio downloader. SABR queue released", { videoId });
+		}
+	}
+	//#endregion
+	//#region src/audioDownloader/strategies/youtubeWebAbr.ts
 	var WEB_ABR_DOWNLOAD_QUEUE = new Map();
 	async function* getWebAbrAudioChunks(targetWindow, videoId, signal, sourceLanguage) {
 		const queueKey = String(videoId);
@@ -23506,18 +29592,18 @@ var vot = (function(exports) {
 			releaseCurrent = resolve;
 		});
 		WEB_ABR_DOWNLOAD_QUEUE.set(queueKey, current);
-		debug.log("Audio downloader. web ABR queued", {
+		debug.log("Audio downloader. WebABR queued", {
 			videoId,
 			hasPrevious: hadPrevious
 		});
 		try {
 			await previous;
 			signal.throwIfAborted();
-			yield* getWebAbrAudioChunksImpl(targetWindow, videoId, signal, sourceLanguage);
+			yield* getWebAbrAudioChunks$1(targetWindow, videoId, signal, sourceLanguage);
 		} finally {
 			releaseCurrent?.();
 			if (WEB_ABR_DOWNLOAD_QUEUE.get(queueKey) === current) WEB_ABR_DOWNLOAD_QUEUE.delete(queueKey);
-			debug.log("Audio downloader. web ABR queue released", { videoId });
+			debug.log("Audio downloader. WebABR queue released", { videoId });
 		}
 	}
 	//#endregion
@@ -23536,7 +29622,7 @@ var vot = (function(exports) {
 	function getAudioDownloadType(message) {
 		if (!message.payload || typeof message.payload !== "object") return;
 		const audioDownloadType = message.payload.audioDownloadType;
-		return audioDownloadType === AudioDownloadType.WEB_ABR || audioDownloadType === AudioDownloadType.WEB_MSE_PROXY ? audioDownloadType : void 0;
+		return isAudioBridgeStrategy(audioDownloadType) ? audioDownloadType : void 0;
 	}
 	function getSourceLanguage(message) {
 		if (!message.payload || typeof message.payload !== "object") return;
@@ -23912,7 +29998,7 @@ var vot = (function(exports) {
 				} catch (error) {
 					debug.error("Audio downloader. MSE iframe stream failed", {
 						videoId,
-						error: error instanceof Error ? error.message : String(error)
+						error: toErrorMessage(error)
 					});
 					onMseError(error);
 				}
@@ -23953,13 +30039,13 @@ var vot = (function(exports) {
 				if (settled) return;
 				postResponse(source, event.origin, {
 					...message,
-					messageDirection: "response",
+					messageDirection: "iframe-response",
 					payload: void 0,
 					isProgress: true
 				});
 			};
-			const chunks = audioDownloadType === AudioDownloadType.WEB_ABR ? getWebAbrAudioChunks(targetWindow, videoId, controller.signal, getSourceLanguage(message)) : createAudioChunkStream(targetWindow, videoId, controller.signal, postProgress);
-			if (audioDownloadType === AudioDownloadType.WEB_ABR) {
+			const chunks = audioDownloadType === SABR_STRATEGY ? getSabrAudioChunks(targetWindow, videoId, controller.signal, getSourceLanguage(message)) : audioDownloadType === AudioDownloadType.WEB_ABR ? getWebAbrAudioChunks(targetWindow, videoId, controller.signal, getSourceLanguage(message)) : createAudioChunkStream(targetWindow, videoId, controller.signal, postProgress);
+			if (audioDownloadType === SABR_STRATEGY || audioDownloadType === AudioDownloadType.WEB_ABR) {
 				postProgress();
 				heartbeat = setInterval(postProgress, 3e4);
 			}
@@ -23973,7 +30059,7 @@ var vot = (function(exports) {
 				});
 				postResponse(source, event.origin, {
 					...message,
-					messageDirection: "response",
+					messageDirection: "iframe-response",
 					payload: chunk
 				});
 			}
@@ -23985,7 +30071,7 @@ var vot = (function(exports) {
 			});
 			postResponse(source, event.origin, {
 				...message,
-				messageDirection: "response",
+				messageDirection: "iframe-response",
 				payload: void 0,
 				isStreamFinished: true
 			});
@@ -23993,13 +30079,13 @@ var vot = (function(exports) {
 			settled = true;
 			debug.error("Audio downloader. iframe request failed", {
 				messageId: message.messageId,
-				error: error instanceof Error ? error.message : String(error)
+				error: toErrorMessage(error)
 			});
 			postResponse(source, event.origin, {
 				...message,
-				messageDirection: "response",
+				messageDirection: "iframe-response",
 				payload: void 0,
-				error: error instanceof Error ? error.message : String(error),
+				error: toErrorMessage(error),
 				isAborted: controller.signal.aborted || isAbortError(error)
 			});
 		} finally {
@@ -24035,6 +30121,99 @@ var vot = (function(exports) {
 			audioDownloadType,
 			host: targetWindow.location.hostname
 		});
+		if (audioDownloadType === SABR_STRATEGY || audioDownloadType === AudioDownloadType.WEB_ABR) {
+			const controller = new AbortController();
+			let settled = false;
+			const abort = (abortEvent) => {
+				const data = abortEvent.data;
+				if (abortEvent.source === source && abortEvent.origin === event.origin && data.messageId === message.messageId && data.messageType === MESSAGE_TYPE && data.messageDirection === "request" && data.isAborted) controller.abort(data.payload);
+			};
+			targetWindow.addEventListener("message", abort);
+			const postProgress = () => {
+				if (settled) return;
+				postResponse(source, event.origin, {
+					...message,
+					messageDirection: "response",
+					payload: void 0,
+					isProgress: true
+				});
+			};
+			const heartbeat = setInterval(postProgress, 3e4);
+			postProgress();
+			debug.log("Audio downloader. direct strategy request started", {
+				strategy: audioDownloadType,
+				videoId,
+				messageId: message.messageId,
+				host: targetWindow.location.hostname
+			});
+			try {
+				const chunks = audioDownloadType === SABR_STRATEGY ? getSabrAudioChunks(targetWindow, videoId, controller.signal, getSourceLanguage(message)) : getWebAbrAudioChunks(targetWindow, videoId, controller.signal, getSourceLanguage(message));
+				for await (const chunk of chunks) {
+					const buffer = new Uint8Array(chunk.buffer.buffer, chunk.buffer.byteOffset, chunk.buffer.byteLength).slice();
+					const payload = {
+						...chunk,
+						buffer
+					};
+					debug.log("Audio downloader. direct chunk received", {
+						videoId,
+						messageId: message.messageId,
+						size: buffer.byteLength,
+						isLastChunk: chunk.isLastChunk
+					});
+					try {
+						postResponse(source, event.origin, {
+							...message,
+							messageDirection: "response",
+							payload
+						});
+						debug.log("Audio downloader. direct chunk posted", {
+							videoId,
+							messageId: message.messageId,
+							size: buffer.byteLength,
+							isLastChunk: chunk.isLastChunk
+						});
+					} catch (error) {
+						debug.error("Audio downloader. direct chunk post failed", {
+							videoId,
+							messageId: message.messageId,
+							size: buffer.byteLength,
+							error: error instanceof Error ? error.message : String(error)
+						});
+						throw error;
+					}
+				}
+				settled = true;
+				debug.log("Audio downloader. direct strategy stream finished", {
+					strategy: audioDownloadType,
+					videoId,
+					messageId: message.messageId
+				});
+				postResponse(source, event.origin, {
+					...message,
+					messageDirection: "response",
+					payload: void 0,
+					isStreamFinished: true
+				});
+			} catch (error) {
+				settled = true;
+				debug.error("Audio downloader. direct WebABR/SABR request failed", {
+					videoId,
+					messageId: message.messageId,
+					error: error instanceof Error ? error.message : String(error)
+				});
+				postResponse(source, event.origin, {
+					...message,
+					messageDirection: "response",
+					payload: void 0,
+					error: error instanceof Error ? error.message : String(error),
+					isAborted: controller.signal.aborted || isAbortError(error)
+				});
+			} finally {
+				clearInterval(heartbeat);
+				targetWindow.removeEventListener("message", abort);
+			}
+			return;
+		}
 		const iframe = targetWindow.document.createElement("iframe");
 		iframe.style.cssText = "position:fixed;right:0;bottom:0;width:2px;height:2px;border:0;padding:0;margin:0;opacity:0;visibility:hidden;pointer-events:none;";
 		iframe.tabIndex = -1;
@@ -24077,7 +30256,13 @@ var vot = (function(exports) {
 					messageId: message.messageId
 				});
 				iframe.contentWindow?.postMessage(message, "*");
-			} else if (response.messageId === message.messageId && (response.error || response.isAborted || response.isStreamFinished)) queueMicrotask(cleanup);
+			} else if (response.messageId === message.messageId && response.messageType === MESSAGE_TYPE && response.messageDirection === "iframe-response") {
+				postResponse(source, event.origin, {
+					...response,
+					messageDirection: "response"
+				});
+				if (response.error || response.isAborted || response.isStreamFinished) queueMicrotask(cleanup);
+			}
 		};
 		timeout = setTimeout(() => {
 			debug.error("Audio downloader. iframe loading timed out", {
@@ -24118,14 +30303,27 @@ var vot = (function(exports) {
 	initMseProxyHandler();
 	//#endregion
 	//#region src/audioDownloader/strategies/index.ts
-	var WEB_ABR_STRATEGY = AudioDownloadType.WEB_ABR;
-	var WEB_MSE_PROXY_STRATEGY = AudioDownloadType.WEB_MSE_PROXY;
 	var strategies = {
+		[SABR_STRATEGY]: (options) => getAudioFromBridge(options, SABR_STRATEGY),
 		[WEB_ABR_STRATEGY]: (options) => getAudioFromBridge(options, WEB_ABR_STRATEGY),
 		[WEB_MSE_PROXY_STRATEGY]: (options) => getAudioFromBridge(options, WEB_MSE_PROXY_STRATEGY)
 	};
 	//#endregion
 	//#region src/audioDownloader/index.ts
+	function reportStrategyFailures(failures, downloadSucceeded) {
+		for (const { strategy, error, recovered } of selectStrategyFailuresToReport(failures, downloadSucceeded)) captureException(error, {
+			source: "audio",
+			operation: "audioStrategy",
+			level: "warning",
+			dedupeKey: `${strategy}:${recovered}`,
+			redactedMessage: `Audio strategy failed: ${strategy}`,
+			tags: {
+				...getAudioFailureTags(error, "download"),
+				audio_strategy: strategy,
+				audio_recovered: String(recovered)
+			}
+		});
+	}
 	async function handleCommonAudioDownloadRequest({ audioDownloader, attemptedStrategy, translationId, videoId, signal, sourceLanguage }) {
 		const audioData = await strategies[attemptedStrategy]({
 			videoId,
@@ -24222,8 +30420,13 @@ var vot = (function(exports) {
 		onDownloadedAudio = new EventImpl();
 		onDownloadedPartialAudio = new EventImpl();
 		onDownloadAudioError = new EventImpl();
+		events = {
+			downloadedAudio: this.onDownloadedAudio,
+			downloadedPartialAudio: this.onDownloadedPartialAudio,
+			downloadAudioError: this.onDownloadAudioError
+		};
 		strategy;
-		constructor(strategy = WEB_ABR_STRATEGY) {
+		constructor(strategy = "auto") {
 			this.strategy = strategy;
 			this.onDownloadedPartialAudio.addListener((_translationId, data) => {
 				const chunks = this.collectingChunks.get(data.videoId);
@@ -24280,7 +30483,7 @@ var vot = (function(exports) {
 					return;
 				}
 				debug.error("Audio downloader. All audio download strategies failed", { videoId });
-				this.onDownloadAudioError.dispatch(translationId, videoId);
+				this.onDownloadAudioError.dispatch(translationId, videoId, false);
 				return;
 			}
 			let collecting;
@@ -24288,7 +30491,12 @@ var vot = (function(exports) {
 				if (await this.replayCachedAudio(videoId, translationId, signal)) return;
 				collecting = [];
 				this.collectingChunks.set(videoId, collecting);
-				const attempts = this.strategy === WEB_ABR_STRATEGY ? [WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY] : [this.strategy];
+				const attempts = this.strategy === "auto" ? [
+					SABR_STRATEGY,
+					WEB_ABR_STRATEGY,
+					WEB_MSE_PROXY_STRATEGY
+				] : [this.strategy];
+				const failures = [];
 				for (const attemptedStrategy of attempts) try {
 					await handleCommonAudioDownloadRequest({
 						audioDownloader: this,
@@ -24303,6 +30511,7 @@ var vot = (function(exports) {
 						sourceLanguage,
 						audioDownloadType: attemptedStrategy
 					});
+					reportStrategyFailures(failures, true);
 					return;
 				} catch (error) {
 					if (signal.aborted || isAbortError(error)) {
@@ -24312,41 +30521,45 @@ var vot = (function(exports) {
 						});
 						return;
 					}
+					if (attemptedStrategy === WEB_ABR_STRATEGY && error instanceof Error && error.message.includes("YOUTUBE_SIGN_IN_SUGGESTED")) {
+						this.onDownloadAudioError.dispatch(translationId, videoId, true);
+						return;
+					}
+					failures.push({
+						strategy: attemptedStrategy,
+						error
+					});
 					debug.error("Audio downloader. Strategy failed", {
 						videoId,
 						audioDownloadType: attemptedStrategy,
-						error: error instanceof Error ? error.message : String(error)
+						error: toErrorMessage(error)
 					});
 				}
 				debug.error("Audio downloader. All audio download strategies failed", { videoId });
-				this.onDownloadAudioError.dispatch(translationId, videoId);
+				const lastError = failures.at(-1)?.error;
+				reportStrategyFailures(failures, false);
+				captureException(lastError, {
+					source: "audio",
+					operation: "downloadSourceAudio",
+					dedupeKey: videoId,
+					redactedMessage: "All audio download strategies failed",
+					tags: {
+						...getAudioFailureTags(lastError, "download"),
+						audio_strategies: attempts.join(",")
+					}
+				});
+				this.onDownloadAudioError.dispatch(translationId, videoId, false);
 			} finally {
 				if (collecting && this.collectingChunks.get(videoId) === collecting) this.collectingChunks.delete(videoId);
 				release();
 			}
 		}
 		addEventListener(type, listener) {
-			switch (type) {
-				case "downloadedAudio":
-					this.onDownloadedAudio.addListener(listener);
-					break;
-				case "downloadedPartialAudio":
-					this.onDownloadedPartialAudio.addListener(listener);
-					break;
-				case "downloadAudioError": this.onDownloadAudioError.addListener(listener);
-			}
+			this.events[type].addListener(listener);
 			return this;
 		}
 		removeEventListener(type, listener) {
-			switch (type) {
-				case "downloadedAudio":
-					this.onDownloadedAudio.removeListener(listener);
-					break;
-				case "downloadedPartialAudio":
-					this.onDownloadedPartialAudio.removeListener(listener);
-					break;
-				case "downloadAudioError": this.onDownloadAudioError.removeListener(listener);
-			}
+			this.events[type].removeListener(listener);
 			return this;
 		}
 	};
@@ -25542,7 +31755,7 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/stores/account.ts
-	function createInitialState$2() {
+	function createInitialState$1() {
 		return {
 			isRefreshing: false,
 			isLoggedIn: false,
@@ -25552,9 +31765,9 @@ var vot = (function(exports) {
 			token: void 0
 		};
 	}
-	var [account, setAccount] = createStore(createInitialState$2());
+	var [account, setAccount] = createStore(createInitialState$1());
 	function resetAccount() {
-		setAccount(createInitialState$2());
+		setAccount(createInitialState$1());
 	}
 	function updateAccount(data) {
 		if (hasValidAccountToken(data)) return setAccount({
@@ -25581,19 +31794,7 @@ var vot = (function(exports) {
 		return true;
 	}
 	//#endregion
-	//#region src/VOTLocalizedError.ts
-	var VOTLocalizedError = class extends Error {
-		name = "VOTLocalizedError";
-		unlocalizedMessage;
-		localizedMessage;
-		constructor(message) {
-			super(localizationProvider.getDefault(message));
-			this.unlocalizedMessage = message;
-			this.localizedMessage = t$1(message);
-		}
-	};
-	//#endregion
-	//#region src/core/auth/yandex.ts
+	//#region src/modules/auth/yandex.ts
 	function createCodeVerifier() {
 		return base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)));
 	}
@@ -25601,11 +31802,38 @@ var vot = (function(exports) {
 		const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(codeVerifier));
 		return base64UrlEncode(new Uint8Array(digest));
 	}
+	var AuthRejectedError = class extends Error {
+		name = "AuthRejectedError";
+	};
+	var AuthResponseError = class extends Error {
+		name = "AuthResponseError";
+		status;
+		constructor(status, cause) {
+			super(`Unreadable Yandex auth response (HTTP ${status})`, { cause });
+			this.status = status;
+		}
+	};
+	async function readAuthJson(res) {
+		try {
+			return await res.json();
+		} catch (err) {
+			throw new AuthResponseError(res.status, err);
+		}
+	}
+	function reportAuthFailure(error, operation, message) {
+		if (error instanceof AuthRejectedError) return;
+		captureException(error, {
+			source: "auth",
+			operation,
+			redactedMessage: message,
+			extra: error instanceof AuthResponseError ? { status: error.status } : void 0
+		});
+	}
 	var isTokenError = (data) => {
 		return typeof data === "object" && data !== null && Object.hasOwn(data, "error") && typeof data.error === "string";
 	};
 	async function getOAuthTokenByCode(code) {
-		const data = await (await GM_fetch(YANDEX_AUTH_TOKEN_URL, {
+		const data = await readAuthJson(await GM_fetch(YANDEX_AUTH_TOKEN_URL, {
 			method: "POST",
 			headers: { "Content-Type": "application/x-www-form-urlencoded" },
 			body: new URLSearchParams({
@@ -25614,20 +31842,20 @@ var vot = (function(exports) {
 				client_id: YANDEX_AUTH_CLIENT_ID,
 				redirect_uri: YANDEX_AUTH_REDIRECT_URI,
 				code_verifier: sessionStorage.getItem("votYandexCodeVerifier") || ""
-			})
-		})).json();
-		if (isTokenError(data)) throw new Error(`Failed to fetch yandex OAuth token: ${data.error_description} (error: ${data.error})`);
+			}).toString()
+		}));
+		if (isTokenError(data)) throw new AuthRejectedError(`Failed to fetch yandex OAuth token: ${data.error_description} (error: ${data.error})`);
 		return data;
 	}
 	var isAuthError = (data) => {
 		return typeof data === "object" && data !== null && Object.hasOwn(data, "status") && data.status === "error";
 	};
 	async function getUserInfo(token) {
-		const data = await (await GM_fetch(`${YANDEX_USER_INFO_URL}?format=json`, {
+		const data = await readAuthJson(await GM_fetch(`${YANDEX_USER_INFO_URL}?format=json`, {
 			method: "GET",
 			headers: { Authorization: `OAuth ${token}` }
-		})).json();
-		if (isAuthError(data)) throw new Error(`[VOT] Failed to fetch yandex user info: ${data.message} (code: ${data.code})`);
+		}));
+		if (isAuthError(data)) throw new AuthRejectedError(`[VOT] Failed to fetch yandex user info: ${data.message} (code: ${data.code})`);
 		return data;
 	}
 	async function updateAccountInfo() {
@@ -25640,18 +31868,16 @@ var vot = (function(exports) {
 			const userInfo = await getUserInfo(account.token);
 			username = userInfo.login;
 			avatarId = userInfo.default_avatar_id;
-			await votStorage.set("account", {
+			const updatedAccount = {
 				...account,
 				username,
 				avatarId
-			});
-			updateAccount({
-				...account,
-				token: account.token,
-				expires: account.expires
-			});
+			};
+			await votStorage.set("account", updatedAccount);
+			updateAccount(updatedAccount);
 		} catch (err) {
 			console.error("[VOT] Failed to fetch user info:", err);
+			reportAuthFailure(err, "updateAccountInfo", "Failed to refresh Yandex account info");
 		} finally {
 			setAccount("isRefreshing", false);
 		}
@@ -25661,7 +31887,13 @@ var vot = (function(exports) {
 		const storedState = sessionStorage.getItem("votYandexState");
 		if (!state || state !== storedState) throw new Error("[VOT] Invalid state value");
 		if (!code) throw new Error("[VOT] Invalid auth code response");
-		const token = await getOAuthTokenByCode(code);
+		let token;
+		try {
+			token = await getOAuthTokenByCode(code);
+		} catch (err) {
+			reportAuthFailure(err, "exchangeCode", "Failed to exchange Yandex auth code");
+			throw err;
+		}
 		const expires = Date.now() + token.expires_in * 1e3;
 		const account = {
 			token: token.access_token,
@@ -25693,7 +31925,7 @@ var vot = (function(exports) {
 		}).toString()}`;
 	};
 	//#endregion
-	//#region src/core/auth/window.ts
+	//#region src/modules/auth/window.ts
 	var AUTH_WINDOW_NAME = "votAuthWindow";
 	var AUTH_WINDOW_WIDTH = 520;
 	var AUTH_WINDOW_HEIGHT = 720;
@@ -25721,8 +31953,30 @@ var vot = (function(exports) {
 		].join(",");
 	}
 	async function openAuthWindow() {
-		globalThis.open(await createAuthLink(), AUTH_WINDOW_NAME, getAuthWindowFeatures())?.focus?.();
+		let authLink;
+		try {
+			authLink = await createAuthLink();
+		} catch (err) {
+			captureException(err, {
+				source: "auth",
+				operation: "createAuthLink"
+			});
+			throw err;
+		}
+		globalThis.open(authLink, AUTH_WINDOW_NAME, getAuthWindowFeatures())?.focus?.();
 	}
+	//#endregion
+	//#region src/VOTLocalizedError.ts
+	var VOTLocalizedError = class extends Error {
+		name = "VOTLocalizedError";
+		unlocalizedMessage;
+		localizedMessage;
+		constructor(message) {
+			super(localizationProvider.getDefault(message));
+			this.unlocalizedMessage = message;
+			this.localizedMessage = t$1(message);
+		}
+	};
 	//#endregion
 	//#region src/core/translationAuthError.ts
 	function isSessionRequired(value) {
@@ -25951,6 +32205,7 @@ var vot = (function(exports) {
 			} catch (error) {
 				if (isAbortError(error) && signal.aborted) return;
 				debug.error("Failed to upload downloaded audio", error);
+				this.reportAudioFailure(error, "uploadAudio", "upload", videoId);
 				this.finishDownloadFailure(error instanceof Error ? error : new Error("Audio downloader failed while uploading full audio"), runId);
 				return;
 			}
@@ -26006,6 +32261,7 @@ var vot = (function(exports) {
 					bytes: audioData.byteLength,
 					error
 				});
+				this.reportAudioFailure(error, "uploadAudio", "upload", videoId);
 				this.uploadResumeState = {
 					videoId,
 					fileId,
@@ -26021,7 +32277,7 @@ var vot = (function(exports) {
 				this.finishDownloadSuccess(runId);
 			}
 		};
-		onDownloadAudioError = async (translationId, videoId) => {
+		onDownloadAudioError = async (translationId, videoId, signInSuggested = false) => {
 			if (!this.downloading) {
 				debug.log("skip downloadAudioError");
 				return;
@@ -26033,8 +32289,9 @@ var vot = (function(exports) {
 			const runId = this.audioRunSeq;
 			debug.error("[VOT][AudioDownload] failed to download audio from source", { videoId });
 			const videoUrl = this.getCanonicalUrl(videoId);
-			if (!(this.videoHandler.site.host === "youtube" && Boolean(this.videoHandler.data?.useAudioDownload))) {
-				this.finishDownloadFailure(new VOTLocalizedError("VOTFailedDownloadAudio"), runId);
+			const shouldUseFallback = this.videoHandler.site.host === "youtube" && Boolean(this.videoHandler.data?.useAudioDownload);
+			if (signInSuggested || !shouldUseFallback) {
+				this.finishDownloadFailure(new VOTLocalizedError(signInSuggested ? "VOTYouTubeSignInSuggested" : "VOTFailedDownloadAudio"), runId);
 				return;
 			}
 			try {
@@ -26051,9 +32308,22 @@ var vot = (function(exports) {
 				this.finishDownloadSuccess(runId);
 			} catch (error) {
 				debug.error("fail-audio-js request failed", error);
+				this.reportAudioFailure(error, "uploadFallbackAudio", "fallback", videoId);
 				this.finishDownloadFailure(new VOTLocalizedError("VOTFailedDownloadAudio"), runId);
 			}
 		};
+		reportAudioFailure(error, operation, stage, videoId) {
+			captureException(error, {
+				source: "audio",
+				operation,
+				dedupeKey: videoId,
+				redactedMessage: "Audio request failed",
+				tags: {
+					...getTranslationTags(this.videoHandler),
+					...getAudioFailureTags(error, stage)
+				}
+			});
+		}
 		finishDownloadSuccess(runId) {
 			if (runId !== void 0 && runId !== this.audioRunSeq) return;
 			this.downloading = false;
@@ -26243,6 +32513,15 @@ var vot = (function(exports) {
 					retryAttempt,
 					error: err,
 					mappedError: uiError
+				});
+				if (!isTranslationAuthError(err, { hasAccountToken: hasAccountToken(this.videoHandler.data?.account) })) captureException(err, {
+					source: "translation",
+					operation: "translateVideo",
+					dedupeKey: videoData.videoId,
+					tags: getTranslationTags(this.videoHandler, {
+						from: requestLang,
+						to: responseLang
+					})
 				});
 				await this.handleTranslationUiError(uiError);
 				await this.videoHandler.updateTranslationErrorMsg(getTranslationServerErrorMessage(uiError) ?? uiError, signal);
@@ -26693,6 +32972,34 @@ var vot = (function(exports) {
 		};
 	}
 	//#endregion
+	//#region src/modules/detectMusic/service.ts
+	async function detectMusicYT(videoId, signal) {
+		try {
+			const musicVideoType = (await (await GM_fetch("https://music.youtube.com/youtubei/v1/player", {
+				signal,
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					"X-YouTube-Client-Name": "67",
+					"X-YouTube-Client-Version": "1.20261011.16.00"
+				},
+				body: JSON.stringify({
+					context: { client: {
+						clientName: "WEB_REMIX",
+						clientVersion: "1.20261011.16.00"
+					} },
+					captionParams: {},
+					videoId
+				})
+			})).json()).videoDetails?.musicVideoType;
+			if (musicVideoType?.startsWith("MUSIC_VIDEO_") && musicVideoType !== "MUSIC_VIDEO_TYPE_PODCAST_EPISODE") return true;
+		} catch (err) {
+			if (isAbortError(err)) throw err;
+			debug.error("[VOT][musicDetect] Failed to detect music on YouTube", err);
+		}
+		return false;
+	}
+	//#endregion
 	//#region src/utils/text.ts
 	var MAX_TEXT_LENGTH = 450;
 	var REMOVABLE_TOKEN_FILTER = new RegExp([
@@ -26722,20 +33029,26 @@ var vot = (function(exports) {
 		return trimToMaxLength(cleaned, MAX_TEXT_LENGTH);
 	}
 	//#endregion
+	//#region src/utils/number.ts
+	function clamp(value, min = 0, max = 100) {
+		if (Number.isNaN(value) || max < min) return min;
+		return Math.min(Math.max(value, min), max);
+	}
+	//#endregion
 	//#region src/utils/volume.ts
 	var VIDEO_VOLUME_MIN_PERCENT = 0;
 	var VIDEO_VOLUME_MAX_PERCENT = 100;
 	var VIDEO_VOLUME_STEP_01 = .01;
 	var EPS = 1e-6;
 	function clampInt(value, min, max) {
-		return Math.trunc(clampNumber(value, min, max));
+		return Math.trunc(clamp(value, min, max));
 	}
 	function clampPercentInt(value, min = VIDEO_VOLUME_MIN_PERCENT, max = VIDEO_VOLUME_MAX_PERCENT) {
 		if (!Number.isFinite(value)) return min;
 		return clampInt(Math.round(value), min, max);
 	}
 	function volume01ToPercent(volume01) {
-		return clampPercentInt(clampNumber(volume01, 0, 1) * 100);
+		return Math.round(clamp(volume01, 0, 1) * 100);
 	}
 	function percentToVolume01(percent) {
 		return clampPercentInt(percent) / 100;
@@ -26752,11 +33065,11 @@ var vot = (function(exports) {
 		}
 	}
 	function snapVolume01(volume01, direction = "nearest", step = VIDEO_VOLUME_STEP_01) {
-		return clampNumber(quantizeToStep(clampNumber(volume01, 0, 1), step, direction), 0, 1);
+		return clamp(quantizeToStep(clamp(volume01, 0, 1), step, direction), 0, 1);
 	}
 	function snapVolume01Towards(next, current, desired, step = VIDEO_VOLUME_STEP_01) {
-		const cur = clampNumber(current, 0, 1);
-		const des = clampNumber(desired, 0, 1);
+		const cur = clamp(current, 0, 1);
+		const des = clamp(desired, 0, 1);
 		if (des < cur) {
 			const q = snapVolume01(next, "down", step);
 			return Math.max(des, q);
@@ -26810,17 +33123,7 @@ var vot = (function(exports) {
 	var MIN_DETECT_TEXT_LENGTH = 35;
 	var MAX_SHARED_LANGUAGE_STATES = 500;
 	var REQUEST_LANG_SET = new Set(availableLangs);
-	var SUPPORTED_TRANSLATION_SOURCE_LANGS = new Set([
-		"ru",
-		"en",
-		"zh",
-		"ko",
-		"fr",
-		"it",
-		"es",
-		"de",
-		"ja"
-	]);
+	var SUPPORTED_TRANSLATION_SOURCE_LANGS = new Set(availableLangs.filter((l) => l !== "auto"));
 	function preserveYoutubeVolumeStorage(action) {
 		let snapshot;
 		try {
@@ -26930,6 +33233,7 @@ var vot = (function(exports) {
 	}
 	var VOTVideoManager = class {
 		videoHandler;
+		detectMusicCache = new Map();
 		constructor(videoHandler) {
 			this.videoHandler = videoHandler;
 		}
@@ -27029,12 +33333,37 @@ var vot = (function(exports) {
 				translateFromLang: this.videoHandler.translateFromLang
 			});
 		}
+		async detectMusic(videoId) {
+			if (this.videoHandler.site.host !== "youtube") return false;
+			if (this.detectMusicCache.has(videoId)) return this.detectMusicCache.get(videoId);
+			const detected = await detectMusicYT(videoId, this.videoHandler.actionsAbortController.signal);
+			this.detectMusicCache.set(videoId, detected);
+			return detected;
+		}
+		async fetchRawVideoData() {
+			const { site, data } = this.videoHandler;
+			try {
+				return await getVideoData(site, {
+					fetchFn: GM_fetch,
+					video: this.videoHandler.video,
+					language: localizationProvider.lang
+				});
+			} catch (err) {
+				captureException(err, {
+					source: "videoData",
+					operation: "getVideoData",
+					dedupeKey: globalThis.location.href,
+					redactedMessage: "getVideoData failed",
+					tags: getTranslationTags({
+						site,
+						data
+					})
+				});
+				throw err;
+			}
+		}
 		async getVideoData() {
-			const { duration, url, videoId, host, title, translationHelp = null, localizedTitle, description, detectedLanguage: possibleLanguage, subtitles, isStream = false } = await getVideoData(this.videoHandler.site, {
-				fetchFn: GM_fetch,
-				video: this.videoHandler.video,
-				language: localizationProvider.lang
-			});
+			const { duration, url, videoId, host, title, translationHelp = null, localizedTitle, description, detectedLanguage: possibleLanguage, subtitles, isStream = false } = await this.fetchRawVideoData();
 			const { detectedLanguage, sharedLanguageState } = await this.resolveVideoLanguage({
 				videoId,
 				isStream,
@@ -27139,6 +33468,111 @@ var vot = (function(exports) {
 		}
 	};
 	//#endregion
+	//#region src/modules/hotkeys/utils.ts
+	function normalizeHotkeyPart(key) {
+		return key.replace("Key", "").replace("Digit", "");
+	}
+	function formatKeysCombo(keys) {
+		return (Array.isArray(keys) ? keys : Array.from(keys)).map((code) => normalizeHotkeyPart(code)).join("+");
+	}
+	function formatKeysComboDisplay(keys) {
+		let parts;
+		if (typeof keys === "string") parts = keys.split("+").filter(Boolean);
+		else if (Array.isArray(keys)) parts = keys;
+		else parts = Array.from(keys);
+		const mapKey = (key) => {
+			switch (key) {
+				case "ControlLeft":
+				case "ControlRight":
+				case "Control": return "Ctrl";
+				case "ShiftLeft":
+				case "ShiftRight":
+				case "Shift": return "Shift";
+				case "AltLeft":
+				case "AltRight":
+				case "Alt": return "Alt";
+				case "MetaLeft":
+				case "MetaRight":
+				case "Meta": return "Meta";
+				case "Space": return "Space";
+				case "ArrowUp": return "↑";
+				case "ArrowDown": return "↓";
+				case "ArrowLeft": return "←";
+				case "ArrowRight": return "→";
+				default: return normalizeHotkeyPart(key);
+			}
+		};
+		const priority = (key) => {
+			const m = mapKey(key);
+			if (m === "Ctrl") return 0;
+			if (m === "Alt") return 1;
+			if (m === "Shift") return 2;
+			if (m === "Meta") return 3;
+			return 10;
+		};
+		return parts.slice().sort((a, b) => priority(a) - priority(b)).map(mapKey).join("+");
+	}
+	//#endregion
+	//#region src/modules/hotkeys/controller.ts
+	var HotkeyController = class {
+		userPressedKeys = new Set();
+		hotkeyCache = new Map();
+		actions;
+		constructor(actions = []) {
+			this.actions = actions;
+		}
+		clearUserPressedKeys() {
+			this.userPressedKeys.clear();
+		}
+		isHotkeyMatch(pressedParts, hotkey) {
+			if (!hotkey) return false;
+			if (pressedParts.size !== hotkey.parts.length) return false;
+			for (const key of hotkey.partsSet) if (!pressedParts.has(key)) return false;
+			return true;
+		}
+		getParsedHotkey(hotkey) {
+			if (!hotkey) return null;
+			const cached = this.hotkeyCache.get(hotkey);
+			if (cached) return cached;
+			const parts = hotkey.split("+").filter(Boolean).map(normalizeHotkeyPart);
+			const parsed = {
+				parts,
+				partsSet: new Set(parts)
+			};
+			this.hotkeyCache.set(hotkey, parsed);
+			return parsed;
+		}
+		get normalizedUserPressedKeys() {
+			const pressedParts = new Set();
+			for (const key of this.userPressedKeys) pressedParts.add(normalizeHotkeyPart(key));
+			return pressedParts;
+		}
+		keydownHandler(event) {
+			if (event.repeat) return;
+			this.userPressedKeys.add(event.code);
+			if (isInputElement(getDeepActiveElement(document))) return;
+			const pressedParts = this.normalizedUserPressedKeys;
+			const matchedHotkeys = this.actions.find(({ hotkey }) => {
+				return this.isHotkeyMatch(pressedParts, this.getParsedHotkey(hotkey));
+			});
+			if (!matchedHotkeys) return;
+			const { action, localizationPhrase } = matchedHotkeys;
+			this.clearUserPressedKeys();
+			action().catch((error) => {
+				debug.log(`[VOT] ${localizationPhrase} hotkey action failed`, error);
+			});
+		}
+		keyupHandler(event) {
+			this.userPressedKeys.delete(event.code);
+		}
+		blurHandler() {
+			this.clearUserPressedKeys();
+		}
+		visibilitychangeHandler() {
+			if (isDocumentHidden()) this.clearUserPressedKeys();
+		}
+	};
+	//#endregion
 	//#region src/notify.ts
 	function canSend(lastSentAt, key, cooldownMs) {
 		if (!cooldownMs) return true;
@@ -27184,6 +33618,11 @@ var vot = (function(exports) {
 		}
 		return false;
 	}
+	function focusWindowSafely() {
+		try {
+			globalThis.focus();
+		} catch {}
+	}
 	var Notifier = class {
 		lastSentAt = new Map();
 		send(details, opts = {}) {
@@ -27205,15 +33644,10 @@ var vot = (function(exports) {
 			const text = localizationProvider.get("VOTTranslationCompletedNotify").replace("{0}", host);
 			this.send({
 				text,
-				title: getScriptTitle(),
 				timeout: 5e3,
 				silent: true,
 				tag: "VOTTranslationCompleted",
-				onclick: () => {
-					try {
-						globalThis.focus();
-					} catch {}
-				}
+				onclick: () => focusWindowSafely()
 			}, {
 				key: `translation_completed_${host}`,
 				cooldownMs: 1e4
@@ -27223,18 +33657,12 @@ var vot = (function(exports) {
 			const { videoId, message } = params;
 			if (isAbortError(message)) return;
 			const msg = resolveLocalizedErrorMessage(message);
-			const title = getScriptTitle();
 			this.send({
 				text: msg,
-				title,
 				timeout: 8e3,
 				silent: true,
 				tag: `VOTtranslationFailed_${videoId || "unknown"}`,
-				onclick: () => {
-					try {
-						globalThis.focus();
-					} catch {}
-				}
+				onclick: () => focusWindowSafely()
 			}, {
 				key: `translation_failed_${videoId || "unknown"}`,
 				cooldownMs: 3e4
@@ -27243,7 +33671,7 @@ var vot = (function(exports) {
 	};
 	//#endregion
 	//#region src/stores/settings.ts
-	function createInitialState$1() {
+	function createDefaultSettings(audioContextSupported = false) {
 		return {
 			defaultVolume: 100,
 			responseLanguage: calculatedResLang,
@@ -27252,6 +33680,7 @@ var vot = (function(exports) {
 			autoPauseOnTranslate: false,
 			autoSubtitles: false,
 			dontTranslateLanguages: [calculatedResLang],
+			dontTranslateByYTMusic: false,
 			enabledAutoVolume: true,
 			autoVolume: 15,
 			enabledSmartDucking: true,
@@ -27265,8 +33694,9 @@ var vot = (function(exports) {
 			translationService: DEFAULT_TRANSLATION_SERVICE,
 			detectService: DEFAULT_DETECT_SERVICE,
 			translateAPIErrors: true,
-			newAudioPlayer: false,
-			onlyBypassMediaCSP: false,
+			sendErrorReports: true,
+			newAudioPlayer: audioContextSupported,
+			onlyBypassMediaCSP: audioContextSupported,
 			showPiPButton: false,
 			autoHideButtonDelay: DEFAULT_AUTO_HIDE_DELAY,
 			buttonPos: "default",
@@ -27274,6 +33704,7 @@ var vot = (function(exports) {
 			translateProxyEnabled: 0,
 			translationHotkey: null,
 			subtitlesHotkey: null,
+			pipHotkey: null,
 			responseLanguageSubtitles: AUTO_SUBTITLE_LANGUAGE_VALUE,
 			subtitlesDownloadFormat: "srt",
 			subtitlesFontFamily: "default-sans",
@@ -27284,7 +33715,11 @@ var vot = (function(exports) {
 			subtitlesOpacity: 20
 		};
 	}
-	var [settings, setSettings] = createStore(createInitialState$1());
+	var SETTINGS_KEYS = Object.keys(createDefaultSettings());
+	function pickSettings(source) {
+		return Object.fromEntries(SETTINGS_KEYS.map((key) => [key, source[key]]));
+	}
+	var [settings, setSettings] = createStore(createDefaultSettings());
 	//#endregion
 	//#region node_modules/solid-js/universal/dist/universal.js
 	var memo$1 = (fn) => createMemo(() => fn());
@@ -28112,10 +34547,10 @@ var vot = (function(exports) {
 			this.container = container;
 		}
 		getLayoutRootElement() {
-			return this.container instanceof ShadowRoot ? this.container.host : this.container;
+			return getHostElement(this.container);
 		}
 		syncWidgetContainer(widgetContainer) {
-			const containerEl = this.container instanceof ShadowRoot ? this.container.host : this.container;
+			const containerEl = this.getLayoutRootElement();
 			if (getComputedStyle(containerEl).position === "static") containerEl.style.position = "relative";
 			if (widgetContainer && widgetContainer.parentNode !== this.container) this.container.appendChild(widgetContainer);
 		}
@@ -28169,7 +34604,6 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/subtitles/positionController.ts
-	var clampToRange = clampNumber;
 	function hasDragThresholdBeenExceeded(startClientX, startClientY, nextClientX, nextClientY, thresholdPx) {
 		const dx = nextClientX - startClientX;
 		const dy = nextClientY - startClientY;
@@ -28191,7 +34625,7 @@ var vot = (function(exports) {
 			bottomInset
 		});
 		return {
-			offsetFromBaselinePx: clampToRange(anchorY, minAnchorY, baselineAnchorY) - baselineAnchorY,
+			offsetFromBaselinePx: clamp(anchorY, minAnchorY, baselineAnchorY) - baselineAnchorY,
 			travelPx
 		};
 	}
@@ -28206,7 +34640,7 @@ var vot = (function(exports) {
 		const storedLiftPx = Math.max(0, -(state.offsetFromBaselinePx || 0));
 		if (storedTravelPx <= 0 || storedLiftPx <= 0) return baselineAnchorY;
 		const ratioLiftPx = storedLiftPx / storedTravelPx * travelPx;
-		return clampToRange(baselineAnchorY - (travelPx >= storedTravelPx ? Math.min(storedLiftPx, ratioLiftPx) : Math.min(travelPx, ratioLiftPx)), minAnchorY, baselineAnchorY);
+		return clamp(baselineAnchorY - (travelPx >= storedTravelPx ? Math.min(storedLiftPx, ratioLiftPx) : Math.min(travelPx, ratioLiftPx)), minAnchorY, baselineAnchorY);
 	}
 	function clampAnchorWithinBox({ anchorX, anchorY, elementWidth, elementHeight, boxWidth, boxHeight, bottomInset }) {
 		let nextAnchorX = anchorX;
@@ -28216,11 +34650,11 @@ var vot = (function(exports) {
 		if (elementWidth) {
 			let leftPx = nextAnchorX - elementWidth / 2;
 			const maxLeftPx = boxWidth - elementWidth;
-			if (maxLeftPx >= 0) leftPx = clampToRange(leftPx, 0, maxLeftPx);
+			if (maxLeftPx >= 0) leftPx = clamp(leftPx, 0, maxLeftPx);
 			else leftPx = maxLeftPx / 2;
 			nextAnchorX = leftPx + elementWidth / 2;
 		}
-		nextAnchorY = clampToRange(nextAnchorY, minAnchorY, maxAnchorY);
+		nextAnchorY = clamp(nextAnchorY, minAnchorY, maxAnchorY);
 		return {
 			anchorX: nextAnchorX,
 			anchorY: nextAnchorY
@@ -28439,12 +34873,12 @@ var vot = (function(exports) {
 		};
 		const { widthRatio, charsPerLine, fontHeightRatio } = resolveAspectBand(width / height);
 		const { extraChars, widthScale } = resolveWidthBoost(width);
-		const derivedFontSizePx = clampNumber(height * fontHeightRatio, 16, 42);
+		const derivedFontSizePx = clamp(height * fontHeightRatio, 16, 42);
 		const fontSizePx = cssMetrics?.fontSizePx ?? derivedFontSizePx;
 		const averageGlyphWidth = estimateAverageGlyphWidth(fontSizePx);
 		const minWidthPx = width * Math.min(.92, widthRatio);
-		const maxWidthPx = width * clampNumber(widthRatio * widthScale, .66, .92);
-		const resolvedMaxWidthPx = clampNumber(clampNumber(charsPerLine + extraChars, 25, 48) * averageGlyphWidth, minWidthPx, maxWidthPx);
+		const maxWidthPx = width * clamp(widthRatio * widthScale, .66, .92);
+		const resolvedMaxWidthPx = clamp(clamp(charsPerLine + extraChars, 25, 48) * averageGlyphWidth, minWidthPx, maxWidthPx);
 		return {
 			fontSizePx,
 			maxWidthPx: Math.round(resolvedMaxWidthPx)
@@ -28899,13 +35333,18 @@ var vot = (function(exports) {
 		barlow: `"Barlow", ${subtitleBaseFontFamilyCSS}`
 	};
 	//#endregion
+	//#region src/utils/guards.ts
+	function isObjectLike(value) {
+		return value !== null && typeof value === "object";
+	}
+	function isRecord(value) {
+		return isObjectLike(value) && !Array.isArray(value);
+	}
+	//#endregion
 	//#region src/subtitles/types.ts
 	var subtitleFormatsSet = new Set(subtitleFormats);
 	function isSubtitleFormat(value) {
 		return typeof value === "string" && subtitleFormatsSet.has(value);
-	}
-	function isRecord(value) {
-		return value !== null && typeof value === "object";
 	}
 	function parseSubtitleDescriptor(value) {
 		if (!isRecord(value)) return null;
@@ -29114,7 +35553,7 @@ var vot = (function(exports) {
 		}
 		setOpacity(rate) {
 			const numericRate = Number(rate);
-			const clampedRate = Number.isFinite(numericRate) ? Math.min(100, Math.max(0, numericRate)) : 0;
+			const clampedRate = Number.isFinite(numericRate) ? clamp(numericRate, 0, 100) : 0;
 			this.opacity = ((100 - clampedRate) / 100).toFixed(2);
 			this.setVariable("--vot-subtitles-opacity", this.opacity);
 		}
@@ -29368,7 +35807,7 @@ var vot = (function(exports) {
 			const popupRect = popup.getBoundingClientRect();
 			const minLeft = viewportMargin;
 			const maxLeft = Math.max(minLeft, window.innerWidth - viewportMargin - popupRect.width);
-			const fixedCoords = mapViewportToFixedContainingBlock(popup, Math.min(Math.max(anchorRect.right - popupRect.width, minLeft), maxLeft), opensBelow ? anchorRect.bottom + gap : anchorRect.top - gap - popupRect.height);
+			const fixedCoords = mapViewportToFixedContainingBlock(popup, clamp(anchorRect.right - popupRect.width, minLeft, maxLeft), opensBelow ? anchorRect.bottom + gap : anchorRect.top - gap - popupRect.height);
 			popup.style.left = `${fixedCoords.left}px`;
 			popup.style.top = `${fixedCoords.top}px`;
 		};
@@ -29484,13 +35923,15 @@ var vot = (function(exports) {
 			if (mount.classList.contains("vot-portal")) return false;
 			return true;
 		}
+		function getPortalRect() {
+			return getHostElement(portal()).getBoundingClientRect();
+		}
 		function getPortalViewportOffset() {
 			if (!usesPortalCoordinates()) return {
 				top: 0,
 				left: 0
 			};
-			const mount = portal();
-			const rect = (mount instanceof ShadowRoot ? mount.host : mount).getBoundingClientRect();
+			const rect = getPortalRect();
 			return {
 				top: rect.top,
 				left: rect.left
@@ -29516,15 +35957,14 @@ var vot = (function(exports) {
 				top: y,
 				bottom: window.innerHeight - y
 			};
-			if (mode() !== "follow" || !usesPortalCoordinates()) return fallback;
-			const mount = portal();
-			const rect = (mount instanceof ShadowRoot ? mount.host : mount).getBoundingClientRect();
+			if (!usesPortalCoordinates()) return fallback;
+			const rect = getPortalRect();
 			if (!rect.width || !rect.height) return fallback;
 			return {
-				left: rect.left,
-				right: rect.right,
-				top: rect.top,
-				bottom: rect.bottom
+				left: Math.max(fallback.left, rect.left),
+				right: Math.min(fallback.right, rect.right),
+				top: mode() === "follow" ? Math.max(fallback.top, rect.top) : fallback.top,
+				bottom: mode() === "follow" ? Math.min(fallback.bottom, rect.bottom) : fallback.bottom
 			};
 		}
 		function resolveFollowPosition(anchorBox, tooltip, boundary, preferred) {
@@ -29573,22 +36013,33 @@ var vot = (function(exports) {
 		}
 		function updatePosition(element) {
 			const { x } = offset();
-			const availableWidth = Math.max(0, window.innerWidth - x * 2);
-			const maxWidth = clamp(finalProps.maxWidth ?? availableWidth, 0, availableWidth);
-			element.style.maxWidth = `${maxWidth}px`;
+			const widthBoundary = getPositionBoundary();
 			const anchorBox = getAnchorBox();
+			const availableWidth = Math.max(0, widthBoundary.right - widthBoundary.left - x * 2);
+			const preferred = normalizePosition(finalProps.position);
+			const availableOnSide = (position) => Math.max(0, position === "left" ? anchorBox.left - widthBoundary.left - x : widthBoundary.right - anchorBox.right - x);
+			const maxAvailableWidth = !finalProps.autoLayout && (preferred === "left" || preferred === "right") ? availableOnSide(preferred) : availableWidth;
+			const maxWidth = clamp(finalProps.maxWidth ?? maxAvailableWidth, 0, maxAvailableWidth);
+			element.style.maxWidth = `${maxWidth}px`;
 			const tooltipRect = element.getBoundingClientRect();
 			const tooltipSize = {
 				width: tooltipRect.width || 100,
 				height: tooltipRect.height || 40
 			};
 			const boundary = getPositionBoundary();
-			const preferred = normalizePosition(finalProps.position);
 			const position = finalProps.autoLayout ? resolvePosition(anchorBox, tooltipSize, boundary, preferred) : preferred;
+			if (position === "left" || position === "right") {
+				element.style.maxWidth = `${Math.min(maxWidth, availableOnSide(position))}px`;
+				const rect = element.getBoundingClientRect();
+				tooltipSize.width = rect.width;
+				tooltipSize.height = rect.height;
+			}
 			const coordinates = getCoordinates(anchorBox, tooltipSize, position);
 			const viewportOffset = getPortalViewportOffset();
-			const top = clamp(coordinates.top, boundary.top, boundary.bottom - tooltipSize.height);
-			const left = clamp(coordinates.left, boundary.left, boundary.right - tooltipSize.width);
+			const maxTop = boundary.bottom - tooltipSize.height;
+			const maxLeft = boundary.right - tooltipSize.width;
+			const top = clamp(coordinates.top, Math.min(boundary.top, maxTop), Math.max(boundary.top, maxTop));
+			const left = clamp(coordinates.left, Math.min(boundary.left, maxLeft), Math.max(boundary.left, maxLeft));
 			element.style.transform = `translate(${left - viewportOffset.left}px, ${top - viewportOffset.top}px)`;
 			setResolvedPosition(position);
 			setIsPositioned(true);
@@ -29926,7 +36377,7 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/ui/shadowMount.ts
-	var shadowScopedCssText = scopeCssForShadowRoots(":root{--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif;--vot-primary-rgb:139, 180, 245;--vot-onprimary-rgb:32, 33, 36;--vot-surface-rgb:32, 33, 36;--vot-secondary-rgb:43, 44, 48;--vot-onsurface-rgb:227, 227, 227;--vot-danger-rgb:255, 99, 99;--vot-subtitles-color:rgb(var(--vot-onsurface-rgb,227, 227, 227));--vot-subtitles-passed-color:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-space-1:4px;--vot-space-2:8px;--vot-space-3:12px;--vot-space-4:16px;--vot-space-5:20px;--vot-space-6:24px;--vot-radius-xs:6px;--vot-radius-s:10px;--vot-radius-m:14px;--vot-radius-l:18px;--vot-border-color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .14);--vot-border-color-hover:rgba(var(--vot-onsurface-rgb,227, 227, 227), .22);--vot-shadow-1:0 1px 2px #0000002e, 0 8px 24px #00000024;--vot-shadow-2:0 2px 4px #00000038, 0 12px 32px #00000038;--vot-duration-fast:.12s;--vot-duration-medium:.2s;--vot-duration-slow:.32s;--vot-easing-standard:cubic-bezier(.2, 0, 0, 1);--vot-focus-ring-color:rgba(var(--vot-primary-rgb,139, 180, 245), .9);--vot-focus-ring:0 0 0 2px var(--vot-focus-ring-color);--vot-focus-ring-offset:0 0 0 4px rgba(var(--vot-surface-rgb,32, 33, 36), .9)}vot-block,vot-block *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}vot-block[hidden]:not(.vot-menu),vot-block [hidden]:not(.vot-menu){display:none!important}vot-block{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizelegibility;-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:100%;display:block;--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;visibility:visible!important;font-weight:400!important}vot-block *{font-weight:inherit!important}.vot-portal-local,.vot-subtitles-widget{isolation:isolate}vot-block:focus,vot-block :focus{box-shadow:none!important;outline:none!important}html.vot-keyboard-nav vot-block:focus-visible,html.vot-keyboard-nav vot-block :focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav vot-block:focus,html.vot-keyboard-nav vot-block :focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}@media (prefers-reduced-motion:reduce){.vot-portal-local *,.vot-portal *,.vot-subtitles-widget *{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}.vot-portal{display:contents}.vot-portal-local{z-index:2147483647;position:fixed;top:0;left:0}.vot-segmented-button,.vot-menu{pointer-events:auto}.vot-about-item{justify-content:space-between;align-items:center;gap:.5em;font-size:.8em;display:flex}.vot-about-item__label{text-transform:lowercase;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-item__value{text-align:end;color:rgba(var(--vot-primary-rgb,33, 150, 243), .9)}.vot-about-item__value_detail{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-section{--vot-about-sep-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);flex-direction:column;gap:.5em;display:flex}.vot-about-section>.vot-about-item:not(:last-child){border-bottom:1px solid var(--vot-about-sep-color);padding-bottom:1em}.vot-account-info{--vot-account-label-color:rgba(var(--vot-onsurface-rgb,13, 1, 31), .68);--vot-account-username-color:rgb(var(--vot-primary-rgb,139, 180, 245));flex-direction:column;gap:1em;font-weight:600;display:flex}.vot-account-info__block{align-items:center;gap:.5em;display:flex}.vot-account-info__avatar{border-radius:50%;min-width:36px;max-width:36px;min-height:36px;max-height:36px;overflow:hidden}.vot-account-info__avatar--failed{background:var(--vot-account-label-color)}.vot-account-info__avatar--failed>.vot-account-info__avatar-img{display:none}.vot-account-info__avatar-img{object-fit:cover;width:36px;height:36px}.vot-account-info__content{flex-direction:column;line-height:1.125em;display:flex}.vot-account-info__label{color:var(--vot-account-label-color);font-size:.75em}.vot-account-info__username{color:var(--vot-account-username-color);font-weight:600}.vot-account-info__refresh{margin-left:auto}.vot-account-login{flex-direction:column;gap:1em;display:flex}.vot-account-login__btn{cursor:pointer;color:#0d011f;border-radius:var(--vot-space-5);background:#fff;align-items:center;gap:1em;min-width:194px;height:56px;padding:14px 16px;font-size:1em;line-height:1.25em;transition:background .25s;display:flex}.vot-account-login__btn:hover{background:#f1eeeb}.vot-account-login__btn-icon{background-image:url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='44' height='44' fill='%23FC3F1D'/%3E%3Cpath d='M22.9515 24.2897C24.2907 27.223 24.737 28.2433 24.737 31.7665V36.4375H19.9544V28.5621L10.9313 8.9375H15.9211L22.9515 24.2897ZM28.8501 8.9375L22.9994 22.2332H27.8617L33.7284 8.9375H28.8501Z' fill='white'/%3E%3C/svg%3E%0A\");background-position:50%;background-repeat:no-repeat;background-size:contain;border-radius:50%;flex-shrink:0;width:26px;height:26px;position:relative}.vot-account-login__btn-text{font-weight:600}.vot-account-login__btn[aria-disabled=true]{cursor:not-allowed;-webkit-user-select:none;user-select:none;opacity:.5}.vot-account-login__token{align-items:center;gap:1em;width:100%;display:flex}.vot-account-login__token .vot-textfield{width:100%}.vot-account-logout{--vot-theme-rgb:var(--vot-danger-rgb,244, 67, 54);width:100%;display:flex}.vot-account-logout .vot-text-button{width:100%;font-weight:600!important}.vot-account-logout__content{align-items:center;gap:.5em;width:100%;font-size:1.125em;display:flex}.vot-account-logout__content svg{width:1.25em;height:1.25em}.vot-account-menu{flex-direction:column;gap:.5em;display:flex}.vot-icon-button{--vot-helper-onsurface:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:36px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:50%!important;margin:0!important;padding:0!important;font-weight:500!important}.vot-icon-button[hidden]{display:none!important}.vot-icon-button{width:36px;fill:var(--vot-helper-onsurface);color:var(--vot-helper-onsurface);background-color:#0000;border:none!important}.vot-icon-button:before,.vot-icon-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-icon-button:before{background-color:var(--vot-helper-onsurface);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-icon-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-icon-button:hover:before{opacity:.04}.vot-icon-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-icon-button[disabled=true],.vot-icon-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);fill:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-icon-button[disabled=true]:before,.vot-icon-button[disabled=true]:after,.vot-icon-button[aria-disabled=true]:before,.vot-icon-button[aria-disabled=true]:after{opacity:0}.vot-icon-button svg{fill:inherit;stroke:inherit;width:24px;height:36px}.vot-text-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-text-button[hidden]{display:none!important}.vot-text-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:none!important}.vot-text-button:before,.vot-text-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-text-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-text-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-text-button:hover:before{opacity:.04}.vot-text-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-text-button[disabled=true],.vot-text-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-text-button[disabled=true]:before,.vot-text-button[disabled=true]:after,.vot-text-button[aria-disabled=true]:before,.vot-text-button[aria-disabled=true]:after{opacity:0}.vot-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;font-weight:500!important}.vot-button[hidden]{display:none!important}.vot-button{color:rgb(var(--vot-helper-ontheme));background-color:rgb(var(--vot-helper-theme));box-shadow:var(--vot-shadow-1);transition:box-shadow var(--vot-duration-medium) var(--vot-easing-standard);border:none!important}.vot-button:before,.vot-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-button:before{background-color:rgb(var(--vot-helper-ontheme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-button:hover:before{opacity:.08}.vot-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-button:hover,.vot-button:active{box-shadow:var(--vot-shadow-2)}.vot-button[disabled=true]{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);box-shadow:none;cursor:initial}.vot-button[disabled=true]:before,.vot-button[disabled=true]:after{opacity:0}.vot-outlined-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:34px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-outlined-button[hidden]{display:none!important}.vot-outlined-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:solid 1px var(--vot-border-color)!important}.vot-outlined-button:before,.vot-outlined-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-outlined-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-outlined-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-outlined-button:hover:before{opacity:.04}.vot-outlined-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-outlined-button[disabled=true],.vot-outlined-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-outlined-button[disabled=true]:before,.vot-outlined-button[disabled=true]:after,.vot-outlined-button[aria-disabled=true]:before,.vot-outlined-button[aria-disabled=true]:after{opacity:0}.vot-details{color:rgba(var(--vot-onsurface-rgb), .87);text-align:start;cursor:pointer;-webkit-user-select:none;user-select:none;transition:background var(--vot-duration-medium) var(--vot-easing-standard);justify-content:space-between;align-items:center;font-size:16px;line-height:1.5;display:flex;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:.5em!important;margin:-.5em!important;padding:.5em!important}.vot-details-arrow-icon{width:20px;height:32px;fill:rgba(var(--vot-onsurface-rgb), .87);justify-content:center;align-items:center;font-size:24px;display:flex;transform:scale(1.25)rotate(-90deg)}.vot-details:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .06)}.vot-details[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-hotkey{justify-content:flex-start;align-items:center;gap:var(--vot-space-3,12px);flex-wrap:wrap;display:flex}.vot-hotkey-label{overflow-wrap:anywhere;flex:1}.vot-hotkey-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:32px;height:fit-content;font-size:15px;line-height:1.5;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:400!important}.vot-hotkey-button[hidden]{display:none!important}.vot-hotkey-button{background-color:#0000;width:fit-content;border:solid 1px var(--vot-border-color)!important}.vot-hotkey-button:before,.vot-hotkey-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-hotkey-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-hotkey-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-hotkey-button:hover:before{opacity:.04}.vot-hotkey-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-hotkey-button[data-status=active]{color:rgb(var(--vot-helper-theme))}.vot-hotkey-button[data-status=active]:before{opacity:.04}.vot-hotkey-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-hotkey-button[disabled=true]:before,.vot-hotkey-button[disabled=true]:after{opacity:0}.vot-progress-icon{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));fill:none;stroke:rgb(var(--vot-helper-theme));stroke-width:2px;stroke-linecap:round;transform-origin:50%;transform:rotate(-90deg)}.vot-progress-icon_base{--vot-helper-theme:var(--vot-secondary-rgb,43, 44, 48)}.vot-select{-webkit-user-select:none;user-select:none;justify-content:end;align-items:center;display:flex;position:relative}.vot-select-label{flex:1}.vot-select-label__description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-select-outer{cursor:pointer;border:1px solid var(--vot-border-color);width:120px;max-width:120px;color:rgba(var(--vot-onsurface-rgb), .87);transition:border-color var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.75em;align-items:center;padding:.5em;display:flex}.vot-select-outer__title{text-overflow:ellipsis;white-space:nowrap;flex:1;align-content:center;height:24px;margin-top:-2px;font-size:.8em;overflow:hidden}.vot-select-outer__arrow{fill:currentColor;transition:transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:1.5em;display:flex}.vot-select-outer[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-outer:not([aria-disabled=true]):hover{border-color:var(--vot-border-color-hover)}.vot-select-outer[aria-expanded=true] .vot-select-outer__arrow{transform:rotate(180deg)}.vot-select-inner{--vot-select-inner-primary-rgb:var(--vot-primary-rgb,33, 150, 243);z-index:2147483647;-webkit-user-select:none;user-select:none;background:rgb(var(--vot-secondary-rgb,43, 44, 48));color:rgba(var(--vot-onsurface-rgb), .87);max-width:300px;max-height:min(85vh, 350px, var(--vot-floating-available-height,100vh));pointer-events:auto;border-radius:.75em;flex-direction:column;padding:.5em;font-size:16px;display:flex;position:fixed;overflow:hidden}.vot-select-inner.vot-select-inner__static-width{width:100%}.vot-select-inner .vot-textfield{margin-bottom:.5em}.vot-select-inner__no-options{color:rgba(var(--vot-onsurface-rgb), .38);text-align:center;padding:.5em .75em}.vot-select-inner__no-options[data-searching=true]{color:rgba(var(--vot-onsurface-rgb), .68);padding:0;font-size:1.75em}.vot-select-inner__options{overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(var(--vot-onsurface-rgb), .38) transparent;min-height:0;margin-right:-8px;padding-right:8px;overflow-y:auto}.vot-select-inner__option{cursor:pointer;transition:background var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.5em;padding:.5em .75em}.vot-select-inner__option[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-inner__option:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb), .14)}.vot-select-inner__option[aria-selected=true]{color:rgb(var(--vot-select-inner-primary-rgb));background:rgba(var(--vot-select-inner-primary-rgb), .2)}.vot-select-inner__option[aria-selected=true]:not([aria-disabled=true]):hover{background:rgba(var(--vot-select-inner-primary-rgb), .1)}.vot-switch{--vot-switch-outline:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-switch-primary:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-switch-onprimary:rgb(var(--vot-onprimary-rgb,32, 33, 36));--vot-switch-track:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);--vot-switch-duration:var(--vot-duration-medium,.2s);--vot-switch-label-offset:24px;box-sizing:border-box;color:rgb(var(--vot-onsurface-rgb,0, 0, 0));cursor:pointer;align-items:center;gap:var(--vot-space-4,16px);width:100%;padding-block:var(--vot-space-2,8px);touch-action:manipulation;vertical-align:middle;display:inline-flex;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-switch[data-disabled=true]{cursor:not-allowed;-webkit-user-select:none;user-select:none}.vot-switch_sub{padding-left:var(--vot-switch-label-offset)!important}.vot-switch-control{cursor:inherit;opacity:0;z-index:2;width:100%;height:100%;margin:0;position:absolute;inset:0}.vot-switch-control:focus-visible~.vot-switch-track{outline:2px solid var(--vot-focus-ring-color,rgba(var(--vot-primary-rgb,33, 150, 243), .9));outline-offset:2px}.vot-switch-control:hover:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:hover:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .12)}.vot-switch-control:disabled{cursor:not-allowed}.vot-switch-control:disabled~.vot-switch-track{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:disabled~.vot-switch-track .vot-switch-handle{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-control:disabled~.vot-switch-track[data-checked=true] .vot-switch-handle{background:rgb(var(--vot-surface-rgb,32, 33, 36))}.vot-switch-text{flex-direction:column;flex:auto;min-width:0;display:flex}.vot-switch-heading{letter-spacing:.5px;font-size:16px;font-weight:400;line-height:24px}.vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-switch[data-disabled=true] .vot-switch-heading,.vot-switch[data-disabled=true] .vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-track{background:var(--vot-switch-track);border:2px solid var(--vot-switch-outline);box-sizing:border-box;pointer-events:none;height:32px;transition-duration:var(--vot-switch-duration);transition-property:background-color,border-color;transition-timing-function:var(--vot-easing-standard);border-radius:16px;flex:none;align-items:center;width:52px;display:flex;position:relative}.vot-switch-track[data-checked=true]{background:var(--vot-switch-primary);border-color:var(--vot-switch-primary)}.vot-switch-track[data-checked=true] .vot-switch-handle{background:var(--vot-switch-onprimary);width:24px;height:24px;transform:translate(16px,-50%)}.vot-switch-handle{background:var(--vot-switch-outline);height:16px;transition-duration:var(--vot-switch-duration);transition-property:background-color,box-shadow,height,transform,width;transition-timing-function:var(--vot-easing-standard);inset-inline-start:6px;border-radius:50%;width:16px;position:absolute;top:50%;transform:translateY(-50%);box-shadow:0 0 #0000}@media (prefers-reduced-motion:reduce){.vot-switch-track,.vot-switch-handle{transition-duration:.01ms}}.vot-slider{--vot-slider-track-bg:rgba(var(--vot-onsurface-rgb,227, 227, 227), .15);--vot-slider-track-progress-bg:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-slider-size:1em;--vot-slider-border-radius:.5em;--vot-slider-handle-bg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-slider-handle-size:44px;--vot-slider-transition:var(--vot-duration-medium) var(--vot-easing-standard);height:var(--vot-slider-handle-size);align-items:center;display:flex;position:relative}.vot-slider[aria-disabled=true]{-webkit-user-select:none;user-select:none;opacity:.5}.vot-slider[aria-disabled=true] .vot-slider__control{cursor:not-allowed}.vot-slider__control{opacity:0;appearance:none;cursor:pointer;width:100%;height:100%;position:absolute}.vot-slider__track{background:var(--vot-slider-track-bg);width:100%;height:var(--vot-slider-size);border-radius:var(--vot-slider-border-radius);pointer-events:none}.vot-slider__track-progress{background:var(--vot-slider-track-progress-bg);width:calc(100% * var(--vot-progress,0));transition:width var(--vot-slider-transition);border-top-right-radius:0;border-bottom-right-radius:0;position:absolute}.vot-slider__handle{left:calc(100% * var(--vot-progress,0));width:4px;height:var(--vot-slider-handle-size);background:var(--vot-slider-handle-bg);outline:4px solid var(--vot-slider-track-bg);pointer-events:none;will-change:transform;transition:transform var(--vot-slider-transition), left var(--vot-slider-transition);transform:translateX(calc(-100% * var(--vot-progress,0)));border-radius:4px;position:absolute}.vot-slider[data-dragging] .vot-slider__track-progress,.vot-slider[data-dragging] .vot-slider__handle{transition:none}.vot-slider-label{flex-wrap:nowrap;align-items:baseline;gap:.75em;display:flex}.vot-slider-label__text{text-align:left;flex:auto}.vot-slider-label__text-desc{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-slider-label__value{text-align:right;font-variant-numeric:tabular-nums;flex:none;font-weight:600!important}.vot-slider-label[aria-disabled=true]{opacity:.5;-webkit-user-select:none;user-select:none;color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .5)}.vot-slider-wrapper{flex-direction:column;gap:.25em;display:flex}.vot-dialog{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-dialog-viewport-margin:16px;--vot-dialog-max-height:75vh;max-width:initial;max-height:initial;width:min(var(--vot-dialog-width,512px), 100%);border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);background-color:var(--vot-helper-surface);height:fit-content;color:var(--vot-helper-onsurface);box-shadow:var(--vot-shadow-2);-webkit-user-select:none;user-select:none;visibility:visible;opacity:1;transform-origin:50%;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;display:block;position:fixed;inset-block:0;inset-inline:0;overflow:auto hidden;transform:scale(1);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:auto!important;padding:0!important}.vot-dialog[data-vertical-align=top]{inset-block-start:var(--vot-dialog-viewport-margin);inset-block-end:auto;margin:0 auto!important}.vot-dialog-container{visibility:visible;z-index:2147483647;position:absolute}.vot-dialog-container *{box-sizing:border-box!important}.vot-dialog-backdrop{opacity:1;background-color:#0009;transition:opacity .3s;position:fixed;inset:0}.vot-dialog-content-wrapper{max-height:var(--vot-dialog-max-height,75vh);flex-direction:column;display:flex;overflow:auto}.vot-dialog-header-container{flex-shrink:0;align-items:flex-start;min-height:31px;display:flex}.vot-dialog-header-container:empty{padding:0 0 20px}.vot-dialog-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-dialog-title-container{font-size:inherit;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-dialog-title{flex:1;font-size:115.385%;line-height:1;padding:var(--vot-space-5) var(--vot-space-5) var(--vot-space-4)!important;font-weight:700!important}.vot-dialog-body-container{box-sizing:border-box;gap:var(--vot-space-4);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-5)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-dialog-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-dialog-body-container:last-child{padding-block-end:var(--vot-space-5)!important}.vot-dialog-footer-container{justify-content:flex-end;gap:var(--vot-space-2);flex-wrap:wrap;flex-shrink:0;display:flex;padding:var(--vot-space-4)!important}@media (width<=480px){.vot-dialog-footer-container{flex-direction:column;align-items:stretch}.vot-dialog-footer-container>:is(.vot-button,.vot-outlined-button,.vot-text-button){white-space:normal;text-overflow:clip;text-align:center;justify-content:center;align-items:center;width:100%;height:auto;min-height:36px;padding:8px 16px;line-height:1.2;display:flex;overflow:visible}}.vot-settings-section{border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);padding:var(--vot-space-2);background:rgba(var(--vot-helper-onsurface-rgb), .03);flex-direction:column;display:flex}.vot-settings-section>*{margin:0!important}.vot-settings-section>*+*{margin-top:var(--vot-space-2)!important}.vot-settings-section__header{border-radius:var(--vot-radius-m);margin:0!important;padding:.45em .5em!important}.vot-settings-section__header .vot-details-arrow-icon{transition:transform var(--vot-duration-medium) var(--vot-easing-standard)}.vot-settings-section__header[data-open=true] .vot-details-arrow-icon{transform:scale(1.25)rotate(0)}.vot-settings-section__content{--vot-settings-control-width:200px;--vot-settings-row-gap:var(--vot-space-2);gap:var(--vot-settings-row-gap);padding:0 var(--vot-space-1) var(--vot-space-1);flex-direction:column;display:flex}.vot-settings-section__content>*{margin:0!important}.vot-settings-section__content>.vot-switch,.vot-settings-section__content>.vot-hotkey,.vot-settings-section__content>.vot-select,.vot-settings-section__content>.vot-slider-wrapper{padding:var(--vot-space-1);box-sizing:border-box;width:100%!important}.vot-settings-footer{gap:var(--vot-space-2);display:flex}.vot-textfield{display:inline-block;--vot-helper-theme:rgb(var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243)))!important;--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;--vot-helper-safari3:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:start!important;padding-top:6px!important;font-size:16px!important;line-height:1.5!important;position:relative!important}.vot-textfield>:is(input,textarea){box-sizing:border-box!important;border-style:solid!important;border-width:1px!important;border-color:transparent var(--vot-helper-safari2) var(--vot-helper-safari2)!important;width:100%!important;height:inherit!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;-webkit-text-fill-color:currentColor!important;font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;caret-color:var(--vot-helper-theme)!important;background-color:#0000!important;border-radius:4px!important;margin:0!important;padding:15px 13px!important;transition:border .2s,box-shadow .2s!important;box-shadow:inset 1px 0 #0000,inset -1px 0 #0000,inset 0 -1px #0000!important}.vot-textfield>:is(input,textarea):not(:focus):not(:is(.vot-show-placeholder,.vot-show-placeholer))::placeholder{color:#0000!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown{border-top-color:var(--vot-helper-safari2)!important}.vot-textfield>:is(input,textarea)+.vot-textfield__label{font-family:inherit;width:100%!important;max-height:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;cursor:text!important;pointer-events:none!important;font-size:75%!important;line-height:15px!important;transition:color .2s,font-size .2s,line-height .2s!important;display:flex!important;position:absolute!important;top:0!important;left:0!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown+.vot-textfield__label{font-size:inherit!important;line-height:68px!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{content:\"\"!important;box-sizing:border-box!important;border-top:solid 1px var(--vot-helper-safari2)!important;pointer-events:none!important;min-width:10px!important;height:8px!important;margin-top:6px!important;transition:border .2s,box-shadow .2s!important;display:block!important;box-shadow:inset 0 1px #0000!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:before{border-left:1px solid #0000!important;border-radius:4px 0!important;margin-right:4px!important}.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:after{border-right:1px solid #0000!important;border-radius:0 4px!important;flex-grow:1!important;margin-left:4px!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before{margin-right:0!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after{margin-left:0!important}.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}.vot-textfield>textarea{resize:none!important}.vot-textfield:hover>input:not(:disabled),.vot-textfield:hover>textarea:not(:disabled){border-color:transparent var(--vot-helper-safari3) var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:after,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:after{border-top-color:var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled):not(:focus):placeholder-shown,.vot-textfield:hover>textarea:not(:disabled):not(:focus):placeholder-shown{border-color:var(--vot-helper-safari3)!important}.vot-textfield>input:focus,.vot-textfield>textarea:focus{border-color:transparent var(--vot-helper-theme) var(--vot-helper-theme)!important;box-shadow:inset 1px 0 var(--vot-helper-theme), inset -1px 0 var(--vot-helper-theme), inset 0 -1px var(--vot-helper-theme)!important;outline:none!important}.vot-textfield>input:focus+.vot-textfield__label,.vot-textfield>textarea:focus+.vot-textfield__label{color:var(--vot-helper-theme)!important}.vot-textfield>input:focus+.vot-textfield__label:before,.vot-textfield>input:focus+.vot-textfield__label:after,.vot-textfield>textarea:focus+.vot-textfield__label:before,.vot-textfield>textarea:focus+.vot-textfield__label:after{border-top-color:var(--vot-helper-theme)!important;box-shadow:inset 0 1px var(--vot-helper-theme)!important}.vot-textfield>input:disabled,.vot-textfield>input:disabled+.vot-textfield__label,.vot-textfield>textarea:disabled,.vot-textfield>textarea:disabled+.vot-textfield__label{border-color:transparent var(--vot-helper-safari1) var(--vot-helper-safari1)!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;pointer-events:none!important}.vot-textfield>input:disabled+.vot-textfield__label:before,.vot-textfield>input:disabled+.vot-textfield__label:after,.vot-textfield>textarea:disabled+.vot-textfield__label:before,.vot-textfield>textarea:disabled+.vot-textfield__label:after,.vot-textfield>input:disabled:placeholder-shown,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label,.vot-textfield>textarea:disabled:placeholder-shown,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label{border-top-color:var(--vot-helper-safari1)!important}.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}@media not all and (resolution>=.001dpcm){@supports ((-webkit-appearance:none)){.vot-textfield>input,.vot-textfield>input+.vot-textfield__label,.vot-textfield>textarea,.vot-textfield>textarea+.vot-textfield__label,.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{transition-duration:.1s!important}}}.vot-segmented-button{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);cursor:default;-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));max-width:100vw;height:36px;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);align-items:center;font-size:16px;display:flex;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;box-shadow:var(--vot-shadow-1)!important}.vot-segmented-button[data-direction=column]{flex-direction:column;height:fit-content}.vot-segmented-button[data-direction=column] .vot-segment,.vot-segmented-button[data-direction=column] .vot-segment-only-icon{padding:var(--vot-space-2)!important}.vot-segmented-button[data-direction=column] .vot-separator{width:50%;height:1px}.vot-segmented-button[data-status=error] .vot-translate-button{color:#f28b82}.vot-segmented-button[data-status=success] .vot-translate-button{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment,.vot-segmented-button .vot-segment-only-icon{height:100%;color:inherit;transition:background-color var(--vot-duration-fast) var(--vot-easing-standard);-webkit-tap-highlight-color:transparent;background-color:#0000;outline:none;justify-content:center;align-items:center;display:flex;position:relative;overflow:hidden;gap:var(--vot-space-2)!important;padding:0 var(--vot-space-2)!important;border:none!important}.vot-segmented-button .vot-segment:focus,.vot-segmented-button .vot-segment-only-icon:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color);outline:none}.vot-segmented-button .vot-segment:focus:not(:focus-visible),.vot-segmented-button .vot-segment-only-icon:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before{background-color:rgb(var(--vot-helper-theme-rgb));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-segmented-button .vot-segment:hover:before,.vot-segmented-button .vot-segment-only-icon:hover:before{opacity:.04}.vot-segmented-button .vot-segment:active:after,.vot-segmented-button .vot-segment-only-icon:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{pointer-events:none}.vot-segmented-button .vot-segment svg,.vot-segmented-button .vot-segment-only-icon svg{font-size:24px}.vot-segmented-button .vot-segment>svg,.vot-segmented-button .vot-segment-only-icon>svg,.vot-segmented-button .vot-segment-label,.vot-segmented-button .vot-segment .vot-dropdown-arrow,.vot-segmented-button .vot-segment-only-icon .vot-dropdown-arrow{z-index:1;position:relative}.vot-segmented-button .vot-segment-only-icon{min-width:36px;padding:0!important}.vot-segmented-button .vot-segment-only-icon[data-active=true]{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment-label{white-space:nowrap;color:inherit;line-height:1;font-weight:400!important}.vot-segmented-button .vot-dropdown-arrow{width:30px;min-width:30px;height:100%;color:inherit;fill:inherit;opacity:.95;cursor:default;-webkit-tap-highlight-color:transparent;outline:none;flex:none;justify-content:center;align-items:center;display:inline-flex;position:relative;border-radius:var(--vot-radius-s)!important;margin-inline-end:-4px!important;margin-top:2px!important}.vot-segmented-button .vot-dropdown-arrow:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color)}.vot-segmented-button .vot-dropdown-arrow:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-dropdown-arrow:hover{background:rgba(var(--vot-helper-theme-rgb), .04)}.vot-segmented-button .vot-dropdown-arrow:before,.vot-segmented-button .vot-dropdown-arrow:after{display:none}.vot-segmented-button .vot-dropdown-arrow svg{transform-origin:50%;transition:transform var(--vot-duration-fast) var(--vot-easing-standard);font-size:28px;transform:scale(1.08)}.vot-segmented-button .vot-dropdown-arrow[aria-expanded=true] svg{transform:rotate(180deg)scale(1.08)}.vot-segmented-button .vot-separator{background:rgba(var(--vot-helper-theme-rgb), .1);width:1px;height:50%}.vot-overlay.vot-overlay__segmented-button{--vot-overlay-default-top:5rem;--vot-overlay-top-offset:max(16px, env(safe-area-inset-top,0px));--vot-overlay-side-offset:max(16px, env(safe-area-inset-left,0px));--vot-overlay-side-offset-right:max(16px, env(safe-area-inset-right,0px));--vot-overlay-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px));transition:opacity var(--vot-duration-slow) var(--vot-easing-standard);pointer-events:auto;touch-action:none;left:50%;transform:translate(-50%)}.vot-overlay.vot-overlay__segmented-button[data-dragging=true]{cursor:grabbing;will-change:transform;transform:translate3d(var(--vot-button-drag-left,0px), var(--vot-button-drag-top,0px), 0)!important;opacity:.96!important;transition:none!important;top:0!important;left:0!important;right:auto!important}.vot-overlay.vot-overlay__segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segment,.vot-overlay.vot-overlay__segmented-button .vot-segment-only-icon,.vot-overlay.vot-overlay__segmented-button .vot-dropdown-arrow{touch-action:none}.vot-overlay.vot-overlay__segmented-button[data-position=left]{left:var(--vot-overlay-side-offset);right:auto;top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=right]{left:auto;right:var(--vot-overlay-side-offset-right);top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=leftCenter]{left:var(--vot-overlay-side-offset);top:50%;right:auto;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button[data-position=rightCenter]{left:auto;right:var(--vot-overlay-side-offset-right);top:50%;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button.vot-segmented-button--dock-preview{z-index:2147483646;transition:left var(--vot-duration-medium) var(--vot-easing-standard), right var(--vot-duration-medium) var(--vot-easing-standard), top var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard), opacity var(--vot-duration-fast) var(--vot-easing-standard);opacity:.72!important;pointer-events:none!important}.vot-voice-icon{display:block;overflow:visible}.vot-voice-icon .vot-eq-bar{transform-origin:50% 100%;transform-box:fill-box;transform:scaleY(1)}.vot-voice-icon--standard .vot-eq-bar{fill:rgba(var(--vot-onsurface-rgb,227, 227, 227), .4)}.vot-voice-icon--live .vot-eq-bar{fill:#e040a0}.vot-voice-popover{--vot-helper-surface-rgb:var(--vot-surface-rgb,32, 33, 36);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,227, 227, 227);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-helper-onsurface-secondary:rgba(var(--vot-helper-onsurface-rgb), .55);--vot-voice-active-standard-bg:rgba(var(--vot-primary-rgb,139, 180, 245), .1);--vot-voice-active-standard-fg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-voice-active-live-bg:#e040a01a;--vot-voice-active-live-fg:#e040a0;z-index:2147483647;background:var(--vot-helper-surface);min-width:230px;max-width:var(--vot-voice-popover-max-width,310px);max-height:var(--vot-voice-popover-max-height,calc(100vh - 16px));cursor:default;-webkit-user-select:none;user-select:none;overscroll-behavior:contain;transform-origin:0 0;width:max-content;display:block;position:absolute;top:0;left:0;overflow:hidden auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:left!important}.vot-voice-popover,.vot-voice-popover *{box-sizing:border-box!important}.vot-voice-popover{opacity:0;visibility:hidden;pointer-events:none;transition:none;transform:none}.vot-voice-popover[hidden]{display:none!important}.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{opacity:1;visibility:visible;pointer-events:auto;transform:none}.vot-voice-popover[data-placement=top]{transform-origin:bottom}.vot-voice-popover[data-placement=bottom]{transform-origin:top}.vot-voice-popover[data-placement=left]{transform-origin:100%}.vot-voice-popover[data-placement=right]{transform-origin:0}.vot-voice-popover.is-closing{opacity:0;visibility:visible;pointer-events:none;transform:none}.vot-voice-popover__item{cursor:pointer;min-height:62px;color:var(--vot-helper-onsurface);outline:none;gap:12px;transition:none;display:flex;position:relative;overflow:hidden;padding:14px 44px 14px 16px!important}.vot-voice-popover__item:before{content:\"\";opacity:0;pointer-events:none;background:linear-gradient(180deg, rgba(var(--vot-helper-onsurface-rgb), .045), rgba(var(--vot-helper-onsurface-rgb), .06));transition:none;position:absolute;inset:0}.vot-voice-popover__item:hover,.vot-voice-popover__item:focus-visible{box-shadow:inset 0 1px #ffffff08,inset 0 -1px #0000000a}.vot-voice-popover__item:hover:before,.vot-voice-popover__item:focus-visible:before{opacity:1}.vot-voice-popover__item:focus-visible{box-shadow:inset 0 0 0 1px rgba(var(--vot-primary-rgb,139, 180, 245), .18)}.vot-voice-popover__item:after{content:\"\";opacity:0;background-color:currentColor;width:18px;height:18px;transition:none;position:absolute;top:50%;right:14px;transform:translateY(-50%)scale(.88);-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat;mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat}.vot-voice-popover__item--active{font-weight:500!important}.vot-voice-popover__item--active:after{opacity:1;transform:translateY(-50%)scale(1)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active{background-color:var(--vot-voice-active-standard-bg);color:var(--vot-voice-active-standard-fg)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-icon--standard .vot-eq-bar{fill:currentColor}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active{background-color:var(--vot-voice-active-live-bg);color:var(--vot-voice-active-live-fg)}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item-icon{font-size:20px}.vot-voice-popover__item-text{flex-direction:column;gap:2px;min-width:0;display:flex}.vot-voice-popover__item-title{color:inherit;white-space:nowrap;font-size:15px;line-height:1.3;transition:none;font-weight:400!important}.vot-voice-popover__item-subtitle{color:var(--vot-helper-onsurface-secondary);white-space:normal;font-size:12px;line-height:1.4}.vot-voice-popover__divider{background:var(--vot-border-color);height:1px;margin:0!important}@media (prefers-reduced-motion:reduce){.vot-voice-icon .vot-eq-bar{animation:none!important;transform:scaleY(1)!important}.vot-voice-popover,.vot-voice-popover *,.vot-voice-popover:before,.vot-voice-popover:after{transition:none!important;animation:none!important}.vot-voice-popover,.vot-voice-popover.is-closing,.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{transform:none!important}}.vot-segmented-button__menu-header{align-items:center;gap:var(--vot-space-2);margin-left:auto;display:flex}.vot-langpair-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);color:var(--vot-helper-theme);justify-content:space-between;align-items:center;display:flex}.vot-langpair-select__icon{justify-content:center;align-items:center;font-size:24px;display:flex}.vot-overlay.vot-overlay__segmented-button-menu{--vot-overlay-default-top:calc(5rem + 48px);--vot-menu-side-offset:max(76px, calc(env(safe-area-inset-left,0px) + 64px));--vot-menu-side-offset-right:max(76px, calc(env(safe-area-inset-right,0px) + 64px));--vot-menu-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px))}@media (pointer:coarse){.vot-overlay.vot-overlay__segmented-button-menu{--vot-menu-default-top:calc(3rem + 48px);--vot-menu-side-offset:max(64px, calc(env(safe-area-inset-left,0px) + 54px));--vot-menu-side-offset-right:max(64px, calc(env(safe-area-inset-right,0px) + 54px))}}.vot-overlay.vot-overlay__segmented-button-menu{transform-origin:top;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);left:50%;right:auto;transform:translate(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[aria-hidden=true]{transform:translate(-50%,-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left] .vot-menu,.vot-overlay.vot-overlay__segmented-button-menu[data-position=right] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - var(--vot-menu-side-top-offset,48px) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter] .vot-menu,.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left]{left:var(--vot-menu-side-offset);right:auto;top:var(--vot-menu-side-top-offset);transform-origin:0 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=right]{left:auto;right:var(--vot-menu-side-offset-right);top:var(--vot-menu-side-top-offset);transform-origin:100% 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter]{left:var(--vot-menu-side-offset);transform-origin:0;top:50%;right:auto;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter]{left:auto;right:var(--vot-menu-side-offset-right);transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left]{transform-origin:0;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right]{transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=right][aria-hidden=true]{transform:translateY(-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right][aria-hidden=true]{transform:translateY(calc(-50% - 4px))scale(.98)}@property --vot-subtitles-opacity{syntax:\"<number>\";inherits:true;initial-value:.8}@property --vot-subtitles-scale-compensation{syntax:\"<number>\";inherits:true;initial-value:1}.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), var(--vot-subtitles-opacity,.8));--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);background:var(--vot-subtitles-background,#2e2f34cc);width:max-content;inline-size:max-content;color:var(--vot-subtitles-color,#e3e3e3);pointer-events:all;touch-action:none;font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2.2vw), 50px)) * var(--vot-subtitles-scale-compensation,1));-webkit-text-stroke:var(--vot-subtitles-text-stroke-width,clamp(1px, .08em, 2px)) var(--vot-subtitles-text-stroke-color,#000000eb);paint-order:stroke fill;text-shadow:var(--vot-subtitles-text-shadow,0 1px 2px #00000073, 0 2px 8px #00000040);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis:none;position:relative;--vot-subtitles-font-family:var(--vot-subtitles-font-family-custom,var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif))!important;font-family:var(--vot-subtitles-font-family)!important;font-style:normal!important;font-weight:var(--vot-subtitles-font-weight,500)!important;text-transform:none!important;letter-spacing:normal!important;border-radius:.5em!important;padding:.5em .75em!important;line-height:1.25!important}.vot-subtitles,.vot-subtitles *{-webkit-text-stroke:inherit;paint-order:inherit;font-family:var(--vot-subtitles-font-family)!important}.vot-subtitles{box-sizing:border-box;-webkit-user-select:none;user-select:none;contain:layout paint;isolation:isolate;text-align:center;text-wrap:balance;white-space:normal;overflow-wrap:anywhere;unicode-bidi:plaintext;margin:0 auto;display:block}.vot-subtitles-widget{--vot-subtitles-anchor-width:100vw;--vot-subtitles-anchor-height:100vh;--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));--vot-subtitles-smart-target-width:48ch;--vot-subtitles-smart-min-width-ratio:.62;--vot-subtitles-smart-max-width-ratio:.78;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333);--vot-subtitles-smart-max-width:clamp(calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-min-width-ratio)), var(--vot-subtitles-smart-target-width), calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-max-width-ratio)));box-sizing:border-box;z-index:2147483647;--vot-subtitles-fallback-bottom-inset:calc(env(safe-area-inset-bottom,0px) + clamp(56px, 10vh, 220px) + 10px);left:50%;top:calc(100% - var(--vot-subtitles-fallback-bottom-inset));width:max-content;inline-size:max-content;max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);pointer-events:none;will-change:left, top, transform;max-height:100%;display:block;position:absolute;transform:translate(-50%,-100%)}.vot-subtitles-info{color:#f5f7fa;-webkit-backdrop-filter:blur(18px);text-align:start;background:#1f2023f5;border:1px solid #ffffff14;flex-direction:column;gap:10px;min-width:min(360px,100vw - 32px);max-width:min(720px,100vw - 32px);display:flex;box-shadow:0 18px 48px #00000057,0 4px 16px #00000038;border-radius:18px!important;padding:18px 22px 20px!important}.vot-subtitles-info-service{display:none!important}.vot-subtitles-info-title{letter-spacing:-.01em;align-items:baseline;gap:8px;min-width:0;max-width:100%;display:flex;font-size:clamp(18px,2.4vw,26px)!important;line-height:1.18!important}.vot-subtitles-info-source,.vot-subtitles-info-divider,.vot-subtitles-info-header,.vot-subtitles-info-context{overflow-wrap:anywhere;white-space:normal!important}.vot-subtitles-info-source{color:#f5f7faad;flex:0 auto;font-weight:650!important}.vot-subtitles-info-divider{color:#f5f7fa61;flex:none;font-weight:500!important}.vot-subtitles-info-header{color:#fff;flex:auto;min-width:0;font-weight:750!important}.vot-subtitles-info-context{color:#dee4ecb8;max-width:100%;font-size:clamp(14px,1.45vw,17px)!important;line-height:1.42!important}.vot-subtitles span[data-vot-highlight-index].passed{color:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"]{cursor:pointer;white-space:normal;overflow-wrap:inherit;word-break:normal;position:relative;font-size:inherit!important;font-family:inherit!important;font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-transform:inherit!important;text-decoration:none!important}.vot-subtitles span[data-vot-token=\"1\"]:before{content:\"\";z-index:-1;position:absolute;inset:2px -2px;border-radius:4px!important}.vot-subtitles span[data-vot-token=\"1\"]:hover:before,.vot-subtitles span[data-vot-token=\"1\"]:focus-visible:before{background:var(--vot-subtitles-hover-color,#ffffff8c)}.vot-subtitles span[data-vot-token=\"1\"].selected:before{background:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"].passed.selected:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .4)}.vot-subtitles span[data-vot-token=\"1\"].passed:hover:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .3)}.vot-subtitles span[data-vot-style-italic=\"1\"]{font-style:italic!important}.vot-subtitles span[data-vot-style-bold=\"1\"]{font-weight:700!important}.vot-subtitles span[data-vot-style-underline=\"1\"]{text-decoration:underline!important}.vot-subtitles span[data-vot-style-color=\"1\"]{color:var(--vot-subtitles-inline-color)!important}.vot-subtitles-layer{pointer-events:none;z-index:2147483647;contain:layout paint;width:100vw!important;height:100vh!important;position:fixed!important;inset:0!important}.vot-subtitles-guides{pointer-events:none;z-index:2147483646;position:absolute;inset:0}.vot-subtitles-guide{background:rgba(var(--vot-primary-rgb,33, 150, 243), .7);box-shadow:0 0 0 1px rgba(var(--vot-primary-rgb,33, 150, 243), .12);opacity:0;transition:opacity .12s linear;position:absolute}.vot-subtitles-guide[data-visible=true]{opacity:1}.vot-subtitles-guide--vertical{width:2px;transform:translate(-50%)}.vot-subtitles-guide--horizontal{height:2px;transform:translateY(-50%)}@media (aspect-ratio<=1){.vot-subtitles-widget{--vot-subtitles-smart-target-width:28ch;--vot-subtitles-smart-min-width-ratio:.8;--vot-subtitles-smart-max-width-ratio:.92;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0296)}}@media (aspect-ratio>=1) and (aspect-ratio<=7/5){.vot-subtitles-widget{--vot-subtitles-smart-target-width:32ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.9;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333)}}@media (width<=900px) and (pointer:coarse){.vot-subtitles-widget{--vot-subtitles-fallback-bottom-inset:env(safe-area-inset-bottom,0px)}}@media (prefers-contrast:more){.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), .92);--vot-subtitles-text-stroke-width:max(2px, .1em);--vot-subtitles-text-shadow:0 2px 10px #0000008c}}:is(:fullscreen .vot-subtitles-widget,:fullscreen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:is(:fullscreen .vot-subtitles,:fullscreen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}#vot-subtitles-info.vot-subtitles-info *{-webkit-user-select:text!important;user-select:text!important}.vot-or-block{--vot-or-block-line:rgba(var(--vot-primary-rgb,139, 180, 245), .5);color:rgb(var(--vot-primary-rgb));align-items:center;gap:12px;font-size:.75em;font-weight:600;display:flex}.vot-or-block:before,.vot-or-block:after{background:var(--vot-or-block-line);content:\"\";flex:1;height:1px}.vot-menu{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);background:var(--vot-helper-surface);color:var(--vot-helper-onsurface);width:fit-content;min-width:320px;max-width:min(90vw,560px);min-height:100px;max-height:calc(var(--vot-container-height,75vh) - var(--vot-overlay-default-top,0px) - 16px);flex-direction:column;font-size:16px;line-height:1.5;display:flex;overflow:auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-menu__header{align-items:center;gap:var(--vot-space-2);flex-shrink:0;min-height:32px;display:flex;padding:var(--vot-space-2) var(--vot-space-4)!important}.vot-menu__body{box-sizing:border-box;gap:var(--vot-space-2);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-4)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-menu__body::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-menu__footer{flex-shrink:0;justify-content:flex-end;display:flex;padding:var(--vot-space-4)!important}.vot-menu__footer:empty{padding:var(--vot-space-4) 0 0 0!important}.vot-tooltip{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-border:rgb(var(--vot-tooltip-border,69, 69, 69));-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));color:var(--vot-helper-theme);fill:var(--vot-helper-theme);font-family:var(--vot-font-family);cursor:default;z-index:2147483647;opacity:0;align-items:center;width:max-content;max-width:calc(100vw - 10px);height:max-content;font-size:14px;line-height:1.5;transition:opacity .5s;display:flex;position:absolute;inset:0;overflow:hidden;box-shadow:0 1px 3px #0000001f;border-radius:4px!important;padding:4px 8px!important}.vot-tooltip[data-trigger=click]{-webkit-user-select:text;user-select:text}.vot-tooltip[data-mode=follow]{pointer-events:auto;-webkit-user-select:text;user-select:text;align-items:stretch}.vot-tooltip[data-mode=follow],.vot-tooltip[data-mode=follow] *{-webkit-user-select:text!important;user-select:text!important}.vot-tooltip.vot-tooltip-bordered{border:1px solid var(--vot-helper-border)}.vot-tooltip *{box-sizing:border-box!important;font-family:inherit!important}.vot-tooltip.vot-tooltip--subtitles-info{overflow:visible;box-shadow:none!important;background:0 0!important;border-radius:18px!important;padding:0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info{flex-direction:column;gap:8px;width:max-content;max-width:min(420px,100vw - 24px);display:flex;color:#ffffffeb!important;letter-spacing:0!important;background:#1f2024f5!important;border:1px solid #ffffff14!important;border-radius:16px!important;padding:14px 16px!important;font-size:13px!important;line-height:1.35!important;box-shadow:0 12px 30px #00000047,0 2px 6px #00000038!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-title{flex-wrap:wrap;align-items:center;gap:6px;min-width:0;display:flex;font-size:15px!important;font-weight:600!important;line-height:1.35!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-source{overflow-wrap:anywhere;color:#fffffff0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-divider{color:#ffffff6b!important;font-weight:500!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-header{overflow-wrap:anywhere;color:rgb(var(--vot-primary-rgb,255, 83, 151))!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-context{overflow-wrap:anywhere;max-width:100%;color:#ffffffad!important;font-size:13px!important;font-weight:400!important;line-height:1.45!important}.vot-overlay{--vot-overlay-default-top:0;-webkit-user-select:none;user-select:none;width:fit-content;max-width:100vw;right:auto;top:var(--vot-overlay-default-top);z-index:2147483647;font-size:16px;line-height:1.5;position:absolute;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-overlay[aria-hidden=true]{pointer-events:none;opacity:0;display:none;visibility:hidden!important}");
+	var shadowScopedCssText = scopeCssForShadowRoots(":root{--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif;--vot-primary-rgb:139, 180, 245;--vot-onprimary-rgb:32, 33, 36;--vot-surface-rgb:32, 33, 36;--vot-secondary-rgb:43, 44, 48;--vot-onsurface-rgb:227, 227, 227;--vot-danger-rgb:255, 99, 99;--vot-error-rgb:242, 139, 130;--vot-subtitles-color:rgb(var(--vot-onsurface-rgb,227, 227, 227));--vot-subtitles-passed-color:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-space-1:4px;--vot-space-2:8px;--vot-space-3:12px;--vot-space-4:16px;--vot-space-5:20px;--vot-space-6:24px;--vot-radius-xs:6px;--vot-radius-s:10px;--vot-radius-m:14px;--vot-radius-l:18px;--vot-border-color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .14);--vot-border-color-hover:rgba(var(--vot-onsurface-rgb,227, 227, 227), .22);--vot-shadow-1:0 1px 2px #0000002e, 0 8px 24px #00000024;--vot-shadow-2:0 2px 4px #00000038, 0 12px 32px #00000038;--vot-duration-fast:.12s;--vot-duration-medium:.2s;--vot-duration-slow:.32s;--vot-easing-standard:cubic-bezier(.2, 0, 0, 1);--vot-focus-ring-color:rgba(var(--vot-primary-rgb,139, 180, 245), .9);--vot-focus-ring:0 0 0 2px var(--vot-focus-ring-color);--vot-focus-ring-offset:0 0 0 4px rgba(var(--vot-surface-rgb,32, 33, 36), .9)}vot-block,vot-block *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}vot-block[hidden]:not(.vot-menu),vot-block [hidden]:not(.vot-menu){display:none!important}vot-block{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizelegibility;-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:100%;display:block;--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;visibility:visible!important;font-weight:400!important}vot-block *{font-weight:inherit!important}.vot-portal-local,.vot-subtitles-widget{isolation:isolate}vot-block:focus,vot-block :focus{box-shadow:none!important;outline:none!important}html.vot-keyboard-nav vot-block:focus-visible,html.vot-keyboard-nav vot-block :focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav vot-block:focus,html.vot-keyboard-nav vot-block :focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}@media (prefers-reduced-motion:reduce){.vot-portal-local *,.vot-portal *,.vot-subtitles-widget *{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}.vot-portal{display:contents}.vot-portal-local{z-index:2147483647;position:fixed;top:0;left:0}.vot-segmented-button,.vot-menu{pointer-events:auto}.vot-about-item{justify-content:space-between;align-items:center;gap:.5em;font-size:.8em;display:flex}.vot-about-item__label{text-transform:lowercase;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-item__value{text-align:end;color:rgba(var(--vot-primary-rgb,33, 150, 243), .9)}.vot-about-item__value_detail{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-section{--vot-about-sep-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);flex-direction:column;gap:.5em;display:flex}.vot-about-section>.vot-about-item:not(:last-child){border-bottom:1px solid var(--vot-about-sep-color);padding-bottom:1em}.vot-account-info{--vot-account-label-color:rgba(var(--vot-onsurface-rgb,13, 1, 31), .68);--vot-account-username-color:rgb(var(--vot-primary-rgb,139, 180, 245));flex-direction:column;gap:1em;font-weight:600;display:flex}.vot-account-info__block{align-items:center;gap:.5em;display:flex}.vot-account-info__avatar{border-radius:50%;min-width:36px;max-width:36px;min-height:36px;max-height:36px;overflow:hidden}.vot-account-info__avatar--failed{background:var(--vot-account-label-color)}.vot-account-info__avatar--failed>.vot-account-info__avatar-img{display:none}.vot-account-info__avatar-img{object-fit:cover;width:36px;height:36px}.vot-account-info__content{flex-direction:column;line-height:1.125em;display:flex}.vot-account-info__label{color:var(--vot-account-label-color);font-size:.75em}.vot-account-info__username{color:var(--vot-account-username-color);font-weight:600}.vot-account-info__refresh{margin-left:auto}.vot-account-login{flex-direction:column;gap:1em;display:flex}.vot-account-login__btn{cursor:pointer;color:#0d011f;border-radius:var(--vot-space-5);background:#fff;align-items:center;gap:1em;min-width:194px;height:56px;padding:14px 16px;font-size:1em;line-height:1.25em;transition:background .25s;display:flex}.vot-account-login__btn:hover{background:#f1eeeb}.vot-account-login__btn-icon{background-image:url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='44' height='44' fill='%23FC3F1D'/%3E%3Cpath d='M22.9515 24.2897C24.2907 27.223 24.737 28.2433 24.737 31.7665V36.4375H19.9544V28.5621L10.9313 8.9375H15.9211L22.9515 24.2897ZM28.8501 8.9375L22.9994 22.2332H27.8617L33.7284 8.9375H28.8501Z' fill='white'/%3E%3C/svg%3E%0A\");background-position:50%;background-repeat:no-repeat;background-size:contain;border-radius:50%;flex-shrink:0;width:26px;height:26px;position:relative}.vot-account-login__btn-text{font-weight:600}.vot-account-login__btn[aria-disabled=true]{cursor:not-allowed;-webkit-user-select:none;user-select:none;opacity:.5}.vot-account-login__token{align-items:center;gap:1em;width:100%;display:flex}.vot-account-login__token .vot-textfield{width:100%}.vot-account-logout{--vot-theme-rgb:var(--vot-danger-rgb,244, 67, 54);width:100%;display:flex}.vot-account-logout .vot-text-button{width:100%;font-weight:600!important}.vot-account-logout__content{align-items:center;gap:.5em;width:100%;font-size:1.125em;display:flex}.vot-account-logout__content svg{width:1.25em;height:1.25em}.vot-account-menu{flex-direction:column;gap:.5em;display:flex}.vot-icon-button{--vot-helper-onsurface:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:36px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:50%!important;margin:0!important;padding:0!important;font-weight:500!important}.vot-icon-button[hidden]{display:none!important}.vot-icon-button{width:36px;fill:var(--vot-helper-onsurface);color:var(--vot-helper-onsurface);background-color:#0000;border:none!important}.vot-icon-button:before,.vot-icon-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-icon-button:before{background-color:var(--vot-helper-onsurface);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-icon-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-icon-button:hover:before{opacity:.04}.vot-icon-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-icon-button[disabled=true],.vot-icon-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);fill:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-icon-button[disabled=true]:before,.vot-icon-button[disabled=true]:after,.vot-icon-button[aria-disabled=true]:before,.vot-icon-button[aria-disabled=true]:after{opacity:0}.vot-icon-button svg{fill:inherit;stroke:inherit;width:24px;height:36px}.vot-text-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-text-button[hidden]{display:none!important}.vot-text-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:none!important}.vot-text-button:before,.vot-text-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-text-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-text-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-text-button:hover:before{opacity:.04}.vot-text-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-text-button[disabled=true],.vot-text-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-text-button[disabled=true]:before,.vot-text-button[disabled=true]:after,.vot-text-button[aria-disabled=true]:before,.vot-text-button[aria-disabled=true]:after{opacity:0}.vot-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;font-weight:500!important}.vot-button[hidden]{display:none!important}.vot-button{color:rgb(var(--vot-helper-ontheme));background-color:rgb(var(--vot-helper-theme));box-shadow:var(--vot-shadow-1);transition:box-shadow var(--vot-duration-medium) var(--vot-easing-standard);border:none!important}.vot-button:before,.vot-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-button:before{background-color:rgb(var(--vot-helper-ontheme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-button:hover:before{opacity:.08}.vot-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-button:hover,.vot-button:active{box-shadow:var(--vot-shadow-2)}.vot-button[disabled=true]{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);box-shadow:none;cursor:initial}.vot-button[disabled=true]:before,.vot-button[disabled=true]:after{opacity:0}.vot-outlined-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:34px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-outlined-button[hidden]{display:none!important}.vot-outlined-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:solid 1px var(--vot-border-color)!important}.vot-outlined-button:before,.vot-outlined-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-outlined-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-outlined-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-outlined-button:hover:before{opacity:.04}.vot-outlined-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-outlined-button[disabled=true],.vot-outlined-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-outlined-button[disabled=true]:before,.vot-outlined-button[disabled=true]:after,.vot-outlined-button[aria-disabled=true]:before,.vot-outlined-button[aria-disabled=true]:after{opacity:0}.vot-details{color:rgba(var(--vot-onsurface-rgb), .87);text-align:start;cursor:pointer;-webkit-user-select:none;user-select:none;transition:background var(--vot-duration-medium) var(--vot-easing-standard);justify-content:space-between;align-items:center;font-size:16px;line-height:1.5;display:flex;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:.5em!important;margin:-.5em!important;padding:.5em!important}.vot-details-arrow-icon{width:20px;height:32px;fill:rgba(var(--vot-onsurface-rgb), .87);justify-content:center;align-items:center;font-size:24px;display:flex;transform:scale(1.25)rotate(-90deg)}.vot-details:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .06)}.vot-details[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-hotkey{justify-content:flex-start;align-items:center;gap:var(--vot-space-3,12px);flex-wrap:wrap;display:flex}.vot-hotkey-label{overflow-wrap:anywhere;flex:1}.vot-hotkey-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:32px;height:fit-content;font-size:15px;line-height:1.5;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:400!important}.vot-hotkey-button[hidden]{display:none!important}.vot-hotkey-button{background-color:#0000;width:fit-content;border:solid 1px var(--vot-border-color)!important}.vot-hotkey-button:before,.vot-hotkey-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-hotkey-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-hotkey-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-hotkey-button:hover:before{opacity:.04}.vot-hotkey-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-hotkey-button[data-status=active]{color:rgb(var(--vot-helper-theme))}.vot-hotkey-button[data-status=active]:before{opacity:.04}.vot-hotkey-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-hotkey-button[disabled=true]:before,.vot-hotkey-button[disabled=true]:after{opacity:0}.vot-progress-icon{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));fill:none;stroke:rgb(var(--vot-helper-theme));stroke-width:2px;stroke-linecap:round;transform-origin:50%;transform:rotate(-90deg)}.vot-progress-icon_base{--vot-helper-theme:var(--vot-secondary-rgb,43, 44, 48)}.vot-select{-webkit-user-select:none;user-select:none;justify-content:end;align-items:center;display:flex;position:relative}.vot-select-label{flex:1}.vot-select-label__description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-select-outer{cursor:pointer;border:1px solid var(--vot-border-color);width:120px;max-width:120px;color:rgba(var(--vot-onsurface-rgb), .87);transition:border-color var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.75em;align-items:center;padding:.5em;display:flex}.vot-select-outer__title{text-overflow:ellipsis;white-space:nowrap;flex:1;align-content:center;height:24px;margin-top:-2px;font-size:.8em;overflow:hidden}.vot-select-outer__arrow{fill:currentColor;transition:transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:1.5em;display:flex}.vot-select-outer[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-outer:not([aria-disabled=true]):hover{border-color:var(--vot-border-color-hover)}.vot-select-outer[aria-expanded=true] .vot-select-outer__arrow{transform:rotate(180deg)}.vot-select-inner{--vot-select-inner-primary-rgb:var(--vot-primary-rgb,33, 150, 243);z-index:2147483647;-webkit-user-select:none;user-select:none;background:rgb(var(--vot-secondary-rgb,43, 44, 48));color:rgba(var(--vot-onsurface-rgb), .87);max-width:min(300px,100%);max-height:min(85vh, 350px, var(--vot-floating-available-height,100vh));pointer-events:auto;border-radius:.75em;flex-direction:column;padding:.5em;font-size:16px;display:flex;position:fixed;overflow:hidden}.vot-select-inner.vot-select-inner__static-width{width:100%}.vot-select-inner .vot-textfield{margin-bottom:.5em}.vot-select-inner__no-options{color:rgba(var(--vot-onsurface-rgb), .38);text-align:center;padding:.5em .75em}.vot-select-inner__no-options[data-searching=true]{color:rgba(var(--vot-onsurface-rgb), .68);padding:0;font-size:1.75em}.vot-select-inner__options{overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(var(--vot-onsurface-rgb), .38) transparent;min-height:0;margin-right:-8px;padding-right:8px;overflow-y:auto}.vot-select-inner__option{cursor:pointer;transition:background var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.5em;padding:.5em .75em}.vot-select-inner__option[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-inner__option:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb), .14)}.vot-select-inner__option[aria-selected=true]{color:rgb(var(--vot-select-inner-primary-rgb));background:rgba(var(--vot-select-inner-primary-rgb), .2)}.vot-select-inner__option[aria-selected=true]:not([aria-disabled=true]):hover{background:rgba(var(--vot-select-inner-primary-rgb), .1)}.vot-switch{--vot-switch-outline:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-switch-primary:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-switch-onprimary:rgb(var(--vot-onprimary-rgb,32, 33, 36));--vot-switch-track:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);--vot-switch-duration:var(--vot-duration-medium,.2s);--vot-switch-label-offset:24px;box-sizing:border-box;color:rgb(var(--vot-onsurface-rgb,0, 0, 0));cursor:pointer;align-items:center;gap:var(--vot-space-4,16px);width:100%;padding-block:var(--vot-space-2,8px);touch-action:manipulation;vertical-align:middle;display:inline-flex;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-switch[data-disabled=true]{cursor:not-allowed;-webkit-user-select:none;user-select:none}.vot-switch_sub{padding-left:var(--vot-switch-label-offset)!important}.vot-switch-control{cursor:inherit;opacity:0;z-index:2;width:100%;height:100%;margin:0;position:absolute;inset:0}.vot-switch-control:focus-visible~.vot-switch-track{outline:2px solid var(--vot-focus-ring-color,rgba(var(--vot-primary-rgb,33, 150, 243), .9));outline-offset:2px}.vot-switch-control:hover:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:hover:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .12)}.vot-switch-control:disabled{cursor:not-allowed}.vot-switch-control:disabled~.vot-switch-track{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:disabled~.vot-switch-track .vot-switch-handle{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-control:disabled~.vot-switch-track[data-checked=true] .vot-switch-handle{background:rgb(var(--vot-surface-rgb,32, 33, 36))}.vot-switch-text{flex-direction:column;flex:auto;min-width:0;display:flex}.vot-switch-heading{letter-spacing:.5px;font-size:16px;font-weight:400;line-height:24px}.vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-switch[data-disabled=true] .vot-switch-heading,.vot-switch[data-disabled=true] .vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-track{background:var(--vot-switch-track);border:2px solid var(--vot-switch-outline);box-sizing:border-box;pointer-events:none;height:32px;transition-duration:var(--vot-switch-duration);transition-property:background-color,border-color;transition-timing-function:var(--vot-easing-standard);border-radius:16px;flex:none;align-items:center;width:52px;display:flex;position:relative}.vot-switch-track[data-checked=true]{background:var(--vot-switch-primary);border-color:var(--vot-switch-primary)}.vot-switch-track[data-checked=true] .vot-switch-handle{background:var(--vot-switch-onprimary);width:24px;height:24px;transform:translate(16px,-50%)}.vot-switch-handle{background:var(--vot-switch-outline);height:16px;transition-duration:var(--vot-switch-duration);transition-property:background-color,box-shadow,height,transform,width;transition-timing-function:var(--vot-easing-standard);inset-inline-start:6px;border-radius:50%;width:16px;position:absolute;top:50%;transform:translateY(-50%);box-shadow:0 0 #0000}@media (prefers-reduced-motion:reduce){.vot-switch-track,.vot-switch-handle{transition-duration:.01ms}}.vot-slider{--vot-slider-track-bg:rgba(var(--vot-onsurface-rgb,227, 227, 227), .15);--vot-slider-track-progress-bg:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-slider-size:1em;--vot-slider-border-radius:.5em;--vot-slider-handle-bg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-slider-handle-size:44px;--vot-slider-transition:var(--vot-duration-medium) var(--vot-easing-standard);height:var(--vot-slider-handle-size);align-items:center;display:flex;position:relative}.vot-slider[aria-disabled=true]{-webkit-user-select:none;user-select:none;opacity:.5}.vot-slider[aria-disabled=true] .vot-slider__control{cursor:not-allowed}.vot-slider__control{opacity:0;appearance:none;cursor:pointer;width:100%;height:100%;position:absolute}.vot-slider__track{background:var(--vot-slider-track-bg);width:100%;height:var(--vot-slider-size);border-radius:var(--vot-slider-border-radius);pointer-events:none}.vot-slider__track-progress{background:var(--vot-slider-track-progress-bg);width:calc(100% * var(--vot-progress,0));transition:width var(--vot-slider-transition);border-top-right-radius:0;border-bottom-right-radius:0;position:absolute}.vot-slider__handle{left:calc(100% * var(--vot-progress,0));width:4px;height:var(--vot-slider-handle-size);background:var(--vot-slider-handle-bg);outline:4px solid var(--vot-slider-track-bg);pointer-events:none;will-change:transform;transition:transform var(--vot-slider-transition), left var(--vot-slider-transition);transform:translateX(calc(-100% * var(--vot-progress,0)));border-radius:4px;position:absolute}.vot-slider[data-dragging] .vot-slider__track-progress,.vot-slider[data-dragging] .vot-slider__handle{transition:none}.vot-slider-label{flex-wrap:nowrap;align-items:baseline;gap:.75em;display:flex}.vot-slider-label__text{text-align:left;flex:auto}.vot-slider-label__text-desc{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-slider-label__value{text-align:right;font-variant-numeric:tabular-nums;flex:none;font-weight:600!important}.vot-slider-label[aria-disabled=true]{opacity:.5;-webkit-user-select:none;user-select:none;color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .5)}.vot-slider-wrapper{flex-direction:column;gap:.25em;display:flex}.vot-dialog{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-dialog-viewport-margin:16px;--vot-dialog-max-height:75vh;max-width:initial;max-height:initial;width:min(var(--vot-dialog-width,512px), 100%);border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);background-color:var(--vot-helper-surface);height:fit-content;color:var(--vot-helper-onsurface);box-shadow:var(--vot-shadow-2);-webkit-user-select:none;user-select:none;visibility:visible;opacity:1;transform-origin:50%;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;display:block;position:fixed;inset-block:0;inset-inline:0;overflow:auto hidden;transform:scale(1);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:auto!important;padding:0!important}.vot-dialog[data-vertical-align=top]{inset-block-start:var(--vot-dialog-viewport-margin);inset-block-end:auto;margin:0 auto!important}.vot-dialog-container{visibility:visible;z-index:2147483647;position:absolute}.vot-dialog-container *{box-sizing:border-box!important}.vot-dialog-backdrop{opacity:1;background-color:#0009;transition:opacity .3s;position:fixed;inset:0}.vot-dialog-content-wrapper{max-height:var(--vot-dialog-max-height,75vh);flex-direction:column;display:flex;overflow:auto}.vot-dialog-header-container{flex-shrink:0;align-items:flex-start;min-height:31px;display:flex}.vot-dialog-header-container:empty{padding:0 0 20px}.vot-dialog-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-dialog-title-container{font-size:inherit;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-dialog-title{flex:1;font-size:115.385%;line-height:1;padding:var(--vot-space-5) var(--vot-space-5) var(--vot-space-4)!important;font-weight:700!important}.vot-dialog-body-container{box-sizing:border-box;gap:var(--vot-space-4);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-5)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-dialog-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-dialog-body-container:last-child{padding-block-end:var(--vot-space-5)!important}.vot-dialog-footer-container{justify-content:flex-end;gap:var(--vot-space-2);flex-wrap:wrap;flex-shrink:0;display:flex;padding:var(--vot-space-4)!important}@media (width<=480px){.vot-dialog-footer-container{flex-direction:column;align-items:stretch}.vot-dialog-footer-container>:is(.vot-button,.vot-outlined-button,.vot-text-button){white-space:normal;text-overflow:clip;text-align:center;justify-content:center;align-items:center;width:100%;height:auto;min-height:36px;padding:8px 16px;line-height:1.2;display:flex;overflow:visible}}.vot-settings-section{border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);padding:var(--vot-space-2);background:rgba(var(--vot-helper-onsurface-rgb), .03);flex-direction:column;display:flex}.vot-settings-section>*{margin:0!important}.vot-settings-section>*+*{margin-top:var(--vot-space-2)!important}.vot-settings-section__header{border-radius:var(--vot-radius-m);margin:0!important;padding:.45em .5em!important}.vot-settings-section__header .vot-details-arrow-icon{transition:transform var(--vot-duration-medium) var(--vot-easing-standard)}.vot-settings-section__header[data-open=true] .vot-details-arrow-icon{transform:scale(1.25)rotate(0)}.vot-settings-section__content{--vot-settings-control-width:200px;--vot-settings-row-gap:var(--vot-space-2);gap:var(--vot-settings-row-gap);padding:0 var(--vot-space-1) var(--vot-space-1);flex-direction:column;display:flex}.vot-settings-section__content>*{margin:0!important}.vot-settings-section__content>.vot-switch,.vot-settings-section__content>.vot-hotkey,.vot-settings-section__content>.vot-select,.vot-settings-section__content>.vot-slider-wrapper{padding:var(--vot-space-1);box-sizing:border-box;width:100%!important}.vot-settings-footer{gap:var(--vot-space-2);display:flex}.vot-textfield{display:inline-block;--vot-helper-theme:rgb(var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243)))!important;--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;--vot-helper-safari3:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:start!important;padding-top:6px!important;font-size:16px!important;line-height:1.5!important;position:relative!important}.vot-textfield>:is(input,textarea){box-sizing:border-box!important;border-style:solid!important;border-width:1px!important;border-color:transparent var(--vot-helper-safari2) var(--vot-helper-safari2)!important;width:100%!important;height:inherit!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;-webkit-text-fill-color:currentColor!important;font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;caret-color:var(--vot-helper-theme)!important;background-color:#0000!important;border-radius:4px!important;margin:0!important;padding:15px 13px!important;transition:border .2s,box-shadow .2s!important;box-shadow:inset 1px 0 #0000,inset -1px 0 #0000,inset 0 -1px #0000!important}.vot-textfield>:is(input,textarea):not(:focus):not(:is(.vot-show-placeholder,.vot-show-placeholer))::placeholder{color:#0000!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown{border-top-color:var(--vot-helper-safari2)!important}.vot-textfield>:is(input,textarea)+.vot-textfield__label{font-family:inherit;width:100%!important;max-height:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;cursor:text!important;pointer-events:none!important;font-size:75%!important;line-height:15px!important;transition:color .2s,font-size .2s,line-height .2s!important;display:flex!important;position:absolute!important;top:0!important;left:0!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown+.vot-textfield__label{font-size:inherit!important;line-height:68px!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{content:\"\"!important;box-sizing:border-box!important;border-top:solid 1px var(--vot-helper-safari2)!important;pointer-events:none!important;min-width:10px!important;height:8px!important;margin-top:6px!important;transition:border .2s,box-shadow .2s!important;display:block!important;box-shadow:inset 0 1px #0000!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:before{border-left:1px solid #0000!important;border-radius:4px 0!important;margin-right:4px!important}.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:after{border-right:1px solid #0000!important;border-radius:0 4px!important;flex-grow:1!important;margin-left:4px!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before{margin-right:0!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after{margin-left:0!important}.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}.vot-textfield>textarea{resize:none!important}.vot-textfield:hover>input:not(:disabled),.vot-textfield:hover>textarea:not(:disabled){border-color:transparent var(--vot-helper-safari3) var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:after,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:after{border-top-color:var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled):not(:focus):placeholder-shown,.vot-textfield:hover>textarea:not(:disabled):not(:focus):placeholder-shown{border-color:var(--vot-helper-safari3)!important}.vot-textfield>input:focus,.vot-textfield>textarea:focus{border-color:transparent var(--vot-helper-theme) var(--vot-helper-theme)!important;box-shadow:inset 1px 0 var(--vot-helper-theme), inset -1px 0 var(--vot-helper-theme), inset 0 -1px var(--vot-helper-theme)!important;outline:none!important}.vot-textfield>input:focus+.vot-textfield__label,.vot-textfield>textarea:focus+.vot-textfield__label{color:var(--vot-helper-theme)!important}.vot-textfield>input:focus+.vot-textfield__label:before,.vot-textfield>input:focus+.vot-textfield__label:after,.vot-textfield>textarea:focus+.vot-textfield__label:before,.vot-textfield>textarea:focus+.vot-textfield__label:after{border-top-color:var(--vot-helper-theme)!important;box-shadow:inset 0 1px var(--vot-helper-theme)!important}.vot-textfield>input:disabled,.vot-textfield>input:disabled+.vot-textfield__label,.vot-textfield>textarea:disabled,.vot-textfield>textarea:disabled+.vot-textfield__label{border-color:transparent var(--vot-helper-safari1) var(--vot-helper-safari1)!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;pointer-events:none!important}.vot-textfield>input:disabled+.vot-textfield__label:before,.vot-textfield>input:disabled+.vot-textfield__label:after,.vot-textfield>textarea:disabled+.vot-textfield__label:before,.vot-textfield>textarea:disabled+.vot-textfield__label:after,.vot-textfield>input:disabled:placeholder-shown,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label,.vot-textfield>textarea:disabled:placeholder-shown,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label{border-top-color:var(--vot-helper-safari1)!important}.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}@media not all and (resolution>=.001dpcm){@supports ((-webkit-appearance:none)){.vot-textfield>input,.vot-textfield>input+.vot-textfield__label,.vot-textfield>textarea,.vot-textfield>textarea+.vot-textfield__label,.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{transition-duration:.1s!important}}}.vot-segmented-button{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);cursor:default;-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));max-width:100%;height:36px;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);align-items:center;font-size:16px;display:flex;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;box-shadow:var(--vot-shadow-1)!important}.vot-segmented-button[data-direction=column]{flex-direction:column;height:fit-content}.vot-segmented-button[data-direction=column] .vot-segment,.vot-segmented-button[data-direction=column] .vot-segment-only-icon{padding:var(--vot-space-2)!important}.vot-segmented-button[data-direction=column] .vot-separator{width:50%;height:1px}.vot-segmented-button[data-status=error] .vot-translate-button{color:rgb(var(--vot-error-rgb,242, 139, 130))}.vot-segmented-button[data-status=success] .vot-translate-button{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment,.vot-segmented-button .vot-segment-only-icon{min-width:0;height:100%;color:inherit;transition:background-color var(--vot-duration-fast) var(--vot-easing-standard);-webkit-tap-highlight-color:transparent;background-color:#0000;outline:none;flex:auto;justify-content:center;align-items:center;display:flex;position:relative;overflow:hidden;gap:var(--vot-space-2)!important;padding:0 var(--vot-space-2)!important;border:none!important}.vot-segmented-button .vot-segment:focus,.vot-segmented-button .vot-segment-only-icon:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color);outline:none}.vot-segmented-button .vot-segment:focus:not(:focus-visible),.vot-segmented-button .vot-segment-only-icon:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before{background-color:rgb(var(--vot-helper-theme-rgb));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-segmented-button .vot-segment:hover:before,.vot-segmented-button .vot-segment-only-icon:hover:before{opacity:.04}.vot-segmented-button .vot-segment:active:after,.vot-segmented-button .vot-segment-only-icon:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{pointer-events:none}.vot-segmented-button .vot-segment svg,.vot-segmented-button .vot-segment-only-icon svg{font-size:24px}.vot-segmented-button .vot-segment>svg,.vot-segmented-button .vot-segment-only-icon>svg,.vot-segmented-button .vot-segment-label,.vot-segmented-button .vot-segment .vot-dropdown-arrow,.vot-segmented-button .vot-segment-only-icon .vot-dropdown-arrow{z-index:1;position:relative}.vot-segmented-button .vot-segment-only-icon{min-width:36px;padding:0!important}.vot-segmented-button .vot-segment-only-icon[data-active=true]{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment-label{text-overflow:ellipsis;white-space:nowrap;min-width:0;color:inherit;flex:auto;line-height:1;overflow:hidden;font-weight:400!important}.vot-segmented-button .vot-dropdown-arrow{width:30px;min-width:30px;height:100%;color:inherit;fill:inherit;opacity:.95;cursor:default;-webkit-tap-highlight-color:transparent;outline:none;flex:none;justify-content:center;align-items:center;display:inline-flex;position:relative;border-radius:var(--vot-radius-s)!important;margin-inline-end:-4px!important;margin-top:2px!important}.vot-segmented-button .vot-dropdown-arrow:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color)}.vot-segmented-button .vot-dropdown-arrow:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-dropdown-arrow:hover{background:rgba(var(--vot-helper-theme-rgb), .04)}.vot-segmented-button .vot-dropdown-arrow:before,.vot-segmented-button .vot-dropdown-arrow:after{display:none}.vot-segmented-button .vot-dropdown-arrow svg{transform-origin:50%;transition:transform var(--vot-duration-fast) var(--vot-easing-standard);font-size:28px;transform:scale(1.08)}.vot-segmented-button .vot-dropdown-arrow[aria-expanded=true] svg{transform:rotate(180deg)scale(1.08)}.vot-segmented-button .vot-separator{background:rgba(var(--vot-helper-theme-rgb), .1);width:1px;height:50%}.vot-overlay.vot-overlay__segmented-button{--vot-overlay-default-top:5rem;--vot-overlay-top-offset:max(16px, env(safe-area-inset-top,0px));--vot-overlay-side-offset:max(16px, env(safe-area-inset-left,0px));--vot-overlay-side-offset-right:max(16px, env(safe-area-inset-right,0px));--vot-overlay-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px));transition:opacity var(--vot-duration-slow) var(--vot-easing-standard);pointer-events:auto;touch-action:none;max-width:100%;left:50%;transform:translate(-50%)}.vot-overlay.vot-overlay__segmented-button[data-dragging=true]{cursor:grabbing;will-change:transform;transform:translate3d(var(--vot-button-drag-left,0px), var(--vot-button-drag-top,0px), 0)!important;opacity:.96!important;transition:none!important;top:0!important;left:0!important;right:auto!important}.vot-overlay.vot-overlay__segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segment,.vot-overlay.vot-overlay__segmented-button .vot-segment-only-icon,.vot-overlay.vot-overlay__segmented-button .vot-dropdown-arrow{touch-action:none}.vot-overlay.vot-overlay__segmented-button[data-position=left]{left:var(--vot-overlay-side-offset);right:auto;top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=right]{left:auto;right:var(--vot-overlay-side-offset-right);top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=leftCenter]{left:var(--vot-overlay-side-offset);top:50%;right:auto;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button[data-position=rightCenter]{left:auto;right:var(--vot-overlay-side-offset-right);top:50%;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button.vot-segmented-button--dock-preview{z-index:2147483646;transition:left var(--vot-duration-medium) var(--vot-easing-standard), right var(--vot-duration-medium) var(--vot-easing-standard), top var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard), opacity var(--vot-duration-fast) var(--vot-easing-standard);opacity:.72!important;pointer-events:none!important}.vot-voice-icon{display:block;overflow:visible}.vot-voice-icon .vot-eq-bar{transform-origin:50% 100%;transform-box:fill-box;transform:scaleY(1)}.vot-voice-icon--standard .vot-eq-bar{fill:rgba(var(--vot-onsurface-rgb,227, 227, 227), .4)}.vot-voice-icon--live .vot-eq-bar{fill:#e040a0}.vot-voice-popover{--vot-helper-surface-rgb:var(--vot-surface-rgb,32, 33, 36);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,227, 227, 227);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-helper-onsurface-secondary:rgba(var(--vot-helper-onsurface-rgb), .55);--vot-voice-active-standard-bg:rgba(var(--vot-primary-rgb,139, 180, 245), .1);--vot-voice-active-standard-fg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-voice-active-live-bg:#e040a01a;--vot-voice-active-live-fg:#e040a0;z-index:2147483647;background:var(--vot-helper-surface);min-width:230px;max-width:var(--vot-voice-popover-max-width,310px);max-height:var(--vot-voice-popover-max-height,calc(100vh - 16px));cursor:default;-webkit-user-select:none;user-select:none;overscroll-behavior:contain;transform-origin:0 0;width:max-content;display:block;position:absolute;top:0;left:0;overflow:hidden auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:left!important}.vot-voice-popover,.vot-voice-popover *{box-sizing:border-box!important}.vot-voice-popover{opacity:0;visibility:hidden;pointer-events:none;transition:none;transform:none}.vot-voice-popover[hidden]{display:none!important}.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{opacity:1;visibility:visible;pointer-events:auto;transform:none}.vot-voice-popover[data-placement=top]{transform-origin:bottom}.vot-voice-popover[data-placement=bottom]{transform-origin:top}.vot-voice-popover[data-placement=left]{transform-origin:100%}.vot-voice-popover[data-placement=right]{transform-origin:0}.vot-voice-popover.is-closing{opacity:0;visibility:visible;pointer-events:none;transform:none}.vot-voice-popover__item{cursor:pointer;min-height:62px;color:var(--vot-helper-onsurface);outline:none;gap:12px;transition:none;display:flex;position:relative;overflow:hidden;padding:14px 44px 14px 16px!important}.vot-voice-popover__item:before{content:\"\";opacity:0;pointer-events:none;background:linear-gradient(180deg, rgba(var(--vot-helper-onsurface-rgb), .045), rgba(var(--vot-helper-onsurface-rgb), .06));transition:none;position:absolute;inset:0}.vot-voice-popover__item:hover,.vot-voice-popover__item:focus-visible{box-shadow:inset 0 1px #ffffff08,inset 0 -1px #0000000a}.vot-voice-popover__item:hover:before,.vot-voice-popover__item:focus-visible:before{opacity:1}.vot-voice-popover__item:focus-visible{box-shadow:inset 0 0 0 1px rgba(var(--vot-primary-rgb,139, 180, 245), .18)}.vot-voice-popover__item:after{content:\"\";opacity:0;background-color:currentColor;width:18px;height:18px;transition:none;position:absolute;top:50%;right:14px;transform:translateY(-50%)scale(.88);-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat;mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat}.vot-voice-popover__item--active{font-weight:500!important}.vot-voice-popover__item--active:after{opacity:1;transform:translateY(-50%)scale(1)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active{background-color:var(--vot-voice-active-standard-bg);color:var(--vot-voice-active-standard-fg)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-icon--standard .vot-eq-bar{fill:currentColor}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active{background-color:var(--vot-voice-active-live-bg);color:var(--vot-voice-active-live-fg)}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item-icon{font-size:20px}.vot-voice-popover__item-text{flex-direction:column;gap:2px;min-width:0;display:flex}.vot-voice-popover__item-title{color:inherit;white-space:nowrap;font-size:15px;line-height:1.3;transition:none;font-weight:400!important}.vot-voice-popover__item-subtitle{color:var(--vot-helper-onsurface-secondary);white-space:normal;font-size:12px;line-height:1.4}.vot-voice-popover__divider{background:var(--vot-border-color);height:1px;margin:0!important}@media (prefers-reduced-motion:reduce){.vot-voice-icon .vot-eq-bar{animation:none!important;transform:scaleY(1)!important}.vot-voice-popover,.vot-voice-popover *,.vot-voice-popover:before,.vot-voice-popover:after{transition:none!important;animation:none!important}.vot-voice-popover,.vot-voice-popover.is-closing,.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{transform:none!important}}.vot-segmented-button__menu-header{align-items:center;gap:var(--vot-space-2);margin-left:auto;display:flex}.vot-langpair-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);color:var(--vot-helper-theme);justify-content:space-between;align-items:center;display:flex}.vot-langpair-select__icon{justify-content:center;align-items:center;font-size:24px;display:flex}.vot-overlay.vot-overlay__segmented-button-menu{--vot-overlay-default-top:calc(5rem + 48px);--vot-menu-side-offset:max(76px, calc(env(safe-area-inset-left,0px) + 64px));--vot-menu-side-offset-right:max(76px, calc(env(safe-area-inset-right,0px) + 64px));--vot-menu-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px))}@media (pointer:coarse){.vot-overlay.vot-overlay__segmented-button-menu{--vot-menu-default-top:calc(3rem + 48px);--vot-menu-side-offset:max(64px, calc(env(safe-area-inset-left,0px) + 54px));--vot-menu-side-offset-right:max(64px, calc(env(safe-area-inset-right,0px) + 54px))}}.vot-overlay.vot-overlay__segmented-button-menu{transform-origin:top;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);left:50%;right:auto;transform:translate(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[aria-hidden=true]{transform:translate(-50%,-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left] .vot-menu,.vot-overlay.vot-overlay__segmented-button-menu[data-position=right] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - var(--vot-menu-side-top-offset,48px) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter] .vot-menu,.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left]{left:var(--vot-menu-side-offset);right:auto;top:var(--vot-menu-side-top-offset);transform-origin:0 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=right]{left:auto;right:var(--vot-menu-side-offset-right);top:var(--vot-menu-side-top-offset);transform-origin:100% 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter]{left:var(--vot-menu-side-offset);transform-origin:0;top:50%;right:auto;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter]{left:auto;right:var(--vot-menu-side-offset-right);transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left]{transform-origin:0;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right]{transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=right][aria-hidden=true]{transform:translateY(-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right][aria-hidden=true]{transform:translateY(calc(-50% - 4px))scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-menu__header{flex-wrap:wrap}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-menu__header .vot-segmented-button__menu-header:has(>:nth-child(2)){margin-left:inherit}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-menu__body{max-height:275px}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-langpair-select{gap:var(--vot-space-1);flex-direction:column}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-langpair-select__icon{transform:rotate(90deg)}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-select{justify-content:start;gap:var(--vot-space-1);flex-direction:column;align-items:start;width:100%}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-select-outer{justify-content:space-around;width:100%;max-width:100%}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-select-outer__title{min-width:0;max-width:120px}@property --vot-subtitles-opacity{syntax:\"<number>\";inherits:true;initial-value:.8}@property --vot-subtitles-scale-compensation{syntax:\"<number>\";inherits:true;initial-value:1}.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), var(--vot-subtitles-opacity,.8));--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);background:var(--vot-subtitles-background,#2e2f34cc);width:max-content;inline-size:max-content;color:var(--vot-subtitles-color,#e3e3e3);pointer-events:all;touch-action:none;font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2.2vw), 50px)) * var(--vot-subtitles-scale-compensation,1));-webkit-text-stroke:var(--vot-subtitles-text-stroke-width,clamp(1px, .08em, 2px)) var(--vot-subtitles-text-stroke-color,#000000eb);paint-order:stroke fill;text-shadow:var(--vot-subtitles-text-shadow,0 1px 2px #00000073, 0 2px 8px #00000040);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis:none;position:relative;--vot-subtitles-font-family:var(--vot-subtitles-font-family-custom,var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif))!important;font-family:var(--vot-subtitles-font-family)!important;font-style:normal!important;font-weight:var(--vot-subtitles-font-weight,500)!important;text-transform:none!important;letter-spacing:normal!important;border-radius:.5em!important;padding:.5em .75em!important;line-height:1.25!important}.vot-subtitles,.vot-subtitles *{-webkit-text-stroke:inherit;paint-order:inherit;font-family:var(--vot-subtitles-font-family)!important}.vot-subtitles{box-sizing:border-box;-webkit-user-select:none;user-select:none;contain:layout paint;isolation:isolate;text-align:center;text-wrap:balance;white-space:normal;overflow-wrap:anywhere;unicode-bidi:plaintext;margin:0 auto;display:block}.vot-subtitles-widget{--vot-subtitles-anchor-width:100vw;--vot-subtitles-anchor-height:100vh;--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));--vot-subtitles-smart-target-width:48ch;--vot-subtitles-smart-min-width-ratio:.62;--vot-subtitles-smart-max-width-ratio:.78;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333);--vot-subtitles-smart-max-width:clamp(calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-min-width-ratio)), var(--vot-subtitles-smart-target-width), calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-max-width-ratio)));box-sizing:border-box;z-index:2147483647;--vot-subtitles-fallback-bottom-inset:calc(env(safe-area-inset-bottom,0px) + clamp(56px, 10vh, 220px) + 10px);left:50%;top:calc(100% - var(--vot-subtitles-fallback-bottom-inset));width:max-content;inline-size:max-content;max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);pointer-events:none;will-change:left, top, transform;max-height:100%;display:block;position:absolute;transform:translate(-50%,-100%)}.vot-subtitles-info{color:#f5f7fa;-webkit-backdrop-filter:blur(18px);text-align:start;background:#1f2023f5;border:1px solid #ffffff14;flex-direction:column;gap:10px;min-width:min(360px,100vw - 32px);max-width:min(720px,100vw - 32px);display:flex;box-shadow:0 18px 48px #00000057,0 4px 16px #00000038;border-radius:18px!important;padding:18px 22px 20px!important}.vot-subtitles-info-service{display:none!important}.vot-subtitles-info-title{letter-spacing:-.01em;align-items:baseline;gap:8px;min-width:0;max-width:100%;display:flex;font-size:clamp(18px,2.4vw,26px)!important;line-height:1.18!important}.vot-subtitles-info-source,.vot-subtitles-info-divider,.vot-subtitles-info-header,.vot-subtitles-info-context{overflow-wrap:anywhere;white-space:normal!important}.vot-subtitles-info-source{color:#f5f7faad;flex:0 auto;font-weight:650!important}.vot-subtitles-info-divider{color:#f5f7fa61;flex:none;font-weight:500!important}.vot-subtitles-info-header{color:#fff;flex:auto;min-width:0;font-weight:750!important}.vot-subtitles-info-context{color:#dee4ecb8;max-width:100%;font-size:clamp(14px,1.45vw,17px)!important;line-height:1.42!important}.vot-subtitles span[data-vot-highlight-index].passed{color:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"]{cursor:pointer;white-space:normal;overflow-wrap:inherit;word-break:normal;position:relative;font-size:inherit!important;font-family:inherit!important;font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-transform:inherit!important;text-decoration:none!important}.vot-subtitles span[data-vot-token=\"1\"]:before{content:\"\";z-index:-1;position:absolute;inset:2px -2px;border-radius:4px!important}.vot-subtitles span[data-vot-token=\"1\"]:hover:before,.vot-subtitles span[data-vot-token=\"1\"]:focus-visible:before{background:var(--vot-subtitles-hover-color,#ffffff8c)}.vot-subtitles span[data-vot-token=\"1\"].selected:before{background:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"].passed.selected:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .4)}.vot-subtitles span[data-vot-token=\"1\"].passed:hover:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .3)}.vot-subtitles span[data-vot-style-italic=\"1\"]{font-style:italic!important}.vot-subtitles span[data-vot-style-bold=\"1\"]{font-weight:700!important}.vot-subtitles span[data-vot-style-underline=\"1\"]{text-decoration:underline!important}.vot-subtitles span[data-vot-style-color=\"1\"]{color:var(--vot-subtitles-inline-color)!important}.vot-subtitles-layer{pointer-events:none;z-index:2147483647;contain:layout paint;width:100vw!important;height:100vh!important;position:fixed!important;inset:0!important}.vot-subtitles-guides{pointer-events:none;z-index:2147483646;position:absolute;inset:0}.vot-subtitles-guide{background:rgba(var(--vot-primary-rgb,33, 150, 243), .7);box-shadow:0 0 0 1px rgba(var(--vot-primary-rgb,33, 150, 243), .12);opacity:0;transition:opacity .12s linear;position:absolute}.vot-subtitles-guide[data-visible=true]{opacity:1}.vot-subtitles-guide--vertical{width:2px;transform:translate(-50%)}.vot-subtitles-guide--horizontal{height:2px;transform:translateY(-50%)}@media (aspect-ratio<=1){.vot-subtitles-widget{--vot-subtitles-smart-target-width:28ch;--vot-subtitles-smart-min-width-ratio:.8;--vot-subtitles-smart-max-width-ratio:.92;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0296)}}@media (aspect-ratio>=1) and (aspect-ratio<=7/5){.vot-subtitles-widget{--vot-subtitles-smart-target-width:32ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.9;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333)}}@media (width<=900px) and (pointer:coarse){.vot-subtitles-widget{--vot-subtitles-fallback-bottom-inset:env(safe-area-inset-bottom,0px)}}@media (prefers-contrast:more){.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), .92);--vot-subtitles-text-stroke-width:max(2px, .1em);--vot-subtitles-text-shadow:0 2px 10px #0000008c}}:is(:fullscreen .vot-subtitles-widget,:fullscreen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:is(:fullscreen .vot-subtitles,:fullscreen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}#vot-subtitles-info.vot-subtitles-info *{-webkit-user-select:text!important;user-select:text!important}.vot-or-block{--vot-or-block-line:rgba(var(--vot-primary-rgb,139, 180, 245), .5);color:rgb(var(--vot-primary-rgb));align-items:center;gap:12px;font-size:.75em;font-weight:600;display:flex}.vot-or-block:before,.vot-or-block:after{background:var(--vot-or-block-line);content:\"\";flex:1;height:1px}.vot-menu{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);background:var(--vot-helper-surface);color:var(--vot-helper-onsurface);width:fit-content;min-width:min(320px, 100% - var(--vot-menu-side-offset,0px));max-width:min(90vw,560px);min-height:100px;max-height:calc(var(--vot-container-height,75vh) - var(--vot-overlay-default-top,0px) - 16px);flex-direction:column;font-size:16px;line-height:1.5;display:flex;overflow:auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-menu__header{align-items:center;gap:var(--vot-space-2);flex-shrink:0;min-height:32px;display:flex;padding:var(--vot-space-2) var(--vot-space-4)!important}.vot-menu__body{box-sizing:border-box;gap:var(--vot-space-2);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-4)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-menu__body::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-menu__footer{flex-shrink:0;justify-content:flex-end;display:flex;padding:var(--vot-space-4)!important}.vot-menu__footer:empty{padding:var(--vot-space-4) 0 0 0!important}.vot-tooltip{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-border:rgb(var(--vot-tooltip-border,69, 69, 69));-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));color:var(--vot-helper-theme);fill:var(--vot-helper-theme);font-family:var(--vot-font-family);cursor:default;z-index:2147483647;overflow-wrap:anywhere;white-space:normal;opacity:0;align-items:center;width:max-content;max-width:calc(100vw - 10px);height:max-content;font-size:14px;line-height:1.5;transition:opacity .5s;display:flex;position:absolute;inset:0;overflow:hidden;box-shadow:0 1px 3px #0000001f;border-radius:4px!important;padding:4px 8px!important}.vot-tooltip[data-trigger=click]{-webkit-user-select:text;user-select:text}.vot-tooltip[data-mode=follow]{pointer-events:auto;-webkit-user-select:text;user-select:text;align-items:stretch}.vot-tooltip[data-mode=follow],.vot-tooltip[data-mode=follow] *{-webkit-user-select:text!important;user-select:text!important}.vot-tooltip.vot-tooltip-bordered{border:1px solid var(--vot-helper-border)}.vot-tooltip *{box-sizing:border-box!important;font-family:inherit!important}.vot-tooltip.vot-tooltip--subtitles-info{overflow:visible;box-shadow:none!important;background:0 0!important;border-radius:18px!important;padding:0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info{flex-direction:column;gap:8px;width:max-content;max-width:min(420px,100vw - 24px);display:flex;color:#ffffffeb!important;letter-spacing:0!important;background:#1f2024f5!important;border:1px solid #ffffff14!important;border-radius:16px!important;padding:14px 16px!important;font-size:13px!important;line-height:1.35!important;box-shadow:0 12px 30px #00000047,0 2px 6px #00000038!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-title{flex-wrap:wrap;align-items:center;gap:6px;min-width:0;display:flex;font-size:15px!important;font-weight:600!important;line-height:1.35!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-source{overflow-wrap:anywhere;color:#fffffff0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-divider{color:#ffffff6b!important;font-weight:500!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-header{overflow-wrap:anywhere;color:rgb(var(--vot-primary-rgb,255, 83, 151))!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-context{overflow-wrap:anywhere;max-width:100%;color:#ffffffad!important;font-size:13px!important;font-weight:400!important;line-height:1.45!important}.vot-overlay{--vot-overlay-default-top:0;-webkit-user-select:none;user-select:none;width:fit-content;max-width:100vw;right:auto;top:var(--vot-overlay-default-top);z-index:2147483647;font-size:16px;line-height:1.5;position:absolute;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-overlay[aria-hidden=true]{pointer-events:none;opacity:0;display:none;visibility:hidden!important}");
 	var sharedShadowStyleSheet = null;
 	var sharedShadowStyleSheetReady = false;
 	function scopeCssForShadowRoots(cssText) {
@@ -30263,10 +36714,22 @@ var vot = (function(exports) {
 		};
 	}
 	//#endregion
-	//#region src/subtitles/widget.ts
-	function isDocumentHidden() {
-		return typeof document !== "undefined" && document.hidden === true;
+	//#region src/utils/inputDevice.ts
+	function matchesMedia(query) {
+		try {
+			return typeof globalThis.matchMedia === "function" && globalThis.matchMedia(query).matches;
+		} catch {
+			return false;
+		}
 	}
+	function hasTouchScreen() {
+		return (globalThis.navigator?.maxTouchPoints ?? 0) > 0 || matchesMedia("(pointer: coarse)") || matchesMedia("(hover: none)");
+	}
+	function isTouchFirstInput() {
+		return matchesMedia("(pointer: coarse)") || hasTouchScreen() && !matchesMedia("(hover: hover)");
+	}
+	//#endregion
+	//#region src/subtitles/widget.ts
 	var SubtitlesWidget = class {
 		video;
 		container;
@@ -30595,7 +37058,7 @@ var vot = (function(exports) {
 			document.addEventListener("visibilitychange", this.onVisibilityChangeBound, opts);
 		}
 		syncResizeTarget() {
-			const nextTarget = this.container instanceof ShadowRoot ? this.container.host : this.container;
+			const nextTarget = getHostElement(this.container);
 			if (nextTarget === this.resizeTarget) return;
 			if (this.resizeTarget) this.resizeObserver?.unobserve(this.resizeTarget);
 			this.resizeTarget = nextTarget;
@@ -30819,11 +37282,10 @@ var vot = (function(exports) {
 			this.insetCacheReady = true;
 		}
 		isMobileViewport() {
-			return globalThis.matchMedia?.("(max-width: 900px) and (pointer: coarse)")?.matches ?? false;
+			return matchesMedia("(max-width: 900px) and (pointer: coarse)");
 		}
 		getBottomInsetPreset() {
-			const doc = document;
-			const fullscreenEl = doc.fullscreenElement ?? doc.webkitFullscreenElement;
+			const fullscreenEl = FullscreenHelper.getFullscreenElement();
 			if (!(fullscreenEl instanceof Element)) return this.bottomInsetByMode.normal;
 			const { container, video } = this;
 			if (fullscreenEl === container || fullscreenEl.contains(container) || container.contains(fullscreenEl)) return this.bottomInsetByMode.fullscreen;
@@ -30831,7 +37293,7 @@ var vot = (function(exports) {
 			return this.bottomInsetByMode.normal;
 		}
 		computeReservedBottomInsetPx(anchorBoxH, preset = this.getBottomInsetPreset()) {
-			return clampToRange(anchorBoxH * preset.ratio, preset.minPx, preset.maxPx);
+			return clamp(anchorBoxH * preset.ratio, preset.minPx, preset.maxPx);
 		}
 		refreshBottomInsetNow(layout = this.getLayoutSize()) {
 			this.refreshInsetCache();
@@ -31084,8 +37546,8 @@ var vot = (function(exports) {
 			let topPx = anchorY - elementHeight;
 			const maxLeftPx = layout.w - elementWidth;
 			const maxTopPx = layout.h - bottomInset - elementHeight;
-			leftPx = maxLeftPx >= 0 ? clampToRange(leftPx, 0, maxLeftPx) : maxLeftPx / 2;
-			topPx = maxTopPx >= 0 ? clampToRange(topPx, 0, maxTopPx) : 0;
+			leftPx = maxLeftPx >= 0 ? clamp(leftPx, 0, maxLeftPx) : maxLeftPx / 2;
+			topPx = maxTopPx >= 0 ? clamp(topPx, 0, maxTopPx) : 0;
 			return {
 				anchorX: leftPx + elementWidth / 2,
 				anchorY: topPx + elementHeight
@@ -31161,7 +37623,7 @@ var vot = (function(exports) {
 			}
 			const remPx = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
 			const baseMaxWidth = Math.min(remPx * 52, this.subtitleMaxWidthPx || globalThis.innerWidth * .8);
-			const fontSizePx = this.subtitleStyleController.fontSizeOverridden ? this.subtitleStyleController.fontSize : Math.min(24, Math.max(14, globalThis.innerWidth * .016));
+			const fontSizePx = this.subtitleStyleController.fontSizeOverridden ? this.subtitleStyleController.fontSize : clamp(globalThis.innerWidth * .016, 14, 24);
 			const fontKey = `normal normal 500 ${fontSizePx}px ${this.subtitleStyleController.fontFamilyCssValue}`;
 			ctx.font = fontKey;
 			return {
@@ -32070,18 +38532,6 @@ var vot = (function(exports) {
 		} }
 	});
 	var isWebVttDocumentBlock = (line) => line.startsWith("NOTE") || line === "STYLE" || line === "REGION";
-	var readVttBlockLines = (lines, startCursor) => {
-		const blockLines = [];
-		let cursor = startCursor;
-		while (cursor < lines.length && lines[cursor].trim() !== "") {
-			blockLines.push(lines[cursor]);
-			cursor += 1;
-		}
-		return {
-			blockLines,
-			nextCursor: cursor
-		};
-	};
 	var resolveVttCueIdentity = (lines, cursor) => {
 		if (!isVttTimingLine(lines[cursor] ?? "") && isVttTimingLine(lines[cursor + 1] ?? "")) return {
 			cueId: lines[cursor],
@@ -32104,15 +38554,15 @@ var vot = (function(exports) {
 			settingsRaw: timingParts.settings
 		};
 	};
-	var readVttPayloadLines = (lines, startCursor) => {
-		const payloadLines = [];
+	var readUntilBlankLine = (lines, startCursor) => {
+		const blockLines = [];
 		let cursor = startCursor;
 		while (cursor < lines.length && lines[cursor].trim() !== "") {
-			payloadLines.push(lines[cursor]);
+			blockLines.push(lines[cursor]);
 			cursor += 1;
 		}
 		return {
-			payloadLines,
+			lines: blockLines,
 			nextCursor: cursor
 		};
 	};
@@ -32273,9 +38723,9 @@ var vot = (function(exports) {
 			while (cursor < lines.length && lines[cursor].trim() === "") cursor += 1;
 			if (cursor >= lines.length) break;
 			if (isWebVttDocumentBlock(lines[cursor])) {
-				const block = readVttBlockLines(lines, cursor);
+				const block = readUntilBlankLine(lines, cursor);
 				cursor = block.nextCursor;
-				pushWebVttBlock(metadata.blocks, cues.length, block.blockLines);
+				pushWebVttBlock(metadata.blocks, cues.length, block.lines);
 				continue;
 			}
 			const identity = resolveVttCueIdentity(lines, cursor);
@@ -32284,9 +38734,9 @@ var vot = (function(exports) {
 				cursor += 1;
 				continue;
 			}
-			const payload = readVttPayloadLines(lines, identity.timingCursor + 1);
+			const payload = readUntilBlankLine(lines, identity.timingCursor + 1);
 			cursor = payload.nextCursor;
-			const payloadLines = payload.payloadLines;
+			const payloadLines = payload.lines;
 			const rawText = payloadLines.join("\n");
 			const displayModel = buildStyledDisplayModel(rawText);
 			const voice = extractVttVoice(rawText);
@@ -32625,10 +39075,10 @@ var vot = (function(exports) {
 	//#endregion
 	//#region src/videoHandler/translationVolume.ts
 	function normalizeMediaElementVolume(volume) {
-		return clampNumber(volume, 0, 1);
+		return clamp(Number.isFinite(volume) ? volume : 0, 0, 1);
 	}
 	function normalizeGainVolume(volume) {
-		return clampNumber(volume, 0, Infinity);
+		return clamp(Number.isFinite(volume) ? volume : 0, 0, Infinity);
 	}
 	function setAudioParamInstant(param, value, context) {
 		const now = context?.currentTime;
@@ -32691,7 +39141,7 @@ var vot = (function(exports) {
 		return isSideButtonPosition(position) ? "column" : "row";
 	}
 	function getEdgeSize(size, fraction, minPx, maxPx) {
-		return clampNumber(size * fraction, minPx, maxPx);
+		return clamp(size * fraction, minPx, maxPx);
 	}
 	function resolveSideVerticalPosition(side, y, height) {
 		if (y <= getEdgeSize(height, SIDE_TOP_FRACTION, MIN_SIDE_TOP_PX, MAX_SIDE_TOP_PX)) return side;
@@ -32701,8 +39151,8 @@ var vot = (function(exports) {
 		const width = containerRect.width;
 		const height = containerRect.height;
 		if (!(width > 0 && height > 0)) return "default";
-		const x = clampNumber(clientX - containerRect.left, 0, width);
-		const y = clampNumber(clientY - containerRect.top, 0, height);
+		const x = clamp(clientX - containerRect.left, 0, width);
+		const y = clamp(clientY - containerRect.top, 0, height);
 		const sideEdge = getEdgeSize(width, SIDE_EDGE_FRACTION, MIN_SIDE_EDGE_PX, MAX_SIDE_EDGE_PX);
 		if (x <= sideEdge) return resolveSideVerticalPosition("left", y, height);
 		if (x >= width - sideEdge) return resolveSideVerticalPosition("right", y, height);
@@ -32980,7 +39430,7 @@ var vot = (function(exports) {
 	//#region src/components/Icons/ProgressIcon.tsx
 	function ProgressIcon(props) {
 		const finalProps = mergeProps$1({ progress: 0 }, props);
-		const progress = () => clampNumber(finalProps.progress, 0, 100);
+		const progress = () => clamp(finalProps.progress, 0, 100);
 		return (() => {
 			var _el$ = createElement("svg"), _el$2 = createElement("circle"), _el$3 = createElement("circle");
 			insertNode(_el$, _el$2);
@@ -33493,7 +39943,7 @@ var vot = (function(exports) {
 		const [dragging, setDragging] = createSignal(false);
 		const progress = () => {
 			const range = finalProps.max - finalProps.min;
-			return clampNumber(range <= 0 ? 0 : (value() - finalProps.min) / range, 0, 1);
+			return clamp(range <= 0 ? 0 : (value() - finalProps.min) / range, 0, 1);
 		};
 		createRenderEffect(() => {
 			setValue(clampVal(finalProps.value));
@@ -33775,8 +40225,8 @@ var vot = (function(exports) {
 						});
 						await downloadBlob(new Blob(blobParts, { type: "audio/webm" }), `${data.videoId}.webm`);
 					}
-				}).addEventListener("downloadAudioError", (translationId, videoId) => {
-					debug.log("downloadAudioError", translationId, videoId);
+				}).addEventListener("downloadAudioError", (translationId, videoId, signInSuggested) => {
+					debug.log("downloadAudioError", translationId, videoId, signInSuggested);
 				});
 				await audioDownloader.runAudioDownload(await getVideoID({
 					host: VideoService.youtube,
@@ -34039,21 +40489,6 @@ var vot = (function(exports) {
 		});
 	}
 	//#endregion
-	//#region src/utils/inputDevice.ts
-	function matchesMedia(query) {
-		try {
-			return typeof globalThis.matchMedia === "function" && globalThis.matchMedia(query).matches;
-		} catch {
-			return false;
-		}
-	}
-	function hasTouchScreen() {
-		return (globalThis.navigator?.maxTouchPoints ?? 0) > 0 || matchesMedia("(pointer: coarse)") || matchesMedia("(hover: none)");
-	}
-	function isTouchFirstInput() {
-		return matchesMedia("(pointer: coarse)") || hasTouchScreen() && !matchesMedia("(hover: hover)");
-	}
-	//#endregion
 	//#region src/components/Icons/LiveVoiceIcon.tsx
 	function LiveVoiceIcon() {
 		return (() => {
@@ -34254,8 +40689,8 @@ var vot = (function(exports) {
 			const maxLeft = Math.max(minLeft, rootRect.right - popoverRect.width - POPOVER_GAP);
 			const minTop = rootRect.top + POPOVER_GAP;
 			const maxTop = Math.max(minTop, rootRect.bottom - popoverRect.height - POPOVER_GAP);
-			left = Math.min(Math.max(left, minLeft), maxLeft) - rootRect.left;
-			top = Math.min(Math.max(top, minTop), maxTop) - rootRect.top;
+			left = clamp(left, minLeft, maxLeft) - rootRect.left;
+			top = clamp(top, minTop, maxTop) - rootRect.top;
 			element.dataset.placement = placement;
 			element.style.left = `${left}px`;
 			element.style.top = `${top}px`;
@@ -34911,11 +41346,13 @@ var vot = (function(exports) {
 			if (hidden) segmentedButtonControls?.closeFloatingUI();
 			setButtonHiddenState(hidden);
 		};
-		const setContainerSize = (_width, height) => {
+		const setContainerSize = (width, height) => {
 			const menuHeight = height > 200 ? height : globalThis.innerHeight * .75;
 			menuOverlay?.style.setProperty("--vot-container-height", `${menuHeight}px`);
 			if (menuHeight > 386) menuOverlay?.removeAttribute("data-compact");
 			else menuOverlay?.setAttribute("data-compact", "");
+			if ((width > 0 ? width : globalThis.innerWidth) < 300) menuOverlay?.setAttribute("data-vertical", "");
+			else menuOverlay?.removeAttribute("data-vertical");
 		};
 		finalProps.controlsRef?.({
 			setStatus,
@@ -34993,8 +41430,8 @@ var vot = (function(exports) {
 			const rootRect = getLayoutRoot().getBoundingClientRect();
 			const maxLeft = Math.max(0, rootRect.width - state.buttonWidth);
 			const maxTop = Math.max(0, rootRect.height - state.buttonHeight);
-			const nextLeft = Math.max(0, Math.min(state.clientX - rootRect.left - state.grabOffsetX, maxLeft));
-			const nextTop = Math.max(0, Math.min(state.clientY - rootRect.top - state.grabOffsetY, maxTop));
+			const nextLeft = clamp(state.clientX - rootRect.left - state.grabOffsetX, 0, maxLeft);
+			const nextTop = clamp(state.clientY - rootRect.top - state.grabOffsetY, 0, maxTop);
 			buttonOverlay.style.setProperty("--vot-button-drag-left", `${nextLeft}px`);
 			buttonOverlay.style.setProperty("--vot-button-drag-top", `${nextTop}px`);
 			return rootRect;
@@ -35654,7 +42091,7 @@ var vot = (function(exports) {
 	//#region src/components/About/AboutSection.tsx
 	function AboutSection(props) {
 		const envInfo = getEnvironmentInfo();
-		const safeGMInfo = typeof GM_info === "undefined" ? void 0 : GM_info;
+		const safeGMInfo = getGMInfo();
 		const scriptVersion = envInfo.scriptVersion === "unknown" ? safeGMInfo?.script?.version || t$1("notFound") : envInfo.scriptVersion;
 		const buildAuthors = String("Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng");
 		const scriptAuthors = (safeGMInfo?.script)?.author || buildAuthors || t$1("notFound");
@@ -36425,46 +42862,6 @@ var vot = (function(exports) {
 	}
 	//#endregion
 	//#region src/components/Button/HotkeyButton.tsx
-	function formatKeysCombo(keys) {
-		return (Array.isArray(keys) ? keys : Array.from(keys)).map((code) => code.replace("Key", "").replace("Digit", "")).join("+");
-	}
-	function formatKeysComboDisplay(keys) {
-		let parts;
-		if (typeof keys === "string") parts = keys.split("+").filter(Boolean);
-		else if (Array.isArray(keys)) parts = keys;
-		else parts = Array.from(keys);
-		const mapKey = (k) => {
-			switch (k) {
-				case "ControlLeft":
-				case "ControlRight":
-				case "Control": return "Ctrl";
-				case "ShiftLeft":
-				case "ShiftRight":
-				case "Shift": return "Shift";
-				case "AltLeft":
-				case "AltRight":
-				case "Alt": return "Alt";
-				case "MetaLeft":
-				case "MetaRight":
-				case "Meta": return "Meta";
-				case "Space": return "Space";
-				case "ArrowUp": return "↑";
-				case "ArrowDown": return "↓";
-				case "ArrowLeft": return "←";
-				case "ArrowRight": return "→";
-				default: return k.replace("Key", "").replace("Digit", "");
-			}
-		};
-		const priority = (k) => {
-			const m = mapKey(k);
-			if (m === "Ctrl") return 0;
-			if (m === "Alt") return 1;
-			if (m === "Shift") return 2;
-			if (m === "Meta") return 3;
-			return 10;
-		};
-		return parts.slice().sort((a, b) => priority(a) - priority(b)).map(mapKey).join("+");
-	}
 	function HotkeyButton(props) {
 		const [local, buttonProps] = splitProps(mergeProps$1({ key: null }, props), [
 			"children",
@@ -36583,29 +42980,23 @@ var vot = (function(exports) {
 				return t$1("hotkeysSettings");
 			},
 			get children() {
-				return [createComponent(HotkeyButton, {
-					get key() {
-						return settings.translationHotkey;
+				return createComponent(For, {
+					get each() {
+						return props.hotkeyController.actions;
 					},
-					onChange: (newKey) => {
-						setSettings("translationHotkey", newKey);
-						props.onTranslationHotkeyChange?.(newKey);
-					},
-					get children() {
-						return t$1("translateVideo");
-					}
-				}), createComponent(HotkeyButton, {
-					get key() {
-						return settings.subtitlesHotkey;
-					},
-					onChange: (newKey) => {
-						setSettings("subtitlesHotkey", newKey);
-						props.onSubtitlesHotkeyChange?.(newKey);
-					},
-					get children() {
-						return t$1("VOTSubtitles");
-					}
-				})];
+					children: (action) => createComponent(HotkeyButton, {
+						get key() {
+							return settings[action.settingsKey];
+						},
+						onChange: (newKey) => {
+							setSettings(action.settingsKey, newKey);
+							action.onchange?.(newKey);
+						},
+						get children() {
+							return t$1(action.localizationPhrase);
+						}
+					})
+				});
 			}
 		});
 	}
@@ -36636,6 +43027,20 @@ var vot = (function(exports) {
 						onChange: (checked) => {
 							setSettings("translateAPIErrors", checked);
 							finalProps.onChangeTranslateAPIErrors?.(checked);
+						}
+					}),
+					createComponent(Switch, {
+						get heading() {
+							return t$1("sendErrorReports");
+						},
+						get description() {
+							return t$1("sendErrorReportsDescription");
+						},
+						get checked() {
+							return settings.sendErrorReports;
+						},
+						onChange: (checked) => {
+							setSettings("sendErrorReports", checked);
 						}
 					}),
 					createComponent(Switch, {
@@ -36956,20 +43361,19 @@ var vot = (function(exports) {
 	//#endregion
 	//#region src/components/Settings/SettingsTranslationSection.tsx
 	function SettingsTranslationSection(props) {
-		const finalProps = mergeProps$1({ isAudioContextSupported: false }, props);
+		const finalProps = mergeProps$1({
+			isAudioContextSupported: false,
+			isCanDetectMusic: false
+		}, props);
 		const dontTranslateLanguagesOptions = genSelectOptionsByLangs(availableLangs);
-		const translationTextServiceOptions = foswlyServices.map((service) => ({
+		const translationTextServiceOptions = TRANSLATE_TEXT_SERVICES.map((service) => ({
 			label: t$1(`services.${service}`),
 			value: service
 		}));
-		const detectServiceOptions = detectServices.map((service) => ({
+		const detectServiceOptions = DETECT_SERVICES.map((service) => ({
 			label: t$1(`services.${service}`),
 			value: service
 		}));
-		const [isAudioContextSupported, setIsAudioContextSupported] = createSignal(finalProps.isAudioContextSupported);
-		createRenderEffect(() => {
-			setIsAudioContextSupported(finalProps.isAudioContextSupported);
-		});
 		const autoVolumeText = () => `${settings.enabledSmartDucking ? settings.smartDuckingStrength : settings.autoVolume}%`;
 		const useAudioDownloadDescription = () => isSupportGMXhr ? t$1("VOTUseAudioDownloadWarning") : `${t$1("VOTUseAudioDownloadWarning")}. ${t$1("VOTNotSupportedByLoader")}`;
 		return createComponent(SettingsSection, {
@@ -37032,6 +43436,24 @@ var vot = (function(exports) {
 						},
 						get children() {
 							return t$1("DontTranslateSelectedLanguages");
+						}
+					}),
+					createComponent(Switch, {
+						get heading() {
+							return t$1("DontTranslateByYTMusic");
+						},
+						get description() {
+							return t$1("VOTMusicDetectDesc");
+						},
+						get checked() {
+							return settings.dontTranslateByYTMusic;
+						},
+						get hidden() {
+							return !finalProps.isCanDetectMusic;
+						},
+						onChange: (checked) => {
+							setSettings("dontTranslateByYTMusic", checked);
+							finalProps.onDontTranslateByYTMusicChange?.(checked);
 						}
 					}),
 					createComponent(Switch, {
@@ -37110,13 +43532,13 @@ var vot = (function(exports) {
 							return t$1("VOTAudioBooster");
 						},
 						get description() {
-							return memo(() => !!isAudioContextSupported())() ? void 0 : t$1("VOTNeedWebAudioAPI");
+							return memo(() => !!finalProps.isAudioContextSupported)() ? void 0 : t$1("VOTNeedWebAudioAPI");
 						},
 						get checked() {
 							return settings.audioBooster;
 						},
 						get disabled() {
-							return !isAudioContextSupported();
+							return !finalProps.isAudioContextSupported;
 						},
 						onChange: (checked) => {
 							setSettings("audioBooster", checked);
@@ -37399,6 +43821,36 @@ var vot = (function(exports) {
 		}
 		initUI() {
 			if (this.isInitialized()) throw new Error("[VOT] SettingsController is already initialized");
+			const self = this;
+			this.videoHandler.hotkeyController.actions = [
+				{
+					action: () => this.videoHandler.uiManager.handleTranslationBtnClick(),
+					get hotkey() {
+						return self.data.translationHotkey;
+					},
+					localizationPhrase: "translateVideo",
+					settingsKey: "translationHotkey",
+					onchange: this.createPersistedSettingHandler({ storageKey: "translationHotkey" })
+				},
+				{
+					action: () => this.videoHandler.toggleSubtitlesForCurrentLangPair(),
+					get hotkey() {
+						return self.data.subtitlesHotkey;
+					},
+					localizationPhrase: "VOTSubtitles",
+					settingsKey: "subtitlesHotkey",
+					onchange: this.createPersistedSettingHandler({ storageKey: "subtitlesHotkey" })
+				},
+				...isPiPAvailable() ? [{
+					action: () => this.videoHandler.uiManager.togglePictureInPicture(),
+					get hotkey() {
+						return self.data.pipHotkey;
+					},
+					localizationPhrase: "VOTPiP",
+					settingsKey: "pipHotkey",
+					onchange: this.createPersistedSettingHandler({ storageKey: "pipHotkey" })
+				}] : []
+			];
 			this.disposeSettingsDialog = render(() => {
 				const [isOpen, setIsOpen] = createSignal(false);
 				this.dialogOpen = isOpen;
@@ -37422,6 +43874,7 @@ var vot = (function(exports) {
 					} },
 					translation: {
 						isAudioContextSupported: this.videoHandler?.isAudioContextSupported,
+						isCanDetectMusic: this.videoHandler.site.host === "youtube",
 						onAutoTranslateChange: this.createPersistedSettingHandler({
 							storageKey: "autoTranslate",
 							dispatch: (checked) => this.events["change:autoTranslate"].dispatch(checked)
@@ -37432,6 +43885,7 @@ var vot = (function(exports) {
 							dispatch: (checked) => this.events["change:autoSubtitles"].dispatch(checked)
 						}),
 						onDontTranslateLanguagesChange: this.createPersistedSettingHandler({ storageKey: "dontTranslateLanguages" }),
+						onDontTranslateByYTMusicChange: this.createPersistedSettingHandler({ storageKey: "dontTranslateByYTMusic" }),
 						onEnabledAutoVolumeChange: this.createPersistedSettingHandler({
 							storageKey: "enabledAutoVolume",
 							afterPersist: () => this.videoHandler?.setupAudioSettings?.()
@@ -37469,10 +43923,7 @@ var vot = (function(exports) {
 						}),
 						onDetectServiceSelect: this.createPersistedSettingHandler({ storageKey: "detectService" })
 					},
-					hotkeys: {
-						onTranslationHotkeyChange: this.createPersistedSettingHandler({ storageKey: "translationHotkey" }),
-						onSubtitlesHotkeyChange: this.createPersistedSettingHandler({ storageKey: "subtitlesHotkey" })
-					},
+					hotkeys: { hotkeyController: this.videoHandler.hotkeyController },
 					subtitles: {
 						onResponseLanguageSubtitlesSelect: (option) => this.createPersistedSettingHandler({
 							storageKey: "responseLanguageSubtitles",
@@ -37589,6 +44040,7 @@ var vot = (function(exports) {
 			this.dialogOpen = void 0;
 			this.setDialogOpen = void 0;
 			this.root = void 0;
+			this.videoHandler.hotkeyController.actions = [];
 		}
 		doReleaseUIEvents() {
 			this.accountStorageListenerCleanup?.();
@@ -37658,6 +44110,7 @@ var vot = (function(exports) {
 			await prepareAuthStateForTranslation(videoHandler);
 			debug.log("[handleTranslationBtnClick] trying execute translation");
 			const videoData = await getVideoDataForTranslation(videoHandler);
+			if (videoHandler.data.dontTranslateByYTMusic && await videoHandler.videoManager.detectMusic(videoData.videoId)) throw new VOTLocalizedError("VOTVideoIsMusic");
 			if (videoHandler.autoSourceLanguageOverrideVideoId && videoHandler.autoSourceLanguageOverrideVideoId !== videoData.videoId) {
 				videoHandler.translateFromLang = "auto";
 				videoHandler.autoSourceLanguageOverrideVideoId = void 0;
@@ -37770,19 +44223,22 @@ var vot = (function(exports) {
 			this.votSettingsView.initUIEvents();
 			this.bindSettingsViewEvents();
 		}
+		async togglePictureInPicture() {
+			if (!this.videoHandler) return;
+			try {
+				if (document.pictureInPictureElement != null) await document.exitPictureInPicture();
+				else await this.videoHandler.video.requestPictureInPicture();
+			} catch (err) {
+				debug.warn("[VOT] Failed to toggle Picture-in-Picture", err);
+			}
+		}
 		bindOverlayViewEvents() {
 			const overlayView = this.votOverlayView;
 			if (!overlayView) return;
 			overlayView.addEventListener("click:translate", async () => {
 				await this.handleTranslationBtnClick();
 			}).addEventListener("click:pip", async () => {
-				if (!this.videoHandler) return;
-				try {
-					if (document.pictureInPictureElement != null) await document.exitPictureInPicture();
-					else await this.videoHandler.video.requestPictureInPicture();
-				} catch (err) {
-					debug.warn("[VOT] Failed to toggle Picture-in-Picture", err);
-				}
+				await this.togglePictureInPicture();
 			}).addEventListener("click:subtitles", async () => {
 				if (!this.videoHandler) return;
 				await this.videoHandler.toggleSubtitlesForCurrentLangPair();
@@ -37936,7 +44392,17 @@ var vot = (function(exports) {
 				await this.downloadTranslationAudio(downloadUrl, filename, setProgress, saveOptions);
 			} catch (err) {
 				console.error("[VOT] Download translation failed:", err);
-				if (!this.triggerUrlDownload(downloadUrl, `${filename}.mp3`)) globalThis.open(downloadUrl, "_blank")?.focus();
+				captureException(err, {
+					source: "audio",
+					operation: "downloadTranslation",
+					dedupeKey: download.videoId,
+					redactedMessage: "Translation audio download failed",
+					tags: {
+						...getTranslationTags(videoHandler),
+						...getAudioFailureTags(err, "save")
+					}
+				});
+				if (!clickDownloadAnchor(downloadUrl, `${filename}.mp3`, { stopPropagation: false })) globalThis.open(downloadUrl, "_blank")?.focus();
 			} finally {
 				overlayViewControls?.setShowTranslationProgress(false);
 				setProgress(0);
@@ -38057,25 +44523,9 @@ var vot = (function(exports) {
 				debug.warn(`[VOT] ${errorMessage}`, err);
 			});
 		}
-		triggerUrlDownload(url, filename) {
-			try {
-				const a = document.createElement("a");
-				a.href = url;
-				a.download = filename;
-				a.target = "_blank";
-				a.rel = "noopener noreferrer";
-				a.style.display = "none";
-				document.body.appendChild(a);
-				a.click();
-				a.remove();
-				return true;
-			} catch {
-				return false;
-			}
-		}
 		isLikelyMobileDownloadContext() {
 			if (this.videoHandler?.site.additionalData === "mobile") return true;
-			return typeof matchMedia === "function" && matchMedia("(pointer: coarse)").matches;
+			return matchesMedia("(pointer: coarse)");
 		}
 		async restartAudioPlayer() {
 			const videoHandler = this.videoHandler;
@@ -38246,7 +44696,7 @@ var vot = (function(exports) {
 		}
 		nowMs() {
 			if (this.deps.nowMs) return this.deps.nowMs();
-			return typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now();
+			return getNowMs();
 		}
 	};
 	//#endregion
@@ -38445,9 +44895,6 @@ var vot = (function(exports) {
 	function getPlayerMediaElement(player) {
 		return player?.audio ?? player?.audioElement;
 	}
-	function getNowMs() {
-		return typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now();
-	}
 	function getAutoVolumeMode(handler) {
 		if (!handler.data?.enabledAutoVolume) return "off";
 		if (handler.data?.syncVolume) return "classic";
@@ -38641,7 +45088,8 @@ var vot = (function(exports) {
 				analyser.getFloatTimeDomainData(floatData);
 				let sum = 0;
 				for (const value of floatData) sum += value * value;
-				return clamp(Math.sqrt(sum / floatData.length), 0, 1);
+				const rms = Math.sqrt(sum / floatData.length);
+				return Number.isNaN(rms) ? void 0 : clamp(rms, 0, 1);
 			}
 			let data = state.analyserData;
 			if (data?.length !== analyser.fftSize) {
@@ -38660,6 +45108,11 @@ var vot = (function(exports) {
 		}
 	}
 	function smartDuckingTick(handler) {
+		if (browserInfo.browser?.name === "Safari") {
+			const targetVolume = clamp(handler.data?.autoVolume ?? 15, 0, 100) / 100;
+			handler.setVideoVolume(targetVolume, { preserveYoutubeVolumeStorage: true });
+			return;
+		}
 		if (getAutoVolumeMode(handler) !== "smart") {
 			setupAudioSettings.call(handler);
 			return;
@@ -38712,7 +45165,8 @@ var vot = (function(exports) {
 			startSmartVolumeDucking(this);
 			return;
 		}
-		const targetVolume = clamp(this.data.autoVolume ?? 15, 0, 100) / 100;
+		const autoVolume = this.data.autoVolume ?? 15;
+		const targetVolume = Number.isNaN(autoVolume) ? NaN : clamp(autoVolume, 0, 100) / 100;
 		if (targetVolume === 0) {
 			if (this.smartVolumeDuckingInterval !== void 0) {
 				clearTimeout(this.smartVolumeDuckingInterval);
@@ -39176,6 +45630,16 @@ var vot = (function(exports) {
 		if (applyResult.status === "error") {
 			debug.log("this.audioPlayer.init() error", applyResult.error);
 			await rollbackStaleAppliedSourceIfStillCurrent(this, appliedSourceUrl);
+			captureException(applyResult.error, {
+				source: "audio",
+				operation: "loadTranslationAudio",
+				dedupeKey: this.videoData?.videoId,
+				redactedMessage: "Translation audio failed to load",
+				tags: {
+					...getTranslationTags(this),
+					...getAudioFailureTags(applyResult.error, "playback")
+				}
+			});
 			const msg = toErrorMessage(applyResult.error);
 			this.transformBtn("error", msg);
 			return;
@@ -39323,6 +45787,15 @@ var vot = (function(exports) {
 		try {
 			return await translationPromise;
 		} catch (err) {
+			captureException(err, {
+				source: "playback",
+				operation: "translateFunc",
+				dedupeKey: VIDEO_ID,
+				tags: getTranslationTags(this, {
+					from: requestLang,
+					to: responseLang
+				})
+			});
 			this.hadAsyncWait = notifyTranslationFailureIfNeeded({
 				aborted: this.actionsAbortController.signal.aborted,
 				translateApiErrorsEnabled: Boolean(this.data?.translateAPIErrors),
@@ -39406,32 +45879,6 @@ var vot = (function(exports) {
 		if (self.isLikelyInternalVideoVolumeChange(videoPercent)) return;
 		self.syncVolumeWrapper("video", videoPercent);
 	}
-	function normalizeHotkeyPart(value) {
-		return value.replace("Key", "").replace("Digit", "");
-	}
-	function buildPressedHotkeyPartsSet(userPressedKeys) {
-		const pressedParts = new Set();
-		for (const key of userPressedKeys) pressedParts.add(normalizeHotkeyPart(key));
-		return pressedParts;
-	}
-	function getParsedHotkey(hotkey, cache) {
-		if (!hotkey) return null;
-		const cached = cache.get(hotkey);
-		if (cached) return cached;
-		const parts = hotkey.split("+").filter(Boolean).map(normalizeHotkeyPart);
-		const parsed = {
-			parts,
-			partsSet: new Set(parts)
-		};
-		cache.set(hotkey, parsed);
-		return parsed;
-	}
-	function isHotkeyMatch(pressedParts, hotkey) {
-		if (!hotkey) return false;
-		if (pressedParts.size !== hotkey.parts.length) return false;
-		for (const key of hotkey.partsSet) if (!pressedParts.has(key)) return false;
-		return true;
-	}
 	function bindOverlayMountEvents(ctx) {
 		const { self } = ctx;
 		self.refreshOverlayMount();
@@ -39510,7 +45957,7 @@ var vot = (function(exports) {
 			}
 		}, { once: true });
 	}
-	function bindGlobalDismissAndHotkeys(ctx) {
+	function bindGlobalDismiss(ctx) {
 		const { self, overlayView, add, addMany, platformConfig } = ctx;
 		const dismissFloatingUI = () => {
 			const controls = overlayView.overlayViewControls;
@@ -39543,38 +45990,6 @@ var vot = (function(exports) {
 			"pause",
 			"seeking"
 		], dismissFloatingUI);
-		const userPressedKeys = new Set();
-		const hotkeyCache = new Map();
-		const clearUserPressedKeys = () => userPressedKeys.clear();
-		const runHotkeyAction = (action, actionName) => {
-			action().catch((error) => {
-				debug.log(`[VOT] ${actionName} hotkey action failed`, error);
-			});
-		};
-		add(document, "keydown", (event) => {
-			const keyboardEvent = event;
-			if (keyboardEvent.repeat) return;
-			userPressedKeys.add(keyboardEvent.code);
-			const activeElement = getDeepActiveElement(document);
-			const activeTag = activeElement?.tagName?.toLowerCase?.() ?? "";
-			if (["input", "textarea"].includes(activeTag) || Boolean(activeElement?.isContentEditable)) return;
-			const pressedParts = buildPressedHotkeyPartsSet(userPressedKeys);
-			if (isHotkeyMatch(pressedParts, getParsedHotkey(self.data?.translationHotkey, hotkeyCache))) {
-				clearUserPressedKeys();
-				runHotkeyAction(() => self.uiManager.handleTranslationBtnClick(), "Translation");
-				return;
-			}
-			if (isHotkeyMatch(pressedParts, getParsedHotkey(self.data?.subtitlesHotkey, hotkeyCache))) {
-				clearUserPressedKeys();
-				runHotkeyAction(() => self.toggleSubtitlesForCurrentLangPair(), "Subtitles");
-			}
-		});
-		add(document, "keyup", (event) => userPressedKeys.delete(event.code));
-		add(document, "blur", clearUserPressedKeys);
-		add(document, "visibilitychange", () => {
-			if (document.hidden) clearUserPressedKeys();
-		});
-		add(globalThis, "blur", clearUserPressedKeys);
 		const eventContainer = self.getEventContainer();
 		if (eventContainer) {
 			const useWindowEvents = isIframe() && globalThis.window !== void 0;
@@ -39674,6 +46089,14 @@ var vot = (function(exports) {
 			queueSetCanPlay();
 		});
 	}
+	function bindGlobalHotkeyActions(ctx) {
+		const { self, add } = ctx;
+		add(document, "keydown", (event) => self.hotkeyController.keydownHandler(event));
+		add(document, "keyup", (event) => self.hotkeyController.keyupHandler(event));
+		add(document, "blur", () => self.hotkeyController.blurHandler());
+		add(document, "visibilitychange", () => self.hotkeyController.visibilitychangeHandler());
+		add(globalThis, "blur", () => self.hotkeyController.blurHandler());
+	}
 	function initExtraEvents() {
 		const overlayView = this.uiManager.votOverlayView;
 		if (!overlayView?.overlayViewControls) return;
@@ -39689,7 +46112,8 @@ var vot = (function(exports) {
 		bindOverlayMountEvents(ctx);
 		bindYouTubeVolumeSync(ctx);
 		bindAudioTrackLanguageSync(ctx);
-		bindGlobalDismissAndHotkeys(ctx);
+		bindGlobalDismiss(ctx);
+		bindGlobalHotkeyActions(ctx);
 		bindVideoLifecycleEvents(ctx);
 	}
 	function rebindOverlayVisibilityTargets() {
@@ -39731,45 +46155,9 @@ var vot = (function(exports) {
 		if (this.initialized) return;
 		const audioContextSupported = this.isAudioContextSupported;
 		this.data = await votStorage.getValues({
-			autoTranslate: false,
-			autoPauseOnTranslate: false,
-			autoSubtitles: false,
-			dontTranslateLanguages: [calculatedResLang],
-			enabledAutoVolume: true,
-			enabledSmartDucking: true,
-			autoVolume: 15,
-			smartDuckingStrength: 80,
-			buttonPos: "default",
-			showVideoSlider: true,
-			syncVolume: false,
-			downloadWithName: isSupportGMXhr,
-			sendNotifyOnComplete: false,
-			subtitlesMaxLength: 300,
-			subtitlesSmartLayout: true,
-			highlightWords: false,
-			subtitlesFontSize: 20,
-			subtitlesFontFamily: "default-sans",
-			subtitlesOpacity: 20,
-			subtitlesDownloadFormat: "srt",
-			responseLanguage: calculatedResLang,
-			responseLanguageSubtitles: AUTO_SUBTITLE_LANGUAGE_VALUE,
-			defaultVolume: 100,
-			onlyBypassMediaCSP: audioContextSupported,
-			newAudioPlayer: audioContextSupported,
-			showPiPButton: false,
-			translateAPIErrors: true,
-			translationService: DEFAULT_TRANSLATION_SERVICE,
-			detectService: DEFAULT_DETECT_SERVICE,
-			translationHotkey: null,
-			subtitlesHotkey: null,
+			...createDefaultSettings(audioContextSupported),
 			m3u8ProxyHost,
-			proxyWorkerHost: PROXY_WORKER_HOST,
-			translateProxyEnabled: 0,
 			translateProxyEnabledDefault: true,
-			audioBooster: false,
-			useLivelyVoice: false,
-			autoHideButtonDelay: DEFAULT_AUTO_HIDE_DELAY,
-			useAudioDownload: isSupportGMXhr,
 			compatVersion: "",
 			account: {},
 			localeHash: "",
@@ -39785,43 +46173,8 @@ var vot = (function(exports) {
 			hash: this.data.localeHash
 		});
 		setSettings({
-			defaultVolume: this.data.defaultVolume,
-			responseLanguage: this.data.responseLanguage,
-			useLivelyVoice: this.data.useLivelyVoice,
-			autoTranslate: this.data.autoTranslate,
-			autoPauseOnTranslate: this.data.autoPauseOnTranslate,
-			autoSubtitles: this.data.autoSubtitles,
-			dontTranslateLanguages: this.data.dontTranslateLanguages,
-			enabledAutoVolume: this.data.enabledAutoVolume,
-			autoVolume: this.data.autoVolume,
-			enabledSmartDucking: this.data.enabledSmartDucking,
-			smartDuckingStrength: this.data.smartDuckingStrength,
-			showVideoSlider: this.data.showVideoSlider,
-			audioBooster: this.data.audioBooster,
-			syncVolume: this.data.syncVolume,
-			downloadWithName: this.data.downloadWithName,
-			sendNotifyOnComplete: this.data.sendNotifyOnComplete,
-			useAudioDownload: this.data.useAudioDownload,
-			translationService: this.data.translationService,
-			detectService: this.data.detectService,
-			translateAPIErrors: this.data.translateAPIErrors,
-			newAudioPlayer: this.data.newAudioPlayer,
-			onlyBypassMediaCSP: this.data.onlyBypassMediaCSP,
-			showPiPButton: this.data.showPiPButton,
-			autoHideButtonDelay: this.data.autoHideButtonDelay,
-			buttonPos: normalizeButtonPosition(this.data.buttonPos),
-			proxyWorkerHost: this.data.proxyWorkerHost,
-			translateProxyEnabled: this.data.translateProxyEnabled,
-			translationHotkey: this.data.translationHotkey,
-			subtitlesHotkey: this.data.subtitlesHotkey,
-			responseLanguageSubtitles: this.data.responseLanguageSubtitles,
-			subtitlesDownloadFormat: this.data.subtitlesDownloadFormat,
-			highlightWords: this.data.highlightWords,
-			subtitlesSmartLayout: this.data.subtitlesSmartLayout,
-			subtitlesFontFamily: this.data.subtitlesFontFamily,
-			subtitlesMaxLength: this.data.subtitlesMaxLength,
-			subtitlesFontSize: this.data.subtitlesFontSize,
-			subtitlesOpacity: this.data.subtitlesOpacity
+			...pickSettings(this.data),
+			buttonPos: normalizeButtonPosition(this.data.buttonPos)
 		});
 		try {
 			if (calculatedResLang === "en" && Array.isArray(this.data?.dontTranslateLanguages) && this.data.dontTranslateLanguages.length === 1 && this.data.dontTranslateLanguages[0] === "en" && typeof this.data.responseLanguage === "string" && this.data.responseLanguage !== "en") {
@@ -40214,9 +46567,9 @@ var vot = (function(exports) {
 			const segment = segs[j];
 			const rawText = typeof segment.utf8 === "string" ? segment.utf8 : "";
 			if (!rawText) continue;
-			const offset = Math.min(durationMs, Math.max(0, segment.tOffsetMs ?? 0));
+			const offset = clamp(segment.tOffsetMs ?? 0, 0, durationMs);
 			const nextSegment = segs[j + 1];
-			const tokenDuration = (nextSegment ? Math.min(durationMs, Math.max(offset, nextSegment.tOffsetMs ?? offset)) : durationMs) - offset;
+			const tokenDuration = (nextSegment ? clamp(nextSegment.tOffsetMs ?? offset, offset, durationMs) : durationMs) - offset;
 			if (text && shouldInsertSpaceBetweenTextFragments(previousRawText, rawText)) {
 				sourceTokens.push({
 					text: " ",
@@ -40393,11 +46746,12 @@ var vot = (function(exports) {
 		}
 		return applySourceWordTimings(nextTokens, collectSourceTimedWords(line.tokens, locale));
 	};
+	var isTextSubtitleFormat = (format) => format === "vtt" || format === "srt" || format === "ass";
 	var fetchRawSubtitles = async (url, format) => {
 		const response = await GM_fetch(url, { timeout: 7e3 });
-		if (format === "vtt" || format === "srt" || format === "ass") return parseSubtitleText(await response.text(), format);
-		return response.json();
+		return isTextSubtitleFormat(format) ? response.text() : response.json();
 	};
+	var parseRawSubtitles = (rawSubtitles, format) => isTextSubtitleFormat(format) ? parseSubtitleText(rawSubtitles, format) : rawSubtitles;
 	var normalizeFetchedSubtitles = (rawSubtitles, descriptor) => {
 		if (descriptor.source === "youtube") return SubtitlesProcessor.formatYoutubeSubtitles(rawSubtitles, Boolean(descriptor.isAutoGenerated));
 		if (descriptor.format === "srt" || descriptor.format === "vtt" || descriptor.format === "ass") return sortProcessedSubtitles(ensureProcessedSubtitles(rawSubtitles));
@@ -40496,7 +46850,7 @@ var vot = (function(exports) {
 				subtitles: mergeAutoGeneratedSubtitleLines(subtitles.subtitles, descriptor.language)
 			};
 		},
-		async fetchSubtitles(descriptorInput) {
+		async fetchSubtitles(descriptorInput, errorContext = {}) {
 			const descriptor = parseSubtitleDescriptor(descriptorInput);
 			if (!descriptor) return {
 				format: "json",
@@ -40505,12 +46859,25 @@ var vot = (function(exports) {
 			const { source, format } = descriptor;
 			let { url } = descriptor;
 			if (source === "youtube") url = appendYoutubePoTokenParams(url);
+			let operation = "fetchSubtitles";
 			try {
-				const subtitlesWithTokens = processFetchedSubtitles(normalizeFetchedSubtitles(await fetchRawSubtitles(url, format), descriptor), descriptor);
+				const rawSubtitles = await fetchRawSubtitles(url, format);
+				operation = "parseSubtitles";
+				const subtitlesWithTokens = processFetchedSubtitles(normalizeFetchedSubtitles(parseRawSubtitles(rawSubtitles, format), descriptor), descriptor);
 				debug.log("[VOT] Processed subtitles:", subtitlesWithTokens);
 				return subtitlesWithTokens;
 			} catch (error) {
 				console.error("[VOT] Failed to process subtitles:", error);
+				captureException(error, {
+					source: "subtitles",
+					operation,
+					dedupeKey: errorContext.dedupeKey,
+					tags: {
+						...errorContext.tags,
+						subtitles_source: source,
+						subtitles_format: format
+					}
+				});
 				return {
 					format: "json",
 					subtitles: []
@@ -40630,7 +46997,10 @@ var vot = (function(exports) {
 			};
 			debug.log(`[VOT] Subs proxied via ${subtitlesObj.url}`);
 		}
-		const fetchedSubtitles = await SubtitlesProcessor.fetchSubtitles(subtitlesObj);
+		const fetchedSubtitles = await SubtitlesProcessor.fetchSubtitles(subtitlesObj, {
+			dedupeKey: this.videoData?.videoId,
+			tags: getTranslationTags(this)
+		});
 		if (!isCurrentSubtitlesSelectionRequest(this, requestVersion)) return this;
 		this.yandexSubtitles = fetchedSubtitles;
 		this.getSubtitlesWidget().setContent(this.yandexSubtitles, subtitlesObj.language);
@@ -40738,6 +47108,15 @@ var vot = (function(exports) {
 			this.subtitlesCacheKey = cacheKey;
 		} catch (error) {
 			console.error("[VOT] Failed to load subtitles:", error);
+			captureException(error, {
+				source: "subtitles",
+				operation: "fetchSubtitleList",
+				dedupeKey: this.videoData?.videoId,
+				tags: {
+					...getTranslationTags(this),
+					...error instanceof SubtitlesRequestError && { subtitles_source: "yandex" }
+				}
+			});
 			this.subtitles = error instanceof SubtitlesRequestError ? error.fallbackSubtitles : [];
 			this.subtitlesCacheKey = null;
 		}
@@ -40876,6 +47255,7 @@ var vot = (function(exports) {
 		lifecycleController;
 		translationHandler;
 		videoManager;
+		hotkeyController;
 		yandexSubtitles = null;
 		syncVolumeObserver;
 		initialized = false;
@@ -40925,7 +47305,7 @@ var vot = (function(exports) {
 		getTranslationCacheKey(videoId, from, to, translationHelp) {
 			const requestLangForApi = this.getRequestLangForTranslation(from, to);
 			const useLivelyVoice = this.isLivelyVoiceAllowed(requestLangForApi, to) && this.data?.useLivelyVoice;
-			const helpStr = translationHelp === void 0 || translationHelp === null ? "" : stableStringify(translationHelp);
+			const helpStr = translationHelp === void 0 || translationHelp === null ? "" : stringifyCircularSafe(translationHelp, { sortKeys: true });
 			return `${videoId}_${requestLangForApi}_${to}_${useLivelyVoice}_${helpStr ? fnv1a32ToKeyPart(helpStr) : "0"}`;
 		}
 		getSubtitlesCacheKey(videoId, detectedLanguage, subtitleLanguage) {
@@ -41005,6 +47385,7 @@ var vot = (function(exports) {
 			this.lifecycleController = new VideoLifecycleController(createVideoLifecycleHost(this, (value) => this.getOverlayMount(value)));
 			this.translationHandler = new VOTTranslationHandler(this);
 			this.videoManager = new VOTVideoManager(this);
+			this.hotkeyController = new HotkeyController();
 			this.fullscreenHelper = new FullscreenHelper({
 				container: this.container,
 				video: this.video
@@ -41041,7 +47422,7 @@ var vot = (function(exports) {
 		}
 		get uiRoot() {
 			const root = this.getOverlayMountPoints().root;
-			return root instanceof ShadowRoot ? root.host : root;
+			return getHostElement(root);
 		}
 		get portalContainer() {
 			return this.getOverlayMountPoints().portalContainer;
@@ -41144,11 +47525,32 @@ var vot = (function(exports) {
 			this.votClient.provider.sessions = await this.votSessionStorage.restore(transportHost, this.votClient.provider.sessions);
 			const originalGetSession = this.votClient.provider.getSession.bind(this.votClient.provider);
 			this.votClient.provider.getSession = async (module) => {
-				const session = await originalGetSession(module);
+				let session;
+				try {
+					session = await originalGetSession(module);
+				} catch (err) {
+					this.reportSessionFailure(err, module, transportHost);
+					throw err;
+				}
 				await this.votSessionStorage.persist(transportHost, this.votClient.provider.sessions);
 				return session;
 			};
 			return this;
+		}
+		reportSessionFailure(error, module, transportHost) {
+			const sessionTags = getSessionFailureTags(error, module);
+			if (this.actionsAbortController.signal.aborted || sessionTags.session_failure === "abort") return;
+			captureException(error, {
+				source: "session",
+				operation: "createSession",
+				dedupeKey: module,
+				redactedMessage: "Failed to create session",
+				tags: {
+					...getTranslationTags(this),
+					request_host: toPublicHost(transportHost) ?? "other",
+					...sessionTags
+				}
+			});
 		}
 		async ensureProxySettingsResolved() {
 			this.proxyReadyPromise ??= (async () => {
@@ -41583,6 +47985,10 @@ var vot = (function(exports) {
 			bootState.status = "failed";
 			bootState.error = e;
 			console.error("[VOT]", e);
+			captureException(e, {
+				source: "bootstrap",
+				operation: "bootstrapContentScript"
+			});
 		}
 	}
 	(async () => {

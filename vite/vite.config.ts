@@ -79,6 +79,7 @@ export default defineConfig(async ({ command, mode }) => {
       version,
       authors,
       crxjsBuild: false,
+      minified,
     }),
     build: {
       ...baseConfig.build,

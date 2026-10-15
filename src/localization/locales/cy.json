@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "Rhoi cynnig arall ar y cyfieithiad",
   "VOTVideoIsMusic": "Rydych wedi anabl cyfieithu ar gyfer fideos cerddoriaeth",
   "DontTranslateByYTMusic": "Peidiwch â chyfieithu fideos a nodwyd fel cerddoriaeth Gan Youtube Cerddoriaeth",
-  "VOTMusicDetectDesc": "Mae fideos cerddoriaeth Ar Gael Ar YouTube Yn unig"
+  "VOTMusicDetectDesc": "Mae fideos cerddoriaeth Ar Gael Ar YouTube Yn unig",
+  "sendErrorReports": "Anfon adroddiadau gwall dienw",
+  "sendErrorReportsDescription": "Yn ein helpu i ddod o hyd i a thrwsio chwilod. Dim ond manylion technegol sy'n cael eu hanfon"
 }

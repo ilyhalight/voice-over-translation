@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "Орчуулгыг дахин оролдох",
   "VOTVideoIsMusic": "Та хөгжмийн видеонуудын орчуулгыг идэвхгүй болгосон",
   "DontTranslateByYTMusic": "YouTube Music - ээр хөгжим гэж тодорхойлсон видеог бүү орчуул",
-  "VOTMusicDetectDesc": "Хөгжим илрүүлэх нь зөвхөн YouTube дээр байдаг"
+  "VOTMusicDetectDesc": "Хөгжим илрүүлэх нь зөвхөн YouTube дээр байдаг",
+  "sendErrorReports": "Нэргүй Алдааны тайланг илгээх",
+  "sendErrorReportsDescription": "Алдааг олж, засахад бидэнд тусалдаг. Зөвхөн техникийн дэлгэрэнгүй мэдээллийг илгээдэг"
 }

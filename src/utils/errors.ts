@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Small error helpers used across the project.
  */
 
@@ -105,6 +105,32 @@ export function isAbortError(err: unknown): boolean {
 }
 
 /**
+ * Coarse, content-free failure class (safe to send in telemetry). Raw errors
+ * may carry response data, so only fixed labels are ever derived from them.
+ */
+export function categorizeFailure(error: unknown): string {
+  const { status, error: nested } = (error ?? {}) as {
+    status?: unknown;
+    error?: unknown;
+  };
+  if (typeof status === "number" && status > 0) return `status:${status}`;
+
+  let text = "";
+  if (typeof error === "string") text = error;
+  else if (error instanceof Error) text = error.message;
+  else if (typeof nested === "string") text = nested;
+
+  const httpStatus = /\bHTTP (\d{3})\b/.exec(text);
+  if (httpStatus) return `status:${httpStatus[1]}`;
+  if (/time.?out/i.test(text)) return "timeout";
+  if (/abort/i.test(text)) return "abort";
+  if (/network|failed to fetch|connect|refused|offline|dns/i.test(text)) {
+    return "network";
+  }
+  return "unknown";
+}
+
+/**
  * Creates a canonical AbortError instance. Prefer DOMException when available.
  *
  * Note: This is intentionally not coupled to AbortSignal.reason to avoid
@@ -127,7 +153,7 @@ export function makeAbortError(reason: unknown = "Aborted"): Error {
  * Safely reads a nested field from an unknown value.
  *
  * Returns `undefined` when any intermediate property is missing or not an
- * object, eliminating the repetitive null-check → cast → access pattern
+ * object, eliminating the repetitive null-check > cast > access pattern
  * that was scattered across error-handling code.
  *
  * @example

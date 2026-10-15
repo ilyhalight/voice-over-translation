@@ -1,4 +1,6 @@
-﻿import YoutubeHelper from "@vot.js/ext/helpers/youtube";
+import YoutubeHelper from "@vot.js/ext/helpers/youtube";
+import { captureException } from "../modules/telemetry/client";
+import type { Tags } from "../modules/telemetry/event";
 import type {
   ProcessedSubtitles,
   SubtitleDescriptor,
@@ -735,17 +737,26 @@ const buildLineTokens = (
   return applySourceWordTimings(nextTokens, sourceTimedWords);
 };
 
+const isTextSubtitleFormat = (
+  format: SubtitleFormat,
+): format is "srt" | "vtt" | "ass" =>
+  format === "vtt" || format === "srt" || format === "ass";
+
 const fetchRawSubtitles = async (
   url: string,
   format: SubtitleFormat,
 ): Promise<unknown> => {
   const response = await GM_fetch(url, { timeout: 7000 });
-  if (format === "vtt" || format === "srt" || format === "ass") {
-    const text = await response.text();
-    return parseSubtitleText(text, format);
-  }
-  return response.json();
+  return isTextSubtitleFormat(format) ? response.text() : response.json();
 };
+
+const parseRawSubtitles = (
+  rawSubtitles: unknown,
+  format: SubtitleFormat,
+): unknown =>
+  isTextSubtitleFormat(format)
+    ? parseSubtitleText(rawSubtitles as string, format)
+    : rawSubtitles;
 
 const normalizeFetchedSubtitles = (
   rawSubtitles: unknown,
@@ -811,6 +822,11 @@ const buildYandexSubtitles = (
   }
 
   return subtitles;
+};
+
+export type SubtitlesErrorContext = {
+  dedupeKey?: string;
+  tags?: Tags;
 };
 
 /**
@@ -924,6 +940,7 @@ export const SubtitlesProcessor = {
 
   async fetchSubtitles(
     descriptorInput: SubtitleDescriptor,
+    errorContext: SubtitlesErrorContext = {},
   ): Promise<ProcessedSubtitles> {
     const descriptor = parseSubtitleDescriptor(descriptorInput);
 
@@ -938,9 +955,14 @@ export const SubtitlesProcessor = {
       url = appendYoutubePoTokenParams(url);
     }
 
+    let operation = "fetchSubtitles";
     try {
       const rawSubtitles = await fetchRawSubtitles(url, format);
-      const normalized = normalizeFetchedSubtitles(rawSubtitles, descriptor);
+      operation = "parseSubtitles";
+      const normalized = normalizeFetchedSubtitles(
+        parseRawSubtitles(rawSubtitles, format),
+        descriptor,
+      );
       const subtitlesWithTokens = processFetchedSubtitles(
         normalized,
         descriptor,
@@ -950,6 +972,16 @@ export const SubtitlesProcessor = {
       return subtitlesWithTokens;
     } catch (error) {
       console.error("[VOT] Failed to process subtitles:", error);
+      captureException(error, {
+        source: "subtitles",
+        operation,
+        dedupeKey: errorContext.dedupeKey,
+        tags: {
+          ...errorContext.tags,
+          subtitles_source: source,
+          subtitles_format: format,
+        },
+      });
       return { format: "json", subtitles: [] };
     }
   },

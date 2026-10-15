@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "Ponów próbę tłumaczenia",
   "VOTVideoIsMusic": "Wyłączyłeś tłumaczenie teledysków",
   "DontTranslateByYTMusic": "Nie Tłumacz filmów zidentyfikowanych jako muzyka przez YouTube Music",
-  "VOTMusicDetectDesc": "Wykrywanie muzyki jest dostępne tylko w YouTube"
+  "VOTMusicDetectDesc": "Wykrywanie muzyki jest dostępne tylko w YouTube",
+  "sendErrorReports": "Wysyłaj anonimowe raporty o błędach",
+  "sendErrorReportsDescription": "Pomaga nam znaleźć i naprawić błędy. Wysyłane są tylko szczegóły techniczne"
 }

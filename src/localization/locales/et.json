@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "Proovi tõlget uuesti",
   "VOTVideoIsMusic": "Olete keelanud muusikavideote tõlkimise",
   "DontTranslateByYTMusic": "Ärge tõlkige Youtube Musicu muusikana tuvastatud videoid",
-  "VOTMusicDetectDesc": "Muusika tuvastamine on saadaval ainult YouTube ' is"
+  "VOTMusicDetectDesc": "Muusika tuvastamine on saadaval ainult YouTube ' is",
+  "sendErrorReports": "Saatke anonüümseid veateateid",
+  "sendErrorReportsDescription": "Aitab meil vigu leida ja parandada. Saadetakse ainult tehnilised üksikasjad"
 }

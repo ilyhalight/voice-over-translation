@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "Pokušaj ponovo prevesti",
   "VOTVideoIsMusic": "Onemogućili ste prijevod muzičkih spotova",
   "DontTranslateByYTMusic": "Ne prevodite video zapise koje je YouTube Music identifikovao kao muziku",
-  "VOTMusicDetectDesc": "Otkrivanje muzike dostupno je samo na YouTubeu"
+  "VOTMusicDetectDesc": "Otkrivanje muzike dostupno je samo na YouTubeu",
+  "sendErrorReports": "Pošaljite anonimne izvještaje o greškama",
+  "sendErrorReportsDescription": "Pomaže nam da pronađemo i popravimo greške. Šalju se samo tehnički detalji"
 }

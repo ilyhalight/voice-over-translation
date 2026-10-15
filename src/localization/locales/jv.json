@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "Coba terjemahake maneh",
   "VOTVideoIsMusic": "Kowé wis ora ana terjemahan kanggo video musik",
   "DontTranslateByYTMusic": "Aja nerjemahake video sing diidentifikasi minangka musik Dening Youtube Music",
-  "VOTMusicDetectDesc": "Deteksi musik mung kasedhiya Ing YouTube"
+  "VOTMusicDetectDesc": "Deteksi musik mung kasedhiya Ing YouTube",
+  "sendErrorReports": "Kirimi laporan kesalahan anonim",
+  "sendErrorReportsDescription": "Mbantu kita nemokake lan ndandani bug. Mung rincian teknis sing dikirim"
 }

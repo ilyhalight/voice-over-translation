@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "Reîncearcă traducerea",
   "VOTVideoIsMusic": "Ați dezactivat traducerea pentru videoclipuri muzicale",
   "DontTranslateByYTMusic": "Nu traduceți videoclipuri identificate ca muzică de YouTube Music",
-  "VOTMusicDetectDesc": "Detectarea muzicii este disponibilă numai pe YouTube"
+  "VOTMusicDetectDesc": "Detectarea muzicii este disponibilă numai pe YouTube",
+  "sendErrorReports": "Trimiteți rapoarte de eroare anonime",
+  "sendErrorReportsDescription": "Ne ajută să găsim și să remediem Erorile. Sunt trimise doar detalii tehnice"
 }

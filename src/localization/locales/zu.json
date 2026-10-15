@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "Zama ukuhumusha futhi",
   "VOTVideoIsMusic": "You ' ve disabled translation for amavidiyo omculo",
   "DontTranslateByYTMusic": "Ungahumushi amavidiyo akhonjwe njengomculo Ngomculo We YouTube",
-  "VOTMusicDetectDesc": "Ukutholwa komculo kutholakala kuphela Ku-YouTube"
+  "VOTMusicDetectDesc": "Ukutholwa komculo kutholakala kuphela Ku-YouTube",
+  "sendErrorReports": "Thumela imibiko iphutha engaziwa",
+  "sendErrorReportsDescription": "Usisiza ukuthola futhi silungise izimbungulu. Imininingwane yobuchwepheshe kuphela ethunyelwayo"
 }

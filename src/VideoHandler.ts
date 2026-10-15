@@ -28,6 +28,12 @@ import { createVideoLifecycleHost } from "./core/videoLifecycleHost";
 import { VOTVideoManager } from "./core/videoManager";
 import { localizationProvider, t } from "./localization/localizationProvider";
 import { HotkeyController } from "./modules/hotkeys/controller";
+import { captureException } from "./modules/telemetry/client";
+import {
+  getSessionFailureTags,
+  getTranslationTags,
+} from "./modules/telemetry/context";
+import { toPublicHost } from "./modules/telemetry/reporter";
 import { Notifier } from "./notify";
 import { setSettings } from "./stores/settings";
 import { SubtitlesWidget } from "./subtitles/widget";
@@ -792,7 +798,13 @@ export class VideoHandler {
     this.votClient.provider.getSession = async (
       module: SessionModule,
     ): Promise<ClientSession> => {
-      const session = await originalGetSession(module);
+      let session: ClientSession;
+      try {
+        session = await originalGetSession(module);
+      } catch (err) {
+        this.reportSessionFailure(err, module, transportHost);
+        throw err;
+      }
       await this.votSessionStorage.persist(
         transportHost,
         this.votClient.provider.sessions,
@@ -801,6 +813,33 @@ export class VideoHandler {
     };
 
     return this;
+  }
+
+  private reportSessionFailure(
+    error: unknown,
+    module: SessionModule,
+    transportHost: string,
+  ): void {
+    // An aborted request surfaces as a plain failed-session VOTJSError.
+    const sessionTags = getSessionFailureTags(error, module);
+    if (
+      this.actionsAbortController.signal.aborted ||
+      sessionTags.session_failure === "abort"
+    ) {
+      return;
+    }
+
+    captureException(error, {
+      source: "session",
+      operation: "createSession",
+      dedupeKey: module,
+      redactedMessage: "Failed to create session",
+      tags: {
+        ...getTranslationTags(this),
+        request_host: toPublicHost(transportHost) ?? "other",
+        ...sessionTags,
+      },
+    });
   }
 
   async ensureProxySettingsResolved(): Promise<this> {

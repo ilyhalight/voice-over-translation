@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "Thử dịch lại",
   "VOTVideoIsMusic": "Bạn đã vô hiệu hóa bản dịch cho video âm nhạc",
   "DontTranslateByYTMusic": "Không dịch video được Xác định là nhạc Của YouTube Music",
-  "VOTMusicDetectDesc": "Phát hiện nhạc chỉ khả dụng Trên YouTube"
+  "VOTMusicDetectDesc": "Phát hiện nhạc chỉ khả dụng Trên YouTube",
+  "sendErrorReports": "Gửi báo cáo lỗi ẩn danh",
+  "sendErrorReportsDescription": "Giúp chúng tôi tìm và sửa lỗi. Chỉ có chi tiết kỹ thuật được gửi"
 }

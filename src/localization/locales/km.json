@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "សាកល្បងបកប្រែម្តងទៀត",
   "VOTVideoIsMusic": "អ្នកបានបិទការបកប្រែសម្រាប់វីដេអូតន្ត្រី",
   "DontTranslateByYTMusic": "កុំបកប្រែវីដេអូដែលបានកំណត់ថាជាតន្ត្រីដោយគេហទំព័រ YouTube តន្ត្រី",
-  "VOTMusicDetectDesc": "ការរកឃើញតន្ត្រីគឺអាចប្រើបានតែនៅលើ YouTube"
+  "VOTMusicDetectDesc": "ការរកឃើញតន្ត្រីគឺអាចប្រើបានតែនៅលើ YouTube",
+  "sendErrorReports": "ផ្ញើរបាយការណ៍កំហុសអនាមិក",
+  "sendErrorReportsDescription": "ជួយឱ្យយើងរកឃើញនិងជួសជុលកំហុស. តែច្ចេកទេសលម្អិតត្រូវបានផ្ញើ"
 }

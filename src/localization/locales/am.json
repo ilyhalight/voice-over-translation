@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "ትርጉሙን እንደገና ሞክር",
   "VOTVideoIsMusic": "የሙዚቃ ቪዲዮዎችን ለመተርጎም ተሰናክሏል",
   "DontTranslateByYTMusic": "በዩቲዩብ ሙዚቃ የተለዩ ቪዲዮዎችን አይተረጉሙ ። ",
-  "VOTMusicDetectDesc": "የሙዚቃ ማወቂያ በዩቲዩብ ላይ ብቻ ይገኛል ። "
+  "VOTMusicDetectDesc": "የሙዚቃ ማወቂያ በዩቲዩብ ላይ ብቻ ይገኛል ። ",
+  "sendErrorReports": "ስም-አልባ የስህተት ሪፖርቶችን ይላኩ",
+  "sendErrorReportsDescription": "ሳንካዎችን ለማግኘት እና ለማስተካከል ይረዳናል። ቴክኒካዊ ዝርዝሮች ብቻ ይላካሉ"
 }

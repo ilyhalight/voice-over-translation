@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "翻訳を再試行",
   "VOTVideoIsMusic": "ミュージックビデオの翻訳を無効にしました",
   "DontTranslateByYTMusic": "YouTube Musicで音楽として識別された動画を翻訳しないでください",
-  "VOTMusicDetectDesc": "音楽検出はYouTubeでのみ利用可能です"
+  "VOTMusicDetectDesc": "音楽検出はYouTubeでのみ利用可能です",
+  "sendErrorReports": "匿名エラーレポートの送信",
+  "sendErrorReportsDescription": "バグを見つけて修正するのに役立ちます。 技術的な詳細のみが送信されます"
 }

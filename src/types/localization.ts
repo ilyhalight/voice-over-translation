@@ -331,7 +331,9 @@ export type Phrase =
   | "VOTRetryTranslation"
   | "VOTVideoIsMusic"
   | "DontTranslateByYTMusic"
-  | "VOTMusicDetectDesc";
+  | "VOTMusicDetectDesc"
+  | "sendErrorReports"
+  | "sendErrorReportsDescription";
 
 export type Phrases = {
   recommended: string;
@@ -606,6 +608,8 @@ export type Phrases = {
   VOTVideoIsMusic: string;
   DontTranslateByYTMusic: string;
   VOTMusicDetectDesc: string;
+  sendErrorReports: string;
+  sendErrorReportsDescription: string;
 };
 
 export type FlatPhrases = Record<Phrase, string>;

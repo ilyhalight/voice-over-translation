@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "Prøv oversættelsen igen",
   "VOTVideoIsMusic": "Du har deaktiveret oversættelse til musikvideoer",
   "DontTranslateByYTMusic": "Oversæt ikke Videoer identificeret som musik af YouTube Music",
-  "VOTMusicDetectDesc": "Musikdetektering er kun tilgængelig på YouTube"
+  "VOTMusicDetectDesc": "Musikdetektering er kun tilgængelig på YouTube",
+  "sendErrorReports": "Send anonyme fejlrapporter",
+  "sendErrorReportsDescription": "Hjælper os med at finde og rette fejl. Kun tekniske detaljer sendes"
 }

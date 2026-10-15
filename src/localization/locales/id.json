@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "Coba terjemahkan lagi",
   "VOTVideoIsMusic": "Anda telah menonaktifkan terjemahan untuk video musik",
   "DontTranslateByYTMusic": "Jangan menerjemahkan video yang diidentifikasi sebagai musik oleh YouTube Music",
-  "VOTMusicDetectDesc": "Deteksi musik hanya tersedia di YouTube"
+  "VOTMusicDetectDesc": "Deteksi musik hanya tersedia di YouTube",
+  "sendErrorReports": "Kirim laporan kesalahan anonim",
+  "sendErrorReportsDescription": "Membantu kami menemukan dan memperbaiki bug. Hanya detail teknis yang dikirim"
 }

@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "Provo përsëri përkthimin",
   "VOTVideoIsMusic": "Ju keni çaktivizuar përkthimin për videot muzikore",
   "DontTranslateByYTMusic": "Mos përktheni video të identifikuara si muzikë nga YouTube Music",
-  "VOTMusicDetectDesc": "Zbulimi i muzikës është i disponueshëm vetëm Në YouTube"
+  "VOTMusicDetectDesc": "Zbulimi i muzikës është i disponueshëm vetëm Në YouTube",
+  "sendErrorReports": "Dërgoni raporte anonime të gabimeve",
+  "sendErrorReportsDescription": "Na ndihmon të gjejmë dhe rregullojmë gabimet. Dërgohen vetëm detaje teknike"
 }

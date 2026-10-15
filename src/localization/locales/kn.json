@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "ಅನುವಾದವನ್ನು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ",
   "VOTVideoIsMusic": "ಸಂಗೀತ ವೀಡಿಯೊಗಳಿಗಾಗಿ ನೀವು ಅನುವಾದವನ್ನು ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಿದ್ದೀರಿ",
   "DontTranslateByYTMusic": "YouTube ಸಂಗೀತದಿಂದ ಸಂಗೀತ ಎಂದು ಗುರುತಿಸಲಾದ ವೀಡಿಯೊಗಳನ್ನು ಅನುವಾದಿಸಬೇಡಿ",
-  "VOTMusicDetectDesc": "ಸಂಗೀತ ಪತ್ತೆ YouTube ನಲ್ಲಿ ಮಾತ್ರ ಲಭ್ಯವಿದೆ"
+  "VOTMusicDetectDesc": "ಸಂಗೀತ ಪತ್ತೆ YouTube ನಲ್ಲಿ ಮಾತ್ರ ಲಭ್ಯವಿದೆ",
+  "sendErrorReports": "ಅನಾಮಧೇಯ ದೋಷ ವರದಿಗಳನ್ನು ಕಳುಹಿಸಿ",
+  "sendErrorReportsDescription": "ದೋಷಗಳನ್ನು ಹುಡುಕಲು ಮತ್ತು ಸರಿಪಡಿಸಲು ನಮಗೆ ಸಹಾಯ ಮಾಡುತ್ತದೆ. ತಾಂತ್ರಿಕ ವಿವರಗಳನ್ನು ಮಾತ್ರ ಕಳುಹಿಸಲಾಗುತ್ತದೆ"
 }

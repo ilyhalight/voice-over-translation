@@ -270,5 +270,7 @@
   "VOTRetryTranslation": "Cuba terjemahan sekali lagi",
   "VOTVideoIsMusic": "Anda telah melumpuhkan terjemahan untuk video muzik",
   "DontTranslateByYTMusic": "Jangan terjemahkan video yang dikenal pasti sebagai muzik oleh YouTube Music",
-  "VOTMusicDetectDesc": "Pengesanan muzik hanya tersedia di YouTube"
+  "VOTMusicDetectDesc": "Pengesanan muzik hanya tersedia di YouTube",
+  "sendErrorReports": "Hantar laporan ralat tanpa nama",
+  "sendErrorReportsDescription": "Membantu kami mencari dan membetulkan pepijat. Hanya butiran teknikal yang dihantar"
 }

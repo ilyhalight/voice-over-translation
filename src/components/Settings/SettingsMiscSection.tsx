@@ -37,6 +37,14 @@ export function SettingsMiscSection(
         }}
       />
       <Switch
+        heading={t("sendErrorReports")}
+        description={t("sendErrorReportsDescription")}
+        checked={settings.sendErrorReports}
+        onChange={(checked) => {
+          setSettings("sendErrorReports", checked);
+        }}
+      />
+      <Switch
         heading={t("VOTNewAudioPlayer")}
         description={
           isWithoutAudioContext() ? t("VOTNeedWebAudioAPI") : undefined

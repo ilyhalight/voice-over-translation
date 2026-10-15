@@ -55,6 +55,7 @@ export const storageKeys = [
   "newAudioPlayer",
   "showPiPButton",
   "translateAPIErrors",
+  "sendErrorReports",
   "translationService",
   "detectService",
   "translationHotkey",
@@ -141,6 +142,7 @@ export type StorageData = {
   newAudioPlayer: boolean;
   showPiPButton: boolean;
   translateAPIErrors: boolean;
+  sendErrorReports: boolean;
   translationService: TranslateTextService;
   detectService: DetectService;
   // hotkey block
