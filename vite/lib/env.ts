@@ -10,6 +10,12 @@ export interface BuildEnvMeta {
   version: string;
   authors: string;
   crxjsBuild: boolean;
+  minified?: boolean;
+}
+
+function getBuildVariant(env: BuildEnvMeta): string {
+  if (env.isExtension) return env.crxjsBuild ? "chrome" : "firefox";
+  return env.minified ? "userscript-min" : "userscript";
 }
 
 export function getBuildConfig(mode: string) {
@@ -41,6 +47,7 @@ export function buildDefine(env: BuildEnvMeta): ViteDefine {
       IS_EXTENSION: env.isExtension,
       AVAILABLE_LOCALES: [...env.availableLocales],
       REPO_BRANCH: env.repoBranch,
+      VOT_BUILD_VARIANT: getBuildVariant(env),
       VOT_VERSION: env.version,
       VOT_AUTHORS: env.authors,
     }),

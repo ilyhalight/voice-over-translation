@@ -31882,11 +31882,7 @@ var vot = (function(exports) {
 			setAccount("isRefreshing", false);
 		}
 	}
-	async function updateAccountByCallbackData(data) {
-		const { state, code } = data;
-		const storedState = sessionStorage.getItem("votYandexState");
-		if (!state || state !== storedState) throw new Error("[VOT] Invalid state value");
-		if (!code) throw new Error("[VOT] Invalid auth code response");
+	async function exchangeCodeForAccount(code) {
 		let token;
 		try {
 			token = await getOAuthTokenByCode(code);
@@ -31906,6 +31902,21 @@ var vot = (function(exports) {
 		sessionStorage.removeItem("votYandexState");
 		sessionStorage.removeItem("votYandexCodeVerifier");
 		await updateAccountInfo();
+	}
+	var pendingCodeExchange = null;
+	async function updateAccountByCallbackData(data) {
+		const { state, code } = data;
+		if (code && pendingCodeExchange?.code === code && pendingCodeExchange.state === state) return pendingCodeExchange.promise;
+		const storedState = sessionStorage.getItem("votYandexState");
+		if (!state || state !== storedState) throw new Error("[VOT] Invalid state value");
+		if (!code) throw new Error("[VOT] Invalid auth code response");
+		const promise = exchangeCodeForAccount(code);
+		pendingCodeExchange = {
+			code,
+			state,
+			promise
+		};
+		return promise;
 	}
 	var createAuthLink = async () => {
 		const state = getUUID();
@@ -43041,6 +43052,7 @@ var vot = (function(exports) {
 						},
 						onChange: (checked) => {
 							setSettings("sendErrorReports", checked);
+							finalProps.onChangeSendErrorReports?.(checked);
 						}
 					}),
 					createComponent(Switch, {
@@ -43994,6 +44006,7 @@ var vot = (function(exports) {
 					},
 					misc: {
 						onChangeTranslateAPIErrors: this.createPersistedSettingHandler({ storageKey: "translateAPIErrors" }),
+						onChangeSendErrorReports: this.createPersistedSettingHandler({ storageKey: "sendErrorReports" }),
 						isAudioContextSupported: this.videoHandler?.isAudioContextSupported,
 						needBypassCSP: this.videoHandler.site.needBypassCSP,
 						onChangeNewAudioPlayer: this.createPersistedSettingHandler({
