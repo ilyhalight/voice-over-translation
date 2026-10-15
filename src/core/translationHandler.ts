@@ -311,7 +311,7 @@ export class VOTTranslationHandler {
       resume.fileId === fileId &&
       index <= resume.lastSuccessfulChunkId
     ) {
-      debug.log("[VOT][AudioUpload] skipping already uploaded chunk", {
+      debug.log("[AudioUpload] skipping already uploaded chunk", {
         videoId,
         fileId,
         chunkId: index,
@@ -349,7 +349,7 @@ export class VOTTranslationHandler {
       if (isAbortError(error) && signal.aborted) {
         return;
       }
-      debug.error("[VOT][AudioUpload] chunk PUT failed after all retries", {
+      debug.error("[AudioUpload] chunk PUT failed after all retries", {
         videoId,
         fileId,
         chunkId: index,
@@ -396,7 +396,7 @@ export class VOTTranslationHandler {
     }
     const runId = this.audioRunSeq;
 
-    debug.error("[VOT][AudioDownload] failed to download audio from source", {
+    debug.error("[AudioDownload] failed to download audio from source", {
       videoId,
     });
     const videoUrl = this.getCanonicalUrl(videoId);
@@ -520,7 +520,7 @@ export class VOTTranslationHandler {
           code?: unknown;
           message?: unknown;
         };
-        debug.error("[VOT][AudioUpload] PUT attempt failed", {
+        debug.error("[AudioUpload] PUT attempt failed", {
           attempt: attempt + 1,
           totalAttempts: maxRetries + 1,
           status: details?.status,
@@ -531,7 +531,7 @@ export class VOTTranslationHandler {
           throw error;
         }
         debug.log(
-          `[VOT][AudioUpload] retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`,
+          `[AudioUpload] retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`,
         );
         await createAbortableDelay(delayMs, signal);
       }

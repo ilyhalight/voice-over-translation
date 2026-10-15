@@ -9,6 +9,7 @@ import {
   onMount,
   Show,
 } from "solid-js";
+import logger from "#utils/logger.ts";
 import { t } from "../../localization/localizationProvider";
 import { setSettings, settings } from "../../stores/settings";
 import type { Position, Status } from "../../types/components/votButton";
@@ -286,7 +287,7 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
     try {
       await finalProps.onSubtitlesOpen();
     } catch (error) {
-      console.error("[VOT] Failed to prepare subtitles:", error);
+      logger.error("Failed to prepare subtitles:", error);
     } finally {
       if (version === subtitlesLoadVersion) {
         setSubtitlesLoading(false);

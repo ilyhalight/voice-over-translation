@@ -1,4 +1,5 @@
 import YoutubeHelper from "@vot.js/ext/helpers/youtube";
+import logger from "#utils/logger.ts";
 import { localizationProvider } from "../../localization/localizationProvider";
 import { captureException } from "../../modules/telemetry/client";
 import { getTranslationTags } from "../../modules/telemetry/context";
@@ -186,7 +187,7 @@ export async function changeSubtitlesLang(
       ...subtitlesObj,
       url: proxiedSubtitlesUrl,
     };
-    debug.log(`[VOT] Subs proxied via ${subtitlesObj.url}`);
+    debug.log(`Subs proxied via ${subtitlesObj.url}`);
   }
 
   const fetchedSubtitles = await SubtitlesProcessor.fetchSubtitles(
@@ -336,9 +337,7 @@ export async function toggleSubtitlesForCurrentLangPair(this: VideoHandler) {
 
 export async function loadSubtitles(this: VideoHandler) {
   if (!this.videoData?.videoId) {
-    console.error(
-      `[VOT] ${localizationProvider.getDefault("VOTNoVideoIDFound")}`,
-    );
+    logger.error(localizationProvider.getDefault("VOTNoVideoIDFound"));
     this.subtitles = [];
     this.subtitlesCacheKey = null;
     return;
@@ -390,7 +389,7 @@ export async function loadSubtitles(this: VideoHandler) {
     this.subtitles = Array.isArray(cachedSubs) ? cachedSubs : [];
     this.subtitlesCacheKey = cacheKey;
   } catch (error) {
-    console.error("[VOT] Failed to load subtitles:", error);
+    logger.error("Failed to load subtitles:", error);
     captureException(error, {
       source: "subtitles",
       operation: "fetchSubtitleList",

@@ -194,19 +194,19 @@ function bindAudioTrackLanguageSync(ctx: ExtraEventsContext): void {
         currentLanguage !== self.videoData.responseLanguage
       ) {
         debug.log(
-          `[VOT] Audio track language changed to ${currentLanguage}, triggering auto-translation`,
+          `Audio track language changed to ${currentLanguage}, triggering auto-translation`,
         );
         try {
           await self.uiManager.handleTranslationBtnClick();
         } catch (error) {
           debug.log(
-            "[VOT] Failed to trigger auto-translation on audio track change:",
+            "Failed to trigger auto-translation on audio track change:",
             error,
           );
         }
       }
     } catch (error) {
-      debug.log("[VOT] Failed to sync audio track language", error);
+      debug.log("Failed to sync audio track language", error);
     }
   };
   const player = YoutubeHelper.getPlayer();
@@ -216,7 +216,7 @@ function bindAudioTrackLanguageSync(ctx: ExtraEventsContext): void {
       try {
         player.addEventListener(eventName, syncAudioTrackLanguage);
       } catch (error) {
-        debug.log(`[VOT] Failed to bind ${eventName}`, error);
+        debug.log(`Failed to bind ${eventName}`, error);
       }
     }
   }
@@ -229,7 +229,7 @@ function bindAudioTrackLanguageSync(ctx: ExtraEventsContext): void {
         try {
           player.removeEventListener(eventName, syncAudioTrackLanguage);
         } catch (error) {
-          debug.log(`[VOT] Failed to unbind ${eventName}`, error);
+          debug.log(`Failed to unbind ${eventName}`, error);
         }
       }
     },
@@ -346,10 +346,7 @@ function bindPlaybackRefreshOnResume(ctx: ExtraEventsContext): void {
     if (!wasPausedSinceLastPlay) return;
     wasPausedSinceLastPlay = false;
     handlePlaybackResumedTranslationRefresh.call(self).catch((error) => {
-      debug.log(
-        "[VOT] Failed to refresh translation after playback resumed",
-        error,
-      );
+      debug.log("Failed to refresh translation after playback resumed", error);
     });
   });
 
@@ -362,7 +359,7 @@ function bindVideoLifecycleEvents(ctx: ExtraEventsContext): void {
     try {
       await self.setCanPlay();
     } catch (err) {
-      debug.log("[VOT] setCanPlay() failed", err);
+      debug.log("setCanPlay() failed", err);
     }
   };
   let setCanPlayQueued = false;
@@ -390,7 +387,7 @@ function bindVideoLifecycleEvents(ctx: ExtraEventsContext): void {
         video: self.video,
       });
     } catch (error) {
-      debug.log("[VOT] Failed to resolve video id on emptied", error);
+      debug.log("Failed to resolve video id on emptied", error);
     }
     if (self.videoData && videoId && videoId === self.videoData.videoId) {
       // Quality changes can trigger media reload (`emptied`) for the same
@@ -406,7 +403,7 @@ function bindVideoLifecycleEvents(ctx: ExtraEventsContext): void {
   };
   add(self.video, "emptied", () => {
     void handleVideoEmptied().catch((error) => {
-      debug.log("[VOT] Failed to handle emptied lifecycle event", error);
+      debug.log("Failed to handle emptied lifecycle event", error);
     });
   });
   if (!isMuteSyncDisabledHost(self.site.host)) {

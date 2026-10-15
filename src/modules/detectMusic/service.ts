@@ -39,7 +39,7 @@ export async function detectMusicYT(videoId: string, signal?: AbortSignal) {
       throw err;
     }
 
-    debug.error("[VOT][musicDetect] Failed to detect music on YouTube", err);
+    debug.error("[musicDetect] Failed to detect music on YouTube", err);
   }
   return false;
 }

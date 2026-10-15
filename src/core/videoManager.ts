@@ -603,7 +603,7 @@ export class VOTVideoManager {
     } satisfies RuntimeVideoData;
 
     if (sharedLanguageState.lastLoggedDetectedLanguage !== detectedLanguage) {
-      debug.log("[VOT] Detected language:", detectedLanguage);
+      debug.log("Detected language:", detectedLanguage);
       sharedLanguageState.lastLoggedDetectedLanguage = detectedLanguage;
     }
     return videoData;
@@ -746,7 +746,7 @@ export class VOTVideoManager {
     const langPairLogKey = `${normalizedFrom}->${to}`;
     const sharedLanguageState = getSharedLanguageState(videoData.videoId);
     if (sharedLanguageState.lastLoggedLangPair !== langPairLogKey) {
-      debug.log(`[VOT] Set translation from ${normalizedFrom} to ${to}`);
+      debug.log(`Set translation from ${normalizedFrom} to ${to}`);
       sharedLanguageState.lastLoggedLangPair = langPairLogKey;
     }
     videoData.detectedLanguage = normalizedFrom;

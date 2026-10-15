@@ -14,6 +14,7 @@ import {
 import { FullscreenHelper } from "#modules/fullscreen/helper.ts";
 import { translate } from "#modules/translateText/service.ts";
 import { getHostElement } from "#utils/dom.ts";
+import logger from "#utils/logger.ts";
 import {
   minLongWaitingCount,
   PROXY_ONLY_COUNTRIES,
@@ -653,7 +654,7 @@ export class VideoHandler {
       this.audioContext = initAudioContext();
       return this.audioContext;
     } catch (err) {
-      console.warn("[VOT] Failed to init AudioContext, falling back:", err);
+      logger.warn("Failed to init AudioContext, falling back:", err);
       return undefined;
     }
   }

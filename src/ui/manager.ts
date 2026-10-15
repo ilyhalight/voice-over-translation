@@ -1,4 +1,5 @@
 import { matchesMedia } from "#utils/inputDevice.ts";
+import logger from "#utils/logger.ts";
 import { actualCompatVersion, repositoryUrl } from "../config/config";
 import { t } from "../localization/localizationProvider";
 import { captureException } from "../modules/telemetry/client";
@@ -199,7 +200,7 @@ export class UIManager {
         await this.videoHandler.video.requestPictureInPicture();
       }
     } catch (err) {
-      debug.warn("[VOT] Failed to toggle Picture-in-Picture", err);
+      debug.warn("Failed to toggle Picture-in-Picture", err);
     }
   }
 
@@ -548,7 +549,7 @@ export class UIManager {
         saveOptions,
       );
     } catch (err) {
-      console.error("[VOT] Download translation failed:", err);
+      logger.error("Download translation failed:", err);
       captureException(err, {
         source: "audio",
         operation: "downloadTranslation",
@@ -585,7 +586,7 @@ export class UIManager {
     try {
       videoData = await videoHandler.getVideoData();
     } catch (err) {
-      debug.log("[VOT] Failed to refresh video data before download", err);
+      debug.log("Failed to refresh video data before download", err);
       return null;
     }
 
@@ -686,17 +687,14 @@ export class UIManager {
         prevButtonOpacity,
       );
     } catch (err) {
-      debug.warn(
-        "[VOT] Failed to restore overlay state after menu reload",
-        err,
-      );
+      debug.warn("Failed to restore overlay state after menu reload", err);
     }
 
     // Re-bind overlay visibility interactions (overlay elements were recreated).
     try {
       this.videoHandler.rebindOverlayVisibilityTargets();
     } catch (err) {
-      debug.warn("[VOT] Failed to rebind overlay visibility targets", err);
+      debug.warn("Failed to rebind overlay visibility targets", err);
     }
 
     // Keep settings open when language changes (better UX).
@@ -704,7 +702,7 @@ export class UIManager {
       try {
         this.votSettingsView?.open();
       } catch (err) {
-        debug.warn("[VOT] Failed to reopen settings after menu reload", err);
+        debug.warn("Failed to reopen settings after menu reload", err);
       }
     }
 
@@ -799,7 +797,7 @@ export class UIManager {
 
   private runDetached(task: Promise<unknown>, errorMessage: string) {
     void task.catch((err) => {
-      debug.warn(`[VOT] ${errorMessage}`, err);
+      debug.warn(errorMessage, err);
     });
   }
 
@@ -821,7 +819,7 @@ export class UIManager {
       await videoHandler.stopTranslate();
       videoHandler.createPlayer();
     } catch (err) {
-      debug.warn("[VOT] Failed to restart audio player", err);
+      debug.warn("Failed to restart audio player", err);
     }
   }
 }

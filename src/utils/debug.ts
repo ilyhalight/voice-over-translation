@@ -16,7 +16,7 @@ const warn: DebugMethod = DEBUG_MODE
   ? (...text: unknown[]) => {
       console.warn(
         "%c[VOT DEBUG]",
-        "background: #e1ff00ff; color: #fff; padding: 5px;",
+        "background: #f6c177; color: #000; padding: 5px;",
         ...text,
       );
     }

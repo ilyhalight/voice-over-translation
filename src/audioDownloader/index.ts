@@ -255,7 +255,7 @@ export class AudioDownloader {
           version: data.version,
         };
         this.collectingChunks.delete(data.videoId);
-        debug.log("[VOT][AudioDownload] prepared audio cached for retry", {
+        debug.log("[AudioDownload] prepared audio cached for retry", {
           videoId: data.videoId,
           chunks: data.amount,
         });
@@ -280,7 +280,7 @@ export class AudioDownloader {
   ): Promise<boolean> {
     const cached = this.completedAudioCache;
     if (cached?.videoId !== videoId) return false;
-    debug.log("[VOT][AudioDownload] replaying cached prepared audio", {
+    debug.log("[AudioDownload] replaying cached prepared audio", {
       videoId,
       chunks: cached.chunks.length,
     });

@@ -4,6 +4,7 @@ import {
 } from "#extension/shared/xhr.ts";
 import { toErrorMessage } from "#utils/errors.ts";
 import { normalizeHttpMethod } from "#utils/http.ts";
+import logger from "#utils/logger.ts";
 import debug from "../../utils/debug";
 import {
   arrayBufferToBase64,
@@ -604,7 +605,7 @@ export function registerXhrPortListener(): void {
           await ensureDnrOriginStripRuleForYoutubei(url, forbiddenHeaders);
           await ensureDnrHeaderRuleForYandex(url, forbiddenHeaders);
         } catch (e) {
-          console.warn(
+          logger.warn(
             "[VOT Extension] Failed to apply DNR header rules; requests may break:",
             e,
           );

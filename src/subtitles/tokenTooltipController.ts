@@ -1,5 +1,6 @@
 import { DEFAULT_TRANSLATION_SERVICE } from "#modules/translateText/consts.ts";
 import { translate } from "#modules/translateText/service.ts";
+import logger from "#utils/logger.ts";
 import {
   mountSubtitleTokenTooltip,
   type SubtitleTokenTooltipHandle,
@@ -136,7 +137,7 @@ export class TokenTooltipController {
       tooltip.setTranslation(translated[1], translated[0]);
     } catch (error) {
       if (requestId !== this.translationRequestId) return;
-      console.error("[VOT] Failed to translate subtitle token:", error);
+      logger.error("Failed to translate subtitle token:", error);
       if (this.tooltip && this.target === target) {
         const { tokenText } = this.getContext();
         this.tooltip.setTranslation(

@@ -3,6 +3,7 @@ import { captureException } from "#modules/telemetry/client.ts";
 import { setAccount, updateAccount } from "#stores/account.ts";
 import type { Account } from "#types/storage.ts";
 import { GM_fetch } from "#utils/gm.ts";
+import logger from "#utils/logger.ts";
 import { votStorage } from "#utils/storage.ts";
 import { base64UrlEncode } from "#utils/utils.ts";
 import {
@@ -156,7 +157,7 @@ export async function updateAccountInfo() {
     await votStorage.set<Account>("account", updatedAccount);
     updateAccount(updatedAccount);
   } catch (err) {
-    console.error("[VOT] Failed to fetch user info:", err);
+    logger.error("Failed to fetch user info:", err);
     reportAuthFailure(
       err,
       "updateAccountInfo",

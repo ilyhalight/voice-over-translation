@@ -1,3 +1,4 @@
+import logger from "#utils/logger.ts";
 import { actualCompatVersion, m3u8ProxyHost } from "../../config/config";
 import { getDefaultSendErrorReports } from "../../modules/telemetry/consent";
 import { updateAccountFromStorage } from "../../stores/account";
@@ -71,7 +72,7 @@ export async function init(this: VideoHandler) {
 
   this.uiManager.data = this.data;
   // Translation volume starts from the user's saved default volume.
-  console.log("[VOT] data from db:", this.data);
+  logger.log("data from db:", this.data);
 
   // Enable translate proxy if extension isn't compatible with GM_xmlhttpRequest
   if (!this.data.translateProxyEnabled && IS_PROXY_ONLY_EXTENSION) {
@@ -85,7 +86,7 @@ export async function init(this: VideoHandler) {
   this.uiManager.votOverlayView.overlayViewControls?.setButtonHidden(true);
 
   void this.ensureProxySettingsResolved().catch((err) => {
-    console.error("[VOT] Failed to initialize translation client:", err);
+    logger.error("Failed to initialize translation client:", err);
   });
 
   // Get video data and create player.

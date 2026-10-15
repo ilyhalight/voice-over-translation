@@ -1,3 +1,5 @@
+import logger from "#utils/logger.ts";
+
 type IframeConfig = {
   targetOrigin: string;
   dataFilter: (data: unknown) => boolean;
@@ -52,7 +54,7 @@ export function initIframeInteractor(): void {
         currentConfig.targetOrigin,
       );
     } catch (error) {
-      console.error("Iframe communication error:", error);
+      logger.error("Iframe communication error:", error);
     }
   });
 }

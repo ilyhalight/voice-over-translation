@@ -1,3 +1,4 @@
+import logger from "#utils/logger.ts";
 import { t } from "../localization/localizationProvider";
 import { openAuthWindow } from "../modules/auth/window";
 import { deleteExpiredAccount } from "../stores/account";
@@ -129,7 +130,7 @@ export async function handleTranslationButtonCommand(
       return;
     }
 
-    console.error("[VOT]", err);
+    logger.error(err);
     if (!(err instanceof Error)) {
       deps.transformBtn("error", String(err));
       return;

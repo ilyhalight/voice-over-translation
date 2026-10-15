@@ -244,7 +244,6 @@ export const SegmentedButtonAsColumn: Story = (() => {
       direction: "column",
       tooltipPos: "right",
       onTranslateClick: () => {
-        console.log("test");
         if (status() === "none") {
           setStatus("error");
           setLabelText("Failed to translate");

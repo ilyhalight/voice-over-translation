@@ -1,4 +1,5 @@
 import type { EventHandler } from "#types/utils/eventImpl.ts";
+import logger from "./logger";
 
 export class EventImpl<Args extends unknown[] = unknown[]> {
   private readonly listeners = new Set<EventHandler<Args>>();
@@ -22,7 +23,7 @@ export class EventImpl<Args extends unknown[] = unknown[]> {
       try {
         handler(...args);
       } catch (exception) {
-        console.error("[VOT]", exception);
+        logger.error(exception);
       }
     }
   }
@@ -37,7 +38,7 @@ export class EventImpl<Args extends unknown[] = unknown[]> {
           pending.push(Promise.resolve(result));
         }
       } catch (exception) {
-        console.error("[VOT]", exception);
+        logger.error(exception);
       }
     }
 
@@ -48,7 +49,7 @@ export class EventImpl<Args extends unknown[] = unknown[]> {
     const settled = await Promise.allSettled(pending);
     for (const item of settled) {
       if (item.status === "rejected") {
-        console.error("[VOT]", item.reason);
+        logger.error(item.reason);
       }
     }
   }

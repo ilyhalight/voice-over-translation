@@ -1,6 +1,7 @@
 import type { BaseProviderType } from "@toil/translate/types";
 import { toErrorMessage } from "#utils/errors.ts";
 import { GM_fetch } from "#utils/gm.ts";
+import logger from "#utils/logger.ts";
 import { votStorage } from "#utils/storage.ts";
 import {
   DEFAULT_DETECT_SERVICE,
@@ -88,8 +89,8 @@ const FOSWLYTranslateAPI = new (class {
 
       return data;
     } catch (error) {
-      console.error(
-        `[VOT] Failed to get data from FOSWLY Translate API, because ${toErrorMessage(
+      logger.error(
+        `Failed to get data from FOSWLY Translate API, because ${toErrorMessage(
           error,
         )}`,
       );
@@ -160,8 +161,8 @@ const RustServerAPI = {
 
       return await response.text();
     } catch (error) {
-      console.error(
-        `[VOT] Error getting lang from text, because ${toErrorMessage(error)}`,
+      logger.error(
+        `Error getting lang from text, because ${toErrorMessage(error)}`,
       );
       return "en";
     }

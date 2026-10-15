@@ -1,4 +1,5 @@
 import { isObjectLike, isRecord } from "#utils/guards.ts";
+import logger from "#utils/logger.ts";
 
 type FromBase64Options = {
   alphabet?: "base64" | "base64url";
@@ -652,7 +653,7 @@ export async function serializeBodyForPort(body: any): Promise<SerializedBody> {
   // turning them into the opaque "[object Object]" string.
   const summary = summarizeBodyForDebug(body);
   try {
-    console.warn(
+    logger.warn(
       "[VOT Extension] Unsupported GM_xmlhttpRequest body type; coercing fallback.",
       summary,
     );

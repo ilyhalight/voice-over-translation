@@ -284,7 +284,7 @@ export function proxifyAudio(this: VideoHandler, audioUrl: string): string {
     proxyWorkerHost: this.data?.proxyWorkerHost,
   });
   if (proxiedAudioUrl !== audioUrl) {
-    debug.log(`[VOT] Audio proxied via ${proxiedAudioUrl}`);
+    debug.log(`Audio proxied via ${proxiedAudioUrl}`);
   }
   return proxiedAudioUrl;
 }
@@ -297,7 +297,7 @@ export async function handleProxySettingsChanged(
   this: VideoHandler,
   reason = "proxySettingsChanged",
 ) {
-  debug.log(`[VOT] ${reason}: clearing translation/subtitles cache`);
+  debug.log(`${reason}: clearing translation/subtitles cache`);
   try {
     this.cacheManager.clear();
     this.activeTranslation = null;

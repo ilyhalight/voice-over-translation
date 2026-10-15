@@ -1,4 +1,5 @@
 import { toErrorMessage } from "#utils/errors.ts";
+import logger from "#utils/logger.ts";
 import debug from "../../utils/debug";
 import {
   BG_MSG_NOTIFICATION,
@@ -20,7 +21,7 @@ const BRIDGE_BOOT_KEY = "__VOT_EXT_BRIDGE_BOOTED__";
 function injectPageModule(fileName: string): void {
   const parent = document.head ?? document.documentElement;
   if (!parent) {
-    console.error("[VOT Extension] bridge: missing document root");
+    logger.error("[VOT Extension] bridge: missing document root");
     return;
   }
 
@@ -32,7 +33,7 @@ function injectPageModule(fileName: string): void {
   script.addEventListener(
     "error",
     () => {
-      console.error(`[VOT Extension] bridge: failed to inject ${fileName}`);
+      logger.error(`[VOT Extension] bridge: failed to inject ${fileName}`);
     },
     { once: true },
   );
@@ -58,7 +59,7 @@ function bootstrapExtensionBridge(): void {
   bridgeGlobal[BRIDGE_BOOT_KEY] = true;
 
   if (!ext?.runtime || !ext?.storage?.local) {
-    console.warn("[VOT Extension] bridge: missing WebExtension APIs");
+    logger.warn("[VOT Extension] bridge: missing WebExtension APIs");
     return;
   }
 
@@ -112,7 +113,7 @@ function bootstrapExtensionBridge(): void {
           toErrorMessage(err),
         );
       } else {
-        console.error("[VOT Extension] bridge error", err);
+        logger.error("[VOT Extension] bridge error", err);
       }
     }
   });

@@ -91,7 +91,7 @@ export class HotkeyController {
     const { action, localizationPhrase } = matchedHotkeys;
     this.clearUserPressedKeys();
     action().catch((error) => {
-      debug.log(`[VOT] ${localizationPhrase} hotkey action failed`, error);
+      debug.log(`${localizationPhrase} hotkey action failed`, error);
     });
   }
 

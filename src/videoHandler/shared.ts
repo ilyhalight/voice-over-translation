@@ -1,3 +1,4 @@
+import logger from "#utils/logger.ts";
 import { GM_fetch } from "../utils/gm";
 
 let _countryCode: string | undefined;
@@ -28,7 +29,7 @@ export function ensureCountryCode(): Promise<void> {
       const loc = trace.split("\n").find((line) => line.startsWith("loc="));
       setCountryCode(loc?.slice(4, 6).toUpperCase());
     } catch (err) {
-      console.error("[VOT] Error getting country:", err);
+      logger.error("Error getting country:", err);
     }
   })().finally(() => {
     countryCodeRequest = undefined;

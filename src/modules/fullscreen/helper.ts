@@ -1,4 +1,5 @@
 import { containsCrossShadow } from "#utils/dom.ts";
+import logger from "#utils/logger.ts";
 import type {
   DocumentWithFullscreen,
   FullscreenElementInfo,
@@ -191,7 +192,7 @@ export class FullscreenHelper {
       try {
         listener();
       } catch (error) {
-        console.warn(
+        logger.warn(
           "[FullscreenHelper] Error in fullscreen change listener:",
           error,
         );
