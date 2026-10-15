@@ -167,19 +167,7 @@ export async function updateAccountInfo() {
   }
 }
 
-export async function updateAccountByCallbackData(
-  data: AuthMessageData,
-): Promise<void> {
-  const { state, code } = data;
-  const storedState = sessionStorage.getItem("votYandexState");
-  if (!state || state !== storedState) {
-    throw new Error("[VOT] Invalid state value");
-  }
-
-  if (!code) {
-    throw new Error("[VOT] Invalid auth code response");
-  }
-
+async function exchangeCodeForAccount(code: string): Promise<void> {
   let token: TokenInfo;
   try {
     token = await getOAuthTokenByCode(code);
@@ -204,6 +192,41 @@ export async function updateAccountByCallbackData(
   sessionStorage.removeItem("votYandexCodeVerifier");
 
   await updateAccountInfo();
+}
+
+// Every VideoHandler listens for the same callback message, and Yandex auth
+// codes are single-use, so all of them must share one exchange. The record is
+// kept after settling because a repeated code can never succeed again.
+let pendingCodeExchange: {
+  code: string;
+  state: string;
+  promise: Promise<void>;
+} | null = null;
+
+export async function updateAccountByCallbackData(
+  data: AuthMessageData,
+): Promise<void> {
+  const { state, code } = data;
+  if (
+    code &&
+    pendingCodeExchange?.code === code &&
+    pendingCodeExchange.state === state
+  ) {
+    return pendingCodeExchange.promise;
+  }
+
+  const storedState = sessionStorage.getItem("votYandexState");
+  if (!state || state !== storedState) {
+    throw new Error("[VOT] Invalid state value");
+  }
+
+  if (!code) {
+    throw new Error("[VOT] Invalid auth code response");
+  }
+
+  const promise = exchangeCodeForAccount(code);
+  pendingCodeExchange = { code, state, promise };
+  return promise;
 }
 
 export const createAuthLink = async (): Promise<string> => {
