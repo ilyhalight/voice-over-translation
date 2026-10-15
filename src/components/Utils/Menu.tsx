@@ -22,6 +22,11 @@ export function Menu(props: MenuProps): JSX.Element {
       role="dialog"
       aria-modal="false"
       aria-labelledby={titleId}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+      }}
     >
       <vot-block class="vot-menu__header">
         <vot-block class="vot-menu__title-container">
