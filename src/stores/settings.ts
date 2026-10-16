@@ -14,6 +14,7 @@ import {
   DEFAULT_SMART_DUCKING_STRENGTH,
   PROXY_WORKER_HOST,
 } from "../config/config";
+import type { LangOverride } from "../localization/localizationProvider";
 import type { RawHotkey } from "../modules/hotkeys/types";
 import type { LanguageSelectKey } from "../types/components/select";
 import type { Position } from "../types/components/votButton";
@@ -65,6 +66,7 @@ export type SettingsStore = {
   pipHotkey: RawHotkey;
   // subtitles
   responseLanguageSubtitles: ResponseLanguageSubtitles;
+  subtitlesTranslationLanguage: LangOverride;
   highlightWords: boolean;
   subtitlesSmartLayout: boolean;
   subtitlesDownloadFormat: SubtitleFormat;
@@ -119,6 +121,7 @@ export function createDefaultSettings(
     pipHotkey: null,
     // subtitles
     responseLanguageSubtitles: AUTO_SUBTITLE_LANGUAGE_VALUE,
+    subtitlesTranslationLanguage: "auto",
     subtitlesDownloadFormat: "srt",
     subtitlesFontFamily: "default-sans",
     highlightWords: false,

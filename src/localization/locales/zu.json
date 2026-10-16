@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "Ungahumushi amavidiyo akhonjwe njengomculo Ngomculo We YouTube",
   "VOTMusicDetectDesc": "Ukutholwa komculo kutholakala kuphela Ku-YouTube",
   "sendErrorReports": "Thumela imibiko iphutha engaziwa",
-  "sendErrorReportsDescription": "Usisiza ukuthola futhi silungise izimbungulu. Imininingwane yobuchwepheshe kuphela ethunyelwayo"
+  "sendErrorReportsDescription": "Usisiza ukuthola futhi silungise izimbungulu. Imininingwane yobuchwepheshe kuphela ethunyelwayo",
+  "VOTSubtitlesTranslationLanguage": "Ulimi lokuhumusha amagama nemishwana",
+  "VOTSameAsMenuLanguage": "Okufanayo nolimi lwemenyu"
 }

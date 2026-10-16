@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "Ne prevajajte videoposnetkov, ki so označeni kot glasba",
   "VOTMusicDetectDesc": "Zaznavanje glasbe je na voljo samo na spletnem mestu",
   "sendErrorReports": "Pošiljanje anonimnih poročil o napakah",
-  "sendErrorReportsDescription": "Pomaga nam najti in odpraviti napake. Pošljejo se samo tehnične podrobnosti"
+  "sendErrorReportsDescription": "Pomaga nam najti in odpraviti napake. Pošljejo se samo tehnične podrobnosti",
+  "VOTSubtitlesTranslationLanguage": "Jezik prevajanja besed in besednih zvez",
+  "VOTSameAsMenuLanguage": "Enako kot jezik menija"
 }

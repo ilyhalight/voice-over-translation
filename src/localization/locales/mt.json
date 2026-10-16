@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "Tittraduċix vidjows identifikati bħala mużika Mill Mużika YouTube",
   "VOTMusicDetectDesc": "L-iskoperta tal-mużika hija disponibbli biss Fuq YouTube",
   "sendErrorReports": "Ibgħat rapporti ta'żball anonimi",
-  "sendErrorReportsDescription": "Jgħinna nsibu u nirranġaw il-bugs. Jintbagħtu biss dettalji tekniċi"
+  "sendErrorReportsDescription": "Jgħinna nsibu u nirranġaw il-bugs. Jintbagħtu biss dettalji tekniċi",
+  "VOTSubtitlesTranslationLanguage": "Lingwa tat-traduzzjoni tal-kelma u l-frażi",
+  "VOTSameAsMenuLanguage": "L-istess bħall-lingwa tal-menu"
 }

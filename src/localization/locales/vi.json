@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "Không dịch video được Xác định là nhạc Của YouTube Music",
   "VOTMusicDetectDesc": "Phát hiện nhạc chỉ khả dụng Trên YouTube",
   "sendErrorReports": "Gửi báo cáo lỗi ẩn danh",
-  "sendErrorReportsDescription": "Giúp chúng tôi tìm và sửa lỗi. Chỉ có chi tiết kỹ thuật được gửi"
+  "sendErrorReportsDescription": "Giúp chúng tôi tìm và sửa lỗi. Chỉ có chi tiết kỹ thuật được gửi",
+  "VOTSubtitlesTranslationLanguage": "Ngôn ngữ dịch từ và cụm từ",
+  "VOTSameAsMenuLanguage": "Giống như ngôn ngữ menu"
 }

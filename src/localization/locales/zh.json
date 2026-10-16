@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "不要翻译youtube音乐识别为音乐的视频",
   "VOTMusicDetectDesc": "音乐检测仅在YouTube上可用",
   "sendErrorReports": "发送匿名错误报告",
-  "sendErrorReportsDescription": "帮助我们发现和修复错误。 只发送技术细节"
+  "sendErrorReportsDescription": "帮助我们发现和修复错误。 只发送技术细节",
+  "VOTSubtitlesTranslationLanguage": "单词和短语翻译语言",
+  "VOTSameAsMenuLanguage": "与菜单语言相同"
 }

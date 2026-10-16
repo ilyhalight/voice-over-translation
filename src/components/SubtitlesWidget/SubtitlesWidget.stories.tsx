@@ -1,6 +1,8 @@
-import { expect } from "storybook/test";
+import { expect, fn, waitFor } from "storybook/test";
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
 
+import { localizationProvider } from "../../localization/localizationProvider";
+import { setSettings, settings } from "../../stores/settings";
 import { TokenTooltipController } from "../../subtitles/tokenTooltipController";
 import { SubtitlesWidget as SubtitlesController } from "../../subtitles/widget";
 import type { ProcessedSubtitles } from "../../types/subtitles";
@@ -262,6 +264,123 @@ export const TokenTooltipLifecycle: Story = {
       container.remove();
       nextContainer.remove();
       outside.remove();
+    }
+  },
+};
+
+export const TokenTranslationLanguage: Story = {
+  args: emptyArgs,
+  play: async ({ canvasElement }) => {
+    const previousLanguage = settings.subtitlesTranslationLanguage;
+    const previousMenuLanguage = localizationProvider.lang;
+    const container = document.createElement("vot-block");
+    const subtitlesBlock = document.createElement("vot-block");
+    const words = ["hello", "world"].map((text) => {
+      const word = document.createElement("span");
+      word.dataset.votToken = "1";
+      word.textContent = text;
+      subtitlesBlock.append(word);
+      return word;
+    });
+    container.append(subtitlesBlock);
+    canvasElement.append(container);
+    let resolveOldTranslation: ((value: string[]) => void) | undefined;
+    const translateText = fn(
+      async (text: string | string[], _from?: string, to?: string) => {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        if (to === "de") {
+          return new Promise<string[]>((resolve) => {
+            resolveOldTranslation = resolve;
+          });
+        }
+        return Array.isArray(text)
+          ? text.map((part) => `${to}: ${part}`)
+          : `${to}: ${text}`;
+      },
+    );
+    const controller = new TokenTooltipController({
+      getContext: () => ({
+        container,
+        subtitlesContainer: subtitlesBlock,
+        subtitlesBlock,
+        subtitleLang: "en",
+        subtitleMaxWidthPx: 640,
+        tokenText: "hello world",
+        suppressClicksUntil: 0,
+      }),
+      getTranslationService: async () => "test",
+      translateText,
+    });
+    let activation = Promise.resolve();
+    const onClick = (event: MouseEvent) => {
+      activation = controller.onActivate(event);
+    };
+    subtitlesBlock.addEventListener("click", onClick);
+    const tooltipText = () =>
+      container.querySelector("vot-shadow-host")?.shadowRoot?.textContent;
+
+    try {
+      localizationProvider.lang = "en";
+      setSettings("subtitlesTranslationLanguage", "auto");
+      words[0].click();
+      await activation;
+      await expect(translateText).toHaveBeenLastCalledWith(
+        ["hello world", "hello"],
+        "en",
+        "en",
+      );
+      words[1].click();
+      await activation;
+      await expect(translateText).toHaveBeenLastCalledWith("world", "en", "en");
+
+      setSettings("subtitlesTranslationLanguage", "ru");
+      words[1].click();
+      await activation;
+      await expect(translateText).toHaveBeenLastCalledWith(
+        ["hello world", "world"],
+        "en",
+        "ru",
+      );
+      await expect(tooltipText()).toContain("ru: hello world");
+      await expect(tooltipText()).toContain("ru: world");
+      await expect(localizationProvider.lang).toBe("en");
+      words[0].click();
+      await activation;
+      await expect(translateText).toHaveBeenLastCalledWith("hello", "en", "ru");
+
+      setSettings("subtitlesTranslationLanguage", "auto");
+      localizationProvider.lang = "fr";
+      words[0].click();
+      await activation;
+      await expect(translateText).toHaveBeenLastCalledWith(
+        ["hello world", "hello"],
+        "en",
+        "fr",
+      );
+
+      localizationProvider.lang = "de";
+      words[0].click();
+      await waitFor(() => expect(resolveOldTranslation).toBeDefined());
+      await expect(tooltipText()).not.toContain("fr: hello world");
+      setSettings("subtitlesTranslationLanguage", "ru");
+      resolveOldTranslation?.(["de: hello world", "de: hello"]);
+      await activation;
+      await expect(tooltipText()).not.toContain("de: hello");
+
+      words[0].click();
+      await activation;
+      await expect(translateText).toHaveBeenLastCalledWith(
+        ["hello world", "hello"],
+        "en",
+        "ru",
+      );
+      await expect(tooltipText()).toContain("ru: hello world");
+    } finally {
+      subtitlesBlock.removeEventListener("click", onClick);
+      controller.release();
+      container.remove();
+      setSettings("subtitlesTranslationLanguage", previousLanguage);
+      localizationProvider.lang = previousMenuLanguage;
     }
   },
 };

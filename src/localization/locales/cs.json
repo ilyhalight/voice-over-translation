@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "Nepřekládejte videa označená jako hudba podle YouTube Music",
   "VOTMusicDetectDesc": "Detekce hudby je k dispozici pouze na YouTube",
   "sendErrorReports": "Odeslat anonymní chybová hlášení",
-  "sendErrorReportsDescription": "Pomáhá nám najít a opravit chyby. Zasílají se pouze technické údaje"
+  "sendErrorReportsDescription": "Pomáhá nám najít a opravit chyby. Zasílají se pouze technické údaje",
+  "VOTSubtitlesTranslationLanguage": "Slovo a fráze překlad jazyk",
+  "VOTSameAsMenuLanguage": "Stejné jako jazyk nabídky"
 }

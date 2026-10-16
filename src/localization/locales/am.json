@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "በዩቲዩብ ሙዚቃ የተለዩ ቪዲዮዎችን አይተረጉሙ ። ",
   "VOTMusicDetectDesc": "የሙዚቃ ማወቂያ በዩቲዩብ ላይ ብቻ ይገኛል ። ",
   "sendErrorReports": "ስም-አልባ የስህተት ሪፖርቶችን ይላኩ",
-  "sendErrorReportsDescription": "ሳንካዎችን ለማግኘት እና ለማስተካከል ይረዳናል። ቴክኒካዊ ዝርዝሮች ብቻ ይላካሉ"
+  "sendErrorReportsDescription": "ሳንካዎችን ለማግኘት እና ለማስተካከል ይረዳናል። ቴክኒካዊ ዝርዝሮች ብቻ ይላካሉ",
+  "VOTSubtitlesTranslationLanguage": "ቃል እና ሐረግ ትርጉም ቋንቋ",
+  "VOTSameAsMenuLanguage": "ምናሌ ቋንቋ ጋር ተመሳሳይ"
 }

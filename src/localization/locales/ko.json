@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "유튜브 음악에 의해 음악으로 확인 된 동영상을 번역하지 마십시오",
   "VOTMusicDetectDesc": "음악 감지는 유튜브에서만 사용할 수 있습니다",
   "sendErrorReports": "익명 오류 보고서 보내기",
-  "sendErrorReportsDescription": "버그를 찾고 수정하는 데 도움이됩니다. 기술적 인 세부 사항 만 전송됩니다"
+  "sendErrorReportsDescription": "버그를 찾고 수정하는 데 도움이됩니다. 기술적 인 세부 사항 만 전송됩니다",
+  "VOTSubtitlesTranslationLanguage": "단어 및 구문 번역 언어",
+  "VOTSameAsMenuLanguage": "메뉴 언어와 동일"
 }

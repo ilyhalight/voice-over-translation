@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "ইউটিউব মিউজিক দ্বারা সংগীত হিসাবে চিহ্নিত ভিডিওগুলি অনুবাদ করবেন না",
   "VOTMusicDetectDesc": "সঙ্গীত সনাক্তকরণ শুধুমাত্র ইউটিউবে উপলব্ধ",
   "sendErrorReports": "বেনামী ত্রুটি রিপোর্ট পাঠান",
-  "sendErrorReportsDescription": "আমাদের খুঁজে পেতে এবং বাগ ঠিক করতে সাহায্য করে. শুধুমাত্র প্রযুক্তিগত বিবরণ পাঠানো হয়"
+  "sendErrorReportsDescription": "আমাদের খুঁজে পেতে এবং বাগ ঠিক করতে সাহায্য করে. শুধুমাত্র প্রযুক্তিগত বিবরণ পাঠানো হয়",
+  "VOTSubtitlesTranslationLanguage": "শব্দ এবং বাক্যাংশ অনুবাদ ভাষা",
+  "VOTSameAsMenuLanguage": "মেনু ভাষা হিসাবে একই"
 }

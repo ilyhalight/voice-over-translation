@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "Ez itzuli youtube Music-ek identifikatutako bideoak",
   "VOTMusicDetectDesc": "Musika Detekzioa Youtuben bakarrik dago eskuragarri",
   "sendErrorReports": "Bidali errore-txosten anonimoak",
-  "sendErrorReportsDescription": "Bugs aurkitu eta konpontzen laguntzen digu. Xehetasun teknikoak bakarrik bidaltzen dira"
+  "sendErrorReportsDescription": "Bugs aurkitu eta konpontzen laguntzen digu. Xehetasun teknikoak bakarrik bidaltzen dira",
+  "VOTSubtitlesTranslationLanguage": "Hitzen eta esaldien itzulpen hizkuntza",
+  "VOTSameAsMenuLanguage": "Menu hizkuntza bezala"
 }

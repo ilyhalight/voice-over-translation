@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "Nu traduceți videoclipuri identificate ca muzică de YouTube Music",
   "VOTMusicDetectDesc": "Detectarea muzicii este disponibilă numai pe YouTube",
   "sendErrorReports": "Trimiteți rapoarte de eroare anonime",
-  "sendErrorReportsDescription": "Ne ajută să găsim și să remediem Erorile. Sunt trimise doar detalii tehnice"
+  "sendErrorReportsDescription": "Ne ajută să găsim și să remediem Erorile. Sunt trimise doar detalii tehnice",
+  "VOTSubtitlesTranslationLanguage": "Limba de traducere a cuvintelor și expresiilor",
+  "VOTSameAsMenuLanguage": "La fel ca limba meniului"
 }

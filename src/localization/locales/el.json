@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "Μην μεταφράζετε βίντεο που αναγνωρίζονται ως μουσική από τη μουσική του YouTube",
   "VOTMusicDetectDesc": "Η ανίχνευση μουσικής είναι διαθέσιμη μόνο στο YouTube",
   "sendErrorReports": "Αποστολή ανώνυμων αναφορών σφαλμάτων",
-  "sendErrorReportsDescription": "Μας βοηθά να βρούμε και να διορθώσουμε σφάλματα. Αποστέλλονται μόνο τεχνικές λεπτομέρειες"
+  "sendErrorReportsDescription": "Μας βοηθά να βρούμε και να διορθώσουμε σφάλματα. Αποστέλλονται μόνο τεχνικές λεπτομέρειες",
+  "VOTSubtitlesTranslationLanguage": "Γλώσσα μετάφρασης λέξεων και φράσεων",
+  "VOTSameAsMenuLanguage": "Ίδια με τη γλώσσα μενού"
 }

@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "Не переводить видео, распознанные YouTube Music как музыка",
   "VOTMusicDetectDesc": "Функция распознавания музыки доступна только на YouTube",
   "sendErrorReports": "Отправка анонимных отчетов об ошибках",
-  "sendErrorReportsDescription": "Помогает нам находить и исправлять ошибки. Присылаются только технические подробности"
+  "sendErrorReportsDescription": "Помогает нам находить и исправлять ошибки. Присылаются только технические подробности",
+  "VOTSubtitlesTranslationLanguage": "Язык перевода слов и фраз",
+  "VOTSameAsMenuLanguage": "То же, что и язык меню"
 }

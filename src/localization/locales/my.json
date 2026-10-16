@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "YouTube Music မှဂီတအဖြစ်သတ်မှတ်ထားသောဗီဒီယိုများကိုဘာသာပြန်၍မရပါ။",
   "VOTMusicDetectDesc": "ဂီတရှာဖွေမှုကို YouTube တွင်သာရရှိနိုင်သည်",
   "sendErrorReports": "အမည်မသိအမှားအစီရင်ခံစာများပို့ပါ",
-  "sendErrorReportsDescription": "အမှားတွေကိုရှာပြီးပြင်ဖို့ကူညီပေးတယ်။ နည်းပညာဆိုင်ရာအချက်အလက်များကိုသာပေးပို့ပါသည်။"
+  "sendErrorReportsDescription": "အမှားတွေကိုရှာပြီးပြင်ဖို့ကူညီပေးတယ်။ နည်းပညာဆိုင်ရာအချက်အလက်များကိုသာပေးပို့ပါသည်။",
+  "VOTSubtitlesTranslationLanguage": "စကားလုံးနှင့်စကားစုဘာသာပြန်ဘာသာစကား",
+  "VOTSameAsMenuLanguage": "Menu language လိုပဲ"
 }

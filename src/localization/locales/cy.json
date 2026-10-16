@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "Peidiwch â chyfieithu fideos a nodwyd fel cerddoriaeth Gan Youtube Cerddoriaeth",
   "VOTMusicDetectDesc": "Mae fideos cerddoriaeth Ar Gael Ar YouTube Yn unig",
   "sendErrorReports": "Anfon adroddiadau gwall dienw",
-  "sendErrorReportsDescription": "Yn ein helpu i ddod o hyd i a thrwsio chwilod. Dim ond manylion technegol sy'n cael eu hanfon"
+  "sendErrorReportsDescription": "Yn ein helpu i ddod o hyd i a thrwsio chwilod. Dim ond manylion technegol sy'n cael eu hanfon",
+  "VOTSubtitlesTranslationLanguage": "Iaith cyfieithu geiriau ac ymadroddion",
+  "VOTSameAsMenuLanguage": "Yr un fath ag iaith y ddewislen"
 }

@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "Don't translate videos identified as music by YouTube Music",
   "VOTMusicDetectDesc": "Music detection is only available on YouTube",
   "sendErrorReports": "Send anonymous error reports",
-  "sendErrorReportsDescription": "Helps us find and fix bugs. Only technical details are sent"
+  "sendErrorReportsDescription": "Helps us find and fix bugs. Only technical details are sent",
+  "VOTSubtitlesTranslationLanguage": "Word and phrase translation language",
+  "VOTSameAsMenuLanguage": "Same as menu language"
 }

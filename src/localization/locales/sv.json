@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "Översätt inte videor som identifierats som musik av YouTube Music",
   "VOTMusicDetectDesc": "Musikdetektering är endast tillgänglig på YouTube",
   "sendErrorReports": "Skicka anonyma felanmälningar",
-  "sendErrorReportsDescription": "Hjälper oss att hitta och åtgärda buggar. Endast tekniska detaljer skickas"
+  "sendErrorReportsDescription": "Hjälper oss att hitta och åtgärda buggar. Endast tekniska detaljer skickas",
+  "VOTSubtitlesTranslationLanguage": "Ord och fras översättning språk",
+  "VOTSameAsMenuLanguage": "Samma som menyspråk"
 }

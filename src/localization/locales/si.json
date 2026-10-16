@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "YouTube Music විසින් සංගීතය ලෙස හඳුනාගත් වීඩියෝ පරිවර්තනය නොකරන්න",
   "VOTMusicDetectDesc": "සංගීත හඳුනාගැනීම ලබා ගත හැක්කේ යූ ටියුබ් හි පමණි",
   "sendErrorReports": "නිර්නාමික දෝෂ වාර්තා යවන්න",
-  "sendErrorReportsDescription": "අපිට උදව් කරනවා බග්ස් හොයාගන්න සහ හදන්න. තාක්ෂණික විස්තර පමණක් එවනු ලැබේ"
+  "sendErrorReportsDescription": "අපිට උදව් කරනවා බග්ස් හොයාගන්න සහ හදන්න. තාක්ෂණික විස්තර පමණක් එවනු ලැබේ",
+  "VOTSubtitlesTranslationLanguage": "වචන සහ වාක් ය පරිවර්තන භාෂාව",
+  "VOTSameAsMenuLanguage": "මෙනු භාෂාව මෙන්"
 }

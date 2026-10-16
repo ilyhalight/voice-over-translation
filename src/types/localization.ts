@@ -333,7 +333,9 @@ export type Phrase =
   | "DontTranslateByYTMusic"
   | "VOTMusicDetectDesc"
   | "sendErrorReports"
-  | "sendErrorReportsDescription";
+  | "sendErrorReportsDescription"
+  | "VOTSubtitlesTranslationLanguage"
+  | "VOTSameAsMenuLanguage";
 
 export type Phrases = {
   recommended: string;
@@ -610,6 +612,8 @@ export type Phrases = {
   VOTMusicDetectDesc: string;
   sendErrorReports: string;
   sendErrorReportsDescription: string;
+  VOTSubtitlesTranslationLanguage: string;
+  VOTSameAsMenuLanguage: string;
 };
 
 export type FlatPhrases = Record<Phrase, string>;

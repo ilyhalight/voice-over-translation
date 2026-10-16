@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "لا تترجم مقاطع الفيديو التي تم تحديدها كموسيقى بواسطة موسيقى يوتيوب",
   "VOTMusicDetectDesc": "اكتشاف الموسيقى متاح فقط على موقع يوتيوب",
   "sendErrorReports": "إرسال تقارير خطأ مجهولة المصدر",
-  "sendErrorReportsDescription": "يساعدنا في العثور على الأخطاء وإصلاحها. يتم إرسال التفاصيل الفنية فقط"
+  "sendErrorReportsDescription": "يساعدنا في العثور على الأخطاء وإصلاحها. يتم إرسال التفاصيل الفنية فقط",
+  "VOTSubtitlesTranslationLanguage": "كلمة وعبارة لغة الترجمة",
+  "VOTSameAsMenuLanguage": "نفس لغة القائمة"
 }

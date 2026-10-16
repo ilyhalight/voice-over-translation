@@ -272,5 +272,7 @@
   "DontTranslateByYTMusic": "ਯੂਟਿਊਬ ਸੰਗੀਤ ਦੁਆਰਾ ਸੰਗੀਤ ਦੇ ਤੌਰ ਤੇ ਪਛਾਣ ਕੀਤੇ ਗਏ ਵੀਡੀਓਜ਼ ਦਾ ਅਨੁਵਾਦ ਨਾ ਕਰੋ",
   "VOTMusicDetectDesc": "ਸੰਗੀਤ ਖੋਜ ਸਿਰਫ ਯੂਟਿਊਬ ' ਤੇ ਉਪਲਬਧ ਹੈ",
   "sendErrorReports": "ਅਗਿਆਤ ਗਲਤੀ ਰਿਪੋਰਟ ਭੇਜੋ",
-  "sendErrorReportsDescription": "ਸਾਨੂੰ ਲੱਭਣ ਅਤੇ ਬੱਗ ਨੂੰ ਠੀਕ ਕਰਨ ਵਿੱਚ ਮਦਦ ਕਰਦਾ ਹੈ. ਕੇਵਲ ਤਕਨੀਕੀ ਵੇਰਵੇ ਭੇਜੇ ਜਾਂਦੇ ਹਨ"
+  "sendErrorReportsDescription": "ਸਾਨੂੰ ਲੱਭਣ ਅਤੇ ਬੱਗ ਨੂੰ ਠੀਕ ਕਰਨ ਵਿੱਚ ਮਦਦ ਕਰਦਾ ਹੈ. ਕੇਵਲ ਤਕਨੀਕੀ ਵੇਰਵੇ ਭੇਜੇ ਜਾਂਦੇ ਹਨ",
+  "VOTSubtitlesTranslationLanguage": "ਸ਼ਬਦ ਅਤੇ ਵਾਕ ਅਨੁਵਾਦ ਭਾਸ਼ਾ",
+  "VOTSameAsMenuLanguage": "ਮੇਨੂ ਭਾਸ਼ਾ ਵਾਂਗ ਹੀ"
 }
