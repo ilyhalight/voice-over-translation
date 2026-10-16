@@ -7,7 +7,7 @@ export type OverlayMountTargets = {
   subtitlesMountContainer: HTMLElement | ShadowRoot;
 };
 
-export function resolveOverlayBaseContainer(
+function resolveOverlayBaseContainer(
   container: HTMLElement,
   site: ServiceConf,
 ): HTMLElement {

@@ -461,6 +461,12 @@
 
 - `my.mail.ru`
 
+Доступные пути:
+
+- /v/NICKNAME/video/...
+- /mail/NICKNAME/video/...
+- video/embed/VIDEO_ID
+
 ## Bitchute
 
 Статус: [✅] Работает
@@ -593,6 +599,10 @@
 Доступные (под)домены:
 
 - `ok.ru`
+
+Доступные пути:
+
+- /video/VIDEO_ID
 
 ## Google Drive
 
@@ -813,6 +823,10 @@
 
 - `coursehunter.net`
 - `coursetrain.net`
+
+Доступные пути:
+
+- /course/COURSE_ID
 
 ## Sap
 
@@ -1146,6 +1160,7 @@
 Доступные пути:
 
 - /content/i2cs/*
+- /authoring-resources/*
 
 ## Mediafile
 
@@ -1191,3 +1206,12 @@
 Доступные (под)домены:
 
 - `any`
+
+Доступные пути:
+
+- /*.mp4
+- /*.webm
+
+Ограничения:
+
+- Нельзя переводить локальные видео

@@ -1,3 +1,10 @@
+import {
+  createTerminalXhrError,
+  type XhrResponse,
+} from "#extension/shared/xhr.ts";
+import { toErrorMessage } from "#utils/errors.ts";
+import { normalizeHttpMethod } from "#utils/http.ts";
+import logger from "#utils/logger.ts";
 import debug from "../../utils/debug";
 import {
   arrayBufferToBase64,
@@ -8,7 +15,6 @@ import {
   summarizeBodyForDebug,
 } from "../shared/bodySerialization";
 import { PORT_NAME } from "../shared/constants";
-import { asErrorMessage } from "../shared/utils";
 import { ext, runtimeMessagesUseStructuredClone } from "../shared/webext";
 import {
   ensureDnrHeaderRuleForYandex,
@@ -16,6 +22,7 @@ import {
   ensureDnrStripRuleForGooglevideo,
   isForbiddenToSetViaFetch,
 } from "./dnr-rules";
+import { isTelemetryBlocked } from "./telemetry-guard";
 
 type XhrStartMessage = {
   type: "start";
@@ -64,33 +71,6 @@ function toHeaderRecord(
     }
   }
   return out;
-}
-
-type XhrResponse = {
-  finalUrl: string;
-  readyState: number;
-  status: number;
-  statusText: string;
-  responseHeaders: string;
-  responseType?: string;
-  contentType?: string;
-  response?: unknown;
-  responseB64?: string;
-  responseText?: string;
-  error?: string;
-};
-
-function createTerminalXhrError(url: string, error: string): XhrResponse {
-  return {
-    finalUrl: url,
-    readyState: 4,
-    status: 0,
-    statusText: "",
-    responseHeaders: "",
-    response: null,
-    responseText: "",
-    error,
-  };
 }
 
 function cloneArrayBufferView(view: Uint8Array): ArrayBuffer {
@@ -384,16 +364,7 @@ export function registerXhrPortListener(): void {
     };
 
     const postAbortBeforeStart = (url: string) => {
-      const errorObj: XhrResponse = {
-        finalUrl: url,
-        readyState: 4,
-        status: 0,
-        statusText: "",
-        responseHeaders: "",
-        response: null,
-        responseText: "",
-        error: "Aborted",
-      };
+      const errorObj = createTerminalXhrError(url, "Aborted");
       try {
         safePostMessage({ type: "abort", state: "terminal", error: errorObj });
       } catch {
@@ -563,7 +534,7 @@ export function registerXhrPortListener(): void {
         return;
       }
 
-      const errorObj = createTerminalXhrError(url, asErrorMessage(err));
+      const errorObj = createTerminalXhrError(url, toErrorMessage(err));
       safePostMessage({ type: "error", state: "terminal", error: errorObj });
       debug.error("[VOT EXT][background][xhr] terminal", {
         xhrSessionId,
@@ -584,7 +555,7 @@ export function registerXhrPortListener(): void {
 
       const { details } = msg;
       const url = details.url;
-      const method = (details.method || "GET").toUpperCase();
+      const method = normalizeHttpMethod(details.method);
       const { allHeaders, headers, forbiddenHeaders } =
         splitRequestHeaders(details);
       const timeout = Number(details.timeout || 0);
@@ -625,12 +596,16 @@ export function registerXhrPortListener(): void {
           : "follow";
 
       try {
+        if (await isTelemetryBlocked(url)) {
+          throw new Error("Blocked: data collection is not permitted");
+        }
+
         try {
           await ensureDnrStripRuleForGooglevideo(url, forbiddenHeaders);
           await ensureDnrOriginStripRuleForYoutubei(url, forbiddenHeaders);
           await ensureDnrHeaderRuleForYandex(url, forbiddenHeaders);
         } catch (e) {
-          console.warn(
+          logger.warn(
             "[VOT Extension] Failed to apply DNR header rules; requests may break:",
             e,
           );

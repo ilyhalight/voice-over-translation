@@ -1,3 +1,5 @@
+import { getHostElement } from "#utils/dom.ts";
+
 type FullscreenLayerControllerOptions = {
   container: HTMLElement | ShadowRoot;
 };
@@ -13,21 +15,12 @@ export class FullscreenLayerController {
     this.container = container;
   }
 
-  getWidgetParentElement(): HTMLElement | ShadowRoot {
-    return this.container;
-  }
-
   getLayoutRootElement(): HTMLElement {
-    return this.container instanceof ShadowRoot
-      ? (this.container.host as HTMLElement)
-      : this.container;
+    return getHostElement(this.container);
   }
 
   syncWidgetContainer(widgetContainer: HTMLElement | null): void {
-    const containerEl =
-      this.container instanceof ShadowRoot
-        ? (this.container.host as HTMLElement)
-        : this.container;
+    const containerEl = this.getLayoutRootElement();
     if (getComputedStyle(containerEl).position === "static") {
       containerEl.style.position = "relative";
     }

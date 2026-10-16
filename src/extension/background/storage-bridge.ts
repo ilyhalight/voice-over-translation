@@ -1,5 +1,6 @@
+import { toErrorMessage } from "#utils/errors.ts";
 import { BG_MSG_STORAGE } from "../shared/constants";
-import { asErrorMessage, sendBridgeResponse } from "../shared/utils";
+import { sendBridgeResponse } from "../shared/utils";
 import { ext, storageGet, storageRemove, storageSet } from "../shared/webext";
 
 type GmStorageMessage = {
@@ -84,7 +85,7 @@ export function registerBackgroundStorageBridge(): void {
         } catch (error) {
           sendBridgeResponse(sendResponse, {
             ok: false,
-            error: asErrorMessage(error),
+            error: toErrorMessage(error),
           });
         }
       })();

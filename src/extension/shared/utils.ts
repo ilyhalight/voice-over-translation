@@ -1,15 +1,12 @@
-import { toErrorMessage } from "../../utils/errors";
+import logger from "#utils/logger.ts";
 
-export function asErrorMessage(err: unknown): string {
-  return toErrorMessage(err);
-}
 export function callXhrCallback(fn: unknown, arg: unknown): void {
   try {
     if (typeof fn === "function") {
       fn(arg);
     }
   } catch (err) {
-    console.error("[VOT Extension] GM_xmlhttpRequest callback error", err);
+    logger.error("[VOT Extension] GM_xmlhttpRequest callback error", err);
   }
 }
 

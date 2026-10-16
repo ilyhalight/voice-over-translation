@@ -1,7 +1,8 @@
-import { openAuthWindow } from "../core/authWindow";
-import { localizationProvider } from "../localization/localizationProvider";
+import logger from "#utils/logger.ts";
+import { t } from "../localization/localizationProvider";
+import { openAuthWindow } from "../modules/auth/window";
+import { deleteExpiredAccount } from "../stores/account";
 import type { Status } from "../types/components/votButton";
-import { deleteExpiredAccount } from "../utils/account";
 import debug from "../utils/debug";
 import { isAbortError } from "../utils/errors";
 import type { VideoHandler } from "../VideoHandler";
@@ -50,7 +51,7 @@ async function prepareAuthStateForTranslation(
     return;
   }
 
-  openAuthWindow();
+  await openAuthWindow();
   throw new VOTLocalizedError("VOTYandexTokenExpired");
 }
 
@@ -69,10 +70,9 @@ export async function handleTranslationButtonCommand(
     return;
   }
 
-  // A click on an errored, idle button only clears the error and stops translation.
-  // Starting a new translation must be a separate, deliberate click.
+  // A click on an errored, idle button only clears the error.
   if (deps.currentStatus === "error" && !deps.currentLoading) {
-    deps.transformBtn("none", localizationProvider.get("translateVideo"));
+    deps.transformBtn("none", t("translateVideo"));
   }
 
   if (deps.currentStatus !== "none" || deps.currentLoading) {
@@ -86,6 +86,12 @@ export async function handleTranslationButtonCommand(
 
     debug.log("[handleTranslationBtnClick] trying execute translation");
     const videoData = await getVideoDataForTranslation(videoHandler);
+    if (
+      videoHandler.data.dontTranslateByYTMusic &&
+      (await videoHandler.videoManager.detectMusic(videoData.videoId))
+    ) {
+      throw new VOTLocalizedError("VOTVideoIsMusic");
+    }
 
     // Automatic fallback belongs only to the video where it was selected.
     // Reset it before resolving the language of a newly opened video.
@@ -120,11 +126,11 @@ export async function handleTranslationButtonCommand(
     );
   } catch (err) {
     if (isAbortError(err)) {
-      deps.transformBtn("none", localizationProvider.get("translateVideo"));
+      deps.transformBtn("none", t("translateVideo"));
       return;
     }
 
-    console.error("[VOT]", err);
+    logger.error(err);
     if (!(err instanceof Error)) {
       deps.transformBtn("error", String(err));
       return;

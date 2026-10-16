@@ -8,6 +8,7 @@ type OpenCall = {
 };
 
 const storedValues: StoredValues = {};
+const sessionStoredValues: StoredValues = {};
 const openCalls: OpenCall[] = [];
 
 Object.defineProperty(globalThis, "DEBUG_MODE", {
@@ -25,6 +26,19 @@ Object.defineProperty(globalThis, "localStorage", {
     },
     removeItem: (key: string) => {
       delete storedValues[key];
+    },
+  },
+});
+
+Object.defineProperty(globalThis, "sessionStorage", {
+  configurable: true,
+  value: {
+    getItem: (key: string) => sessionStoredValues[key] ?? null,
+    setItem: (key: string, value: string) => {
+      sessionStoredValues[key] = value;
+    },
+    removeItem: (key: string) => {
+      delete sessionStoredValues[key];
     },
   },
 });
@@ -63,7 +77,9 @@ function createVideoHandler(account?: { token?: string; expires?: number }) {
       additionalData: undefined,
     },
     votClient: {
-      provider: { apiToken: account?.token },
+      provider: {
+        apiToken: account?.token,
+      },
     },
     actionsAbortController: new AbortController(),
     hasActiveSource: () => false,
@@ -94,6 +110,9 @@ describe("translation auth command", () => {
     openCalls.length = 0;
     for (const key of Object.keys(storedValues)) {
       delete storedValues[key];
+    }
+    for (const key of Object.keys(sessionStoredValues)) {
+      delete sessionStoredValues[key];
     }
   });
 
@@ -144,7 +163,7 @@ describe("translation auth command", () => {
     expect(videoHandler.calls.translateFunc).toBe(1);
   });
 
-  test("an idle error click retries in the same click without stopping", async () => {
+  test("an idle error click clears the error and stops without retrying", async () => {
     const videoHandler = createVideoHandler();
     const buttonStates: Array<[string, string]> = [];
     let stops = 0;
@@ -161,12 +180,11 @@ describe("translation auth command", () => {
       },
     });
 
-    // Reset to idle, but do not abort the background preparation.
     expect(buttonStates.map(([status]) => status)).toEqual(["none"]);
-    expect(videoHandler.actionsAbortController.signal.aborted).toBe(false);
-    expect(stops).toBe(0);
-    expect(videoHandler.calls.ensureDetectedLanguage).toBe(1);
-    expect(videoHandler.calls.translateFunc).toBe(1);
+    expect(videoHandler.actionsAbortController.signal.aborted).toBe(true);
+    expect(stops).toBe(1);
+    expect(videoHandler.calls.ensureDetectedLanguage).toBe(0);
+    expect(videoHandler.calls.translateFunc).toBe(0);
   });
 
   test("an active/loading click still aborts and stops", async () => {

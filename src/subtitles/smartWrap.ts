@@ -1,4 +1,8 @@
 import type { SubtitleToken } from "../types/subtitles";
+import {
+  getLinguisticBreakPenalty,
+  isScriptioContinua,
+} from "./lineBreakRules";
 
 type MeasureText = (text: string) => number;
 
@@ -24,32 +28,11 @@ export type MeasuredWordSlice = WordSlice & {
   width: number;
 };
 
-export type TokenPrecomputeInput = {
-  wordSlices: WordSlice[];
-  normalizedWordsKey: string;
-};
-
-export type TokenPrecomputeMemo = {
-  tokens: SubtitleToken[];
-  value: TokenPrecomputeInput;
-};
-
-export type LineMeasureMemo = {
-  key: string;
-  metrics: MeasuredWordSlice[];
-  maxWidthPx: number;
-};
-
 export type TimedTokenSegment = {
   startToken: number;
   endToken: number;
   startMs: number;
   endMs: number;
-};
-
-export type TokenProcessingMemo = {
-  key: string;
-  segmentRanges: TimedTokenSegment[];
 };
 
 export type TokenWrapPlan = {
@@ -67,6 +50,20 @@ const WHITESPACE_CHAR_RE = /\s/u;
 const DISCOURAGED_LINE_START_CHAR_RE = /^[\p{Pe}\p{Pf},.;:!?%\u2030\u2026]$/u;
 const DISCOURAGED_LINE_END_CHAR_RE =
   /^[\p{Ps}\p{Pi}\u00BF\u00A1([{\u00AB\u201C"'`-]$/u;
+const WRAP_WIDTH_GUARD_PX = 8;
+const WRAP_WIDTH_GUARD_RATIO = 0.97;
+const MIN_EFFECTIVE_WRAP_WIDTH_PX = 24;
+
+export function applyWrapWidthGuard(maxWidthPx: number): number {
+  if (!Number.isFinite(maxWidthPx) || maxWidthPx <= 0) return 0;
+  return Math.max(
+    MIN_EFFECTIVE_WRAP_WIDTH_PX,
+    Math.min(
+      maxWidthPx - WRAP_WIDTH_GUARD_PX,
+      maxWidthPx * WRAP_WIDTH_GUARD_RATIO,
+    ),
+  );
+}
 
 const normalizeTokenText = (text: string): string =>
   text.replaceAll(/\s+/gu, " ").trim();
@@ -250,10 +247,14 @@ const buildSliceFromWord = (
   wordTokenIndex: number,
   textBuffer: TokenTextBuffer,
   includeMetrics: boolean,
+  minStartToken: number,
 ): WordSlice => {
+  // Attach any not-yet-consumed leading run (spaces/punctuation) to this word.
+  // Clamping to `minStartToken` is what prevents slices from overlapping: the
+  // previous slice already consumed everything before the cursor.
   let startToken = wordTokenIndex;
   while (
-    startToken > 0 &&
+    startToken > minStartToken &&
     tokens[startToken - 1]?.text !== "\n" &&
     !isWordToken(tokens[startToken - 1])
   ) {
@@ -285,30 +286,51 @@ const buildSliceFromWord = (
   };
 };
 
+type SliceScanState = {
+  index: number;
+  cursor: number;
+};
+
 const appendNextWordSlice = (
   slices: WordSlice[],
   keyParts: string[] | null,
   tokens: SubtitleToken[],
   textBuffer: TokenTextBuffer,
   collectKey: boolean,
-  index: number,
-): number => {
+  state: SliceScanState,
+): void => {
+  const { index } = state;
   const token = tokens[index];
-  if (!token?.text) return index + 1;
+  if (!token?.text) {
+    state.index = index + 1;
+    return;
+  }
 
   if (token.text === "\n") {
     const slice = createForcedBreakSlice(tokens, index);
     slices.push(slice);
     keyParts?.push("\n");
-    return index + 1;
+    state.index = index + 1;
+    state.cursor = index + 1;
+    return;
   }
 
-  if (!isWordToken(token)) return index + 1;
+  if (!isWordToken(token)) {
+    state.index = index + 1;
+    return;
+  }
 
-  const slice = buildSliceFromWord(tokens, index, textBuffer, collectKey);
+  const slice = buildSliceFromWord(
+    tokens,
+    index,
+    textBuffer,
+    collectKey,
+    state.cursor,
+  );
   slices.push(slice);
   keyParts?.push(normalizeTokenText(slice.text));
-  return slice.breakAfterTokenIndex + 1;
+  state.index = slice.breakAfterTokenIndex + 1;
+  state.cursor = slice.endToken;
 };
 
 function buildWordSlicesFromBuffer(
@@ -322,16 +344,20 @@ function buildWordSlicesFromBuffer(
   const slices: WordSlice[] = [];
   const keyParts: string[] | null = collectKey ? [] : null;
 
-  let index = 0;
-  while (index < tokens.length) {
-    index = appendNextWordSlice(
+  const state: SliceScanState = { index: 0, cursor: 0 };
+  while (state.index < tokens.length) {
+    const previousIndex = state.index;
+    appendNextWordSlice(
       slices,
       keyParts,
       tokens,
       textBuffer,
       collectKey,
-      index,
+      state,
     );
+    if (state.index <= previousIndex) {
+      state.index = previousIndex + 1;
+    }
   }
 
   return {
@@ -555,7 +581,12 @@ export function computeTwoLineSegments(
   return finalizeComputedSegments(tokens, segments);
 }
 
-const measureTokenRange = (
+/**
+ * Width of a rendered line. Whitespace at a line edge is collapsed away by the
+ * renderer, so measuring it would overstate the line width and make a line that
+ * actually fits look like an overflow.
+ */
+const measureRenderedLineWidth = (
   textBuffer: TokenTextBuffer,
   startToken: number,
   endToken: number,
@@ -563,7 +594,10 @@ const measureTokenRange = (
 ): number => {
   if (endToken <= startToken) return 0;
 
-  return measureText(getBufferedTokenText(textBuffer, startToken, endToken));
+  const text = getBufferedTokenText(textBuffer, startToken, endToken).trim();
+  if (!text) return 0;
+
+  return measureText(text);
 };
 
 const scoreBreakCandidate = ({
@@ -575,6 +609,8 @@ const scoreBreakCandidate = ({
   secondWordCount,
   maxWidthPx,
   boundary,
+  linguisticPenalty,
+  countsWords,
 }: {
   firstWidth: number;
   secondWidth: number;
@@ -584,15 +620,19 @@ const scoreBreakCandidate = ({
   secondWordCount: number;
   maxWidthPx: number;
   boundary: BoundaryKind;
+  linguisticPenalty: number;
+  countsWords: boolean;
 }): number => {
   const overflowPenalty =
     Math.max(0, firstWidth - maxWidthPx) * 12 +
     Math.max(0, secondWidth - maxWidthPx) * 12;
+  // Netflix prefers a "bottom-heavy pyramid": line 2 slightly longer than 1.
   const balanceTarget = 1.08;
   const balancePenalty =
     Math.abs(secondWidth / Math.max(firstWidth, 1) - balanceTarget) * 120;
-  const shortTopPenalty = firstWordCount < 2 ? 80 : 0;
-  const orphanPenalty = secondWordCount < 2 ? 80 : 0;
+  // Word-count heuristics only make sense for space-separated scripts.
+  const shortTopPenalty = countsWords && firstWordCount < 2 ? 80 : 0;
+  const orphanPenalty = countsWords && secondWordCount < 2 ? 80 : 0;
   let boundaryBonus = 0;
   if (boundary === "strong") {
     boundaryBonus = -28;
@@ -607,7 +647,8 @@ const scoreBreakCandidate = ({
     orphanPenalty +
     lineStartPenalty +
     lineEndPenalty +
-    boundaryBonus
+    boundaryBonus +
+    linguisticPenalty
   );
 };
 
@@ -630,9 +671,17 @@ const findBestWordBreakAfterTokenIndex = (
   measurableSlices: WordSlice[],
   measureText: MeasureText,
   maxWidthPx: number,
+  locale?: string,
 ): number | null => {
+  // Two-pass "fit first" search. A break where both lines fit the available
+  // width is always preferred over a prettier but overflowing one, because an
+  // overflowing line is clipped or shrunk on screen. Only when no break fits do
+  // we fall back to the least-bad overflowing candidate.
+  let bestFitBreakAfterTokenIndex: number | null = null;
+  let bestFitScore = Number.POSITIVE_INFINITY;
   let bestBreakAfterTokenIndex: number | null = null;
   let bestScore = Number.POSITIVE_INFINITY;
+  const countsWords = !isScriptioContinua(locale);
 
   for (let index = 0; index < measurableSlices.length - 1; index += 1) {
     const slice = measurableSlices[index];
@@ -643,13 +692,13 @@ const findBestWordBreakAfterTokenIndex = (
     );
     const firstEndToken = candidateBreakAfterTokenIndex + 1;
     const secondStartToken = nextSlice.tokenIndex;
-    const firstWidth = measureTokenRange(
+    const firstWidth = measureRenderedLineWidth(
       textBuffer,
       0,
       firstEndToken,
       measureText,
     );
-    const secondWidth = measureTokenRange(
+    const secondWidth = measureRenderedLineWidth(
       textBuffer,
       secondStartToken,
       tokens.length,
@@ -676,21 +725,34 @@ const findBestWordBreakAfterTokenIndex = (
       secondWordCount: measurableSlices.length - (index + 1),
       maxWidthPx,
       boundary: slice.boundary,
+      linguisticPenalty: getLinguisticBreakPenalty(
+        slice.text,
+        nextSlice.text,
+        locale,
+      ),
+      countsWords,
     });
 
     if (score < bestScore) {
       bestScore = score;
       bestBreakAfterTokenIndex = candidateBreakAfterTokenIndex;
     }
+
+    const fits = firstWidth <= maxWidthPx && secondWidth <= maxWidthPx;
+    if (fits && score < bestFitScore) {
+      bestFitScore = score;
+      bestFitBreakAfterTokenIndex = candidateBreakAfterTokenIndex;
+    }
   }
 
-  return bestBreakAfterTokenIndex;
+  return bestFitBreakAfterTokenIndex ?? bestBreakAfterTokenIndex;
 };
 
 export function computeTokenWrapPlan(
   tokens: SubtitleToken[],
   measureText: MeasureText,
   maxWidthPx: number,
+  locale?: string,
 ): TokenWrapPlan {
   if (!tokens.length || hasForcedLineBreakToken(tokens)) {
     return emptyTokenWrapPlan();
@@ -708,7 +770,7 @@ export function computeTokenWrapPlan(
     return emptyTokenWrapPlan();
   }
 
-  const singleLineWidth = measureTokenRange(
+  const singleLineWidth = measureRenderedLineWidth(
     textBuffer,
     0,
     tokens.length,
@@ -724,6 +786,7 @@ export function computeTokenWrapPlan(
     measurableSlices,
     measureText,
     safeMaxWidthPx,
+    locale,
   );
   if (bestBreakAfterTokenIndex !== null) {
     return singleBreakTokenWrapPlan(bestBreakAfterTokenIndex);

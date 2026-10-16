@@ -1,4 +1,5 @@
-import { clamp, type DownloadBlobOptions, downloadBlob } from "./utils";
+import { clamp } from "./number";
+import { type DownloadBlobOptions, downloadBlob } from "./utils";
 
 function toUint32BE(value: number): Uint8Array {
   return new Uint8Array([

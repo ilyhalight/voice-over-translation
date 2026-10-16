@@ -23,7 +23,7 @@
 
 <!-- Install / Build -->
 
-[vot-dist]: https://raw.githubusercontent.com/ilyhalight/voice-over-translation/master/dist/vot.user.js
+[vot-dist]: https://github.com/ilyhalight/voice-over-translation/releases/latest/download/vot.user.js
 [vot-releases]: https://github.com/ilyhalight/voice-over-translation/releases
 [nodejs-link]: https://nodejs.org
 [bun-link]: https://bun.sh/
@@ -36,7 +36,7 @@
 <!-- Stores -->
 
 [vot-chrome-store]: https://chromewebstore.google.com/detail/dnioaagdjgpcokckfpokpndoblenmfcg
-[vot-firefox-store]: https://addons.mozilla.org/ru/firefox/addon/voice-over-translation/
+[vot-firefox-store]: https://addons.mozilla.org/firefox/addon/voice-over-translation/
 
 <!-- Other -->
 
@@ -64,6 +64,10 @@
 [![en][badge-en]][vot-readme-en]
 [![ru][badge-ru]][vot-readme-ru]
 
+<a href="https://chromewebstore.google.com/detail/dnioaagdjgpcokckfpokpndoblenmfcg"><img src="./img/badges/chrome-webstore.png" alt="Install from Chrome Web Store"></a>
+<a href="https://addons.mozilla.org/firefox/addon/voice-over-translation/"><img src="./img/badges/firefox-addons.png" alt="Install from Firefox Add-ons"></a>
+<a href="https://github.com/ilyhalight/voice-over-translation/releases/latest"><img src="./img/badges/github-releases.png" alt="Install from Github Releases"></a>
+
   <img src="./img/banner.png" alt="vot promotion banner"/>
 </div>
 
@@ -73,10 +77,30 @@
 
 Thanks to the **[Yandex.Translate][yatranslate-link]** and **[Yandex.Browser][yabrowser-link]** teams, and everyone [helping make the extension][contributors-link] even better.
 
-## Installing the extension
+## Installing the extension From GitHub Releases
 
 > [!CAUTION]
 > Before creating an issue, we strongly recommend reading the [FAQ][vot-faq] and existing [issues][vot-issues].
+
+### Native for Chrome (Chromium)
+
+1. Open [Releases][vot-releases]
+2. Click to `vot-extension-chrome.zip`
+3. Open your extensions page:
+   - Chrome: `chrome://extensions`
+   - Edge: `edge://extensions`
+   - Brave: `brave://extensions`
+   - Opera: `opera://extensions`
+4. Enable **Developer mode**
+5. Drag and drop the downloaded `.zip` file onto the extensions page
+
+### Native for Firefox
+
+1. Open [Releases][vot-releases]
+2. Click to `vot-extension-firefox.xpi`
+3. Confirm the installation in Firefox
+
+### Userscript Loader (Tampermonkey)
 
 > [!WARNING]
 > **Important for Tampermonkey 5.2+ (MV3) users:**
@@ -84,41 +108,15 @@ Thanks to the **[Yandex.Translate][yatranslate-link]** and **[Yandex.Browser][ya
 >
 > 1. Open the extensions page (`chrome://extensions`) and enable **"Developer mode"** (details in [Tampermonkey documentation][devmode-enable]).
 > 2. If you use **Chromium 138+**, open extension details and enable **"Allow User Scripts"**.
->
+
+> [!WARNING]
 > **For Opera users:**
 >
 > 1. Use **[Violentmonkey][violentmonkey-opera]** instead of Tampermonkey.
 > 2. In the extension settings, enable **"Allow access to search page results"** (Opera guide: [where to find this setting][opera-search-results-access]), otherwise the script will not work.
 
 1. Install a userscript manager: **[Tampermonkey][tampermonkey-link]** (or [Violentmonkey][violentmonkey-opera] for Opera)
-2. **[Install the script][vot-dist]**
-
-### Install Native Extension for Chrome / Chromium
-
-#### From Chrome WebStore
-
-Open [Chrome WebStore][vot-chrome-store] and click "Install"
-
-#### From GitHub Releases
-
-1. Open [Releases][vot-releases] and download `vot-extension-chrome.zip`
-2. Open your extensions page:
-   - Chrome: `chrome://extensions`
-   - Edge: `edge://extensions`
-   - Brave: `brave://extensions`
-   - Opera: `opera://extensions`
-3. Enable **Developer mode**
-4. Drag and drop the downloaded `.zip` file onto the extensions page
-
-### Install Native Extension for Firefox
-
-#### From Firefox Add-ons
-
-Open [Firefox Add-ons][vot-firefox-store] and click "Add to Firefox"
-
-#### From GitHub Releases
-
-Open [Releases][vot-releases], click `vot-extension-firefox.xpi`, and confirm installation in Firefox
+2. Click -> **[Install the script][vot-dist]**
 
 ## Features
 
@@ -128,7 +126,7 @@ Open [Releases][vot-releases], click `vot-extension-firefox.xpi`, and confirm in
 - Smart subtitle layout that adapts line width and text size to player dimensions
 - Display AI-generated subtitles
 - Display site-provided subtitles (for example, auto-translated YouTube subtitles)
-- Save subtitles in `.srt`, `.vtt`, and `.json` formats
+- Save subtitles in `.srt`, `.vtt`, `.ass` and `.json` formats
 - Save translated audio as `.mp3`
 - Separate volume sliders for original and translated audio
 - Adaptive volume: duck original audio while translated speech is playing

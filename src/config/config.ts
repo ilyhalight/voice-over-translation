@@ -1,5 +1,9 @@
 // CONFIGURATION
 
+import type { CompatibilityVersion } from "../types/storage";
+
+export const EXT_NAME_FALLBACK = "VOT";
+
 export const workerHost = "api.browser.yandex.ru";
 
 /**
@@ -13,18 +17,7 @@ export const m3u8ProxyHost = "media-proxy.toil.cc/v1/proxy/m3u8";
  * @see https://github.com/FOSWLY/vot-worker
  */
 export const proxyWorkerHostMode1 = "vot-worker.vtrans.eu.cc";
-export const proxyWorkerHost = "vot-worker.eu.cc"; // vot-worker.toil.cc
-
-/**
- * @see https://github.com/FOSWLY/translate-backend
- */
-export const foswlyTranslateUrl = "https://translate-backend.transly.eu.cc/v2"; // "https://translate.toil.cc/v2"
-
-export const detectRustServerUrl =
-  "https://rust-server-531j.onrender.com/detect";
-export const authServerUrl = "https://rust-server-531j.onrender.com";
-export const authLoginUrl = `${authServerUrl}/v1/auth/handle`;
-export const avatarServerUrl = "https://avatars.mds.yandex.net/get-yapic";
+export const PROXY_WORKER_HOST = "vot-worker.eu.cc"; // vot-worker.toil.cc
 
 const repoPath = "ilyhalight/voice-over-translation";
 export const contentUrl = `https://raw.githubusercontent.com/${repoPath}`;
@@ -33,12 +26,14 @@ export const repositoryUrl = `https://github.com/${repoPath}`;
 /**
  * 0% - 100% - default volume of the video with the translation
  */
-export const defaultAutoVolume = 15;
+export const DEFAULT_AUTO_VOLUME = 15;
 
 /**
- * Max audio volume percentage (if available)
+ * 0% - 100% - default strength of Smart Auto-Volume ducking.
+ * The original track is lowered relative to its baseline while the translated
+ * audio is audible; 0% keeps the baseline, 100% fully mutes it.
  */
-export const maxAudioVolume = 900;
+export const DEFAULT_SMART_DUCKING_STRENGTH = 80;
 
 /**
  * The number of repeated responses after which the message turns into
@@ -46,16 +41,11 @@ export const maxAudioVolume = 900;
  */
 export const minLongWaitingCount = 5;
 
-export const defaultTranslationService: "yandexbrowser" | "msedge" =
-  "yandexbrowser";
-export const defaultDetectService: "yandexbrowser" | "msedge" | "rust-server" =
-  "yandexbrowser";
-
-export const proxyOnlyCountries: string[] = ["UA", "LV", "LT"];
+export const PROXY_ONLY_COUNTRIES: string[] = ["UA", "LV", "LT"];
 
 /**
  * 100 - 3000 ms - delay before hiding button
  */
-export const defaultAutoHideDelay = 1000;
+export const DEFAULT_AUTO_HIDE_DELAY = 1000;
 
-export const actualCompatVersion = "2025-05-09";
+export const actualCompatVersion: CompatibilityVersion = "2026-08-18";

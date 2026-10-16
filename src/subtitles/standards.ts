@@ -427,23 +427,6 @@ const createEmptyVttResult = (): ProcessedSubtitles => ({
 const isWebVttDocumentBlock = (line: string): boolean =>
   line.startsWith("NOTE") || line === "STYLE" || line === "REGION";
 
-const readVttBlockLines = (
-  lines: string[],
-  startCursor: number,
-): {
-  blockLines: string[];
-  nextCursor: number;
-} => {
-  const blockLines: string[] = [];
-  let cursor = startCursor;
-  while (cursor < lines.length && lines[cursor].trim() !== "") {
-    blockLines.push(lines[cursor]);
-    cursor += 1;
-  }
-
-  return { blockLines, nextCursor: cursor };
-};
-
 const resolveVttCueIdentity = (
   lines: string[],
   cursor: number,
@@ -492,21 +475,21 @@ const parseVttTiming = (
   };
 };
 
-const readVttPayloadLines = (
+const readUntilBlankLine = (
   lines: string[],
   startCursor: number,
 ): {
-  payloadLines: string[];
+  lines: string[];
   nextCursor: number;
 } => {
-  const payloadLines: string[] = [];
+  const blockLines: string[] = [];
   let cursor = startCursor;
   while (cursor < lines.length && lines[cursor].trim() !== "") {
-    payloadLines.push(lines[cursor]);
+    blockLines.push(lines[cursor]);
     cursor += 1;
   }
 
-  return { payloadLines, nextCursor: cursor };
+  return { lines: blockLines, nextCursor: cursor };
 };
 
 const parseAssEventFormatFields = (formatLine: string): string[] =>
@@ -744,9 +727,9 @@ const parseVtt = (text: string): ProcessedSubtitles => {
     if (cursor >= lines.length) break;
 
     if (isWebVttDocumentBlock(lines[cursor])) {
-      const block = readVttBlockLines(lines, cursor);
+      const block = readUntilBlankLine(lines, cursor);
       cursor = block.nextCursor;
-      pushWebVttBlock(metadata.blocks, cues.length, block.blockLines);
+      pushWebVttBlock(metadata.blocks, cues.length, block.lines);
       continue;
     }
 
@@ -757,9 +740,9 @@ const parseVtt = (text: string): ProcessedSubtitles => {
       continue;
     }
 
-    const payload = readVttPayloadLines(lines, identity.timingCursor + 1);
+    const payload = readUntilBlankLine(lines, identity.timingCursor + 1);
     cursor = payload.nextCursor;
-    const payloadLines = payload.payloadLines;
+    const payloadLines = payload.lines;
     const rawText = payloadLines.join("\n");
     const displayModel = buildStyledDisplayModel(rawText);
     const voice = extractVttVoice(rawText);
@@ -1060,9 +1043,7 @@ export const sortProcessedSubtitles = (
   ),
 });
 
-export const toSubtitlesData = (
-  processed: ProcessedSubtitles,
-): SubtitlesData => {
+const toSubtitlesData = (processed: ProcessedSubtitles): SubtitlesData => {
   const subtitles = processed.subtitles.map((line) => ({
     text: line.text,
     startMs: line.startMs,

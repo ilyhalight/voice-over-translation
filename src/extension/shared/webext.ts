@@ -44,6 +44,9 @@ type WebExtNamespace = {
   declarativeNetRequest?: {
     updateSessionRules?: (...args: unknown[]) => unknown;
   };
+  permissions?: {
+    getAll?: (...args: unknown[]) => unknown;
+  };
 };
 
 const browserNamespace = (globalThis as Record<string, unknown>).browser as
@@ -207,6 +210,15 @@ export async function runtimeSendMessage<T = unknown>(
   return await callAsync<T>(
     sendMessage?.bind(api) as ((...args: unknown[]) => unknown) | undefined,
     [message],
+  );
+}
+
+export async function permissionsGetAll<
+  T = Record<string, unknown>,
+>(): Promise<T> {
+  const api = ext?.permissions;
+  return await callAsync<T>(
+    api?.getAll?.bind(api) as ((...args: unknown[]) => unknown) | undefined,
   );
 }
 

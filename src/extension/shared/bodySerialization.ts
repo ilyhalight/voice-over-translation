@@ -1,3 +1,6 @@
+import { isObjectLike, isRecord } from "#utils/guards.ts";
+import logger from "#utils/logger.ts";
+
 type FromBase64Options = {
   alphabet?: "base64" | "base64url";
   lastChunkHandling?: "loose" | "strict" | "stop-before-partial";
@@ -143,10 +146,6 @@ type SerializedBodyEnvelope = {
   mime?: unknown;
 };
 
-function isObjectLike(v: unknown): v is Record<string, unknown> {
-  return v !== null && typeof v === "object";
-}
-
 function isPlainObject(v: unknown): v is Record<string, unknown> {
   return safeObjectTag(v) === "[object Object]";
 }
@@ -247,7 +246,7 @@ function parseNonNegativeIntegerKey(key: string): number | null {
 }
 
 function isSerializedBodyEnvelope(v: unknown): v is SerializedBodyEnvelope {
-  if (!isObjectLike(v)) return false;
+  if (!isRecord(v)) return false;
   const envelope = v;
   return envelope.__votExtBody === true && typeof envelope.b64 === "string";
 }
@@ -284,7 +283,7 @@ async function tryReadBlobBody(
   if (!isObjectLike(body)) return null;
 
   try {
-    const anyBody = body as any;
+    const anyBody = body as Record<string, unknown>;
     if (typeof anyBody.arrayBuffer === "function") {
       const ab = await anyBody.arrayBuffer();
       return { ab, mime: safeStringProp(anyBody, "type") };
@@ -306,7 +305,7 @@ async function tryReadBlobBody(
 
   if (typeof Blob !== "undefined" && isBlobLike(body)) {
     try {
-      const ab = await (body as Blob).arrayBuffer();
+      const ab = await body.arrayBuffer();
       return { ab, mime: safeStringProp(body, "type") };
     } catch {
       // ignore and fall through
@@ -654,7 +653,7 @@ export async function serializeBodyForPort(body: any): Promise<SerializedBody> {
   // turning them into the opaque "[object Object]" string.
   const summary = summarizeBodyForDebug(body);
   try {
-    console.warn(
+    logger.warn(
       "[VOT Extension] Unsupported GM_xmlhttpRequest body type; coercing fallback.",
       summary,
     );
