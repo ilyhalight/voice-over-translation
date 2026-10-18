@@ -139,6 +139,7 @@
     "*://oauth.yandex.ru/verification_code*",
     "*://*.the-joi-database.com/*",
     "*://*.vhx.tv/*",
+    "*://*.boomio-cdn.com/*",
     "*://*/*.mp4*",
     "*://*/*.webm*"
   ],
