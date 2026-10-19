@@ -56,19 +56,19 @@
   <h1>voice-over-translation (<code>vot</code>)</h1>
   <p>Watch videos in other languages with voice-over translation and subtitles in <a href="./BROWSERS-EXTS-TEST.md">any browser</a></p>
 
+[![en][badge-en]][vot-readme-en]
+[![ru][badge-ru]][vot-readme-ru]
+
 [Installation](#installing-the-extension) ·
 [Development](#how-to-build-an-extension) ·
 [FAQ][vot-faq] ·
 [Supported sites][vot-supported-sites]
 
-[![en][badge-en]][vot-readme-en]
-[![ru][badge-ru]][vot-readme-ru]
-
 <a href="https://chromewebstore.google.com/detail/dnioaagdjgpcokckfpokpndoblenmfcg"><img src="./img/badges/chrome-webstore.png" alt="Install from Chrome Web Store"></a>
 <a href="https://addons.mozilla.org/firefox/addon/voice-over-translation/"><img src="./img/badges/firefox-addons.png" alt="Install from Firefox Add-ons"></a>
 <a href="https://github.com/ilyhalight/voice-over-translation/releases/latest"><img src="./img/badges/github-releases.png" alt="Install from Github Releases"></a>
 
-  <img src="./img/banner.png" alt="vot promotion banner"/>
+  <img src="./img/promo/vot-promo-en.gif" alt="vot promotion banner"/>
 </div>
 
 ---

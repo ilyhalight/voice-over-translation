@@ -56,19 +56,19 @@
   <h1>voice-over-translation (<code>vot</code>)</h1>
   <p>Смотрите видео на другом языке с закадровым переводом и субтитрами в <a href="./BROWSERS-EXTS-TEST.md">любом браузере</a></p>
 
+[![en][badge-en]][vot-readme-en]
+[![ru][badge-ru]][vot-readme-ru]
+
 [Установка](#установка-расширения) ·
 [Разработка](#как-собрать-расширение) ·
 [FAQ][vot-faq] ·
 [Поддерживаемые сайты][vot-supported-sites]
 
-[![en][badge-en]][vot-readme-en]
-[![ru][badge-ru]][vot-readme-ru]
-
 <a href="https://chromewebstore.google.com/detail/dnioaagdjgpcokckfpokpndoblenmfcg"><img src="./img/badges/chrome-webstore.png" alt="Установить из Chrome Web Store"></a>
 <a href="https://addons.mozilla.org/ru/firefox/addon/voice-over-translation/"><img src="./img/badges/firefox-addons.png" alt="Установить из Firefox Add-ons"></a>
 <a href="https://github.com/ilyhalight/voice-over-translation/releases/latest"><img src="./img/badges/github-releases.png" alt="Установить из Github Releases"></a>
 
-  <img src="./img/banner.png" alt="vot promotion banner"/>
+  <img src="./img/promo/vot-promo.gif" alt="vot promotion banner"/>
 </div>
 
 ---
