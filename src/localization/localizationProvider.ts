@@ -1,14 +1,14 @@
+import logger from "#utils/logger.ts";
 import { contentUrl } from "../config/config";
-import type { FlatPhrases, LangOverride, Phrase } from "../types/localization";
+import type { FlatPhrases, Locale, Phrase } from "../types/localization";
 import type { LocaleStorageKey } from "../types/storage";
-import debug from "../utils/debug";
-import { GM_fetch } from "../utils/gm";
+import { GM_fetch, getGMInfo } from "../utils/gm";
 import { lang } from "../utils/localization";
 import { votStorage } from "../utils/storage";
 import { getTimestamp, toFlatObj } from "../utils/utils";
 import rawDefaultLocale from "./locales/en.json";
 
-export type { LangOverride } from "../types/localization";
+export type LangOverride = Locale | "auto";
 
 const LOCALE_STORAGE_KEYS: readonly LocaleStorageKey[] = [
   "localePhrases",
@@ -36,7 +36,7 @@ const availableLocales: readonly LangOverride[] = (() => {
     : (["auto", ...locales] as LangOverride[]);
 })();
 
-export function resolveRuntimeLocaleVersion(
+function resolveRuntimeLocaleVersion(
   buildVersion: string,
   scriptVersion: string,
 ) {
@@ -46,10 +46,7 @@ export function resolveRuntimeLocaleVersion(
 function getRuntimeLocaleVersion() {
   const buildVersion =
     typeof VOT_VERSION === "undefined" ? "" : String(VOT_VERSION || "");
-  const scriptVersion =
-    typeof GM_info === "undefined"
-      ? ""
-      : String(GM_info?.script?.version || "");
+  const scriptVersion = String(getGMInfo()?.script?.version || "");
 
   return resolveRuntimeLocaleVersion(buildVersion, scriptVersion);
 }
@@ -123,7 +120,7 @@ class LocalizationProvider {
   }
 
   async checkUpdates(force = false): Promise<false | null | string> {
-    debug.log("Check locale updates...");
+    logger.log("Check locale updates...");
     try {
       const runtimeLocaleVersion = getRuntimeLocaleVersion();
       if (!force) {
@@ -157,10 +154,7 @@ class LocalizationProvider {
       const currentHash = await votStorage.get<string>("localeHash", "");
       return currentHash === nextHash ? false : nextHash;
     } catch (err) {
-      console.error(
-        "[VOT] [localizationProvider] Failed to get locales hash:",
-        err,
-      );
+      logger.error("[localizationProvider] Failed to get locales hash:", err);
       return null;
     }
   }
@@ -187,7 +181,7 @@ class LocalizationProvider {
     }
 
     const timestamp = getTimestamp();
-    debug.log("Updating locale...");
+    logger.log("Updating locale...");
     try {
       const res = await GM_fetch(
         this.buildUrl(this.localesUrl, `/${this.lang}.json`, force),
@@ -205,7 +199,7 @@ class LocalizationProvider {
         votStorage.set("localeUpdatedAt", timestamp),
       ]);
     } catch (err) {
-      console.error("[VOT] [localizationProvider] Failed to get locale:", err);
+      logger.error("[localizationProvider] Failed to get locale:", err);
       this.setLocaleFromJsonString(await votStorage.get("localePhrases", ""));
     }
 
@@ -228,7 +222,7 @@ class LocalizationProvider {
 
       this.locale = toFlatObj(locale as Record<string, unknown>);
     } catch (err) {
-      console.error("[VOT] [localizationProvider]", err);
+      logger.error("[localizationProvider]", err);
       this.locale = {};
     }
 
@@ -249,15 +243,15 @@ class LocalizationProvider {
     locale: Partial<FlatPhrases>,
     key: Phrase,
     source: "default" | "locale",
-  ) {
+  ): undefined {
     const warningKey = `${source}:${key}`;
     if (this.warnedMissingKeys.has(warningKey)) {
       return undefined;
     }
 
     this.warnedMissingKeys.add(warningKey);
-    console.warn(
-      "[VOT] [localizationProvider] locale",
+    logger.warn(
+      "[localizationProvider] locale",
       locale,
       "doesn't contain key",
       key,
@@ -286,6 +280,7 @@ class LocalizationProvider {
 }
 
 export const localizationProvider = new LocalizationProvider();
+export const t = localizationProvider.get.bind(localizationProvider);
 /**
  * In the userscript build, SystemJS wrapping allowed a top-level await.
  * For the extension build we bootstrap through loader scripts and keep the

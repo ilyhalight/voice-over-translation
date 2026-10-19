@@ -1,3 +1,6 @@
+import { isIframe } from "#utils/iframeConnector.ts";
+import logger from "#utils/logger.ts";
+
 type IframeConfig = {
   targetOrigin: string;
   dataFilter: (data: unknown) => boolean;
@@ -32,7 +35,14 @@ export function initIframeInteractor(): void {
   }
   iframeInteractorInitialized = true;
 
-  const currentConfig = IFRAME_CONFIGS[globalThis.location.origin];
+  const origin = globalThis.location.origin;
+  if (isIframe() && origin.endsWith(".boomio-cdn.com")) {
+    // get raw mp4 link for rule34video (bypass ddos-guard to access video on server)
+    globalThis.top?.postMessage(`getVideoId:${globalThis.location.href}`, "*");
+    return;
+  }
+
+  const currentConfig = IFRAME_CONFIGS[origin];
   if (!currentConfig) return;
 
   globalThis.addEventListener("message", (event) => {
@@ -52,7 +62,7 @@ export function initIframeInteractor(): void {
         currentConfig.targetOrigin,
       );
     } catch (error) {
-      console.error("Iframe communication error:", error);
+      logger.error("Iframe communication error:", error);
     }
   });
 }

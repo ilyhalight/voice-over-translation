@@ -1,6 +1,7 @@
+import { toErrorMessage } from "#utils/errors.ts";
+import logger from "#utils/logger.ts";
 import debug from "../../utils/debug";
 import {
-  type AnyObject,
   BG_MSG_NOTIFICATION,
   type BridgeWireMessage,
   isOurMessage,
@@ -10,12 +11,7 @@ import {
   TYPE_XHR_ABORT,
   TYPE_XHR_START,
 } from "../shared/constants";
-import {
-  getSameWindowPostMessageTargetOrigin,
-  isSameWindowBridgeEvent,
-  toPageMessage,
-} from "../shared/transport";
-import { asErrorMessage } from "../shared/utils";
+import { isSameWindowBridgeEvent, postToPage } from "../shared/transport";
 import { ext, runtimeSendMessage } from "../shared/webext";
 import { handleBridgeRequest } from "./request-handler";
 import { abortBridgeXhr, startBridgeXhr } from "./xhr-bridge";
@@ -25,7 +21,7 @@ const BRIDGE_BOOT_KEY = "__VOT_EXT_BRIDGE_BOOTED__";
 function injectPageModule(fileName: string): void {
   const parent = document.head ?? document.documentElement;
   if (!parent) {
-    console.error("[VOT Extension] bridge: missing document root");
+    logger.error("[VOT Extension] bridge: missing document root");
     return;
   }
 
@@ -37,21 +33,11 @@ function injectPageModule(fileName: string): void {
   script.addEventListener(
     "error",
     () => {
-      console.error(`[VOT Extension] bridge: failed to inject ${fileName}`);
+      logger.error(`[VOT Extension] bridge: failed to inject ${fileName}`);
     },
     { once: true },
   );
   parent.appendChild(script);
-}
-
-function postToPage(payload: AnyObject) {
-  const { message, transfer } = toPageMessage(payload);
-  const targetOrigin = getSameWindowPostMessageTargetOrigin();
-  if (transfer.length) {
-    globalThis.postMessage(message, targetOrigin, transfer);
-    return;
-  }
-  globalThis.postMessage(message, targetOrigin);
 }
 
 function sendResponse(
@@ -73,7 +59,7 @@ function bootstrapExtensionBridge(): void {
   bridgeGlobal[BRIDGE_BOOT_KEY] = true;
 
   if (!ext?.runtime || !ext?.storage?.local) {
-    console.warn("[VOT Extension] bridge: missing WebExtension APIs");
+    logger.warn("[VOT Extension] bridge: missing WebExtension APIs");
     return;
   }
 
@@ -124,10 +110,10 @@ function bootstrapExtensionBridge(): void {
           String(data.id ?? ""),
           false,
           undefined,
-          asErrorMessage(err),
+          toErrorMessage(err),
         );
       } else {
-        console.error("[VOT Extension] bridge error", err);
+        logger.error("[VOT Extension] bridge error", err);
       }
     }
   });

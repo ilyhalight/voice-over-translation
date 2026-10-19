@@ -1,6 +1,5 @@
-﻿import type { Direction, Position } from "../types/components/votButton";
-import type { ButtonLayout } from "../types/uiManager";
-import { clampNumber } from "../utils/number";
+import type { Direction, Position } from "../types/components/votButton";
+import { clamp } from "../utils/number";
 
 const SIDE_EDGE_FRACTION = 0.18;
 const SIDE_TOP_FRACTION = 0.36;
@@ -38,29 +37,13 @@ export function getButtonDirection(position: Position): Direction {
   return isSideButtonPosition(position) ? "column" : "row";
 }
 
-export function resolveButtonLayout(
-  isBigContainer: boolean,
-  preferredPosition: string | undefined = "default",
-): ButtonLayout {
-  const normalizedPosition = normalizeButtonPosition(preferredPosition);
-  const position =
-    isBigContainer || !isSideButtonPosition(normalizedPosition)
-      ? normalizedPosition
-      : "default";
-
-  return {
-    position,
-    direction: getButtonDirection(position),
-  };
-}
-
 function getEdgeSize(
   size: number,
   fraction: number,
   minPx: number,
   maxPx: number,
 ): number {
-  return clampNumber(size * fraction, minPx, maxPx);
+  return clamp(size * fraction, minPx, maxPx);
 }
 
 function resolveSideVerticalPosition(
@@ -84,7 +67,6 @@ export function resolveButtonPositionFromPointer(
   clientX: number,
   clientY: number,
   containerRect: DOMRect,
-  isBigContainer: boolean,
 ): Position {
   const width = containerRect.width;
   const height = containerRect.height;
@@ -92,12 +74,8 @@ export function resolveButtonPositionFromPointer(
     return "default";
   }
 
-  const x = clampNumber(clientX - containerRect.left, 0, width);
-  const y = clampNumber(clientY - containerRect.top, 0, height);
-  if (!isBigContainer) {
-    return "default";
-  }
-
+  const x = clamp(clientX - containerRect.left, 0, width);
+  const y = clamp(clientY - containerRect.top, 0, height);
   const sideEdge = getEdgeSize(
     width,
     SIDE_EDGE_FRACTION,

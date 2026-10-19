@@ -1,4 +1,4 @@
-import { clampNumber } from "./number";
+import { clamp } from "./number";
 
 /**
  * Volume utilities.
@@ -17,7 +17,7 @@ export const VIDEO_VOLUME_STEP_01 = 0.01;
 const EPS = 1e-6;
 
 export function clampInt(value: number, min: number, max: number): number {
-  return Math.trunc(clampNumber(value, min, max));
+  return Math.trunc(clamp(value, min, max));
 }
 
 export function clampPercentInt(
@@ -30,8 +30,7 @@ export function clampPercentInt(
 }
 
 export function volume01ToPercent(volume01: number): number {
-  const v = clampNumber(volume01, 0, 1);
-  return clampPercentInt(v * 100);
+  return Math.round(clamp(volume01, 0, 1) * 100);
 }
 
 export function percentToVolume01(percent: number): number {
@@ -64,9 +63,9 @@ export function snapVolume01(
   direction: QuantizeDirection = "nearest",
   step = VIDEO_VOLUME_STEP_01,
 ): number {
-  const clamped = clampNumber(volume01, 0, 1);
+  const clamped = clamp(volume01, 0, 1);
   const quantized = quantizeToStep(clamped, step, direction);
-  return clampNumber(quantized, 0, 1);
+  return clamp(quantized, 0, 1);
 }
 
 export function snapVolume01Towards(
@@ -75,8 +74,8 @@ export function snapVolume01Towards(
   desired: number,
   step = VIDEO_VOLUME_STEP_01,
 ): number {
-  const cur = clampNumber(current, 0, 1);
-  const des = clampNumber(desired, 0, 1);
+  const cur = clamp(current, 0, 1);
+  const des = clamp(desired, 0, 1);
 
   if (des < cur) {
     const q = snapVolume01(next, "down", step);

@@ -1,4 +1,7 @@
 .output
+.amo-upload-uuid
+src/audioDownloader/MAPPINGS.md
+src/audioDownloader/VM*.js
 
 keys/
 
@@ -6,10 +9,16 @@ dist/test-ui.user.js
 dist/*.txt
 dist/*.map
 dist/main.user.js
+dist/*.css
 dist-ext/chrome/
 dist-ext/firefox/
+dist-ext/vot-extension-chrome.zip
+dist-ext/vot-extension-firefox.xpi
+
 
 .vscode
+!.vscode/i18n-ally-custom-framework.yml
+!.vscode/extensions.json
 .pytest_cache
 .husky
 
@@ -146,3 +155,7 @@ dist/*.proxy.user.js
 .pnp.*
 
 .idea
+
+*storybook.log
+storybook-static
+.fallow/

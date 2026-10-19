@@ -122,12 +122,12 @@ async function requestSafariPagePoTokenLocal(
   signal.throwIfAborted();
 
   if (!installSafariPageBridge()) {
-    debug.error("[VOT][PO_TOKEN] Safari page bridge injection failed");
+    debug.error("[PO_TOKEN] Safari page bridge injection failed");
     return undefined;
   }
 
   const requestId = crypto.randomUUID();
-  debug.log("[VOT][PO_TOKEN] trying Safari page-realm bridge", {
+  debug.log("[PO_TOKEN] trying Safari page-realm bridge", {
     bindingLength: binding.length,
   });
 
@@ -163,7 +163,7 @@ async function requestSafariPagePoTokenLocal(
         return;
       }
       if (detail.error) {
-        debug.error("[VOT][PO_TOKEN] Safari page-realm mint failed", {
+        debug.error("[PO_TOKEN] Safari page-realm mint failed", {
           message: detail.error,
         });
       }
@@ -218,7 +218,7 @@ export function initSafariPagePoTokenBroker(): void {
         );
       });
   });
-  debug.log("[VOT][PO_TOKEN] top player token broker installed");
+  debug.log("[PO_TOKEN] top player token broker installed");
 }
 
 async function requestTopSafariPagePoToken(
@@ -226,7 +226,7 @@ async function requestTopSafariPagePoToken(
   signal: AbortSignal,
 ): Promise<string | undefined> {
   const requestId = crypto.randomUUID();
-  debug.log("[VOT][PO_TOKEN] requesting token from top YouTube player", {
+  debug.log("[PO_TOKEN] requesting token from top YouTube player", {
     bindingLength: binding.length,
   });
   return await new Promise<string | undefined>((resolve, reject) => {
@@ -256,13 +256,13 @@ async function requestTopSafariPagePoToken(
       if (data?.type !== TOP_RESPONSE_MESSAGE || data.requestId !== requestId)
         return;
       if (typeof data.token === "string" && data.token) {
-        debug.log("[VOT][PO_TOKEN] token received from top YouTube player", {
+        debug.log("[PO_TOKEN] token received from top YouTube player", {
           tokenLength: data.token.length,
         });
         finish(data.token);
       } else {
         if (data.error)
-          debug.error("[VOT][PO_TOKEN] top player token mint failed", {
+          debug.error("[PO_TOKEN] top player token mint failed", {
             message: data.error,
           });
         finish(undefined);

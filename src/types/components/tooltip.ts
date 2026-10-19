@@ -34,7 +34,6 @@ export type TooltipOpts = {
    * @default undefined (equal to anchor)
    */
   edgeAnchor?: HTMLElement;
-  content?: string | HTMLElement;
   position?: Position;
   trigger?: Trigger;
   /**

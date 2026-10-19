@@ -1,4 +1,4 @@
-﻿import { proxyWorkerHost } from "../../config/config";
+﻿import { PROXY_WORKER_HOST } from "../../config/config";
 
 const AUDIO_SOURCE_PREFIX =
   "https://vtrans.s3-private.mds.yandex.net/tts/prod/";
@@ -14,14 +14,14 @@ export type ProxyConfig = {
 };
 
 export function resolveProxyWorkerHost(host?: string | null): string {
-  return host ?? proxyWorkerHost;
+  return host ?? PROXY_WORKER_HOST;
 }
 
 export function isProxyClientEnabled(config: ProxyConfig): boolean {
   return Boolean(config.translateProxyEnabled);
 }
 
-export function isProxyRoutingEnabled(config: ProxyConfig): boolean {
+function isProxyRoutingEnabled(config: ProxyConfig): boolean {
   return config.translateProxyEnabled === 2;
 }
 

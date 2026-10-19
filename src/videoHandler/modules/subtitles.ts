@@ -1,10 +1,16 @@
 import YoutubeHelper from "@vot.js/ext/helpers/youtube";
+import logger from "#utils/logger.ts";
 import { localizationProvider } from "../../localization/localizationProvider";
-import { SubtitlesProcessor } from "../../subtitles/processor";
+import { captureException } from "../../modules/telemetry/client";
+import { getTranslationTags } from "../../modules/telemetry/context";
+import {
+  SubtitlesProcessor,
+  SubtitlesRequestError,
+} from "../../subtitles/processor";
 import type {
   SubtitleDescriptor,
   VideoDataForSubtitles,
-} from "../../subtitles/types";
+} from "../../types/subtitles";
 import debug from "../../utils/debug";
 import type { VideoHandler } from "../../VideoHandler";
 import { proxifyYandexSubtitlesUrl } from "./proxyShared";
@@ -12,7 +18,6 @@ import {
   buildSubtitlesSelectOptions,
   DISABLED_SUBTITLES_VALUE,
   getIndexedSubtitleDescriptors,
-  getSelectedSubtitlesValue,
   getSubtitleDescriptorAtIndex,
   parseSubtitlesOptionIndex,
   pickBestSubtitlesIndex,
@@ -36,24 +41,9 @@ function getPreferredSubtitlesLanguage(
   );
 }
 
-function getCacheDetectedLanguage(handler: VideoHandler): string | undefined {
-  const videoData = handler.videoData;
-  const detectedLanguage = videoData?.detectedLanguage?.toLowerCase();
-  if (detectedLanguage && detectedLanguage !== "auto") {
-    return detectedLanguage;
-  }
-
-  return videoData?.responseLanguage?.toLowerCase() ?? handler.translateToLang;
-}
-
 function getCurrentSubtitlesCacheKey(handler: VideoHandler): string | null {
   const videoData = handler.videoData;
   if (!videoData?.videoId) {
-    return null;
-  }
-
-  const detectedLanguage = getCacheDetectedLanguage(handler);
-  if (!detectedLanguage) {
     return null;
   }
 
@@ -64,7 +54,7 @@ function getCurrentSubtitlesCacheKey(handler: VideoHandler): string | null {
 
   return handler.getSubtitlesCacheKey(
     videoData.videoId,
-    detectedLanguage,
+    videoData.detectedLanguage,
     subtitleLanguage,
   );
 }
@@ -144,11 +134,13 @@ function clearSelectedSubtitles(
   handler: VideoHandler,
   overlayView: NonNullable<VideoHandler["uiManager"]["votOverlayView"]>,
 ): VideoHandler {
+  overlayView.overlayViewControls?.setSelectedSubtitles(
+    DISABLED_SUBTITLES_VALUE,
+  );
   if (handler.hasSubtitlesWidget()) {
     handler.subtitlesWidget?.setContent(null);
   }
-  overlayView.downloadSubtitlesButton.hidden = true;
-  overlayView.syncSubtitlesButtonState(false);
+  overlayView.overlayViewControls?.setShowDownloadSubtitles(false);
   handler.yandexSubtitles = null;
   return handler;
 }
@@ -160,14 +152,14 @@ export async function changeSubtitlesLang(
   debug.log("[onchange] subtitles", subs);
   const requestVersion = nextSubtitlesSelectionRequestVersion(this);
   const overlayView = this.uiManager.votOverlayView;
-  if (!overlayView?.subtitlesSelect || !overlayView.downloadSubtitlesButton) {
+  const overlayViewControls = overlayView?.overlayViewControls;
+  if (!overlayViewControls) {
     return this;
   }
-  overlayView.subtitlesSelect.setSelectedValue(subs);
-  overlayView.syncSubtitlesButtonState(subs !== DISABLED_SUBTITLES_VALUE);
   if (subs === DISABLED_SUBTITLES_VALUE) {
     return clearSelectedSubtitles(this, overlayView);
   }
+  overlayViewControls.setSelectedSubtitles(subs);
 
   const subtitlesIndex = parseSubtitlesOptionIndex(subs);
   if (subtitlesIndex == null) {
@@ -182,6 +174,9 @@ export async function changeSubtitlesLang(
     return clearSelectedSubtitles(this, overlayView);
   }
 
+  await this.ensureProxySettingsResolved();
+  if (!isCurrentSubtitlesSelectionRequest(this, requestVersion)) return this;
+
   let subtitlesObj: SubtitleDescriptor = { ...descriptor };
   const proxiedSubtitlesUrl = proxifyYandexSubtitlesUrl(subtitlesObj.url, {
     translateProxyEnabled: this.data?.translateProxyEnabled,
@@ -192,11 +187,13 @@ export async function changeSubtitlesLang(
       ...subtitlesObj,
       url: proxiedSubtitlesUrl,
     };
-    debug.log(`[VOT] Subs proxied via ${subtitlesObj.url}`);
+    logger.log(`Subs proxied via ${subtitlesObj.url}`);
   }
 
-  const fetchedSubtitles =
-    await SubtitlesProcessor.fetchSubtitles(subtitlesObj);
+  const fetchedSubtitles = await SubtitlesProcessor.fetchSubtitles(
+    subtitlesObj,
+    { dedupeKey: this.videoData?.videoId, tags: getTranslationTags(this) },
+  );
   if (!isCurrentSubtitlesSelectionRequest(this, requestVersion)) {
     return this;
   }
@@ -206,20 +203,20 @@ export async function changeSubtitlesLang(
     this.yandexSubtitles,
     subtitlesObj.language,
   );
-  overlayView.downloadSubtitlesButton.hidden = false;
-  overlayView.syncSubtitlesButtonState(true);
+  overlayViewControls.setShowDownloadSubtitles(true);
   return this;
 }
 
 export async function updateSubtitlesLangSelect(this: VideoHandler) {
   const overlayView = this.uiManager.votOverlayView;
-  if (!overlayView?.subtitlesSelect) {
+  const overlayViewControls = overlayView?.overlayViewControls;
+  if (!overlayViewControls) {
     return;
   }
 
   const subtitleDescriptors = getIndexedSubtitleDescriptors(this.subtitles);
   const updatedOptions = buildSubtitlesSelectOptions(subtitleDescriptors);
-  overlayView.subtitlesSelect.updateItems(updatedOptions);
+  overlayViewControls.setSubtitlesOptions(updatedOptions);
   await this.changeSubtitlesLang(DISABLED_SUBTITLES_VALUE);
 }
 
@@ -264,7 +261,8 @@ export async function ensureSubtitlesForCurrentLangPair(this: VideoHandler) {
  */
 export async function enableSubtitlesForCurrentLangPair(this: VideoHandler) {
   const overlayView = this.uiManager.votOverlayView;
-  if (!overlayView?.subtitlesSelect) return this;
+  const overlayViewControls = overlayView?.overlayViewControls;
+  if (!overlayViewControls) return this;
 
   try {
     await ensureSubtitlesForCurrentLangPair.call(this);
@@ -290,9 +288,7 @@ export async function enableSubtitlesForCurrentLangPair(this: VideoHandler) {
   }
 
   // If the currently selected subtitles already match the chosen track, do nothing.
-  const currentValue = getSelectedSubtitlesValue(
-    overlayView.subtitlesSelect.selectedValues,
-  );
+  const currentValue = overlayViewControls.getSelectedSubtitles();
   if (currentValue === String(bestIdx)) {
     return this;
   }
@@ -325,11 +321,10 @@ export async function refreshAutoSubtitlesForCurrentLangPair(
  */
 export async function toggleSubtitlesForCurrentLangPair(this: VideoHandler) {
   const overlayView = this.uiManager.votOverlayView;
-  if (!overlayView?.subtitlesSelect) return this;
+  const overlayViewControls = overlayView?.overlayViewControls;
+  if (!overlayViewControls) return this;
 
-  const currentValue = getSelectedSubtitlesValue(
-    overlayView.subtitlesSelect.selectedValues,
-  );
+  const currentValue = overlayViewControls.getSelectedSubtitles();
 
   if (currentValue && currentValue !== DISABLED_SUBTITLES_VALUE) {
     await this.changeSubtitlesLang(DISABLED_SUBTITLES_VALUE);
@@ -342,9 +337,7 @@ export async function toggleSubtitlesForCurrentLangPair(this: VideoHandler) {
 
 export async function loadSubtitles(this: VideoHandler) {
   if (!this.videoData?.videoId) {
-    console.error(
-      `[VOT] ${localizationProvider.getDefault("VOTNoVideoIDFound")}`,
-    );
+    logger.error(localizationProvider.getDefault("VOTNoVideoIDFound"));
     this.subtitles = [];
     this.subtitlesCacheKey = null;
     return;
@@ -366,6 +359,7 @@ export async function loadSubtitles(this: VideoHandler) {
   try {
     let cachedSubs = this.cacheManager.getSubtitles(cacheKey);
     if (!cachedSubs) {
+      await this.ensureProxySettingsResolved();
       // Deduplicate concurrent requests for the same key (e.g. when user spams
       // the subtitles hotkey before the first request resolves).
       let inflight = this.subtitlesLoadPromises.get(cacheKey);
@@ -395,8 +389,24 @@ export async function loadSubtitles(this: VideoHandler) {
     this.subtitles = Array.isArray(cachedSubs) ? cachedSubs : [];
     this.subtitlesCacheKey = cacheKey;
   } catch (error) {
-    console.error("[VOT] Failed to load subtitles:", error);
-    this.subtitles = [];
+    logger.error("Failed to load subtitles:", error);
+    captureException(error, {
+      source: "subtitles",
+      operation: "fetchSubtitleList",
+      dedupeKey: this.videoData?.videoId,
+      tags: {
+        ...getTranslationTags(this),
+        ...(error instanceof SubtitlesRequestError && {
+          subtitles_source: "yandex",
+        }),
+      },
+    });
+    // The Yandex request failed (e.g. timeout), but the site's own subtitles
+    // don't depend on it, so keep them instead of dropping everything. The
+    // cache key is left unset on purpose: the degraded list isn't cached, so
+    // the next attempt can still pick up the Yandex tracks.
+    this.subtitles =
+      error instanceof SubtitlesRequestError ? error.fallbackSubtitles : [];
     this.subtitlesCacheKey = null;
   }
   await this.updateSubtitlesLangSelect();

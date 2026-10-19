@@ -1,5 +1,8 @@
 import type { ServiceConf } from "@vot.js/ext/types/service";
 import { getVideoID } from "@vot.js/ext/utils/videoData";
+import logger from "#utils/logger.ts";
+import { captureException } from "../modules/telemetry/client";
+import { getTranslationTags } from "../modules/telemetry/context";
 import { GM_fetch } from "../utils/gm";
 import type { VideoObserver } from "../utils/VideoObserver";
 
@@ -40,6 +43,20 @@ type SiteContainerMatch = {
 };
 
 const boundObservers = new WeakSet<VideoObserver>();
+
+function reportInitError(
+  error: unknown,
+  operation: string,
+  videoHandler?: VideoHandlerLike,
+): void {
+  captureException(error, {
+    source: "init",
+    operation,
+    dedupeKey: videoHandler?.videoData?.videoId,
+    tags: videoHandler && getTranslationTags({ site: videoHandler.site }),
+  });
+}
+
 const RUNTIME_URL_HOSTS = new Set(["peertube", "directlink"]);
 
 export function bindObserverListeners(
@@ -87,7 +104,8 @@ export function bindObserverListeners(
     try {
       await videoHandler.release();
     } catch (error) {
-      console.error(`[VOT] Failed to release videoHandler (${reason})`, error);
+      logger.error(`Failed to release videoHandler (${reason})`, error);
+      reportInitError(error, "release", videoHandler);
     } finally {
       if (videosWrappers.get(video) === videoHandler) {
         videosWrappers.delete(video);
@@ -130,7 +148,8 @@ export function bindObserverListeners(
       if (nextVideoId !== previousVideoId) return false;
       await videoHandler.replaceVideo(newVideo);
     } catch (error) {
-      console.error("[VOT] Failed to replace video element", error);
+      logger.error("Failed to replace video element", error);
+      reportInitError(error, "replaceVideo", videoHandler);
       return false;
     }
 
@@ -210,7 +229,8 @@ export function bindObserverListeners(
         try {
           await videoHandler.setCanPlay();
         } catch (err) {
-          console.error("[VOT] Failed to get video data", err);
+          logger.error("Failed to get video data", err);
+          reportInitError(err, "setCanPlay", videoHandler);
         }
       } catch (err) {
         if (videosWrappers.get(video) === videoHandler) {
@@ -221,7 +241,8 @@ export function bindObserverListeners(
           }
           await promotePendingVideo(container);
         }
-        console.error("[VOT] Failed to initialize videoHandler", err);
+        logger.error("Failed to initialize videoHandler", err);
+        reportInitError(err, "initVideoHandler", videoHandler);
       }
     } finally {
       initializingVideos.delete(video);
@@ -233,7 +254,8 @@ export function bindObserverListeners(
       await ensureRuntimeActivated("video-detected");
       return true;
     } catch (err) {
-      console.error("[VOT] Failed to activate runtime", err);
+      logger.error("Failed to activate runtime", err);
+      reportInitError(err, "activateRuntime");
       return false;
     }
   };

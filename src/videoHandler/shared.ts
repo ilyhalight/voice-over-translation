@@ -1,12 +1,8 @@
-export type {
-  VideoData,
-  VideoData as RuntimeVideoData,
-} from "../types/videoHandler";
+import logger from "#utils/logger.ts";
+import { GM_fetch } from "../utils/gm";
 
-/**
- * Country code used for proxy settings. Populated lazily during init.
- */
 let _countryCode: string | undefined;
+let countryCodeRequest: Promise<void> | undefined;
 
 export function getCountryCode(): string | undefined {
   return _countryCode;
@@ -14,4 +10,29 @@ export function getCountryCode(): string | undefined {
 
 export function setCountryCode(next: string | undefined) {
   _countryCode = next;
+}
+
+export function ensureCountryCode(): Promise<void> {
+  if (getCountryCode()) {
+    return Promise.resolve();
+  }
+
+  countryCodeRequest ??= (async () => {
+    try {
+      const response = await GM_fetch(
+        "https://cloudflare-dns.com/cdn-cgi/trace",
+        {
+          timeout: 7000,
+        },
+      );
+      const trace = await response.text();
+      const loc = trace.split("\n").find((line) => line.startsWith("loc="));
+      setCountryCode(loc?.slice(4, 6).toUpperCase());
+    } catch (err) {
+      logger.error("Error getting country:", err);
+    }
+  })().finally(() => {
+    countryCodeRequest = undefined;
+  });
+  return countryCodeRequest;
 }

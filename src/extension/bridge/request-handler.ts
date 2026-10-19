@@ -1,4 +1,4 @@
-import type { AnyObject } from "../shared/constants";
+import { type AnyObject, BG_MSG_TELEMETRY_CONSENT } from "../shared/constants";
 import { ext, runtimeSendMessage } from "../shared/webext";
 
 const GM_STORAGE_MESSAGE_TYPE = "gm_storage";
@@ -35,6 +35,13 @@ export async function handleBridgeRequest(
   payload: AnyObject,
 ): Promise<unknown> {
   switch (action) {
+    case BG_MSG_TELEMETRY_CONSENT: {
+      const response = await sendBridgeRuntimeMessage<{
+        ok?: boolean;
+        result?: unknown;
+      }>({ type: BG_MSG_TELEMETRY_CONSENT });
+      return response?.ok === true && response.result === true;
+    }
     case "handshake": {
       const manifest = ext?.runtime?.getManifest?.() ?? {};
       const id = ext?.runtime?.id ?? null;

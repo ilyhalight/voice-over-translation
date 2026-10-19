@@ -106,6 +106,7 @@ describe("fatal audio upload failure keeps preparing source", () => {
       getRequestLangForTranslation: () => "en",
       isLivelyVoiceAllowed: () => false,
       isYouTubeHosts: () => true,
+      ensureProxySettingsResolved: async () => undefined,
       updateTranslationErrorMsg: async (message: unknown) => {
         errorArgs.push(message);
       },
@@ -291,6 +292,7 @@ describe("fatal audio upload failure keeps preparing source", () => {
       getRequestLangForTranslation: () => "en",
       isLivelyVoiceAllowed: () => false,
       isYouTubeHosts: () => true,
+      ensureProxySettingsResolved: async () => undefined,
       updateTranslationErrorMsg: async () => undefined,
       hadAsyncWait: false,
       notifier: { translationFailed: () => undefined },
@@ -423,6 +425,7 @@ describe("fatal audio upload failure keeps preparing source", () => {
       getRequestLangForTranslation: () => "en",
       isLivelyVoiceAllowed: () => false,
       isYouTubeHosts: () => true,
+      ensureProxySettingsResolved: async () => undefined,
       updateTranslationErrorMsg: async () => undefined,
       hadAsyncWait: false,
       notifier: { translationFailed: () => undefined },

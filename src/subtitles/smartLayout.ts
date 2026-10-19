@@ -1,4 +1,4 @@
-﻿import { clampNumber } from "../utils/number";
+import { clamp } from "../utils/number";
 
 export type SmartLayoutBox = {
   w: number;
@@ -14,8 +14,6 @@ export type SmartLayoutResult = {
   fontSizePx: number;
   maxWidthPx: number | null;
 };
-
-const roundToInt = (value: number): number => Math.round(value);
 
 const resolveAspectBand = (
   aspect: number,
@@ -110,22 +108,18 @@ export function computeSmartLayoutForBox(
     resolveAspectBand(aspect);
   const { extraChars, widthScale } = resolveWidthBoost(width);
 
-  const derivedFontSizePx = clampNumber(height * fontHeightRatio, 16, 42);
+  const derivedFontSizePx = clamp(height * fontHeightRatio, 16, 42);
   const fontSizePx = cssMetrics?.fontSizePx ?? derivedFontSizePx;
   const averageGlyphWidth = estimateAverageGlyphWidth(fontSizePx);
 
   const minWidthPx = width * Math.min(0.92, widthRatio);
-  const maxWidthPx = width * clampNumber(widthRatio * widthScale, 0.66, 0.92);
-  const preferredCharsPerLine = clampNumber(charsPerLine + extraChars, 25, 48);
+  const maxWidthPx = width * clamp(widthRatio * widthScale, 0.66, 0.92);
+  const preferredCharsPerLine = clamp(charsPerLine + extraChars, 25, 48);
   const widthFromChars = preferredCharsPerLine * averageGlyphWidth;
-  const resolvedMaxWidthPx = clampNumber(
-    widthFromChars,
-    minWidthPx,
-    maxWidthPx,
-  );
+  const resolvedMaxWidthPx = clamp(widthFromChars, minWidthPx, maxWidthPx);
 
   return {
     fontSizePx,
-    maxWidthPx: roundToInt(resolvedMaxWidthPx),
+    maxWidthPx: Math.round(resolvedMaxWidthPx),
   };
 }

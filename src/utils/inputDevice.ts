@@ -1,4 +1,4 @@
-function matchesMedia(query: string): boolean {
+export function matchesMedia(query: string): boolean {
   try {
     return (
       typeof globalThis.matchMedia === "function" &&

@@ -1,24 +1,33 @@
 import {
   type TranslatedVideoTranslationResponse,
-  type TranslationHelp,
+  type VideoTranslationHelp,
   type VideoTranslationResponse,
   VideoTranslationStatus,
-} from "@vot.js/core/types/yandex";
+} from "@vot.js/core/types/providers/yandex";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
+import logger from "#utils/logger.ts";
 import { AudioDownloader } from "../audioDownloader";
 import { STREAM_TIMEOUT_MS } from "../audioDownloader/strategies/webAudioBridge";
-import { localizationProvider } from "../localization/localizationProvider";
+import { t } from "../localization/localizationProvider";
+import { openAuthWindow } from "../modules/auth/window";
+import { captureException } from "../modules/telemetry/client";
+import {
+  getAudioFailureTags,
+  getTranslationTags,
+} from "../modules/telemetry/context";
+import { deleteAccount } from "../stores/account";
 import type {
   DownloadedAudioData,
   DownloadedPartialAudioData,
 } from "../types/audioDownloader";
+import type { VideoData } from "../types/videoHandler";
 import {
   createAbortableDelay,
   createAbortableWaiter,
   NEVER_ABORTED_SIGNAL,
   throwIfAborted,
 } from "../utils/abort";
-import { deleteAccount, hasAccountToken } from "../utils/account";
+import { hasAccountToken } from "../utils/account";
 import debug from "../utils/debug";
 import {
   getErrorMessage,
@@ -28,8 +37,6 @@ import {
 } from "../utils/errors";
 import type { VideoHandler } from "../VideoHandler";
 import VOTLocalizedError from "../VOTLocalizedError";
-import type { VideoData } from "../videoHandler/shared";
-import { openAuthWindow } from "./authWindow";
 import {
   getTranslationAuthErrorKind,
   getTranslationServerErrorMessage,
@@ -100,6 +107,8 @@ function mapVotClientErrorForUi(
 type TranslateVideoImplOptions = {
   disableLivelyVoice?: boolean;
   retryAttempt?: number;
+  /** Called after the backend confirms the translation is still preparing. */
+  onTranslationWaiting?: () => void;
 };
 
 function summarizeTranslationResponse(
@@ -264,6 +273,7 @@ export class VOTTranslationHandler {
         return;
       }
       debug.error("Failed to upload downloaded audio", error);
+      this.reportAudioFailure(error, "uploadAudio", "upload", videoId);
       this.finishDownloadFailure(
         error instanceof Error
           ? error
@@ -301,7 +311,7 @@ export class VOTTranslationHandler {
       resume.fileId === fileId &&
       index <= resume.lastSuccessfulChunkId
     ) {
-      debug.log("[VOT][AudioUpload] skipping already uploaded chunk", {
+      debug.log("[AudioUpload] skipping already uploaded chunk", {
         videoId,
         fileId,
         chunkId: index,
@@ -339,7 +349,7 @@ export class VOTTranslationHandler {
       if (isAbortError(error) && signal.aborted) {
         return;
       }
-      debug.error("[VOT][AudioUpload] chunk PUT failed after all retries", {
+      debug.error("[AudioUpload] chunk PUT failed after all retries", {
         videoId,
         fileId,
         chunkId: index,
@@ -347,6 +357,7 @@ export class VOTTranslationHandler {
         bytes: audioData.byteLength,
         error,
       });
+      this.reportAudioFailure(error, "uploadAudio", "upload", videoId);
       this.uploadResumeState = {
         videoId,
         fileId,
@@ -385,7 +396,7 @@ export class VOTTranslationHandler {
     }
     const runId = this.audioRunSeq;
 
-    debug.error("[VOT][AudioDownload] failed to download audio from source", {
+    debug.error("[AudioDownload] failed to download audio from source", {
       videoId,
     });
     const videoUrl = this.getCanonicalUrl(videoId);
@@ -431,12 +442,37 @@ export class VOTTranslationHandler {
       this.finishDownloadSuccess(runId);
     } catch (error) {
       debug.error("fail-audio-js request failed", error);
+      this.reportAudioFailure(
+        error,
+        "uploadFallbackAudio",
+        "fallback",
+        videoId,
+      );
       this.finishDownloadFailure(
         new VOTLocalizedError("VOTFailedDownloadAudio"),
         runId,
       );
     }
   };
+
+  private reportAudioFailure(
+    error: unknown,
+    operation: string,
+    stage: string,
+    videoId: string,
+  ): void {
+    captureException(error, {
+      source: "audio",
+      operation,
+      dedupeKey: videoId,
+      // Upload errors can embed request urls and ids.
+      redactedMessage: "Audio request failed",
+      tags: {
+        ...getTranslationTags(this.videoHandler),
+        ...getAudioFailureTags(error, stage),
+      },
+    });
+  }
 
   private finishDownloadSuccess(runId?: number) {
     if (runId !== undefined && runId !== this.audioRunSeq) return;
@@ -484,7 +520,7 @@ export class VOTTranslationHandler {
           code?: unknown;
           message?: unknown;
         };
-        debug.error("[VOT][AudioUpload] PUT attempt failed", {
+        debug.error("[AudioUpload] PUT attempt failed", {
           attempt: attempt + 1,
           totalAttempts: maxRetries + 1,
           status: details?.status,
@@ -495,7 +531,7 @@ export class VOTTranslationHandler {
           throw error;
         }
         debug.log(
-          `[VOT][AudioUpload] retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`,
+          `[AudioUpload] retry ${attempt + 1}/${maxRetries} after ${delayMs}ms`,
         );
         await createAbortableDelay(delayMs, signal);
       }
@@ -560,9 +596,9 @@ export class VOTTranslationHandler {
 
     if (uiError.unlocalizedMessage === "VOTYandexTokenExpired") {
       await deleteAccount(this.videoHandler);
-      openAuthWindow();
+      await openAuthWindow();
     } else if (uiError.unlocalizedMessage === "VOTAccountRequired") {
-      openAuthWindow();
+      await openAuthWindow();
     }
   }
 
@@ -570,7 +606,7 @@ export class VOTTranslationHandler {
     videoData: VideoData,
     requestLang: RequestLang,
     responseLang: ResponseLang,
-    translationHelp: TranslationHelp[] | null = null,
+    translationHelp: VideoTranslationHelp[] | null = null,
     shouldSendFailedAudio = false,
     signal = NEVER_ABORTED_SIGNAL,
     options: TranslateVideoImplOptions = {},
@@ -595,15 +631,17 @@ export class VOTTranslationHandler {
       shouldSendFailedAudio,
       translationHelpCount: translationHelp?.length ?? 0,
     });
-    debug.log(
-      videoData,
+    logger.log(
       `Translate video (requestLang: ${requestLang}, requestLangForApi: ${requestLangForApi}, responseLang: ${responseLang})`,
+      videoData,
     );
 
     let livelyDisabled = disableLivelyVoice;
     let translationResponse: VideoTranslationResponse | undefined;
 
     try {
+      throwIfAborted(signal);
+      await this.videoHandler.ensureProxySettingsResolved();
       throwIfAborted(signal);
 
       const livelyVoiceAllowed = this.videoHandler.isLivelyVoiceAllowed(
@@ -649,7 +687,7 @@ export class VOTTranslationHandler {
 
       if (res.translated && res.remainingTime < 1) {
         this.etaCountdown.stop();
-        debug.log("[Translation] translation finished", {
+        logger.log("[Translation] translation finished", {
           videoId: videoData.videoId,
           useLivelyVoice,
           ...summarizeTranslationResponse(res),
@@ -657,15 +695,18 @@ export class VOTTranslationHandler {
         return { ...res, usedLivelyVoice: useLivelyVoice };
       }
 
-      const message =
-        res.message ?? localizationProvider.get("translationTakeFewMinutes");
-      debug.log("[Translation] translation still processing", {
+      const message = res.message ?? t("translationTakeFewMinutes");
+      logger.log("[Translation] translation still processing", {
         videoId: videoData.videoId,
         useLivelyVoice,
         ...summarizeTranslationResponse(res),
         message,
       });
       if (res.remainingTime > 0) {
+        // Backend confirmed the translation is not ready yet. Notify the caller
+        // now (after the real response) so it can pause, instead of doing it
+        // before the first request.
+        options.onTranslationWaiting?.();
         await this.etaCountdown.sync(res.remainingTime, signal, {
           countLongWaitOnFirstRender: true,
         });
@@ -691,7 +732,7 @@ export class VOTTranslationHandler {
           videoData.videoId,
         );
 
-        debug.log("[Translation] waiting for audio download completion", {
+        logger.log("[Translation] waiting for audio download completion", {
           videoId: videoData.videoId,
           translationId: res.translationId,
           timeoutMs: STREAM_TIMEOUT_MS,
@@ -731,6 +772,7 @@ export class VOTTranslationHandler {
           {
             disableLivelyVoice: livelyDisabled,
             retryAttempt,
+            onTranslationWaiting: options.onTranslationWaiting,
           },
         );
       }
@@ -749,12 +791,29 @@ export class VOTTranslationHandler {
         err,
         hasAccountToken(this.videoHandler.data?.account),
       );
-      debug.error("[Translation] translation failed", {
+      logger.error("[Translation] translation failed", {
         videoId: videoData.videoId,
         retryAttempt,
         error: err,
         mappedError: uiError,
       });
+      // Report the original error: the UI mapping hides server and transport
+      // failures behind a generic localized message. Auth states are expected.
+      if (
+        !isTranslationAuthError(err, {
+          hasAccountToken: hasAccountToken(this.videoHandler.data?.account),
+        })
+      ) {
+        captureException(err, {
+          source: "translation",
+          operation: "translateVideo",
+          dedupeKey: videoData.videoId,
+          tags: getTranslationTags(this.videoHandler, {
+            from: requestLang,
+            to: responseLang,
+          }),
+        });
+      }
 
       await this.handleTranslationUiError(uiError);
 
@@ -808,6 +867,7 @@ export class VOTTranslationHandler {
           {
             disableLivelyVoice: livelyDisabled,
             retryAttempt: retryAttempt + 1,
+            onTranslationWaiting: options.onTranslationWaiting,
           },
         ),
       retryDelayMs,
@@ -831,7 +891,7 @@ export class VOTTranslationHandler {
     videoData: VideoData;
     requestLangForApi: RequestLang;
     responseLang: ResponseLang;
-    translationHelp: TranslationHelp[] | null;
+    translationHelp: VideoTranslationHelp[] | null;
     shouldSendFailedAudio: boolean;
     livelyDisabled: boolean;
     livelyVoiceAllowed: boolean;

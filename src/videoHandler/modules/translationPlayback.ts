@@ -1,13 +1,18 @@
-﻿import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
+import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 
 import { isTranslationDownloadHost } from "../../core/hostPolicies";
 import { notifyTranslationFailureIfNeeded } from "../../core/translationErrors";
-import { localizationProvider } from "../../localization/localizationProvider";
+import { t } from "../../localization/localizationProvider";
+import { captureException } from "../../modules/telemetry/client";
+import {
+  getAudioFailureTags,
+  getTranslationTags,
+} from "../../modules/telemetry/context";
+import type { VideoData } from "../../types/videoHandler";
 import debug from "../../utils/debug";
 import { toErrorMessage } from "../../utils/errors";
 import type { VideoHandler } from "../../VideoHandler";
 import VOTLocalizedError from "../../VOTLocalizedError";
-import type { VideoData } from "../shared";
 import { applyTranslationPlaybackVolume } from "../translationVolume";
 import {
   isYandexAudioUrlOrProxy,
@@ -146,6 +151,36 @@ export async function handlePlaybackResumedTranslationRefresh(
   }
 }
 
+/** Pauses playback until the translation is ready; returns a listener cleanup. */
+export function pauseVideoForTranslation(
+  handler: VideoHandler,
+): (() => void) | undefined {
+  if (!handler.data?.autoPauseOnTranslate) return;
+  if (handler.pausedByTranslation) return;
+  if (handler.video.paused || handler.video.ended) return;
+
+  debug.log("[translateFunc] Pausing video until translation is ready");
+  handler.pausedByTranslation = true;
+  const onPlay = () => {
+    handler.pausedByTranslation = false;
+  };
+  handler.video.addEventListener("play", onPlay, { once: true });
+  handler.video.pause();
+  return () => handler.video.removeEventListener("play", onPlay);
+}
+
+/** Resumes playback only if this extension was the one that paused it. */
+export function resumeVideoAfterTranslation(handler: VideoHandler): void {
+  if (!handler.pausedByTranslation) return;
+  handler.pausedByTranslation = false;
+  if (handler.hasActiveSource()) {
+    debug.log("[translateFunc] Resuming video after translation is ready");
+    handler.video.play().catch((playErr) => {
+      debug.log("[translateFunc] Failed to resume video", playErr);
+    });
+  }
+}
+
 async function requestApplyAndCacheTranslation(
   self: VideoHandler,
   options: {
@@ -159,6 +194,7 @@ async function requestApplyAndCacheTranslation(
     cacheRequestLang: string;
     cacheResponseLang: string;
     onBeforeCache?: (result: TranslationAudioResult) => Promise<void> | void;
+    onTranslationWaiting?: () => void;
   },
 ): Promise<TranslationAudioResult | null> {
   const translateRes = await requestTranslationAudio(self.translationHandler, {
@@ -168,6 +204,7 @@ async function requestApplyAndCacheTranslation(
     translationHelp: options.translationHelp,
     useAudioDownload: Boolean(self.data?.useAudioDownload),
     signal: self.actionsAbortController.signal,
+    onTranslationWaiting: options.onTranslationWaiting,
   });
   if (!translateRes) return null;
 
@@ -247,7 +284,7 @@ export function proxifyAudio(this: VideoHandler, audioUrl: string): string {
     proxyWorkerHost: this.data?.proxyWorkerHost,
   });
   if (proxiedAudioUrl !== audioUrl) {
-    debug.log(`[VOT] Audio proxied via ${proxiedAudioUrl}`);
+    debug.log(`Audio proxied via ${proxiedAudioUrl}`);
   }
   return proxiedAudioUrl;
 }
@@ -260,7 +297,7 @@ export async function handleProxySettingsChanged(
   this: VideoHandler,
   reason = "proxySettingsChanged",
 ) {
-  debug.log(`[VOT] ${reason}: clearing translation/subtitles cache`);
+  debug.log(`${reason}: clearing translation/subtitles cache`);
   try {
     this.cacheManager.clear();
     this.activeTranslation = null;
@@ -354,9 +391,7 @@ async function applyTranslationSource(
 }
 
 function getTranslationActiveVoiceLabel(usedLivelyVoice?: boolean): string {
-  return localizationProvider.get(
-    usedLivelyVoice ? "VOTLiveVoicesTitle" : "VOTStandardVoicesTitle",
-  );
+  return t(usedLivelyVoice ? "VOTLiveVoicesTitle" : "VOTStandardVoicesTitle");
 }
 
 export async function updateTranslation(
@@ -391,6 +426,17 @@ export async function updateTranslation(
   if (applyResult.status === "error") {
     debug.log("this.audioPlayer.init() error", applyResult.error);
     await rollbackStaleAppliedSourceIfStillCurrent(this, appliedSourceUrl);
+    captureException(applyResult.error, {
+      source: "audio",
+      operation: "loadTranslationAudio",
+      dedupeKey: this.videoData?.videoId,
+      // The message can embed the (proxied) audio url.
+      redactedMessage: "Translation audio failed to load",
+      tags: {
+        ...getTranslationTags(this),
+        ...getAudioFailureTags(applyResult.error, "playback"),
+      },
+    });
     const msg = toErrorMessage(applyResult.error);
     this.transformBtn("error", msg);
     return;
@@ -404,8 +450,9 @@ export async function updateTranslation(
 
 export function syncTranslationPlaybackVolume(this: VideoHandler): void {
   const player = this.audioPlayer?.player;
-  const overlayView = this.uiManager.votOverlayView;
-  const nextVolume = overlayView?.translationVolumeSlider?.value;
+  const overlayViewControls =
+    this.uiManager.votOverlayView?.overlayViewControls;
+  const nextVolume = overlayViewControls?.getTranslationVolume();
   applyTranslationPlaybackVolume(player, nextVolume, this.data?.defaultVolume);
 }
 
@@ -530,11 +577,11 @@ export async function translateFunc(
     this.resetActionsAbortController("translateFunc");
   }
   const overlayView = this.uiManager.votOverlayView;
-  if (!overlayView?.votButton) {
+  if (!overlayView?.overlayViewControls) {
     debug.log("[translateFunc] Overlay view missing, skipping translation");
     return;
   }
-  overlayView.votButton.loading = true;
+  overlayView.overlayViewControls.setIsLoading(true);
   this.hadAsyncWait = false;
   this.volumeOnStart = this.getVideoVolume();
   if (!VIDEO_ID) {
@@ -573,6 +620,10 @@ export async function translateFunc(
     videoId: VIDEO_ID,
   };
 
+  // Set when auto-pause actually attached a "play" listener; cleaned up in
+  // `finally` so a rejected programmatic resume cannot leave it dangling.
+  let cleanupPauseListener: (() => void) | undefined;
+
   const translationPromise = (async () => {
     if (this.isActionStale(actionContext)) {
       debug.log("[translateFunc] Stale translation task - skipping");
@@ -606,6 +657,9 @@ export async function translateFunc(
       cacheVideoId: VIDEO_ID,
       cacheRequestLang: requestLang,
       cacheResponseLang: responseLang,
+      onTranslationWaiting: () => {
+        cleanupPauseListener = pauseVideoForTranslation(this);
+      },
       onBeforeCache: async () => {
         const preferredSubtitleLanguage = this.getPreferredSubtitlesLanguage(
           videoData.detectedLanguage,
@@ -654,6 +708,12 @@ export async function translateFunc(
   try {
     return await translationPromise;
   } catch (err) {
+    captureException(err, {
+      source: "playback",
+      operation: "translateFunc",
+      dedupeKey: VIDEO_ID,
+      tags: getTranslationTags(this, { from: requestLang, to: responseLang }),
+    });
     this.hadAsyncWait = notifyTranslationFailureIfNeeded({
       aborted: this.actionsAbortController.signal.aborted,
       translateApiErrorsEnabled: Boolean(this.data?.translateAPIErrors),
@@ -667,14 +727,16 @@ export async function translateFunc(
     if (this.activeTranslation?.promise === translationPromise) {
       this.activeTranslation = null;
     }
-    const overlayBtn = this.uiManager.votOverlayView?.votButton;
-    if (
-      !this.activeTranslation &&
-      overlayBtn?.loading &&
-      !this.hasActiveSource()
-    ) {
+    if (!this.activeTranslation) {
+      cleanupPauseListener?.();
+      resumeVideoAfterTranslation(this);
+    }
+
+    const isLoading =
+      this.uiManager.votOverlayView.overlayViewControls?.getIsLoading();
+    if (!this.activeTranslation && isLoading && !this.hasActiveSource()) {
       debug.log("[translateFunc] clearing stale loading state");
-      this.transformBtn("none", localizationProvider.get("translateVideo"));
+      this.transformBtn("none", t("translateVideo"));
     }
   }
 }

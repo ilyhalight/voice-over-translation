@@ -499,6 +499,15 @@ const buildStyledSpans = (segments: StyledTextSegment[]) => {
   return { text, styledSpans };
 };
 
+const prepareDisplayText = (
+  text: string,
+): { text: string; leadingTrim: number } => {
+  const normalized = text.replaceAll("\u00A0", " ");
+  const leadingTrim = normalized.length - normalized.trimStart().length;
+  const trimmedEnd = Math.max(leadingTrim, normalized.trimEnd().length);
+  return { text: normalized.slice(leadingTrim, trimmedEnd), leadingTrim };
+};
+
 const trimStyledDisplayResult = (
   text: string,
   styledSpans: SubtitleStyledSpan[],
@@ -506,14 +515,7 @@ const trimStyledDisplayResult = (
   text: string;
   styledSpans: SubtitleStyledSpan[];
 } => {
-  const normalizedText = text.replaceAll("\u00A0", " ");
-  const leadingTrim = normalizedText.length - normalizedText.trimStart().length;
-  const trailingTrim = normalizedText.length - normalizedText.trimEnd().length;
-  const trimmedEnd = Math.max(
-    leadingTrim,
-    normalizedText.length - trailingTrim,
-  );
-  const finalText = normalizedText.slice(leadingTrim, trimmedEnd);
+  const { text: finalText, leadingTrim } = prepareDisplayText(text);
   const finalSpans = styledSpans
     .map((span) => ({
       start: Math.max(0, span.start - leadingTrim),
@@ -533,14 +535,8 @@ const trimStyledDisplayResult = (
 };
 
 const trimPlainDisplayText = (text: string): string => {
-  const normalizedText = text.replaceAll("\u00A0", " ");
-  const leadingTrim = normalizedText.length - normalizedText.trimStart().length;
-  const trailingTrim = normalizedText.length - normalizedText.trimEnd().length;
-  const trimmedEnd = Math.max(
-    leadingTrim,
-    normalizedText.length - trailingTrim,
-  );
-  return normalizedText.slice(leadingTrim, trimmedEnd);
+  const { text: trimmed } = prepareDisplayText(text);
+  return trimmed;
 };
 
 const buildPlainDisplayModel = (

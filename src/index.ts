@@ -1,10 +1,12 @@
 import type { ServiceConf } from "@vot.js/ext/types/service";
 import { getService } from "@vot.js/ext/utils/videoData";
+import { YANDEX_AUTH_ORIGIN } from "#modules/auth/consts.ts";
+import { captureException } from "#modules/telemetry/client.ts";
+import logger from "#utils/logger.ts";
 import { getOrCreateBootState } from "./bootstrap/bootState";
 import { initIframeInteractor } from "./bootstrap/iframeInteractor";
 import { ensureRuntimeActivated } from "./bootstrap/runtimeActivation";
 import { bindObserverListeners } from "./bootstrap/videoObserverBinding";
-import { authServerUrl } from "./config/config";
 import { resolveBootstrapMode } from "./core/bootstrapPolicy";
 import { findConnectedContainerBySelector } from "./core/containerResolution";
 import debug from "./utils/debug";
@@ -38,7 +40,7 @@ function logBootstrap(
     ...details,
   };
 
-  debug.log(`[VOT][bootstrap][${ctx.frame}] ${message}`, payload);
+  debug.log(`[bootstrap][${ctx.frame}] ${message}`, payload);
 }
 
 function getServicesCached(): ServiceConf[] {
@@ -81,7 +83,7 @@ async function main(): Promise<void> {
     isIframe: isIframe(),
     href: String(globalThis.location.href || ""),
     origin: globalThis.location.origin,
-    authOrigin: authServerUrl,
+    authOrigin: YANDEX_AUTH_ORIGIN,
   });
 
   // FIX: Drive video player UI from blocking pointer events
@@ -141,7 +143,11 @@ export async function bootstrapContentScript(): Promise<void> {
   } catch (e) {
     bootState.status = "failed";
     bootState.error = e;
-    console.error("[VOT]", e);
+    logger.error(e);
+    captureException(e, {
+      source: "bootstrap",
+      operation: "bootstrapContentScript",
+    });
   }
 }
 

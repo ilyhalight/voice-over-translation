@@ -3,11 +3,17 @@ import { getVideoData } from "@vot.js/ext/utils/videoData";
 import votConfig from "@vot.js/shared/config";
 import { availableLangs } from "@vot.js/shared/consts";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
+import { detectMusicYT } from "#modules/detectMusic/service.ts";
+import { detect } from "#modules/translateText/service.ts";
+
 import {
   getYoutubeAudioFormatLanguage as getYoutubeAudioFormatLanguageTag,
   selectSmallestAudioFormat,
 } from "../audioDownloader/utils";
 import { localizationProvider } from "../localization/localizationProvider";
+import { captureException } from "../modules/telemetry/client";
+import { getTranslationTags } from "../modules/telemetry/context";
+import type { VideoData as RuntimeVideoData } from "../types/videoHandler";
 import debug from "../utils/debug";
 import { GM_fetch } from "../utils/gm";
 import { cleanText } from "../utils/text";
@@ -19,9 +25,7 @@ import {
 } from "../utils/volume";
 import type { VideoHandler } from "../VideoHandler";
 import VOTLocalizedError from "../VOTLocalizedError";
-import type { VideoData as RuntimeVideoData } from "../videoHandler/shared";
 import { isExternalVolumeHost } from "./hostPolicies";
-import { detect } from "./translateApis";
 
 const FORCED_DETECTED_LANGUAGE_BY_HOST: Record<string, RequestLang> = {
   rutube: "ru",
@@ -42,17 +46,9 @@ const MAX_SHARED_LANGUAGE_STATES = 500;
 const REQUEST_LANG_SET = new Set<RequestLang>(
   availableLangs as readonly RequestLang[],
 );
-const SUPPORTED_TRANSLATION_SOURCE_LANGS = new Set<RequestLang>([
-  "ru",
-  "en",
-  "zh",
-  "ko",
-  "fr",
-  "it",
-  "es",
-  "de",
-  "ja",
-]);
+const SUPPORTED_TRANSLATION_SOURCE_LANGS = new Set<RequestLang>(
+  availableLangs.filter((l) => l !== "auto"),
+);
 
 type ResolvedRequestLang = Exclude<RequestLang, "auto">;
 type SharedLanguageState = {
@@ -185,7 +181,7 @@ function isResolvedLanguage(
 function resolveSupportedYoutubeAudioLanguage():
   | ResolvedRequestLang
   | undefined {
-  const response = YoutubeHelper.getPlayerResponse() as any;
+  const response = YoutubeHelper.getPlayerResponse();
   const formats = [
     ...(Array.isArray(response?.streamingData?.adaptiveFormats)
       ? response.streamingData.adaptiveFormats
@@ -272,7 +268,7 @@ function resolveYoutubeDetectedLanguageFromSubtitles(
   );
 }
 
-export async function resolveDetectedLanguageForVideo(
+async function resolveDetectedLanguageForVideo(
   options: ResolveDetectedLanguageOptions,
 ): Promise<ResolveDetectedLanguageResult> {
   if (options.isStream) {
@@ -353,6 +349,7 @@ function getAriaValueNowPercent(selector: string): number | null {
 
 export class VOTVideoManager {
   videoHandler: VideoHandler;
+  detectMusicCache = new Map<string, boolean>();
 
   constructor(videoHandler: VideoHandler) {
     this.videoHandler = videoHandler;
@@ -519,6 +516,47 @@ export class VOTVideoManager {
     });
   }
 
+  /**
+   * Detects if the given YouTube video contains music.
+   */
+  async detectMusic(videoId: string) {
+    if (this.videoHandler.site.host !== "youtube") {
+      return false;
+    }
+
+    if (this.detectMusicCache.has(videoId)) {
+      return this.detectMusicCache.get(videoId);
+    }
+
+    const detected = await detectMusicYT(
+      videoId,
+      this.videoHandler.actionsAbortController.signal,
+    );
+    this.detectMusicCache.set(videoId, detected);
+    return detected;
+  }
+
+  private async fetchRawVideoData() {
+    const { site, data } = this.videoHandler;
+    try {
+      return await getVideoData(site, {
+        fetchFn: GM_fetch,
+        video: this.videoHandler.video,
+        language: localizationProvider.lang,
+      });
+    } catch (err) {
+      // Helper messages can echo video ids and titles, so only the stack is sent.
+      captureException(err, {
+        source: "videoData",
+        operation: "getVideoData",
+        dedupeKey: globalThis.location.href,
+        redactedMessage: "getVideoData failed",
+        tags: getTranslationTags({ site, data }),
+      });
+      throw err;
+    }
+  }
+
   async getVideoData() {
     const {
       duration,
@@ -532,11 +570,7 @@ export class VOTVideoManager {
       detectedLanguage: possibleLanguage,
       subtitles,
       isStream = false,
-    } = await getVideoData(this.videoHandler.site, {
-      fetchFn: GM_fetch,
-      video: this.videoHandler.video,
-      language: localizationProvider.lang,
-    });
+    } = await this.fetchRawVideoData();
 
     const { detectedLanguage, sharedLanguageState } =
       await this.resolveVideoLanguage({
@@ -569,7 +603,7 @@ export class VOTVideoManager {
     } satisfies RuntimeVideoData;
 
     if (sharedLanguageState.lastLoggedDetectedLanguage !== detectedLanguage) {
-      debug.log("[VOT] Detected language:", detectedLanguage);
+      debug.log("Detected language:", detectedLanguage);
       sharedLanguageState.lastLoggedDetectedLanguage = detectedLanguage;
     }
     return videoData;
@@ -584,7 +618,6 @@ export class VOTVideoManager {
 
     debug.log("VideoValidator videoData: ", this.videoHandler.videoData);
     if (
-      this.videoHandler.data.enabledDontTranslateLanguages &&
       this.videoHandler.data.dontTranslateLanguages?.includes(
         this.videoHandler.videoData.detectedLanguage,
       )
@@ -682,8 +715,11 @@ export class VOTVideoManager {
    * Syncs the video volume slider with the actual video volume.
    */
   syncVideoVolumeSlider() {
-    const overlayView = this.videoHandler.uiManager.votOverlayView;
-    if (!overlayView?.isInitialized()) return this;
+    const overlayViewControls =
+      this.videoHandler.uiManager.votOverlayView?.overlayViewControls;
+    if (!overlayViewControls) {
+      return this;
+    }
 
     const ariaPercent = isExternalVolumeHost(this.videoHandler.site.host)
       ? getAriaValueNowPercent(YT_VOLUME_NOW_SELECTOR)
@@ -693,7 +729,7 @@ export class VOTVideoManager {
       ? 0
       : (ariaPercent ?? volume01ToPercent(this.getVideoVolume() ?? 0));
 
-    overlayView.videoVolumeSlider.value = volumePercent;
+    overlayViewControls.setVideoVolume(volumePercent);
 
     // Keep syncVolume delta state aligned with programmatic slider updates.
     this.videoHandler.onVideoVolumeSliderSynced?.(volumePercent);
@@ -710,7 +746,7 @@ export class VOTVideoManager {
     const langPairLogKey = `${normalizedFrom}->${to}`;
     const sharedLanguageState = getSharedLanguageState(videoData.videoId);
     if (sharedLanguageState.lastLoggedLangPair !== langPairLogKey) {
-      debug.log(`[VOT] Set translation from ${normalizedFrom} to ${to}`);
+      debug.log(`Set translation from ${normalizedFrom} to ${to}`);
       sharedLanguageState.lastLoggedLangPair = langPairLogKey;
     }
     videoData.detectedLanguage = normalizedFrom;
@@ -718,17 +754,14 @@ export class VOTVideoManager {
     this.videoHandler.translateFromLang = normalizedFrom;
     this.videoHandler.translateToLang = to;
 
-    const overlayView = this.videoHandler.uiManager.votOverlayView;
-    if (!overlayView?.isInitialized()) {
+    const overlayViewControls =
+      this.videoHandler.uiManager.votOverlayView?.overlayViewControls;
+    if (!overlayViewControls) {
       return this;
     }
 
-    overlayView.languagePairSelect.fromSelect.selectTitle =
-      localizationProvider.getLangLabel(normalizedFrom);
-    overlayView.languagePairSelect.toSelect.selectTitle =
-      localizationProvider.getLangLabel(to);
-    overlayView.languagePairSelect.fromSelect.setSelectedValue(normalizedFrom);
-    overlayView.languagePairSelect.toSelect.setSelectedValue(to);
+    overlayViewControls.setDetectedLanguage(normalizedFrom);
+    overlayViewControls.setResponseLanguage(to);
     return this;
   }
 }

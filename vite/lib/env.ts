@@ -1,6 +1,6 @@
 import { loadEnv } from "vite";
-import { defineConstants, type ViteDefine } from "./define";
-import { rootDir } from "./paths";
+import { defineConstants, type ViteDefine } from "./define.ts";
+import { ROOT_DIR } from "./paths.ts";
 
 export interface BuildEnvMeta {
   debug: boolean;
@@ -10,10 +10,16 @@ export interface BuildEnvMeta {
   version: string;
   authors: string;
   crxjsBuild: boolean;
+  minified?: boolean;
+}
+
+function getBuildVariant(env: BuildEnvMeta): string {
+  if (env.isExtension) return env.crxjsBuild ? "chrome" : "firefox";
+  return env.minified ? "userscript-min" : "userscript";
 }
 
 export function getBuildConfig(mode: string) {
-  const env = loadEnv(mode, rootDir, "");
+  const env = loadEnv(mode, ROOT_DIR, "");
   return {
     REPO_BRANCH: env.GITHUB_REF_NAME || env.REPO_BRANCH || "master",
     IS_STORE_BUILD: env.IS_STORE_BUILD === "true",
@@ -41,6 +47,7 @@ export function buildDefine(env: BuildEnvMeta): ViteDefine {
       IS_EXTENSION: env.isExtension,
       AVAILABLE_LOCALES: [...env.availableLocales],
       REPO_BRANCH: env.repoBranch,
+      VOT_BUILD_VARIANT: getBuildVariant(env),
       VOT_VERSION: env.version,
       VOT_AUTHORS: env.authors,
     }),

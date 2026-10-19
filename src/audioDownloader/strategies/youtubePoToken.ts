@@ -20,7 +20,7 @@ export async function mintPagePoToken(
     // Cross-origin access is denied.
   }
 
-  debug.log("[VOT][PO_TOKEN] mint started", {
+  debug.log("[PO_TOKEN] mint started", {
     bindingLength: binding.length,
     realmCount: realms.size,
   });
@@ -60,21 +60,21 @@ export async function mintPagePoToken(
             me: false,
           });
           if (typeof token === "string" && token) {
-            debug.log("[VOT][PO_TOKEN] mint success", {
+            debug.log("[PO_TOKEN] mint success", {
               tokenLength: token.length,
               provider: key,
               attempt,
             });
             return token;
           }
-          debug.log("[VOT][PO_TOKEN] mint returned no token", {
+          debug.log("[PO_TOKEN] mint returned no token", {
             provider: key,
             attempt,
           });
         } catch (error) {
           const message =
             error instanceof Error ? error.message : String(error);
-          debug.log("[VOT][PO_TOKEN] mint attempt failed", {
+          debug.log("[PO_TOKEN] mint attempt failed", {
             provider: key,
             attempt,
             message,
@@ -89,13 +89,13 @@ export async function mintPagePoToken(
   // Safari Userscripts keeps granted scripts outside the true page realm.
   const safariToken = await requestSafariPagePoToken(binding, signal);
   if (safariToken) {
-    debug.log("[VOT][PO_TOKEN] Safari page-realm mint success", {
+    debug.log("[PO_TOKEN] Safari page-realm mint success", {
       tokenLength: safariToken.length,
     });
     return safariToken;
   }
 
-  debug.error("[VOT][PO_TOKEN] mint failed", {
+  debug.error("[PO_TOKEN] mint failed", {
     bindingLength: binding.length,
     realmCount: realms.size,
   });
@@ -120,7 +120,7 @@ export function selectGvsPoTokenBinding(
           .at(-1) === "true",
     )
   ) {
-    debug.log("[VOT][WEB_CREATOR] selecting GVS PO binding", {
+    debug.log("[WEB_CREATOR] selecting GVS PO binding", {
       kind: "video",
       loggedIn: options.loggedIn,
       hasDataSyncId:
@@ -135,7 +135,7 @@ export function selectGvsPoTokenBinding(
     typeof options.dataSyncId === "string" &&
     options.dataSyncId
   ) {
-    debug.log("[VOT][WEB_CREATOR] selecting GVS PO binding", {
+    debug.log("[WEB_CREATOR] selecting GVS PO binding", {
       kind: "datasync",
       loggedIn: true,
       hasDataSyncId: true,
@@ -144,7 +144,7 @@ export function selectGvsPoTokenBinding(
   }
 
   if (typeof options.visitorData === "string" && options.visitorData) {
-    debug.log("[VOT][WEB_CREATOR] selecting GVS PO binding", {
+    debug.log("[WEB_CREATOR] selecting GVS PO binding", {
       kind: "visitor",
       loggedIn: options.loggedIn,
       hasDataSyncId:
@@ -153,7 +153,7 @@ export function selectGvsPoTokenBinding(
     return { kind: "visitor", value: options.visitorData };
   }
 
-  debug.error("[VOT][WEB_CREATOR] no GVS PO binding available", {
+  debug.error("[WEB_CREATOR] no GVS PO binding available", {
     loggedIn: options.loggedIn,
     hasDataSyncId:
       typeof options.dataSyncId === "string" && Boolean(options.dataSyncId),

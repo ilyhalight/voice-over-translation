@@ -1,10 +1,10 @@
+import logger from "#utils/logger.ts";
 import {
   type BuiltInSubtitleFontFamily,
   type GoogleSubtitleFontFamily,
   type SubtitleFontFamily,
   subtitleFontFamilyCss,
 } from "../types/subtitles";
-import debug from "../utils/debug";
 import { GM_fetch, isSupportGMXhr } from "../utils/gm";
 import { isBuiltInSubtitleFontFamily } from "./types";
 
@@ -161,7 +161,7 @@ export async function ensureGoogleSubtitleFontLoaded(
 
       options.onLoaded?.();
     } catch (error) {
-      debug.log("Failed to load Google Font for subtitles", {
+      logger.error("Failed to load Google Font for subtitles", {
         fontFamily,
         error,
       });
@@ -202,7 +202,7 @@ export async function loadGoogleFontsCatalog(): Promise<string[]> {
     );
   })().catch((error) => {
     googleFontsCatalogPromise = null;
-    debug.log("Failed to load Google Fonts catalog", error);
+    logger.error("Failed to load Google Fonts catalog", error);
     return [];
   });
 
