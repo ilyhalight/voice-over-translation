@@ -462,12 +462,13 @@ export class VideoHandler {
     container: HTMLElement,
     site: ServiceConf,
   ) {
-    debug.log(
-      "[VideoHandler] add video:",
+    logger.log(
+      "[VideoHandler] add video",
       video,
-      "container:",
+      "container",
       container,
-      this,
+      "site",
+      site,
     );
     this.video = video;
     this.container = container;

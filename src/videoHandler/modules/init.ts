@@ -10,7 +10,6 @@ import {
 } from "../../stores/settings";
 import type { LanguageSelectKey } from "../../types/components/select";
 import { normalizeButtonPosition } from "../../ui/buttonPlacement";
-import debug from "../../utils/debug";
 import { IS_PROXY_ONLY_EXTENSION } from "../../utils/gm";
 import { updateConfig, votStorage } from "../../utils/storage";
 import { calculatedResLang } from "../../utils/utils";
@@ -78,7 +77,7 @@ export async function init(this: VideoHandler) {
   if (!this.data.translateProxyEnabled && IS_PROXY_ONLY_EXTENSION) {
     this.data.translateProxyEnabled = 1;
   }
-  debug.log("Extension compatibility passed...");
+  logger.log("Extension compatibility passed...");
 
   // Initialize UI elements and events.
   this.uiManager.initUI();

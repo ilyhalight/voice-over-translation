@@ -200,7 +200,7 @@ export class UIManager {
         await this.videoHandler.video.requestPictureInPicture();
       }
     } catch (err) {
-      debug.warn("Failed to toggle Picture-in-Picture", err);
+      logger.warn("Failed to toggle Picture-in-Picture", err);
     }
   }
 

@@ -187,7 +187,7 @@ export async function changeSubtitlesLang(
       ...subtitlesObj,
       url: proxiedSubtitlesUrl,
     };
-    debug.log(`Subs proxied via ${subtitlesObj.url}`);
+    logger.log(`Subs proxied via ${subtitlesObj.url}`);
   }
 
   const fetchedSubtitles = await SubtitlesProcessor.fetchSubtitles(

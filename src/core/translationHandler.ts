@@ -5,7 +5,7 @@ import {
   VideoTranslationStatus,
 } from "@vot.js/core/types/providers/yandex";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
-
+import logger from "#utils/logger.ts";
 import { AudioDownloader } from "../audioDownloader";
 import { STREAM_TIMEOUT_MS } from "../audioDownloader/strategies/webAudioBridge";
 import { t } from "../localization/localizationProvider";
@@ -631,9 +631,9 @@ export class VOTTranslationHandler {
       shouldSendFailedAudio,
       translationHelpCount: translationHelp?.length ?? 0,
     });
-    debug.log(
-      videoData,
+    logger.log(
       `Translate video (requestLang: ${requestLang}, requestLangForApi: ${requestLangForApi}, responseLang: ${responseLang})`,
+      videoData,
     );
 
     let livelyDisabled = disableLivelyVoice;
@@ -687,7 +687,7 @@ export class VOTTranslationHandler {
 
       if (res.translated && res.remainingTime < 1) {
         this.etaCountdown.stop();
-        debug.log("[Translation] translation finished", {
+        logger.log("[Translation] translation finished", {
           videoId: videoData.videoId,
           useLivelyVoice,
           ...summarizeTranslationResponse(res),
@@ -696,7 +696,7 @@ export class VOTTranslationHandler {
       }
 
       const message = res.message ?? t("translationTakeFewMinutes");
-      debug.log("[Translation] translation still processing", {
+      logger.log("[Translation] translation still processing", {
         videoId: videoData.videoId,
         useLivelyVoice,
         ...summarizeTranslationResponse(res),
@@ -732,7 +732,7 @@ export class VOTTranslationHandler {
           videoData.videoId,
         );
 
-        debug.log("[Translation] waiting for audio download completion", {
+        logger.log("[Translation] waiting for audio download completion", {
           videoId: videoData.videoId,
           translationId: res.translationId,
           timeoutMs: STREAM_TIMEOUT_MS,
@@ -791,7 +791,7 @@ export class VOTTranslationHandler {
         err,
         hasAccountToken(this.videoHandler.data?.account),
       );
-      debug.error("[Translation] translation failed", {
+      logger.error("[Translation] translation failed", {
         videoId: videoData.videoId,
         retryAttempt,
         error: err,

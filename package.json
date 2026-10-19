@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "author": "Toil",
   "license": "MIT",
-  "description": "A small extension that adds a Yandex Browser video translation to other browsers",
+  "description": "Watch videos in other languages with voice-over translation and subtitles in any browser",
   "type": "module",
   "repository": {
     "type": "git",
@@ -25,23 +25,23 @@
     "#extension/*": "./src/extension/*"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.14",
-    "@crxjs/vite-plugin": "^2.7.1",
-    "@storybook/addon-a11y": "^10.6.0",
-    "@storybook/addon-docs": "^10.6.0",
-    "@storybook/addon-vitest": "^10.6.0",
+    "@biomejs/biome": "^2.5.15",
+    "@crxjs/vite-plugin": "^3.0.0",
+    "@storybook/addon-a11y": "^10.6.2",
+    "@storybook/addon-docs": "^10.6.2",
+    "@storybook/addon-vitest": "^10.6.2",
     "@toil/translate": "^1.10.0",
-    "@types/bun": "^1.4.2",
+    "@types/bun": "^1.4.3",
     "@vitest/browser-playwright": "latest",
     "@vitest/coverage-v8": "latest",
-    "lefthook": "^2.1.14",
+    "lefthook": "^2.2.2",
     "npm-run-all2": "^9.0.3",
     "playwright": "latest",
-    "sass": "^1.104.1",
-    "storybook": "^10.6.0",
+    "sass": "^1.105.2",
+    "storybook": "^10.6.2",
     "storybook-solidjs-vite": "latest",
     "typescript": "^6.0.3",
-    "vite": "^8.3.0",
+    "vite": "^8.3.4",
     "vite-plugin-solid": "^2.11.14",
     "vitest": "latest",
     "zip-a-folder": "^7.0.0"
@@ -73,15 +73,15 @@
   },
   "dependencies": {
     "@toil/gm-types": "^1.0.6",
-    "@vot.js/core": "^3.1.6",
-    "@vot.js/ext": "^3.1.6",
-    "@vot.js/shared": "^3.1.6",
+    "@vot.js/core": "^3.2.0",
+    "@vot.js/ext": "^3.2.0",
+    "@vot.js/shared": "^3.2.0",
     "astring": "1.9.0",
     "bowser": "^2.14.1",
     "chaimu": "^1.1.0",
     "googlevideo": "^4.1.1",
     "meriyah": "6.1.4",
-    "solid-js": "^1.9.15",
-    "web-ext": "^10.6.0"
+    "solid-js": "^1.9.17",
+    "web-ext": "^10.8.0"
   }
 }

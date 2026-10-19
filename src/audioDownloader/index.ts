@@ -1,4 +1,5 @@
 import { isAbortError, makeAbortError, toErrorMessage } from "#utils/errors.ts";
+import logger from "#utils/logger.ts";
 import { captureException } from "../modules/telemetry/client";
 import {
   getAudioFailureTags,
@@ -318,7 +319,7 @@ export class AudioDownloader {
         });
         return;
       }
-      debug.error("Audio downloader. All audio download strategies failed", {
+      logger.error("Audio downloader. All audio download strategies failed", {
         videoId,
       });
       this.onDownloadAudioError.dispatch(translationId, videoId, false);
@@ -351,7 +352,7 @@ export class AudioDownloader {
             signal,
             sourceLanguage,
           });
-          debug.log("Audio downloader. Audio download finished", {
+          logger.log("Audio downloader. Audio download finished", {
             videoId,
             sourceLanguage,
             audioDownloadType: attemptedStrategy,
@@ -375,7 +376,7 @@ export class AudioDownloader {
             return;
           }
           failures.push({ strategy: attemptedStrategy, error });
-          debug.error("Audio downloader. Strategy failed", {
+          logger.error("Audio downloader. Strategy failed", {
             videoId,
             audioDownloadType: attemptedStrategy,
             error: toErrorMessage(error),
@@ -383,7 +384,7 @@ export class AudioDownloader {
         }
       }
 
-      debug.error("Audio downloader. All audio download strategies failed", {
+      logger.error("Audio downloader. All audio download strategies failed", {
         videoId,
       });
       const lastError = failures.at(-1)?.error;

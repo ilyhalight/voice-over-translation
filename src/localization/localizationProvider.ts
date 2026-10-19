@@ -2,7 +2,6 @@ import logger from "#utils/logger.ts";
 import { contentUrl } from "../config/config";
 import type { FlatPhrases, Locale, Phrase } from "../types/localization";
 import type { LocaleStorageKey } from "../types/storage";
-import debug from "../utils/debug";
 import { GM_fetch, getGMInfo } from "../utils/gm";
 import { lang } from "../utils/localization";
 import { votStorage } from "../utils/storage";
@@ -121,7 +120,7 @@ class LocalizationProvider {
   }
 
   async checkUpdates(force = false): Promise<false | null | string> {
-    debug.log("Check locale updates...");
+    logger.log("Check locale updates...");
     try {
       const runtimeLocaleVersion = getRuntimeLocaleVersion();
       if (!force) {
@@ -182,7 +181,7 @@ class LocalizationProvider {
     }
 
     const timestamp = getTimestamp();
-    debug.log("Updating locale...");
+    logger.log("Updating locale...");
     try {
       const res = await GM_fetch(
         this.buildUrl(this.localesUrl, `/${this.lang}.json`, force),
