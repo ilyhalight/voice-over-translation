@@ -36,7 +36,6 @@ Available (sub)domains:
 - `invidious.nerdvpn.de`
 - `invidious.protokolla.fi`
 - `invidious.materialio.us`
-- `iv.melmac.space`
 
 Available paths:
 
@@ -174,16 +173,6 @@ Status: [✅] Working
 Available (sub)domains:
 
 - `proxitok.pabloferreiro.es`
-- `proxitok.pussthecat.org`
-- `tok.habedieeh.re`
-- `proxitok.esmailelbob.xyz`
-- `proxitok.privacydev.net`
-- `tok.artemislena.eu`
-- `tok.adminforge.de`
-- `tt.vern.cc`
-- `cringe.whatever.social`
-- `proxitok.lunar.icu`
-- `proxitok.privacy.com.de`
 
 Available paths:
 
@@ -628,7 +617,6 @@ Available (sub)domains:
 
 - `banned.video`
 - `www.banned.video`
-- `madmaxworld.tv`
 
 Available paths:
 
@@ -1092,6 +1080,18 @@ Available (sub)domains:
 Available paths:
 
 - /f/VIDEO_ID
+
+## Kinopoisk
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `kinopoisk.ru`
+
+Limitations:
+
+- To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
 
 ## Imdb
 

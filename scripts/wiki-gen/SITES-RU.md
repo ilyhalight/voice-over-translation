@@ -36,7 +36,6 @@
 - `invidious.nerdvpn.de`
 - `invidious.protokolla.fi`
 - `invidious.materialio.us`
-- `iv.melmac.space`
 
 Доступные пути:
 
@@ -174,16 +173,6 @@
 Доступные (под)домены:
 
 - `proxitok.pabloferreiro.es`
-- `proxitok.pussthecat.org`
-- `tok.habedieeh.re`
-- `proxitok.esmailelbob.xyz`
-- `proxitok.privacydev.net`
-- `tok.artemislena.eu`
-- `tok.adminforge.de`
-- `tt.vern.cc`
-- `cringe.whatever.social`
-- `proxitok.lunar.icu`
-- `proxitok.privacy.com.de`
 
 Доступные пути:
 
@@ -628,7 +617,6 @@
 
 - `banned.video`
 - `www.banned.video`
-- `madmaxworld.tv`
 
 Доступные пути:
 
@@ -1092,6 +1080,18 @@
 Доступные пути:
 
 - /f/VIDEO_ID
+
+## Kinopoisk
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `kinopoisk.ru`
+
+Ограничения:
+
+- Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
 
 ## Imdb
 

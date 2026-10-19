@@ -286,6 +286,9 @@ const siteData = {
   dropout: {
     domains: ["watch.dropout.tv"],
   },
+  kinopoisk: {
+    domains: ["kinopoisk.ru"],
+  },
   custom: {
     paths: ["/*.mp4", "/*.webm"],
     limits: [locales.noLocalLinks],
