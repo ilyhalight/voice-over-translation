@@ -14,7 +14,7 @@
   top: var(--vot-overlay-default-top);
   position: absolute;
   overflow: hidden;
-  z-index: 2147483647;
+  z-index: 2147483646;
   &[aria-hidden="true"] {
     display: none;
     pointer-events: none;
