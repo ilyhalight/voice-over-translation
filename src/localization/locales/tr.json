@@ -274,5 +274,6 @@
   "sendErrorReports": "Anonim hata raporları gönder",
   "sendErrorReportsDescription": "Hataları bulmamıza ve düzeltmemize yardımcı olur. Sadece teknik detaylar gönderilir",
   "VOTSubtitlesTranslationLanguage": "Kelime ve cümle çeviri dili",
-  "VOTSameAsMenuLanguage": "Menü dili ile aynı"
+  "VOTSameAsMenuLanguage": "Menü dili ile aynı",
+  "VOTMediaProxyHost": "Medya proxy adresini girin"
 }

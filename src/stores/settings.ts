@@ -12,6 +12,7 @@ import {
   DEFAULT_AUTO_HIDE_DELAY,
   DEFAULT_AUTO_VOLUME,
   DEFAULT_SMART_DUCKING_STRENGTH,
+  MEDIA_PROXY_HOST,
   PROXY_WORKER_HOST,
 } from "../config/config";
 import type { LangOverride } from "../localization/localizationProvider";
@@ -59,6 +60,7 @@ export type SettingsStore = {
   autoHideButtonDelay: number;
   buttonPos: Position;
   proxyWorkerHost: string;
+  mediaProxyHost: string;
   translateProxyEnabled: TranslateProxyStatus;
   // hotkeys
   translationHotkey: RawHotkey;
@@ -114,6 +116,7 @@ export function createDefaultSettings(
     autoHideButtonDelay: DEFAULT_AUTO_HIDE_DELAY,
     buttonPos: "default",
     proxyWorkerHost: PROXY_WORKER_HOST,
+    mediaProxyHost: MEDIA_PROXY_HOST,
     translateProxyEnabled: 0,
     // hotkeys
     translationHotkey: null,

@@ -274,5 +274,6 @@
   "sendErrorReports": "Anonim xato hisobotlarini yuboring",
   "sendErrorReportsDescription": "Xatolarni topish va tuzatishga yordam beradi. Faqat texnik tafsilotlar yuboriladi",
   "VOTSubtitlesTranslationLanguage": "So'z va iboralarni tarjima qilish tili",
-  "VOTSameAsMenuLanguage": "Menyu tili bilan bir xil"
+  "VOTSameAsMenuLanguage": "Menyu tili bilan bir xil",
+  "VOTMediaProxyHost": "Media proksi manzilini kiriting"
 }

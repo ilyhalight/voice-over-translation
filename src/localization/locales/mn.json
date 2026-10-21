@@ -274,5 +274,6 @@
   "sendErrorReports": "Нэргүй Алдааны тайланг илгээх",
   "sendErrorReportsDescription": "Алдааг олж, засахад бидэнд тусалдаг. Зөвхөн техникийн дэлгэрэнгүй мэдээллийг илгээдэг",
   "VOTSubtitlesTranslationLanguage": "Үг, хэллэгийн орчуулгын хэл",
-  "VOTSameAsMenuLanguage": "Цэсийн хэлтэй адил"
+  "VOTSameAsMenuLanguage": "Цэсийн хэлтэй адил",
+  "VOTMediaProxyHost": "Медиа прокси хаягийг оруулна уу"
 }

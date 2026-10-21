@@ -274,5 +274,6 @@
   "sendErrorReports": "Enviar informes d'error anònims",
   "sendErrorReportsDescription": "Ens ajuda a trobar i corregir errors. Només s'envien detalls tècnics",
   "VOTSubtitlesTranslationLanguage": "Llengua de traducció de paraules i frases",
-  "VOTSameAsMenuLanguage": "Igual que l'idioma del menú"
+  "VOTSameAsMenuLanguage": "Igual que l'idioma del menú",
+  "VOTMediaProxyHost": "Introduïu l'adreça del servidor intermediari multimèdia"
 }

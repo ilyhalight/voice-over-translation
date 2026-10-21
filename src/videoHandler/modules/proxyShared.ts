@@ -1,4 +1,5 @@
-﻿import { PROXY_WORKER_HOST } from "../../config/config";
+﻿import { MEDIA_PROXY_HOST, PROXY_WORKER_HOST } from "../../config/config";
+import debug from "../../utils/debug";
 
 const AUDIO_SOURCE_PREFIX =
   "https://vtrans.s3-private.mds.yandex.net/tts/prod/";
@@ -15,6 +16,38 @@ export type ProxyConfig = {
 
 export function resolveProxyWorkerHost(host?: string | null): string {
   return host ?? PROXY_WORKER_HOST;
+}
+
+export function normalizeMediaProxyHost(value?: string | null): string {
+  let host = (value ?? "").trim();
+  if (!host) {
+    return MEDIA_PROXY_HOST;
+  }
+
+  if (/^http:\/\//i.test(host)) {
+    debug.log("mediaProxyHost must use https, using the default:", host);
+    return MEDIA_PROXY_HOST;
+  }
+
+  host = host.replace(/^https:\/\//i, "").replace(/\/$/, "");
+  try {
+    const url = new URL(`https://${host}`);
+    if (
+      host.includes("/") ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash ||
+      url.pathname !== "/"
+    ) {
+      debug.log("mediaProxyHost must be a bare host, using the default:", host);
+      return MEDIA_PROXY_HOST;
+    }
+    return url.host || MEDIA_PROXY_HOST;
+  } catch {
+    debug.log("mediaProxyHost is invalid, using the default:", host);
+    return MEDIA_PROXY_HOST;
+  }
 }
 
 export function isProxyClientEnabled(config: ProxyConfig): boolean {

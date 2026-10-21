@@ -274,5 +274,6 @@
   "sendErrorReports": "അജ്ഞാത പിശക് റിപ്പോർട്ട് അയയ്ക്കുക",
   "sendErrorReportsDescription": "ബഗുകൾ കണ്ടെത്താനും പരിഹരിക്കാനും ഞങ്ങളെ സഹായിക്കുന്നു. സാങ്കേതിക വിശദാംശങ്ങൾ മാത്രം അയയ്ക്കുന്നു",
   "VOTSubtitlesTranslationLanguage": "വാക്കും വാക്യവും വിവർത്തന ഭാഷ",
-  "VOTSameAsMenuLanguage": "മെനു ഭാഷ പോലെ"
+  "VOTSameAsMenuLanguage": "മെനു ഭാഷ പോലെ",
+  "VOTMediaProxyHost": "മീഡിയ പ്രോക്സി വിലാസം നല്കുക"
 }

@@ -1,6 +1,6 @@
 import type { JSX } from "solid-js";
 
-import { PROXY_WORKER_HOST } from "../../config/config";
+import { MEDIA_PROXY_HOST, PROXY_WORKER_HOST } from "../../config/config";
 import { t } from "../../localization/localizationProvider";
 import { settings } from "../../stores/settings";
 import { IS_PROXY_ONLY_EXTENSION } from "../../utils/gm";
@@ -10,6 +10,7 @@ import { SettingsSection } from "./SettingsSection";
 
 export type SettingsProxySectionProps = {
   onProxyWorkerHostChange?: (value: string) => void;
+  onMediaProxyHostChange?: (value: string) => void;
   onTranslateProxyStatusSelect?: (option: SelectOption) => void;
 };
 
@@ -37,6 +38,12 @@ export function SettingsProxySection(
         placeholder={PROXY_WORKER_HOST}
         value={settings.proxyWorkerHost}
         onChange={props.onProxyWorkerHostChange}
+      />
+      <Textfield
+        labelText={t("VOTMediaProxyHost")}
+        placeholder={MEDIA_PROXY_HOST}
+        value={settings.mediaProxyHost}
+        onChange={props.onMediaProxyHostChange}
       />
       <Select
         title={t("VOTTranslateProxyStatus")}

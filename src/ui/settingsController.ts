@@ -12,6 +12,7 @@ const SETTINGS_EVENT_KEYS: Array<keyof SettingsControllerEventMap> = [
   "select:responseLanguageSubtitles",
   "select:subtitlesFontFamily",
   "change:proxyWorkerHost",
+  "change:mediaProxyHost",
   "change:useNewAudioPlayer",
   "change:onlyBypassMediaCSP",
   "change:showPiPButton",
@@ -69,6 +70,7 @@ import { EventImpl } from "../utils/eventImpl";
 import { votStorage } from "../utils/storage";
 import { isPiPAvailable } from "../utils/utils";
 import type { VideoHandler } from "../VideoHandler";
+import { normalizeMediaProxyHost } from "../videoHandler/modules/proxyShared";
 import { render } from "./solid/renderer";
 
 type SettingsControllerProps = {
@@ -91,6 +93,7 @@ type SettingsControllerEventMap = {
   "select:responseLanguageSubtitles": [item: ResponseLanguageSubtitles];
   "select:subtitlesFontFamily": [item: SubtitleFontFamily];
   "change:proxyWorkerHost": [value: string];
+  "change:mediaProxyHost": [value: string];
   "change:useNewAudioPlayer": [checked: boolean];
   "change:onlyBypassMediaCSP": [checked: boolean];
   "change:showPiPButton": [checked: boolean];
@@ -455,6 +458,18 @@ export class SettingsController {
               this.data.proxyWorkerHost,
             );
             this.events["change:proxyWorkerHost"].dispatch(value);
+          },
+          onMediaProxyHostChange: async (value) => {
+            this.data.mediaProxyHost = normalizeMediaProxyHost(value);
+            setSettings("mediaProxyHost", this.data.mediaProxyHost);
+            await votStorage.set("mediaProxyHost", this.data.mediaProxyHost);
+            debug.log(
+              "mediaProxyHost value changed. New value:",
+              this.data.mediaProxyHost,
+            );
+            this.events["change:mediaProxyHost"].dispatch(
+              this.data.mediaProxyHost,
+            );
           },
           onTranslateProxyStatusSelect: async (option) => {
             const value = option.value as TranslateProxyStatus;

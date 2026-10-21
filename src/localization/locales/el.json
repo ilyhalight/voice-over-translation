@@ -274,5 +274,6 @@
   "sendErrorReports": "Αποστολή ανώνυμων αναφορών σφαλμάτων",
   "sendErrorReportsDescription": "Μας βοηθά να βρούμε και να διορθώσουμε σφάλματα. Αποστέλλονται μόνο τεχνικές λεπτομέρειες",
   "VOTSubtitlesTranslationLanguage": "Γλώσσα μετάφρασης λέξεων και φράσεων",
-  "VOTSameAsMenuLanguage": "Ίδια με τη γλώσσα μενού"
+  "VOTSameAsMenuLanguage": "Ίδια με τη γλώσσα μενού",
+  "VOTMediaProxyHost": "Εισαγάγετε τη διεύθυνση διακομιστή μεσολάβησης πολυμέσων"
 }

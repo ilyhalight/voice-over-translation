@@ -274,5 +274,6 @@
   "sendErrorReports": "Send anonyme fejlrapporter",
   "sendErrorReportsDescription": "Hjælper os med at finde og rette fejl. Kun tekniske detaljer sendes",
   "VOTSubtitlesTranslationLanguage": "Oversættelse af ord og sætninger",
-  "VOTSameAsMenuLanguage": "Samme som Menusprog"
+  "VOTSameAsMenuLanguage": "Samme som Menusprog",
+  "VOTMediaProxyHost": "Indtast adressen til mediemeddelelse"
 }

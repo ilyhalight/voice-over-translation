@@ -274,5 +274,6 @@
   "sendErrorReports": "Tuma ripoti za makosa zisizojulikana",
   "sendErrorReportsDescription": "Inatusaidia kupata na kurekebisha mende. Maelezo ya kiufundi tu yanatumwa",
   "VOTSubtitlesTranslationLanguage": "Neno na maneno tafsiri lugha",
-  "VOTSameAsMenuLanguage": "Sawa na lugha ya menyu"
+  "VOTSameAsMenuLanguage": "Sawa na lugha ya menyu",
+  "VOTMediaProxyHost": "Ingiza anwani ya wakala wa media"
 }

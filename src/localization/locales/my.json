@@ -274,5 +274,6 @@
   "sendErrorReports": "အမည်မသိအမှားအစီရင်ခံစာများပို့ပါ",
   "sendErrorReportsDescription": "အမှားတွေကိုရှာပြီးပြင်ဖို့ကူညီပေးတယ်။ နည်းပညာဆိုင်ရာအချက်အလက်များကိုသာပေးပို့ပါသည်။",
   "VOTSubtitlesTranslationLanguage": "စကားလုံးနှင့်စကားစုဘာသာပြန်ဘာသာစကား",
-  "VOTSameAsMenuLanguage": "Menu language လိုပဲ"
+  "VOTSameAsMenuLanguage": "Menu language လိုပဲ",
+  "VOTMediaProxyHost": "မီဒီယာ proxy လိပ်စာကိုရိုက်ထည့်ပါ"
 }

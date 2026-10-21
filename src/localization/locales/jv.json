@@ -274,5 +274,6 @@
   "sendErrorReports": "Kirimi laporan kesalahan anonim",
   "sendErrorReportsDescription": "Mbantu kita nemokake lan ndandani bug. Mung rincian teknis sing dikirim",
   "VOTSubtitlesTranslationLanguage": "Basa terjemahan tembung lan frasa",
-  "VOTSameAsMenuLanguage": "Padha karo basa menu"
+  "VOTSameAsMenuLanguage": "Padha karo basa menu",
+  "VOTMediaProxyHost": "Ketik alamat proxy media"
 }

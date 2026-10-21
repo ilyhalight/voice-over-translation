@@ -274,5 +274,6 @@
   "sendErrorReports": "Pošaljite anonimne izvještaje o greškama",
   "sendErrorReportsDescription": "Pomaže nam da pronađemo i popravimo greške. Šalju se samo tehnički detalji",
   "VOTSubtitlesTranslationLanguage": "Jezik prevođenja riječi i fraza",
-  "VOTSameAsMenuLanguage": "Isto kao i jezik menija"
+  "VOTSameAsMenuLanguage": "Isto kao i jezik menija",
+  "VOTMediaProxyHost": "Unesite adresu proxy-a za medije"
 }

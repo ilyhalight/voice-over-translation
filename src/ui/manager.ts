@@ -462,6 +462,16 @@ export class UIManager {
           "Failed to apply proxyWorkerHost change",
         );
       })
+      .addEventListener("change:mediaProxyHost", () => {
+        if (!this.videoHandler) {
+          return;
+        }
+
+        this.runDetached(
+          this.videoHandler.handleProxySettingsChanged("mediaProxyHost"),
+          "Failed to apply mediaProxyHost change",
+        );
+      })
       .addEventListener("select:proxyTranslationStatus", () => {
         // Switching proxy mode changes request routing. Drop stale cache and
         // stop translation so the next run starts with fresh settings.

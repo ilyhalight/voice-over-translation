@@ -274,5 +274,6 @@
   "sendErrorReports": "Անանուն սխալի հաշվետվություններ ուղարկելը",
   "sendErrorReportsDescription": "Օգնում է մեզ գտնել և ուղղել սխալները: Ուղարկվում են միայն տեխնիկական մանրամասներ",
   "VOTSubtitlesTranslationLanguage": "Բառերի և արտահայտությունների թարգմանության լեզու",
-  "VOTSameAsMenuLanguage": "Նույնը, ինչ Ընտրացանկի լեզուն"
+  "VOTSameAsMenuLanguage": "Նույնը, ինչ Ընտրացանկի լեզուն",
+  "VOTMediaProxyHost": "Մուտքագրեք լրատվամիջոցների վստահված սերվերի հասցեն"
 }

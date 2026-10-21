@@ -274,5 +274,6 @@
   "sendErrorReports": "Anfon adroddiadau gwall dienw",
   "sendErrorReportsDescription": "Yn ein helpu i ddod o hyd i a thrwsio chwilod. Dim ond manylion technegol sy'n cael eu hanfon",
   "VOTSubtitlesTranslationLanguage": "Iaith cyfieithu geiriau ac ymadroddion",
-  "VOTSameAsMenuLanguage": "Yr un fath ag iaith y ddewislen"
+  "VOTSameAsMenuLanguage": "Yr un fath ag iaith y ddewislen",
+  "VOTMediaProxyHost": "Rhowch gyfeiriad dirprwy y cyfryngau"
 }
