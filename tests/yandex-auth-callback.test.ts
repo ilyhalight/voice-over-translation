@@ -1,15 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { memoryStorage } from "./helpers/storage";
 
 (globalThis as unknown as { DEBUG_MODE: boolean }).DEBUG_MODE = false;
-
-const memoryStorage = () => {
-  const items = new Map<string, string>();
-  return {
-    getItem: (key: string) => items.get(key) ?? null,
-    setItem: (key: string, value: string) => void items.set(key, value),
-    removeItem: (key: string) => void items.delete(key),
-  };
-};
 
 Object.defineProperty(globalThis, "localStorage", {
   configurable: true,

@@ -5,6 +5,7 @@ import {
   TYPE_RES,
 } from "../src/extension/shared/constants";
 import { getDefaultSendErrorReports } from "../src/modules/telemetry/consent";
+import { captureGlobal } from "./helpers/globals";
 
 const INGEST_URL = "https://ingest.nirel.cc/api/1/envelope/";
 
@@ -115,7 +116,7 @@ describe("sendErrorReports default", () => {
     "removeEventListener",
     "postMessage",
   ];
-  let descriptors: (PropertyDescriptor | undefined)[];
+  let restoreGlobals: (() => void)[];
   let onRequest: (message: Record<string, unknown>) => void;
 
   function emit(data: unknown, source = pageWindow, eventOrigin = origin) {
@@ -127,9 +128,7 @@ describe("sendErrorReports default", () => {
   beforeEach(() => {
     globals.VOT_BUILD_VARIANT = "firefox";
     getAll = async () => ({ data_collection: [] });
-    descriptors = pageGlobals.map((key) =>
-      Object.getOwnPropertyDescriptor(globalThis, key),
-    );
+    restoreGlobals = pageGlobals.map(captureGlobal);
     const values = [
       pageWindow,
       { origin },
@@ -165,11 +164,7 @@ describe("sendErrorReports default", () => {
   });
 
   afterEach(() => {
-    pageGlobals.forEach((key, index) => {
-      const descriptor = descriptors[index];
-      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
-      else delete (globalThis as Record<string, unknown>)[key];
-    });
+    for (const restoreGlobal of restoreGlobals) restoreGlobal();
     expect(listeners.size).toBe(0);
     listeners.clear();
   });

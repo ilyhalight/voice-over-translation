@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
+import { captureGlobal } from "./helpers/globals";
 
 (globalThis as unknown as { DEBUG_MODE: boolean }).DEBUG_MODE = false;
 
@@ -92,9 +93,7 @@ function createFakeWindow(): FakeWindow {
 function installTopPage(href: string) {
   const url = new URL(href);
   const target = globalThis as unknown as Record<string, unknown>;
-  const saved = patchedKeys.map(
-    (key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)] as const,
-  );
+  const restoreGlobals = patchedKeys.map(captureGlobal);
   const listeners = new Set<Listener>();
   const iframes: FakeIframe[] = [];
   const posted: { message: AnyMessage; targetOrigin: string }[] = [];
@@ -154,10 +153,7 @@ function installTopPage(href: string) {
 
   restore = () => {
     delete target[BOOT_KEY];
-    for (const [key, descriptor] of saved) {
-      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
-      else delete target[key];
-    }
+    for (const restoreGlobal of restoreGlobals) restoreGlobal();
   };
 
   return { emit, iframes, posted };

@@ -4,6 +4,7 @@ export {
   stopSmartVolumeDucking,
 } from "./smartDuckingRuntime";
 export {
+  cancelDeferredTranslationResume,
   handlePlaybackResumedTranslationRefresh,
   handleProxySettingsChanged,
   isMultiMethodS3,

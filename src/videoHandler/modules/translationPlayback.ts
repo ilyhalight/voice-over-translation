@@ -169,16 +169,84 @@ export function pauseVideoForTranslation(
   return () => handler.video.removeEventListener("play", onPlay);
 }
 
-/** Resumes playback only if this extension was the one that paused it. */
+function isPageHidden(): boolean {
+  return (
+    typeof document !== "undefined" && document.visibilityState === "hidden"
+  );
+}
+
+// `pictureInPictureElement` is undefined in Firefox, so this is always false there.
+function isVideoInPictureInPicture(handler: VideoHandler): boolean {
+  return (
+    typeof document !== "undefined" &&
+    document.pictureInPictureElement === handler.video
+  );
+}
+
+function playVideoAfterTranslation(handler: VideoHandler): void {
+  handler.pausedByTranslation = false;
+  if (!handler.hasActiveSource()) return;
+  debug.log("[translateFunc] Resuming video after translation is ready");
+  handler.video.play().catch((playErr) => {
+    debug.log("[translateFunc] Failed to resume video", playErr);
+  });
+}
+
+function deferResumeUntilPageVisible(handler: VideoHandler): void {
+  const controller = new AbortController();
+  const { signal } = controller;
+  const cancel = () => {
+    controller.abort();
+    if (handler.cancelDeferredTranslationResume === cancel) {
+      handler.cancelDeferredTranslationResume = null;
+    }
+  };
+  handler.cancelDeferredTranslationResume = cancel;
+
+  debug.log("[translateFunc] Page is hidden, deferring video resume");
+  handler.video.addEventListener(
+    "play",
+    () => {
+      handler.pausedByTranslation = false;
+      cancel();
+    },
+    { signal },
+  );
+  document.addEventListener(
+    "visibilitychange",
+    () => {
+      if (isPageHidden()) return;
+      cancel();
+      playVideoAfterTranslation(handler);
+    },
+    { signal },
+  );
+}
+
+/** Drops a resume deferred by a hidden page, leaving the video paused. */
+export function cancelDeferredTranslationResume(handler: VideoHandler): void {
+  if (!handler.cancelDeferredTranslationResume) return;
+  handler.cancelDeferredTranslationResume();
+  handler.pausedByTranslation = false;
+}
+
+/**
+ * Resumes playback only if this extension was the one that paused it. A hidden
+ * page keeps the video paused until it becomes visible, so translations that
+ * finish in background tabs do not start playing on their own.
+ */
 export function resumeVideoAfterTranslation(handler: VideoHandler): void {
   if (!handler.pausedByTranslation) return;
-  handler.pausedByTranslation = false;
-  if (handler.hasActiveSource()) {
-    debug.log("[translateFunc] Resuming video after translation is ready");
-    handler.video.play().catch((playErr) => {
-      debug.log("[translateFunc] Failed to resume video", playErr);
-    });
+  handler.cancelDeferredTranslationResume?.();
+  if (
+    handler.hasActiveSource() &&
+    isPageHidden() &&
+    !isVideoInPictureInPicture(handler)
+  ) {
+    deferResumeUntilPageVisible(handler);
+    return;
   }
+  playVideoAfterTranslation(handler);
 }
 
 async function requestApplyAndCacheTranslation(

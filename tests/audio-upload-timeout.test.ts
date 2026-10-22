@@ -1,13 +1,10 @@
 import { describe, expect, test } from "bun:test";
+import { emptyStorage } from "./helpers/storage";
 
 (globalThis as unknown as { DEBUG_MODE: boolean }).DEBUG_MODE = false;
 Object.defineProperty(globalThis, "localStorage", {
   configurable: true,
-  value: {
-    getItem: () => null,
-    setItem: () => undefined,
-    removeItem: () => undefined,
-  },
+  value: emptyStorage(),
 });
 
 const { VOTTranslationHandler } = await import(

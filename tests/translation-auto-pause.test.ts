@@ -1,13 +1,10 @@
 import { describe, expect, test } from "bun:test";
+import { emptyStorage } from "./helpers/storage";
 
 (globalThis as unknown as { DEBUG_MODE: boolean }).DEBUG_MODE = false;
 Object.defineProperty(globalThis, "localStorage", {
   configurable: true,
-  value: {
-    getItem: () => null,
-    setItem: () => undefined,
-    removeItem: () => undefined,
-  },
+  value: emptyStorage(),
 });
 
 const { VOTTranslationHandler } = await import(
@@ -16,29 +13,59 @@ const { VOTTranslationHandler } = await import(
 const { requestTranslationAudio } = await import(
   "../src/videoHandler/modules/translationShared"
 );
-const { pauseVideoForTranslation, resumeVideoAfterTranslation } = await import(
-  "../src/videoHandler/modules/translationPlayback"
-);
+const {
+  cancelDeferredTranslationResume,
+  pauseVideoForTranslation,
+  resumeVideoAfterTranslation,
+} = await import("../src/videoHandler/modules/translationPlayback");
+
+type FakeListenerOptions = { once?: boolean; signal?: AbortSignal };
+
+function createFakeEventTarget() {
+  const listeners = new Map<string, Map<() => void, boolean>>();
+  const forType = (type: string) => {
+    let map = listeners.get(type);
+    if (!map) {
+      map = new Map();
+      listeners.set(type, map);
+    }
+    return map;
+  };
+  return {
+    addEventListener(
+      type: string,
+      listener: () => void,
+      options?: FakeListenerOptions,
+    ) {
+      if (options?.signal?.aborted) return;
+      forType(type).set(listener, Boolean(options?.once));
+      options?.signal?.addEventListener("abort", () =>
+        forType(type).delete(listener),
+      );
+    },
+    removeEventListener(type: string, listener: () => void) {
+      forType(type).delete(listener);
+    },
+    emit(type: string) {
+      for (const [listener, once] of [...forType(type)]) {
+        if (once) forType(type).delete(listener);
+        listener();
+      }
+    },
+    listenerCount(type: string) {
+      return forType(type).size;
+    },
+  };
+}
 
 function createFakeVideo() {
-  const playListeners = new Map<() => void, boolean>();
+  const target = createFakeEventTarget();
   const video = {
+    ...target,
     paused: false,
     ended: false,
     pauseCalls: 0,
     playCalls: 0,
-    addEventListener(
-      type: string,
-      listener: () => void,
-      options?: { once?: boolean },
-    ) {
-      if (type !== "play") return;
-      playListeners.set(listener, Boolean(options?.once));
-    },
-    removeEventListener(type: string, listener: () => void) {
-      if (type !== "play") return;
-      playListeners.delete(listener);
-    },
     pause() {
       video.pauseCalls += 1;
       video.paused = true;
@@ -47,13 +74,6 @@ function createFakeVideo() {
       video.playCalls += 1;
       video.paused = false;
       return Promise.resolve();
-    },
-    emit(type: string) {
-      if (type !== "play") return;
-      for (const [listener, once] of [...playListeners]) {
-        if (once) playListeners.delete(listener);
-        listener();
-      }
     },
   };
   return video;
@@ -64,7 +84,30 @@ function createPlaybackHandler() {
     data: { autoPauseOnTranslate: true },
     video: createFakeVideo(),
     pausedByTranslation: false,
+    cancelDeferredTranslationResume: null as (() => void) | null,
     hasActiveSource: () => true,
+  };
+}
+
+function installFakeDocument(visibilityState: "visible" | "hidden") {
+  const target = createFakeEventTarget();
+  const fakeDocument = Object.assign(target, {
+    visibilityState,
+    pictureInPictureElement: undefined as unknown,
+  });
+  Object.defineProperty(globalThis, "document", {
+    configurable: true,
+    value: fakeDocument,
+  });
+  return {
+    document: fakeDocument,
+    setVisibility(next: "visible" | "hidden") {
+      fakeDocument.visibilityState = next;
+      fakeDocument.emit("visibilitychange");
+    },
+    restore() {
+      Reflect.deleteProperty(globalThis, "document");
+    },
   };
 }
 
@@ -282,5 +325,150 @@ describe("translation auto-pause", () => {
     // Calling cleanup again after the listener is gone is harmless.
     cleanup?.();
     expect(playback.pausedByTranslation).toBe(true);
+  });
+});
+
+describe("translation auto-pause in a hidden page", () => {
+  function pausedPlayback() {
+    const playback = createPlaybackHandler();
+    pauseVideoForTranslation(playback as never)?.();
+    expect(playback.video.paused).toBe(true);
+    return playback;
+  }
+
+  test("keeps the video paused until the page becomes visible", () => {
+    const page = installFakeDocument("hidden");
+    try {
+      const playback = pausedPlayback();
+
+      resumeVideoAfterTranslation(playback as never);
+      expect(playback.video.playCalls).toBe(0);
+      expect(playback.pausedByTranslation).toBe(true);
+
+      page.setVisibility("hidden");
+      expect(playback.video.playCalls).toBe(0);
+
+      page.setVisibility("visible");
+      expect(playback.video.playCalls).toBe(1);
+      expect(playback.pausedByTranslation).toBe(false);
+      expect(playback.cancelDeferredTranslationResume).toBeNull();
+      expect(page.document.listenerCount("visibilitychange")).toBe(0);
+      expect(playback.video.listenerCount("play")).toBe(0);
+
+      page.setVisibility("hidden");
+      page.setVisibility("visible");
+      expect(playback.video.playCalls).toBe(1);
+    } finally {
+      page.restore();
+    }
+  });
+
+  test("resumes immediately when the page is visible", () => {
+    const page = installFakeDocument("visible");
+    try {
+      const playback = pausedPlayback();
+
+      resumeVideoAfterTranslation(playback as never);
+      expect(playback.video.playCalls).toBe(1);
+      expect(page.document.listenerCount("visibilitychange")).toBe(0);
+    } finally {
+      page.restore();
+    }
+  });
+
+  test("manual play cancels the deferred resume", () => {
+    const page = installFakeDocument("hidden");
+    try {
+      const playback = pausedPlayback();
+      resumeVideoAfterTranslation(playback as never);
+
+      playback.video.emit("play");
+      expect(playback.pausedByTranslation).toBe(false);
+      expect(page.document.listenerCount("visibilitychange")).toBe(0);
+
+      page.setVisibility("visible");
+      expect(playback.video.playCalls).toBe(0);
+    } finally {
+      page.restore();
+    }
+  });
+
+  test("cancelDeferredTranslationResume keeps the video paused", () => {
+    const page = installFakeDocument("hidden");
+    try {
+      const playback = pausedPlayback();
+      resumeVideoAfterTranslation(playback as never);
+
+      cancelDeferredTranslationResume(playback as never);
+      expect(playback.pausedByTranslation).toBe(false);
+      expect(playback.cancelDeferredTranslationResume).toBeNull();
+      expect(page.document.listenerCount("visibilitychange")).toBe(0);
+      expect(playback.video.listenerCount("play")).toBe(0);
+
+      page.setVisibility("visible");
+      expect(playback.video.playCalls).toBe(0);
+    } finally {
+      page.restore();
+    }
+  });
+
+  test("resumes immediately when the video is in Picture-in-Picture", () => {
+    const page = installFakeDocument("hidden");
+    try {
+      const playback = pausedPlayback();
+      page.document.pictureInPictureElement = playback.video;
+
+      resumeVideoAfterTranslation(playback as never);
+      expect(playback.video.playCalls).toBe(1);
+      expect(playback.pausedByTranslation).toBe(false);
+      expect(playback.cancelDeferredTranslationResume).toBeNull();
+      expect(page.document.listenerCount("visibilitychange")).toBe(0);
+    } finally {
+      page.restore();
+    }
+  });
+
+  test("still defers when another element is in Picture-in-Picture", () => {
+    const page = installFakeDocument("hidden");
+    try {
+      const playback = pausedPlayback();
+      page.document.pictureInPictureElement = createFakeVideo();
+
+      resumeVideoAfterTranslation(playback as never);
+      expect(playback.video.playCalls).toBe(0);
+      expect(playback.pausedByTranslation).toBe(true);
+      expect(page.document.listenerCount("visibilitychange")).toBe(1);
+    } finally {
+      page.restore();
+    }
+  });
+
+  test("still defers when nothing is in Picture-in-Picture", () => {
+    const page = installFakeDocument("hidden");
+    try {
+      const playback = pausedPlayback();
+      page.document.pictureInPictureElement = null;
+
+      resumeVideoAfterTranslation(playback as never);
+      expect(playback.video.playCalls).toBe(0);
+      expect(page.document.listenerCount("visibilitychange")).toBe(1);
+    } finally {
+      page.restore();
+    }
+  });
+
+  test("does not defer when there is no active source", () => {
+    const page = installFakeDocument("hidden");
+    try {
+      const playback = pausedPlayback();
+      playback.hasActiveSource = () => false;
+
+      resumeVideoAfterTranslation(playback as never);
+      expect(playback.pausedByTranslation).toBe(false);
+      expect(playback.video.playCalls).toBe(0);
+      expect(page.document.listenerCount("visibilitychange")).toBe(0);
+    } finally {
+      page.restore();
+    }
   });
 });

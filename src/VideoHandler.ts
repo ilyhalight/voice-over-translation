@@ -86,6 +86,7 @@ import {
 } from "./videoHandler/modules/subtitles";
 import {
   applyManualVideoVolumeOverride as applyManualVideoVolumeOverrideImpl,
+  cancelDeferredTranslationResume as cancelDeferredTranslationResumeImpl,
   handleProxySettingsChanged as handleProxySettingsChangedImpl,
   isMultiMethodS3 as isMultiMethodS3Impl,
   isYouTubeHosts as isYouTubeHostsImpl,
@@ -246,6 +247,9 @@ export class VideoHandler {
    * Reset when translation finishes or when the user manually starts playback.
    */
   pausedByTranslation = false;
+
+  /** Cancels a resume postponed until the hidden page becomes visible. */
+  cancelDeferredTranslationResume: (() => void) | null = null;
 
   // Available subtitle tracks for the current video. The subtitles UI widget
   // maintains its own internal line/token representation.
@@ -1204,6 +1208,8 @@ export class VideoHandler {
     }
 
     const cleanup = async () => {
+      // Before the awaits: a visibilitychange during them must not play the video.
+      cancelDeferredTranslationResumeImpl(this);
       if (this.audioPlayer?.player) {
         try {
           this.audioPlayer.player.removeVideoEvents();
@@ -1544,6 +1550,8 @@ export class VideoHandler {
     if (this.video === video) return;
 
     debug.log("[VideoHandler] replaceVideo", video);
+    // Before the await: a visibilitychange during it must not play the old video.
+    cancelDeferredTranslationResumeImpl(this);
     await this.audioPlayer.replaceVideo(video);
     this.abortController.abort();
     this.releaseExtraEvents();
