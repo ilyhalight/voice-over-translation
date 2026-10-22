@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 配音翻译
 // @namespace      vot
-// @version        1.12.1
+// @version        1.12.2
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    Watch videos in other languages with voice-over translation and subtitles in any browser
 // @description:de Sieh dir Videos in anderen Sprachen mit Voice-over-Übersetzung und Untertiteln in jedem Browser an
@@ -8913,6 +8913,7 @@ var vot = (function(exports) {
 	var m3u8ProxyHost = "media-proxy.toil.cc/v1/proxy/m3u8";
 	var proxyWorkerHostMode1 = "vot-worker.vtrans.eu.cc";
 	var PROXY_WORKER_HOST = "vot-worker.eu.cc";
+	var MEDIA_PROXY_HOST = config_default$1.mediaProxy;
 	var repoPath = "ilyhalight/voice-over-translation";
 	var contentUrl = `https://raw.githubusercontent.com/${repoPath}`;
 	var repositoryUrl = `https://github.com/${repoPath}`;
@@ -9871,6 +9872,7 @@ var vot = (function(exports) {
 		"pipHotkey",
 		"m3u8ProxyHost",
 		"proxyWorkerHost",
+		"mediaProxyHost",
 		"translateProxyEnabled",
 		"translateProxyEnabledDefault",
 		"audioBooster",
@@ -10321,6 +10323,11 @@ var vot = (function(exports) {
 		const { name, message } = error ?? {};
 		return isAbortError(error) || name === "VOTLocalizedError" || name === "NotAllowedError" || name === "VideoDataError" && typeof message === "string" && message.startsWith("Entered unsupported link");
 	}
+	function isIgnoredForHandler(error, scriptHandler) {
+		if (!scriptHandler || !/orange\s*monkey/i.test(scriptHandler)) return false;
+		const { name, message } = error ?? {};
+		return name === "TypeError" && typeof message === "string" && message.trim() === "Illegal invocation";
+	}
 	function redactError(error, message) {
 		const redacted = new Error(message);
 		redacted.name = error.name;
@@ -10343,6 +10350,8 @@ var vot = (function(exports) {
 		return async function report(error, options) {
 			if (isExpectedError(error)) return;
 			if (!await isEnabled()) return;
+			const { version, environment, env } = getRuntimeInfo();
+			if (isIgnoredForHandler(error, env.scriptHandler)) return;
 			const normalized = toError(error);
 			const involved = [error, ...collectCauses(normalized)].filter(isObject);
 			if (involved.some((item) => capturedErrors.has(item))) return;
@@ -10353,7 +10362,6 @@ var vot = (function(exports) {
 			if (eventCount >= MAX_EVENTS_PER_SESSION) return;
 			reportedKeys.add(key);
 			eventCount++;
-			const { version, environment, env } = getRuntimeInfo();
 			await send(buildEvent(reported, {
 				version,
 				environment,
@@ -10407,7 +10415,7 @@ var vot = (function(exports) {
 	}
 	function getRuntimeInfo() {
 		return {
-			version: "1.12.1",
+			version: "1.12.2",
 			environment: "master",
 			env: getEnvironmentInfo$1()
 		};
@@ -10417,7 +10425,7 @@ var vot = (function(exports) {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/x-sentry-envelope",
-				"X-Sentry-Auth": buildAuthHeader("1.12.1")
+				"X-Sentry-Auth": buildAuthHeader("1.12.2")
 			},
 			body: buildEnvelope(event),
 			forceGmXhr: true,
@@ -10685,6 +10693,7 @@ var vot = (function(exports) {
 		VOTTranslateAPIErrors: "Translate errors from the API",
 		VOTDetectService: "Language detection service",
 		VOTProxyWorkerHost: "Enter the proxy worker address",
+		VOTMediaProxyHost: "Enter the media proxy address",
 		VOTM3u8ProxyHost: "Enter the address of the m3u8 proxy worker",
 		proxySettings: "Proxy Settings",
 		translationTakeApproximatelyMinute2: "The translation will take approximately {0} minutes",
@@ -10928,7 +10937,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.12.1"), String(getGMInfo()?.script?.version || ""));
+		return resolveRuntimeLocaleVersion(String("1.12.2"), String(getGMInfo()?.script?.version || ""));
 	}
 	var LocalizationProvider = class {
 		lang;
@@ -10973,21 +10982,24 @@ var vot = (function(exports) {
 			await this.update(true);
 			return true;
 		}
+		async hasUsableCache() {
+			const [storedLocaleLang, storedLocalePhrases] = await Promise.all([votStorage.get("localeLang", ""), votStorage.get("localePhrases", "")]);
+			return storedLocaleLang === this.lang && !!storedLocalePhrases.trim();
+		}
 		async checkUpdates(force = false) {
 			logger_default.log("Check locale updates...");
 			try {
 				const runtimeLocaleVersion = getRuntimeLocaleVersion();
-				if (!force) {
-					const storedLocaleVersion = await votStorage.get("localeVersion", "");
-					if (runtimeLocaleVersion !== "unknown" && storedLocaleVersion === runtimeLocaleVersion) return false;
-				}
+				const [storedLocaleVersion, hasUsableCache] = await Promise.all([votStorage.get("localeVersion", ""), this.hasUsableCache()]);
+				if (!force && hasUsableCache && runtimeLocaleVersion !== "unknown" && storedLocaleVersion === runtimeLocaleVersion) return false;
 				const res = await GM_fetch(this.buildUrl(this.hashesUrl, "", force));
 				if (!res.ok) throw res.status;
 				const hashes = await res.json();
 				if (!hashes || typeof hashes !== "object") throw new Error("Invalid locale hashes payload");
 				const nextHash = hashes[this.lang];
 				if (typeof nextHash !== "string" || !nextHash) return false;
-				return await votStorage.get("localeHash", "") === nextHash ? false : nextHash;
+				const currentHash = await votStorage.get("localeHash", "");
+				return hasUsableCache && currentHash === nextHash ? false : nextHash;
 			} catch (err) {
 				logger_default.error("[localizationProvider] Failed to get locales hash:", err);
 				return null;
@@ -11113,7 +11125,7 @@ var vot = (function(exports) {
 			return;
 		}
 		await ensureLocalizationProviderReady();
-		if (!isIframe()) await localizationProvider.update();
+		if (!isIframe() || !await localizationProvider.hasUsableCache()) await localizationProvider.update();
 		debug.log(`Selected menu language: ${localizationProvider.lang}`);
 		runtimeActivated = true;
 	}
@@ -33237,6 +33249,71 @@ var vot = (function(exports) {
 		return snapVolume01(next, "nearest", step);
 	}
 	//#endregion
+	//#region src/videoHandler/modules/proxyShared.ts
+	var AUDIO_SOURCE_PREFIX = "https://vtrans.s3-private.mds.yandex.net/tts/prod/";
+	var AUDIO_PROXY_PATH_PREFIX = "/video-translation/audio-proxy/";
+	var SUBTITLE_SOURCE_PREFIX = "https://brosubs.s3-private.mds.yandex.net/vtrans/";
+	var SUBTITLE_PROXY_PATH_PREFIX = "/video-subtitles/subtitles-proxy/";
+	function resolveProxyWorkerHost(host) {
+		return host ?? "vot-worker.eu.cc";
+	}
+	function normalizeMediaProxyHost(value) {
+		let host = (value ?? "").trim();
+		if (!host) return MEDIA_PROXY_HOST;
+		if (/^http:\/\//i.test(host)) {
+			debug.log("mediaProxyHost must use https, using the default:", host);
+			return MEDIA_PROXY_HOST;
+		}
+		host = host.replace(/^https:\/\//i, "").replace(/\/$/, "");
+		try {
+			const url = new URL(`https://${host}`);
+			if (host.includes("/") || url.username || url.password || url.search || url.hash || url.pathname !== "/") {
+				debug.log("mediaProxyHost must be a bare host, using the default:", host);
+				return MEDIA_PROXY_HOST;
+			}
+			return url.host || MEDIA_PROXY_HOST;
+		} catch {
+			debug.log("mediaProxyHost is invalid, using the default:", host);
+			return MEDIA_PROXY_HOST;
+		}
+	}
+	function isProxyClientEnabled(config) {
+		return Boolean(config.translateProxyEnabled);
+	}
+	function isProxyRoutingEnabled(config) {
+		return config.translateProxyEnabled === 2;
+	}
+	function shouldForceProxyClientGmXhr(config) {
+		return Boolean(config.gmXhrSupported && isProxyClientEnabled(config));
+	}
+	function proxifyUrl(url, config, sourcePrefix, proxyPathPrefix) {
+		if (!isProxyRoutingEnabled(config) || !url.startsWith(sourcePrefix)) return url;
+		return url.replace(sourcePrefix, `https://${resolveProxyWorkerHost(config.proxyWorkerHost)}${proxyPathPrefix}`);
+	}
+	function proxifyYandexAudioUrl(audioUrl, config) {
+		return proxifyUrl(audioUrl, config, AUDIO_SOURCE_PREFIX, AUDIO_PROXY_PATH_PREFIX);
+	}
+	function unproxifyYandexAudioUrl(audioUrl) {
+		const str = String(audioUrl || "");
+		if (!str) return str;
+		try {
+			const url = new URL(str);
+			if (!url.pathname.startsWith(AUDIO_PROXY_PATH_PREFIX)) return str;
+			url.host = "vtrans.s3-private.mds.yandex.net";
+			url.pathname = `/tts/prod/${url.pathname.slice(31).replace(/^\/+/, "")}`;
+			url.protocol = "https:";
+			return url.toString();
+		} catch {
+			return str;
+		}
+	}
+	function isYandexAudioUrlOrProxy(url, config) {
+		return url.startsWith(AUDIO_SOURCE_PREFIX) || url.startsWith(`https://${resolveProxyWorkerHost(config.proxyWorkerHost)}${AUDIO_PROXY_PATH_PREFIX}`);
+	}
+	function proxifyYandexSubtitlesUrl(subtitlesUrl, config) {
+		return proxifyUrl(subtitlesUrl, config, SUBTITLE_SOURCE_PREFIX, SUBTITLE_PROXY_PATH_PREFIX);
+	}
+	//#endregion
 	//#region src/core/hostPolicies.ts
 	var EXTERNAL_VOLUME_HOSTS = new Set(["youtube", "googledrive"]);
 	var YOUTUBE_LIKE_HOSTS = EXTERNAL_VOLUME_HOSTS;
@@ -33502,7 +33579,8 @@ var vot = (function(exports) {
 				return await getVideoData(site, {
 					fetchFn: GM_fetch,
 					video: this.videoHandler.video,
-					language: localizationProvider.lang
+					language: localizationProvider.lang,
+					mediaProxy: normalizeMediaProxyHost(data?.mediaProxyHost)
 				});
 			} catch (err) {
 				captureException(err, {
@@ -33857,6 +33935,7 @@ var vot = (function(exports) {
 			autoHideButtonDelay: DEFAULT_AUTO_HIDE_DELAY,
 			buttonPos: "default",
 			proxyWorkerHost: PROXY_WORKER_HOST,
+			mediaProxyHost: MEDIA_PROXY_HOST,
 			translateProxyEnabled: 0,
 			translationHotkey: null,
 			subtitlesHotkey: null,
@@ -43243,32 +43322,47 @@ var vot = (function(exports) {
 				return t$1("proxySettings");
 			},
 			get children() {
-				return [createComponent(Textfield, {
-					get labelText() {
-						return t$1("VOTProxyWorkerHost");
-					},
-					placeholder: PROXY_WORKER_HOST,
-					get value() {
-						return settings.proxyWorkerHost;
-					},
-					get onChange() {
-						return props.onProxyWorkerHostChange;
-					}
-				}), createComponent(Select, {
-					get title() {
-						return t$1("VOTTranslateProxyStatus");
-					},
-					options: translateProxyOptions,
-					get selectedValue() {
-						return settings.translateProxyEnabled;
-					},
-					get onSelect() {
-						return props.onTranslateProxyStatusSelect;
-					},
-					get children() {
-						return t$1("VOTTranslateProxyStatus");
-					}
-				})];
+				return [
+					createComponent(Textfield, {
+						get labelText() {
+							return t$1("VOTProxyWorkerHost");
+						},
+						placeholder: PROXY_WORKER_HOST,
+						get value() {
+							return settings.proxyWorkerHost;
+						},
+						get onChange() {
+							return props.onProxyWorkerHostChange;
+						}
+					}),
+					createComponent(Textfield, {
+						get labelText() {
+							return t$1("VOTMediaProxyHost");
+						},
+						placeholder: MEDIA_PROXY_HOST,
+						get value() {
+							return settings.mediaProxyHost;
+						},
+						get onChange() {
+							return props.onMediaProxyHostChange;
+						}
+					}),
+					createComponent(Select, {
+						get title() {
+							return t$1("VOTTranslateProxyStatus");
+						},
+						options: translateProxyOptions,
+						get selectedValue() {
+							return settings.translateProxyEnabled;
+						},
+						get onSelect() {
+							return props.onTranslateProxyStatusSelect;
+						},
+						get children() {
+							return t$1("VOTTranslateProxyStatus");
+						}
+					})
+				];
 			}
 		});
 	}
@@ -43881,6 +43975,7 @@ var vot = (function(exports) {
 		"select:responseLanguageSubtitles",
 		"select:subtitlesFontFamily",
 		"change:proxyWorkerHost",
+		"change:mediaProxyHost",
 		"change:useNewAudioPlayer",
 		"change:onlyBypassMediaCSP",
 		"change:showPiPButton",
@@ -44124,6 +44219,13 @@ var vot = (function(exports) {
 							await votStorage.set("proxyWorkerHost", this.data.proxyWorkerHost);
 							debug.log("proxyWorkerHost value changed. New value:", this.data.proxyWorkerHost);
 							this.events["change:proxyWorkerHost"].dispatch(value);
+						},
+						onMediaProxyHostChange: async (value) => {
+							this.data.mediaProxyHost = normalizeMediaProxyHost(value);
+							setSettings("mediaProxyHost", this.data.mediaProxyHost);
+							await votStorage.set("mediaProxyHost", this.data.mediaProxyHost);
+							debug.log("mediaProxyHost value changed. New value:", this.data.mediaProxyHost);
+							this.events["change:mediaProxyHost"].dispatch(this.data.mediaProxyHost);
 						},
 						onTranslateProxyStatusSelect: async (option) => {
 							const value = option.value;
@@ -44512,6 +44614,9 @@ var vot = (function(exports) {
 			}).addEventListener("change:proxyWorkerHost", (_value) => {
 				if (!this.videoHandler) return;
 				this.runDetached(this.videoHandler.handleProxySettingsChanged("proxyWorkerHost"), "Failed to apply proxyWorkerHost change");
+			}).addEventListener("change:mediaProxyHost", () => {
+				if (!this.videoHandler) return;
+				this.runDetached(this.videoHandler.handleProxySettingsChanged("mediaProxyHost"), "Failed to apply mediaProxyHost change");
 			}).addEventListener("select:proxyTranslationStatus", () => {
 				if (!this.videoHandler) return;
 				this.runDetached(this.videoHandler.handleProxySettingsChanged("proxyTranslationStatus"), "Failed to apply proxyTranslationStatus change");
@@ -45362,51 +45467,6 @@ var vot = (function(exports) {
 		this.smartVolumeLastApplied = nextVolume;
 	}
 	//#endregion
-	//#region src/videoHandler/modules/proxyShared.ts
-	var AUDIO_SOURCE_PREFIX = "https://vtrans.s3-private.mds.yandex.net/tts/prod/";
-	var AUDIO_PROXY_PATH_PREFIX = "/video-translation/audio-proxy/";
-	var SUBTITLE_SOURCE_PREFIX = "https://brosubs.s3-private.mds.yandex.net/vtrans/";
-	var SUBTITLE_PROXY_PATH_PREFIX = "/video-subtitles/subtitles-proxy/";
-	function resolveProxyWorkerHost(host) {
-		return host ?? "vot-worker.eu.cc";
-	}
-	function isProxyClientEnabled(config) {
-		return Boolean(config.translateProxyEnabled);
-	}
-	function isProxyRoutingEnabled(config) {
-		return config.translateProxyEnabled === 2;
-	}
-	function shouldForceProxyClientGmXhr(config) {
-		return Boolean(config.gmXhrSupported && isProxyClientEnabled(config));
-	}
-	function proxifyUrl(url, config, sourcePrefix, proxyPathPrefix) {
-		if (!isProxyRoutingEnabled(config) || !url.startsWith(sourcePrefix)) return url;
-		return url.replace(sourcePrefix, `https://${resolveProxyWorkerHost(config.proxyWorkerHost)}${proxyPathPrefix}`);
-	}
-	function proxifyYandexAudioUrl(audioUrl, config) {
-		return proxifyUrl(audioUrl, config, AUDIO_SOURCE_PREFIX, AUDIO_PROXY_PATH_PREFIX);
-	}
-	function unproxifyYandexAudioUrl(audioUrl) {
-		const str = String(audioUrl || "");
-		if (!str) return str;
-		try {
-			const url = new URL(str);
-			if (!url.pathname.startsWith(AUDIO_PROXY_PATH_PREFIX)) return str;
-			url.host = "vtrans.s3-private.mds.yandex.net";
-			url.pathname = `/tts/prod/${url.pathname.slice(31).replace(/^\/+/, "")}`;
-			url.protocol = "https:";
-			return url.toString();
-		} catch {
-			return str;
-		}
-	}
-	function isYandexAudioUrlOrProxy(url, config) {
-		return url.startsWith(AUDIO_SOURCE_PREFIX) || url.startsWith(`https://${resolveProxyWorkerHost(config.proxyWorkerHost)}${AUDIO_PROXY_PATH_PREFIX}`);
-	}
-	function proxifyYandexSubtitlesUrl(subtitlesUrl, config) {
-		return proxifyUrl(subtitlesUrl, config, SUBTITLE_SOURCE_PREFIX, SUBTITLE_PROXY_PATH_PREFIX);
-	}
-	//#endregion
 	//#region src/videoHandler/modules/subtitlesShared.ts
 	var DISABLED_SUBTITLES_VALUE = "disabled";
 	var SUBTITLES_INDEX_OPTION_PATTERN = /^\d+$/u;
@@ -45631,15 +45691,52 @@ var vot = (function(exports) {
 		handler.video.pause();
 		return () => handler.video.removeEventListener("play", onPlay);
 	}
+	function isPageHidden() {
+		return typeof document !== "undefined" && document.visibilityState === "hidden";
+	}
+	function isVideoInPictureInPicture(handler) {
+		return typeof document !== "undefined" && document.pictureInPictureElement === handler.video;
+	}
+	function playVideoAfterTranslation(handler) {
+		handler.pausedByTranslation = false;
+		if (!handler.hasActiveSource()) return;
+		debug.log("[translateFunc] Resuming video after translation is ready");
+		handler.video.play().catch((playErr) => {
+			debug.log("[translateFunc] Failed to resume video", playErr);
+		});
+	}
+	function deferResumeUntilPageVisible(handler) {
+		const controller = new AbortController();
+		const { signal } = controller;
+		const cancel = () => {
+			controller.abort();
+			if (handler.cancelDeferredTranslationResume === cancel) handler.cancelDeferredTranslationResume = null;
+		};
+		handler.cancelDeferredTranslationResume = cancel;
+		debug.log("[translateFunc] Page is hidden, deferring video resume");
+		handler.video.addEventListener("play", () => {
+			handler.pausedByTranslation = false;
+			cancel();
+		}, { signal });
+		document.addEventListener("visibilitychange", () => {
+			if (isPageHidden()) return;
+			cancel();
+			playVideoAfterTranslation(handler);
+		}, { signal });
+	}
+	function cancelDeferredTranslationResume(handler) {
+		if (!handler.cancelDeferredTranslationResume) return;
+		handler.cancelDeferredTranslationResume();
+		handler.pausedByTranslation = false;
+	}
 	function resumeVideoAfterTranslation(handler) {
 		if (!handler.pausedByTranslation) return;
-		handler.pausedByTranslation = false;
-		if (handler.hasActiveSource()) {
-			debug.log("[translateFunc] Resuming video after translation is ready");
-			handler.video.play().catch((playErr) => {
-				debug.log("[translateFunc] Failed to resume video", playErr);
-			});
+		handler.cancelDeferredTranslationResume?.();
+		if (handler.hasActiveSource() && isPageHidden() && !isVideoInPictureInPicture(handler)) {
+			deferResumeUntilPageVisible(handler);
+			return;
 		}
+		playVideoAfterTranslation(handler);
 	}
 	async function requestApplyAndCacheTranslation(self, options) {
 		const translateRes = await requestTranslationAudio(self.translationHandler, {
@@ -47404,6 +47501,7 @@ var vot = (function(exports) {
 		longWaitingResCount = 0;
 		hadAsyncWait = false;
 		pausedByTranslation = false;
+		cancelDeferredTranslationResume = null;
 		subtitles = [];
 		subtitlesCacheKey = null;
 		subtitlesWidget;
@@ -47858,6 +47956,7 @@ var vot = (function(exports) {
 		stopTranslate() {
 			if (this.stopTranslatePromise !== null) return this.stopTranslatePromise;
 			const cleanup = async () => {
+				cancelDeferredTranslationResume(this);
 				if (this.audioPlayer?.player) {
 					try {
 						this.audioPlayer.player.removeVideoEvents();
@@ -48007,6 +48106,7 @@ var vot = (function(exports) {
 		async replaceVideo(video) {
 			if (this.video === video) return;
 			debug.log("[VideoHandler] replaceVideo", video);
+			cancelDeferredTranslationResume(this);
 			await this.audioPlayer.replaceVideo(video);
 			this.abortController.abort();
 			this.releaseExtraEvents();
