@@ -119,23 +119,33 @@ class LocalizationProvider {
     return true;
   }
 
+  async hasUsableCache(): Promise<boolean> {
+    const [storedLocaleLang, storedLocalePhrases] = await Promise.all([
+      votStorage.get<string>("localeLang", ""),
+      votStorage.get<string>("localePhrases", ""),
+    ]);
+    return storedLocaleLang === this.lang && !!storedLocalePhrases.trim();
+  }
+
   async checkUpdates(force = false): Promise<false | null | string> {
     logger.log("Check locale updates...");
     try {
       const runtimeLocaleVersion = getRuntimeLocaleVersion();
-      if (!force) {
-        const storedLocaleVersion = await votStorage.get<string>(
-          "localeVersion",
-          "",
-        );
-        // Locale files are versioned with the extension build. If the runtime
-        // version has not changed, the cached locale hash is still valid.
-        if (
-          runtimeLocaleVersion !== "unknown" &&
-          storedLocaleVersion === runtimeLocaleVersion
-        ) {
-          return false;
-        }
+      const [storedLocaleVersion, hasUsableCache] = await Promise.all([
+        votStorage.get<string>("localeVersion", ""),
+        this.hasUsableCache(),
+      ]);
+
+      // Locale files are versioned with the extension build. If the runtime
+      // version has not changed, the cached locale hash is still valid, but
+      // only when the cache actually holds phrases for the current language.
+      if (
+        !force &&
+        hasUsableCache &&
+        runtimeLocaleVersion !== "unknown" &&
+        storedLocaleVersion === runtimeLocaleVersion
+      ) {
+        return false;
       }
 
       const res = await GM_fetch(this.buildUrl(this.hashesUrl, "", force));
@@ -152,7 +162,7 @@ class LocalizationProvider {
       }
 
       const currentHash = await votStorage.get<string>("localeHash", "");
-      return currentHash === nextHash ? false : nextHash;
+      return hasUsableCache && currentHash === nextHash ? false : nextHash;
     } catch (err) {
       logger.error("[localizationProvider] Failed to get locales hash:", err);
       return null;

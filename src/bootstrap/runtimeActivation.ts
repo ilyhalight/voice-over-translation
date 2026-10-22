@@ -28,7 +28,7 @@ async function activateRuntime(
   }
 
   await ensureLocalizationProviderReady();
-  if (!isIframe()) {
+  if (!isIframe() || !(await localizationProvider.hasUsableCache())) {
     await localizationProvider.update();
   }
   debug.log(`Selected menu language: ${localizationProvider.lang}`);
