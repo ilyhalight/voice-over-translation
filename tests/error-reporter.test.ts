@@ -626,6 +626,67 @@ describe("isExpectedError", () => {
   });
 });
 
+describe("OrangeMonkey illegal invocation", () => {
+  function setup(scriptHandler: string | undefined) {
+    const sent: SentryEvent[] = [];
+    const report = createReporter({
+      isEnabled: async () => true,
+      getRuntimeInfo: () => ({
+        version: "1",
+        environment: "dev",
+        env: {
+          build: "userscript",
+          host: "example.com",
+          inIframe: false,
+          browser: {},
+          os: {},
+          scriptHandler,
+        },
+      }),
+      send: async (event) => {
+        sent.push(event);
+      },
+    });
+    return { sent, report };
+  }
+  const options: CaptureOptions = { source: "translation" };
+
+  test("is not reported", async () => {
+    const { sent, report } = setup("OrangeMonkey");
+
+    await report(new TypeError("Illegal invocation"), options);
+
+    expect(sent).toHaveLength(0);
+  });
+
+  test("matches the handler name case-insensitively", async () => {
+    const { sent, report } = setup("Orange Monkey");
+
+    await report(new TypeError("Illegal invocation"), options);
+
+    expect(sent).toHaveLength(0);
+  });
+
+  test("is reported on other script managers", async () => {
+    for (const handler of ["Tampermonkey", "Violentmonkey", undefined]) {
+      const { sent, report } = setup(handler);
+
+      await report(new TypeError("Illegal invocation"), options);
+
+      expect(sent).toHaveLength(1);
+    }
+  });
+
+  test("does not hide other errors on OrangeMonkey", async () => {
+    const { sent, report } = setup("OrangeMonkey");
+
+    await report(new TypeError("x is not a function"), options);
+    await report(new Error("Illegal invocation"), options);
+
+    expect(sent).toHaveLength(2);
+  });
+});
+
 describe("redactedMessage", () => {
   const options: CaptureOptions = { source: "auth", operation: "exchangeCode" };
 

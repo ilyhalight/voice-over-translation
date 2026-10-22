@@ -103,6 +103,27 @@ export function isExpectedError(error: unknown): boolean {
   );
 }
 
+/**
+ * OrangeMonkey's GM sandbox hands out native functions that throw
+ * "Illegal invocation" when called with the wrong receiver. Nothing the
+ * script can fix.
+ */
+export function isIgnoredForHandler(
+  error: unknown,
+  scriptHandler: string | undefined,
+): boolean {
+  if (!scriptHandler || !/orange\s*monkey/i.test(scriptHandler)) return false;
+  const { name, message } = (error ?? {}) as {
+    name?: unknown;
+    message?: unknown;
+  };
+  return (
+    name === "TypeError" &&
+    typeof message === "string" &&
+    message.trim() === "Illegal invocation"
+  );
+}
+
 function redactError(error: Error, message: string): Error {
   const redacted = new Error(message);
   redacted.name = error.name;
@@ -150,6 +171,9 @@ export function createReporter({
     // Checked first so that errors while disabled do not consume the budget.
     if (!(await isEnabled())) return;
 
+    const { version, environment, env } = getRuntimeInfo();
+    if (isIgnoredForHandler(error, env.scriptHandler)) return;
+
     const normalized = toError(error);
     // The same error object may be caught again further up the call stack.
     const involved = [error, ...collectCauses(normalized)].filter(isObject);
@@ -166,7 +190,6 @@ export function createReporter({
     reportedKeys.add(key);
     eventCount++;
 
-    const { version, environment, env } = getRuntimeInfo();
     await send(
       buildEvent(reported, {
         version,
