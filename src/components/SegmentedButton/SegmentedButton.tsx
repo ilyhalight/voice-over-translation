@@ -164,7 +164,10 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
         if (status === "error") {
           voicePopoverControls?.hideNow();
           setSuppressVoiceTooltip(false);
-        } else if (previousStatus === "error") {
+        } else if (
+          previousStatus === "error" &&
+          translationButton()?.matches(":hover")
+        ) {
           voicePopoverControls?.showNow();
         }
       },
