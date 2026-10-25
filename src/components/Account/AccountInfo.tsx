@@ -1,5 +1,4 @@
 import type { JSX } from "solid-js";
-import "./AccountInfo.scss";
 import { t } from "../../localization/localizationProvider";
 import { AccountLogout } from "./AccountLogout";
 import { AccountRefreshButton } from "./AccountRefreshButton";

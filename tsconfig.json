@@ -2,19 +2,16 @@
   "compilerOptions": {
     "types": ["bun"],
     "target": "esnext",
-    "module": "ESNext",
-    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "module": "esnext",
+    "lib": ["DOM", "ESNext"],
     "strict": false,
-    "noImplicitAny": false,
     "moduleResolution": "bundler",
     "jsx": "preserve",
     "jsxImportSource": "solid-js",
-    "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
     "noEmit": true
-    // "rewriteRelativeImportExtensions": true
   },
   "include": ["scripts/**/*.ts", "vite/**/*.ts", "tests/**/*.ts"]
 }

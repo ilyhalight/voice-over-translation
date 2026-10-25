@@ -54,17 +54,13 @@ export async function updateAccountFromStorage() {
   updateAccount(data);
 }
 
-function clearAccountState(owner?: AccountStateOwner): void {
+export async function deleteAccount(owner?: AccountStateOwner): Promise<void> {
   if (owner?.data) {
     owner.data.account = {};
   }
   if (owner?.votClient) {
     owner.votClient.provider.apiToken = undefined;
   }
-}
-
-export async function deleteAccount(owner?: AccountStateOwner): Promise<void> {
-  clearAccountState(owner);
   await votStorage.delete("account");
   resetAccount();
 }

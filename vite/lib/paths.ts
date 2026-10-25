@@ -1,14 +1,11 @@
 import path from "node:path";
-import { repositoryUrl } from "../../src/config/config";
+import { repositoryUrl } from "../../src/config/config.ts";
 
 export const ROOT_DIR = path.join(import.meta.dirname, "..", "..");
 export const SOURCE_DIR = path.resolve(ROOT_DIR, "src");
 
 export const DIST_DIR = path.resolve(ROOT_DIR, "dist");
 export const DIST_EXT_DIR = path.resolve(ROOT_DIR, "dist-ext");
-export const OUT_TEMP_DIR = path.resolve(DIST_EXT_DIR, "_tmp");
-export const SOURCEMAP_DIR = "sourcemaps";
-export const EXT_SOURCEMAPS_DIR = path.resolve(DIST_EXT_DIR, SOURCEMAP_DIR);
 
 export const EXTENSION_NAME = "vot-extension";
 export const FIREFOX_EXTENSION_NAME = `${EXTENSION_NAME}-firefox`;
@@ -51,15 +48,10 @@ export const sharedCssOptions = {
 };
 
 export const sharedBuildOptions = {
-  target: "baseline-widely-available" as const,
+  target: ["chrome106", "firefox106"],
   modulePreload: { polyfill: false },
   copyPublicDir: false,
   cssMinify: "lightningcss" as const,
   reportCompressedSize: false,
   chunkSizeWarningLimit: 700,
-};
-
-export const singleFileBuildOptions = {
-  ...sharedBuildOptions,
-  cssCodeSplit: false,
 };

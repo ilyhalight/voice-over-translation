@@ -98,32 +98,17 @@ async function rollbackStaleAppliedSourceIfStillCurrent(
   }
 }
 
-export async function validateAudioUrl(
-  this: VideoHandler,
-  audioUrl: string,
-  actionContext?: ActionContext,
-): Promise<string> {
-  if (this.isActionStale(actionContext)) return audioUrl;
-  return audioUrl;
-}
-
-export function scheduleTranslationRefresh(this: VideoHandler): void {
-  if (!this.videoData || this.videoData.isStream) {
-    return;
-  }
-  if (!this.hasActiveSource()) return;
-  void this.refreshTranslationAudio().catch((error) => {
-    debug.log("[scheduleTranslationRefresh] refresh failed", error);
-  });
-}
-
 export async function handlePlaybackResumedTranslationRefresh(
   this: VideoHandler,
 ): Promise<void> {
   if (!this.videoData || this.videoData.isStream) {
     return;
   }
-  if (!this.hasActiveSource()) {
+  if (
+    !this.hasActiveSource() ||
+    this.activeTranslation ||
+    this.isRefreshingTranslation
+  ) {
     return;
   }
 
@@ -145,7 +130,7 @@ export async function handlePlaybackResumedTranslationRefresh(
 
   if (!cachedEntry?.url) {
     debug.log(
-      "[scheduleTranslationRefresh] translation cache expired after resume, refreshing now",
+      "[handlePlaybackResumedTranslationRefresh] translation cache expired after resume, refreshing now",
     );
     await this.refreshTranslationAudio();
   }
@@ -324,7 +309,7 @@ export async function refreshTranslationAudio(
     this.videoData.translationHelp,
   );
   try {
-    const translateRes = await requestApplyAndCacheTranslation(this, {
+    await requestApplyAndCacheTranslation(this, {
       videoData: this.videoData,
       requestLang: this.translateFromLang,
       responseLang: this.translateToLang,
@@ -340,7 +325,6 @@ export async function refreshTranslationAudio(
       cacheRequestLang: this.translateFromLang,
       cacheResponseLang: this.translateToLang,
     });
-    if (!translateRes) return;
   } finally {
     this.isRefreshingTranslation = false;
   }
@@ -650,7 +634,6 @@ export async function translateFunc(
     return;
   }
   overlayView.overlayViewControls.setIsLoading(true);
-  this.hadAsyncWait = false;
   this.volumeOnStart = this.getVideoVolume();
   if (!VIDEO_ID) {
     debug.log("Skip translation - no VIDEO_ID resolved yet");
@@ -682,6 +665,10 @@ export async function translateFunc(
     await this.activeTranslation.promise;
     return;
   }
+
+  // Reset only for a new request: a re-entry that joins the in-flight one
+  // (e.g. after returning to the tab) must keep its wait state for the notification.
+  this.hadAsyncWait = false;
 
   const actionContext: ActionContext = {
     gen: this.actionsGeneration,
@@ -728,7 +715,7 @@ export async function translateFunc(
       onTranslationWaiting: () => {
         cleanupPauseListener = pauseVideoForTranslation(this);
       },
-      onBeforeCache: async () => {
+      onBeforeCache: () => {
         const preferredSubtitleLanguage = this.getPreferredSubtitlesLanguage(
           videoData.detectedLanguage,
           videoData.responseLanguage,

@@ -1,7 +1,5 @@
 import { type JSX, mergeProps } from "solid-js";
 
-import "./SliderLabel.scss";
-
 export type SliderLabelProps = {
   children: JSX.Element;
   value: string;

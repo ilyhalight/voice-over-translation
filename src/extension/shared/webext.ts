@@ -1,13 +1,3 @@
-﻿/*
- * Minimal cross-browser WebExtension API access.
- *
- * - Chromium exposes APIs under `chrome` (callback-based).
- * - Firefox exposes APIs under `browser` (Promise-based) and often also
- *   provides a `chrome` alias.
- *
- * We keep a tiny wrapper so the rest of the codebase can use `await` even
- * when running on Chromium.
- */
 
 type WebExtRuntimeLike = {
   lastError?: { message?: string };
@@ -68,148 +58,178 @@ const isFirefoxLike =
 export const runtimeMessagesUseStructuredClone = isFirefoxLike;
 
 export function lastErrorMessage(): string | null {
-  // `runtime.lastError` is a Chromium callback-era mechanism.
   const err = chromeNamespace?.runtime?.lastError ?? ext?.runtime?.lastError;
   return err?.message ? String(err.message) : null;
+}
+
+// Invalidation has exactly ONE reliable, browser-agnostic signal: an orphaned
+// context (extension reloaded/updated/removed) loses `runtime.id` — Chrome,
+// Edge and Firefox return `undefined`, Safari may throw. Error *messages* are
+// browser-specific and unstable, so they are never parsed here.
+
+const TRANSPORT_RETRY_DELAYS_MS: readonly number[] = [50, 250];
+
+export class ExtensionContextInvalidatedError extends Error {
+  constructor(message = "Extension context invalidated") {
+    super(message);
+    this.name = "ExtensionContextInvalidatedError";
+  }
+}
+
+/**
+ * The callback API reported `runtime.lastError`: the message was not
+ * delivered/answered (MV3 worker waking up, no listener registered yet).
+ * Structural signal — the receiver's own errors never arrive this way.
+ */
+export class ExtensionTransportError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ExtensionTransportError";
+  }
+}
+
+export function isExtensionContextValid(): boolean {
+  try {
+    return !!ext?.runtime?.id;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * An extension runtime exists but its id is gone (orphaned context). False
+ * outside extension environments, so plain errors there are never treated as
+ * invalidation.
+ */
+function isRuntimeGone(): boolean {
+  try {
+    const runtime = ext?.runtime;
+    return !!runtime && !runtime.id;
+  } catch {
+    return true;
+  }
+}
+
+export function isContextInvalidatedError(error: unknown): boolean {
+  return error instanceof ExtensionContextInvalidatedError || isRuntimeGone();
+}
+
+export function assertExtensionContext(): void {
+  if (!isExtensionContextValid()) throw new ExtensionContextInvalidatedError();
+}
+
+function normalizeError(error: unknown): unknown {
+  if (error instanceof ExtensionContextInvalidatedError) return error;
+  if (!isRuntimeGone()) return error;
+  const message = error instanceof Error ? error.message : undefined;
+  return new ExtensionContextInvalidatedError(message);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Retries transport failures (up to 2 retries, 50ms then 250ms). Anything else
+ * — receiver errors, invalidation — propagates immediately; callAsync
+ * re-asserts the context before every attempt.
+ */
+async function withTransportRetry<T>(op: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await op();
+    } catch (error) {
+      const delay = TRANSPORT_RETRY_DELAYS_MS[attempt];
+      if (delay === undefined || !(error instanceof ExtensionTransportError)) {
+        throw error;
+      }
+      await sleep(delay);
+    }
+  }
+}
+
+function callbackToPromise<T>(
+  fn: (...args: unknown[]) => unknown,
+  args: unknown[],
+  rejectOnLastError = true,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    try {
+      fn(...args, (...cbArgs: unknown[]) => {
+        // Always read lastError so Chromium never logs "Unchecked runtime.lastError".
+        const err = lastErrorMessage();
+        if (err && rejectOnLastError) {
+          reject(normalizeError(new ExtensionTransportError(err)));
+        } else {
+          resolve(cbArgs[0] as T);
+        }
+      });
+    } catch (e) {
+      reject(normalizeError(e));
+    }
+  });
 }
 
 async function callAsync<T>(
   fn: ((...args: unknown[]) => unknown) | undefined,
   args: unknown[] = [],
-  opts: {
-    // Some callbacks return multiple values, most return a single `result`.
-    mapCbArgs?: (...cbArgs: unknown[]) => T;
-    // If false, don't treat runtime.lastError as fatal.
-    rejectOnLastError?: boolean;
-  } = {},
+  rejectOnLastError = true,
 ): Promise<T> {
   if (typeof fn !== "function") {
     throw new TypeError("WebExtension API is not available");
   }
+  assertExtensionContext();
 
-  const mapCbArgs = opts.mapCbArgs;
-  const rejectOnLastError = opts.rejectOnLastError !== false;
-
-  // Promise-first for the `browser.*` namespace.
   if (isBrowserNamespace) {
-    return (await fn(...args)) as T;
+    try {
+      return (await fn(...args)) as T;
+    } catch (e) {
+      throw normalizeError(e);
+    }
   }
 
-  // Callback-based fallback (Chromium).
-  return await new Promise<T>((resolve, reject) => {
-    try {
-      fn(...args, (...cbArgs: unknown[]) => {
-        const err = rejectOnLastError ? lastErrorMessage() : null;
-        if (err) reject(new Error(err));
-        else resolve(mapCbArgs ? mapCbArgs(...cbArgs) : (cbArgs[0] as T));
-      });
-    } catch (e) {
-      reject(e);
-    }
-  });
+  return callbackToPromise<T>(fn, args, rejectOnLastError);
 }
 
-/**
- * Wraps a Chromium callback-style API call into a Promise.
- *
- * Chromium extension APIs use (arg1, arg2, ..., callback) signatures
- * where chrome.runtime.lastError signals failure. This helper
- * eliminates the repeated try/catch + lastError check pattern.
- */
-function callChromeCallback<T>(
-  fn: (...args: unknown[]) => void,
-  args: unknown[],
-  mapResult?: (...cbArgs: unknown[]) => T,
+async function callStorage<T>(
+  method: "get" | "set" | "remove",
+  value: unknown,
 ): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    try {
-      fn(...args, (...cbArgs: unknown[]) => {
-        const err = lastErrorMessage();
-        if (err) {
-          reject(new Error(err));
-          return;
-        }
-        resolve(mapResult ? mapResult(...cbArgs) : (cbArgs[0] as T));
-      });
-    } catch (error) {
-      reject(error);
-    }
-  });
-}
-
-export async function storageGet<T = Record<string, unknown>>(
-  keys: unknown,
-): Promise<T> {
+  // Chromium may expose browser.* too; keep storage on its callback API.
   const chromeArea = isFirefoxLike
     ? undefined
     : chromeNamespace?.storage?.local;
-  if (chromeArea && typeof chromeArea.get === "function") {
-    return await callChromeCallback<T>(chromeArea.get.bind(chromeArea), [keys]);
+  if (typeof chromeArea?.[method] === "function") {
+    assertExtensionContext();
+    return callbackToPromise<T>(chromeArea[method].bind(chromeArea), [value]);
   }
 
   const area = browserNamespace?.storage?.local ?? ext?.storage?.local;
-  return await callAsync<T>(
-    area?.get?.bind(area) as ((...args: unknown[]) => unknown) | undefined,
-    [keys],
-  );
+  return callAsync<T>(area?.[method]?.bind(area), [value]);
+}
+
+export function storageGet<T = Record<string, unknown>>(
+  keys: unknown,
+): Promise<T> {
+  return callStorage<T>("get", keys);
 }
 
 export async function storageSet(
   items: Record<string, unknown>,
 ): Promise<void> {
-  const chromeArea = isFirefoxLike
-    ? undefined
-    : chromeNamespace?.storage?.local;
-  if (chromeArea && typeof chromeArea.set === "function") {
-    await callChromeCallback<void>(
-      chromeArea.set.bind(chromeArea),
-      [items],
-      () => undefined,
-    );
-    return;
-  }
-
-  const area = browserNamespace?.storage?.local ?? ext?.storage?.local;
-  await callAsync<void>(
-    area?.set?.bind(area) as ((...args: unknown[]) => unknown) | undefined,
-    [items],
-    {
-      mapCbArgs: () => undefined,
-    },
-  );
+  await callStorage("set", items);
 }
 
 export async function storageRemove(keys: string | string[]): Promise<void> {
-  const chromeArea = isFirefoxLike
-    ? undefined
-    : chromeNamespace?.storage?.local;
-  if (chromeArea && typeof chromeArea.remove === "function") {
-    await callChromeCallback<void>(
-      chromeArea.remove.bind(chromeArea),
-      [keys],
-      () => undefined,
-    );
-    return;
-  }
-
-  const area = browserNamespace?.storage?.local ?? ext?.storage?.local;
-  await callAsync<void>(
-    area?.remove?.bind(area) as ((...args: unknown[]) => unknown) | undefined,
-    [keys],
-    {
-      mapCbArgs: () => undefined,
-    },
-  );
+  await callStorage("remove", keys);
 }
 
 export async function runtimeSendMessage<T = unknown>(
   message: unknown,
 ): Promise<T> {
   const api = ext?.runtime;
-  const sendMessage = api?.sendMessage;
-  return await callAsync<T>(
-    sendMessage?.bind(api) as ((...args: unknown[]) => unknown) | undefined,
-    [message],
+  return withTransportRetry(() =>
+    callAsync<T>(api?.sendMessage?.bind(api), [message]),
   );
 }
 
@@ -217,9 +237,7 @@ export async function permissionsGetAll<
   T = Record<string, unknown>,
 >(): Promise<T> {
   const api = ext?.permissions;
-  return await callAsync<T>(
-    api?.getAll?.bind(api) as ((...args: unknown[]) => unknown) | undefined,
-  );
+  return await callAsync<T>(api?.getAll?.bind(api));
 }
 
 export async function dnrUpdateSessionRules(args: {
@@ -227,44 +245,31 @@ export async function dnrUpdateSessionRules(args: {
   removeRuleIds?: number[];
 }): Promise<void> {
   const api = ext?.declarativeNetRequest;
-  const updateSessionRules = api?.updateSessionRules;
-  if (!api || typeof updateSessionRules !== "function") return;
+  if (typeof api?.updateSessionRules !== "function") return;
 
-  await callAsync<void>(
-    updateSessionRules.bind(api) as (...args: unknown[]) => unknown,
-    [
-      {
-        addRules: args.addRules ?? [],
-        removeRuleIds: args.removeRuleIds ?? [],
-      },
-    ],
-    { mapCbArgs: () => undefined },
-  );
+  await callAsync<void>(api.updateSessionRules.bind(api), [
+    {
+      addRules: args.addRules ?? [],
+      removeRuleIds: args.removeRuleIds ?? [],
+    },
+  ]);
 }
 
 export async function notificationsCreate(
   notificationId: string,
   options: Record<string, unknown>,
 ): Promise<void> {
-  // Best-effort: in some environments notifications may be unavailable.
   const api = ext?.notifications;
-  const createFn = api?.create;
-  if (!api || typeof createFn !== "function") return;
-  await callAsync<void>(createFn.bind(api), [notificationId, options], {
-    mapCbArgs: () => undefined,
-  });
+  if (typeof api?.create !== "function") return;
+  await callAsync<void>(api.create.bind(api), [notificationId, options]);
 }
 
 export async function notificationsClear(
   notificationId: string,
 ): Promise<void> {
   const api = ext?.notifications;
-  const clearFn = api?.clear;
-  if (!api || typeof clearFn !== "function") return;
-  await callAsync<void>(clearFn.bind(api), [notificationId], {
-    mapCbArgs: () => undefined,
-    rejectOnLastError: false,
-  });
+  if (typeof api?.clear !== "function") return;
+  await callAsync<void>(api.clear.bind(api), [notificationId], false);
 }
 
 export async function windowsUpdate(
@@ -272,12 +277,8 @@ export async function windowsUpdate(
   updateInfo: Record<string, unknown>,
 ): Promise<void> {
   const api = ext?.windows;
-  const updateFn = api?.update;
-  if (!api || typeof updateFn !== "function") return;
-  await callAsync<void>(updateFn.bind(api), [windowId, updateInfo], {
-    mapCbArgs: () => undefined,
-    rejectOnLastError: false,
-  });
+  if (typeof api?.update !== "function") return;
+  await callAsync<void>(api.update.bind(api), [windowId, updateInfo], false);
 }
 
 export async function tabsUpdate(
@@ -285,10 +286,6 @@ export async function tabsUpdate(
   updateInfo: Record<string, unknown>,
 ): Promise<void> {
   const api = ext?.tabs;
-  const updateFn = api?.update;
-  if (!api || typeof updateFn !== "function") return;
-  await callAsync<void>(updateFn.bind(api), [tabId, updateInfo], {
-    mapCbArgs: () => undefined,
-    rejectOnLastError: false,
-  });
+  if (typeof api?.update !== "function") return;
+  await callAsync<void>(api.update.bind(api), [tabId, updateInfo], false);
 }

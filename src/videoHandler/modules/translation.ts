@@ -11,10 +11,8 @@ export {
   isYouTubeHosts,
   proxifyAudio,
   refreshTranslationAudio,
-  scheduleTranslationRefresh,
   syncTranslationPlaybackVolume,
   translateFunc,
   unproxifyAudio,
   updateTranslation,
-  validateAudioUrl,
 } from "./translationPlayback";

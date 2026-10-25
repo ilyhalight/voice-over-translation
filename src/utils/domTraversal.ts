@@ -43,30 +43,15 @@ export type ShadowTreeTraversalAdapter<T> = {
   getShadowRoot(node: T): T | null | undefined;
 };
 
-function isArrayLikeChildren<T>(children: Iterable<T>): boolean {
-  return "length" in children;
-}
-
 function pushChildrenToStack<T>(
   stack: T[],
   stackSize: number,
   children: Iterable<T>,
 ): number {
-  if (isArrayLikeChildren(children)) {
-    const arrayLike = children as unknown as ArrayLike<T | null | undefined>;
-    for (let index = 0; index < arrayLike.length; index += 1) {
-      const child = arrayLike[index];
-      if (child !== undefined && child !== null) {
-        stack[stackSize] = child;
-        stackSize += 1;
-      }
-    }
-  } else {
-    for (const child of children) {
-      if (child !== undefined && child !== null) {
-        stack[stackSize] = child;
-        stackSize += 1;
-      }
+  for (const child of children) {
+    if (child !== undefined && child !== null) {
+      stack[stackSize] = child;
+      stackSize += 1;
     }
   }
   return stackSize;

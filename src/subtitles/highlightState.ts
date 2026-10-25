@@ -100,7 +100,7 @@ export function clearPassedState(
   elements: ArrayLike<HighlightTokenElement>,
 ): void {
   state.applied.fill(0);
-  for (let i = 0; i < elements.length; i += 1) {
-    elements[i].classList.remove(PASSED_CLASS);
+  for (const element of Array.from(elements)) {
+    element.classList.remove(PASSED_CLASS);
   }
 }

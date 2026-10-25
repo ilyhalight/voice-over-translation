@@ -9,12 +9,12 @@ export interface BuildEnvMeta {
   repoBranch: string;
   version: string;
   authors: string;
-  crxjsBuild: boolean;
+  browser?: "chrome" | "firefox";
   minified?: boolean;
 }
 
 function getBuildVariant(env: BuildEnvMeta): string {
-  if (env.isExtension) return env.crxjsBuild ? "chrome" : "firefox";
+  if (env.isExtension) return env.browser ?? "chrome";
   return env.minified ? "userscript-min" : "userscript";
 }
 
@@ -51,6 +51,5 @@ export function buildDefine(env: BuildEnvMeta): ViteDefine {
       VOT_VERSION: env.version,
       VOT_AUTHORS: env.authors,
     }),
-    "import.meta.env.VITE_CRXJS_BUILD": env.crxjsBuild ? '"true"' : '"false"',
   };
 }

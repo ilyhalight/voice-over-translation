@@ -1,7 +1,8 @@
 /**
  * Pure manifest-building helpers shared between:
+ * - wxt.config.ts (WXT Chrome manifest)
  * - vite/lib/extension/firefox-pipeline.ts (Firefox build pipeline)
- * - vite/lib/extension/manifest.config.ts (CRXJS Chrome manifest)
+ * - src/entrypoints/*.content.ts (origin-fallback match splitting)
  *
  * No fs/build dependencies — only string/array transforms.
  */
@@ -107,7 +108,7 @@ function createWebAccessibleResources(
 // Match splitting (origin-fallback vs direct)
 // ----------------------------------------------------------------
 
-function splitMatchesForOriginFallback(matches: string[] = []): {
+export function splitMatchesForOriginFallback(matches: string[] = []): {
   originFallbackMatches: string[];
   directMatches: string[];
 } {
@@ -133,7 +134,7 @@ function splitMatchesForOriginFallback(matches: string[] = []): {
 // Content scripts
 // ----------------------------------------------------------------
 
-export interface ManifestPathStrategy {
+interface ManifestPathStrategy {
   iconPathFn?: (size: number) => string;
   scriptPathFn?: (distJs: string) => string;
   background?: Record<string, unknown>;
@@ -196,7 +197,7 @@ function createContentScriptEntries({
 // Full manifest builders
 // ----------------------------------------------------------------
 
-export interface ChromeManifestOptions {
+interface ChromeManifestOptions {
   versionName?: string;
 }
 
@@ -262,6 +263,7 @@ export function buildManifestChrome({
       "notifications",
       "activeTab",
       "declarativeNetRequestWithHostAccess",
+      "scripting",
     ],
     host_permissions: hostPermissions,
     background: pathStrategy?.background ?? {

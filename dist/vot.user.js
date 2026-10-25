@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 配音翻译
 // @namespace      vot
-// @version        1.12.3
+// @version        1.12.2
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    Watch videos in other languages with voice-over translation and subtitles in any browser
 // @description:de Sieh dir Videos in anderen Sprachen mit Voice-over-Übersetzung und Untertiteln in jedem Browser an
@@ -158,25 +158,80 @@
 // @match          *://*.vhx.tv/*
 // @match          *://*.boomio-cdn.com/*
 // @match          *://*.kinopoisk.ru/*
-// @match          *://*/*.mp4*
-// @match          *://*/*.webm*
-// @match          *://*.yewtu.be/*
+// @match          *://youtu.be/*
+// @match          *://yadi.sk/*
+// @match          *://yewtu.be/*
 // @match          *://inv.nadeko.net/*
 // @match          *://invidious.nerdvpn.de/*
 // @match          *://invidious.protokolla.fi/*
 // @match          *://invidious.materialio.us/*
-// @match          *://*.piped.video/*
+// @match          *://piped.video/*
 // @match          *://piped.kavin.rocks/*
 // @match          *://piped.private.coffee/*
 // @match          *://proxitok.pabloferreiro.es/*
 // @match          *://peertube.tmp.rcp.tf/*
-// @match          *://*.dalek.zone/*
+// @match          *://dalek.zone/*
 // @match          *://video.sadmin.io/*
 // @match          *://videos.viorsan.com/*
 // @match          *://peertube.1312.media/*
 // @match          *://tube.shanti.cafe/*
-// @match          *://*.bee-tube.fr/*
+// @match          *://bee-tube.fr/*
 // @match          *://video.blender.org/*
+// @match          *://beetoons.tv/*
+// @match          *://makertube.net/*
+// @match          *://peertube.tv/*
+// @match          *://framatube.org/*
+// @match          *://tilvids.com/*
+// @match          *://diode.zone/*
+// @match          *://fedimovie.com/*
+// @match          *://video.hardlimit.com/*
+// @match          *://share.tube/*
+// @match          *://peervideo.club/*
+// @match          *://*.coursehunter.net/*
+// @match          *://*.coursetrain.net/*
+// @match          *://*.b-cdn.net/*
+// @match          *://*.datacamp.com/*
+// @match          *://t.me/*
+// @match          *://*.abcnews.go.com/*
+// @match          *://*.abcnews.com/*
+// @match          *://*.bfmtv.com/*
+// @match          *://rmc.bfmtv.com/*
+// @match          *://videopress.com/*
+// @match          *://video.wordpress.com/*
+// @match          *://*.vidlii.com/*
+// @match          *://*.cbsnews.com/*
+// @match          *://*.nytimes.com/*
+// @match          *://*.wsj.com/*
+// @match          *://*.acfun.cn/*
+// @match          *://*.gettr.com/*
+// @match          *://*.huya.com/*
+// @match          *://*.medal.tv/*
+// @match          *://*.redgifs.com/*
+// @match          *://*.pinterest.com/*
+// @match          *://m.naver.com/*
+// @match          *://tv.naver.com/*
+// @match          *://chzzk.naver.com/*
+// @match          *://*.zhihu.com/*
+// @match          *://*.snapchat.com/*
+// @match          *://streamable.com/*
+// @match          *://beacon.tv/*
+// @match          *://players.brightcove.net/*
+// @match          *://*.craftsy.com/*
+// @match          *://cdn.jwplayer.com/*
+// @match          *://*.nzherald.co.nz/*
+// @match          *://onefootball.com/*
+// @match          *://*.spiegel.de/*
+// @match          *://vid.ly/*
+// @match          *://s.vid.ly/*
+// @match          *://*.cnn.com/*
+// @match          *://bsky.app/*
+// @match          *://dai.ly/*
+// @match          *://*/*.mp4*
+// @match          *://*/*.webm*
+// @match          *://*.yewtu.be/*
+// @match          *://*.piped.video/*
+// @match          *://*.dalek.zone/*
+// @match          *://*.bee-tube.fr/*
 // @match          *://*.beetoons.tv/*
 // @match          *://*.makertube.net/*
 // @match          *://*.peertube.tv/*
@@ -184,11 +239,8 @@
 // @match          *://*.tilvids.com/*
 // @match          *://*.diode.zone/*
 // @match          *://*.fedimovie.com/*
-// @match          *://video.hardlimit.com/*
 // @match          *://*.share.tube/*
 // @match          *://*.peervideo.club/*
-// @match          *://*.coursehunter.net/*
-// @match          *://*.coursetrain.net/*
 // @exclude        file://*/*.mp4*
 // @exclude        file://*/*.webm*
 // @exclude        *://accounts.youtube.com/*
@@ -249,11 +301,10 @@
 // @grant          GM.xmlHttpRequest
 // @grant          window.focus
 // ==/UserScript==
-(function(){try{var g=globalThis,k=Symbol.for("vot.debugIds"),s=(new Error().stack||"").replace(/(extension:\/\/)[^\/\s]+/g,"$1extension");if(s){g[k]||Object.defineProperty(g,k,{value:{}});g[k][s]={d:"bb892cc0-186e-4e04-a3a4-fd2c994a6a00",l:252}}}catch(e){}})();
 
 var vot = (function(exports) {
 	Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
-	//#region \0rolldown/runtime.js
+	// \0rolldown/runtime.js
 	var __create = Object.create;
 	var __defProp = Object.defineProperty;
 	var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -292,8 +343,7 @@ var vot = (function(exports) {
 		value: mod,
 		enumerable: true
 	}) : target, mod));
-	//#endregion
-	//#region node_modules/@vot.js/core/dist/types/service.js
+	// node_modules/@vot.js/core/dist/types/service.js
 	var VideoService$1;
 	(function(VideoService) {
 		VideoService["custom"] = "custom";
@@ -372,9 +422,36 @@ var vot = (function(exports) {
 		VideoService["kinopoisk"] = "kinopoisk";
 		VideoService["telegram"] = "telegram";
 		VideoService["wistia"] = "wistia";
+		VideoService["abcnews"] = "abcnews";
+		VideoService["bfmtv"] = "bfmtv";
+		VideoService["videopress"] = "videopress";
+		VideoService["vidlii"] = "vidlii";
+		VideoService["cbsnews"] = "cbsnews";
+		VideoService["nytimes"] = "nytimes";
+		VideoService["wsj"] = "wsj";
+		VideoService["acfun"] = "acfun";
+		VideoService["gettr"] = "gettr";
+		VideoService["huya"] = "huya";
+		VideoService["medaltv"] = "medaltv";
+		VideoService["redgifs"] = "redgifs";
+		VideoService["pinterest"] = "pinterest";
+		VideoService["navertv"] = "navertv";
+		VideoService["chzzk"] = "chzzk";
+		VideoService["zhihu"] = "zhihu";
+		VideoService["snapchat"] = "snapchat";
+		VideoService["streamable"] = "streamable";
+		VideoService["beacon"] = "beacon";
+		VideoService["brightcove"] = "brightcove";
+		VideoService["craftsy"] = "craftsy";
+		VideoService["jwplatform"] = "jwplatform";
+		VideoService["nzherald"] = "nzherald";
+		VideoService["onefootball"] = "onefootball";
+		VideoService["spiegel"] = "spiegel";
+		VideoService["vidly"] = "vidly";
+		VideoService["cnn"] = "cnn";
+		VideoService["bluesky"] = "bluesky";
 	})(VideoService$1 || (VideoService$1 = {}));
-	//#endregion
-	//#region node_modules/@vot.js/core/dist/utils/videoData.js
+	// node_modules/@vot.js/core/dist/utils/videoData.js
 	var VideoDataError = class extends Error {
 		constructor(message) {
 			super(message);
@@ -385,8 +462,7 @@ var vot = (function(exports) {
 	var isCustomLink = (url) => {
 		return !!/\.(m3u8|m4(a|v)|mpd)/.exec(url);
 	};
-	//#endregion
-	//#region node_modules/@vot.js/shared/dist/data/alternativeUrls.js
+	// node_modules/@vot.js/shared/dist/data/alternativeUrls.js
 	var sitesInvidious = [
 		"yewtu.be",
 		"inv.nadeko.net",
@@ -421,8 +497,7 @@ var vot = (function(exports) {
 		"peervideo.club"
 	];
 	var sitesCoursehunterLike = ["coursehunter.net", "coursetrain.net"];
-	//#endregion
-	//#region node_modules/@vot.js/shared/dist/utils/kinopoisk.js
+	// node_modules/@vot.js/shared/dist/utils/kinopoisk.js
 	var KinopoiskError = class extends Error {
 		constructor(message) {
 			super(message);
@@ -536,8 +611,7 @@ var vot = (function(exports) {
 		const { trailerId } = getKinopoiskVideoRef(videoId);
 		return toKinopoiskVideoData(videoId, getKinopoiskTrailer(await loadState(videoId), trailerId), duration);
 	}
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/types/service.js
+	// node_modules/@vot.js/ext/dist/types/service.js
 	var ExtVideoService;
 	(function(ExtVideoService) {
 		ExtVideoService["udemy"] = "udemy";
@@ -557,14 +631,14 @@ var vot = (function(exports) {
 		...VideoService$1,
 		...ExtVideoService
 	});
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/data/sites.js
+	// node_modules/@vot.js/ext/dist/data/sites.js
 	var sharedSelectors = {
 		bilibiliPlayer: ".bpx-player-video-wrap, div.player-mobile-box.player-mobile-autoplay",
 		flowplayer: ".fp-player, div.flowplayer",
 		idPlayer: "#player",
 		jwPlayer: ".jwplayer, .jw-media",
 		player: ".player",
+		plyrVideoWrapper: ".plyr__video-wrapper",
 		shakaPlayer: ".shaka-video-container, [id^=\"shaka-video-container-\"]",
 		videoJsUniversal: "[id^='vjs_video_']:not([id*='_html5_api']):not(video), video-js:not([id*='_html5_api']), .video-js:not(video):not([id*='_html5_api']), .vjs-player:not([id*='_html5_api']), [data-vjs-player]:not([id*='_html5_api'])",
 		vkVideoPlayer: ".videoplayer_media, vk-video-player"
@@ -619,8 +693,7 @@ var vot = (function(exports) {
 			host: VideoService$1.piped,
 			url: "https://youtu.be/",
 			match: sitesPiped,
-			selector: sharedSelectors.shakaPlayer,
-			needBypassCSP: true
+			selector: sharedSelectors.shakaPlayer
 		},
 		{
 			host: VideoService$1.preservetube,
@@ -702,8 +775,7 @@ var vot = (function(exports) {
 			url: "https://www.douyin.com/",
 			match: /^(www.)?douyin.com/,
 			selector: ".xg-video-container",
-			needExtraData: true,
-			needBypassCSP: true
+			needExtraData: true
 		},
 		{
 			host: VideoService$1.vimeo,
@@ -888,7 +960,6 @@ var vot = (function(exports) {
 			url: "https://yadi.sk/",
 			match: /^disk.yandex.(ru|kz|com(\.(am|ge|tr))?|by|az|co\.il|ee|lt|lv|md|net|tj|tm|uz)$/,
 			selector: ".video-player__player > div:nth-child(1)",
-			needBypassCSP: true,
 			needExtraData: true
 		},
 		{
@@ -1171,7 +1242,6 @@ var vot = (function(exports) {
 			url: "https://widgets.kinopoisk.ru/discovery/",
 			match: (url) => !!(parseKinopoiskUrl(url) || parseKinopoiskFilmId(url)),
 			needExtraData: true,
-			needBypassCSP: true,
 			selector: sharedSelectors.idPlayer
 		},
 		{
@@ -1228,8 +1298,7 @@ var vot = (function(exports) {
 			url: "https://embed.vhx.tv/videos/",
 			match: /^embed\.vhx\.tv$/,
 			selector: "body",
-			needExtraData: true,
-			needBypassCSP: true
+			needExtraData: true
 		},
 		{
 			host: VideoService$1.wistia,
@@ -1238,29 +1307,235 @@ var vot = (function(exports) {
 			selector: ".w-video-wrapper"
 		},
 		{
+			host: VideoService$1.abcnews,
+			url: "https://abcnews.go.com/video/embed?id=",
+			match: /^(?:(?:www\.)?abcnews\.(?:com|go\.com)|fivethirtyeight\.abcnews\.go\.com)$/,
+			selector: ".SingleVideo",
+			shadowRoot: true,
+			needExtraData: true
+		},
+		{
+			host: VideoService$1.bfmtv,
+			url: "https://",
+			match: /^(?:www\.|rmc\.)?bfmtv\.com$/,
+			selector: ".bitmovin-player-container",
+			rawResult: true
+		},
+		{
+			host: VideoService$1.videopress,
+			url: "https://videopress.com/embed/",
+			match: /^video(?:\.word)?press\.com$/,
+			selector: "#video",
+			rawResult: true
+		},
+		{
+			host: VideoService$1.vidlii,
+			url: "https://www.vidlii.com/watch?v=",
+			match: /^(?:www\.)?vidlii\.com$/,
+			selector: ".vlPlayer",
+			rawResult: true
+		},
+		{
+			host: VideoService$1.cbsnews,
+			url: "https://www.cbsnews.com/video/",
+			match: /^(?:www\.)?cbsnews\.com$/,
+			selector: "div.player, [data-role=\"aviaPlayerContainer\"]",
+			shadowRoot: true,
+			rawResult: true
+		},
+		{
+			host: VideoService$1.nytimes,
+			url: "https://www.nytimes.com/video/video/",
+			match: /^(?:(?:www\.)?nytimes\.com|graphics8\.nytimes\.com)$/,
+			selector: "[data-testid=\"betamax-player\"]",
+			shadowRoot: true,
+			rawResult: true
+		},
+		{
+			host: VideoService$1.wsj,
+			needBypassCSP: true,
+			url: "https://www.wsj.com/video/x/",
+			match: /^(?:www\.)?(?:wsj|barrons)\.com$/,
+			selector: "#video-player",
+			rawResult: true
+		},
+		{
+			host: VideoService$1.acfun,
+			needBypassCSP: true,
+			url: "https://www.acfun.cn/v/ac",
+			match: /^(?:www\.)?acfun\.cn$/,
+			selector: "#ACPlayer",
+			rawResult: true
+		},
+		{
+			host: VideoService$1.gettr,
+			url: "https://gettr.com/post/",
+			match: /^(?:www\.)?gettr\.com$/,
+			selector: ".videoPlayerRoot",
+			rawResult: true
+		},
+		{
+			host: VideoService$1.huya,
+			url: "https://www.huya.com/video/play/",
+			match: /^(?:(?:www|v)\.)?huya\.com$/,
+			selector: ".vplayer-wrap",
+			rawResult: true
+		},
+		{
+			host: VideoService$1.medaltv,
+			url: "https://medal.tv/",
+			match: /^(?:www\.)?medal\.tv$/,
+			selector: "[id$=\"-player-player\"]",
+			rawResult: true
+		},
+		{
+			host: VideoService$1.redgifs,
+			needBypassCSP: true,
+			url: "https://www.redgifs.com/watch/",
+			match: /^(?:www\.|thumbs2\.)?redgifs\.com$/,
+			selector: ".Player",
+			rawResult: true
+		},
+		{
+			host: VideoService$1.pinterest,
+			needBypassCSP: true,
+			url: "https://www.pinterest.com/pin/",
+			match: /^(?:www\.)?pinterest\.(?:com|co\.uk|de|fr|es|it|ca|com\.au)$/,
+			selector: "[data-test-id=\"closeup-video-with-visibility\"], [data-test-id=\"story-pin-video-block\"], [data-test-id=\"gated-pin-video\"], [data-test-id=\"video-container\"], [data-test-id=\"pin\"], [data-test-id=\"pinWrapper\"]",
+			rawResult: true
+		},
+		{
+			host: VideoService$1.navertv,
+			url: "https://m.naver.com/shorts/",
+			match: (url) => url.hostname === "m.naver.com" && /^\/shorts(?:\/|$)/.test(url.pathname) || url.hostname === "tv.naver.com" && /^\/(?:v|embed)\/\d+/.test(url.pathname),
+			selector: "[class*=\"ContentViewer-module__section_player__\"], .pzp-pc",
+			rawResult: true
+		},
+		{
+			host: VideoService$1.chzzk,
+			url: "https://chzzk.naver.com/video/",
+			match: /^chzzk\.naver\.com$/,
+			selector: "#player_layout, #live_player_layout, #embed_player_layout, .pzp-pc",
+			rawResult: true
+		},
+		{
+			host: VideoService$1.zhihu,
+			needBypassCSP: true,
+			url: "https://www.zhihu.com/zvideo/",
+			match: /^(?:www\.)?zhihu\.com$/,
+			selector: "div.ZVideo-video > div",
+			rawResult: true
+		},
+		{
+			host: VideoService$1.snapchat,
+			needBypassCSP: true,
+			url: "https://www.snapchat.com/spotlight/",
+			match: /^(?:www\.)?snapchat\.com$/,
+			selector: "[class*=\"SpotlightWebPlayer_spotlightPlayerMediaContainer\"]",
+			rawResult: true
+		},
+		{
+			host: VideoService$1.streamable,
+			needBypassCSP: true,
+			url: "https://streamable.com/",
+			match: /^streamable\.com$/,
+			selector: "div.player, [id^=\"player-\"][id$=\"-wrapper\"]",
+			rawResult: true
+		},
+		{
+			host: VideoService$1.beacon,
+			url: "https://beacon.tv/content/",
+			match: /^(?:www\.)?beacon\.tv$/,
+			selector: sharedSelectors.jwPlayer,
+			needExtraData: true
+		},
+		{
+			host: VideoService$1.brightcove,
+			needBypassCSP: true,
+			url: "https://players.brightcove.net/",
+			match: /^players\.brightcove\.net$/,
+			selector: sharedSelectors.videoJsUniversal,
+			rawResult: true
+		},
+		{
+			host: VideoService$1.craftsy,
+			url: "https://www.craftsy.com/class/",
+			match: /^(?:www\.)?craftsy\.com$/,
+			selector: sharedSelectors.videoJsUniversal,
+			rawResult: true
+		},
+		{
+			host: VideoService$1.jwplatform,
+			needBypassCSP: true,
+			url: "https://cdn.jwplayer.com/players/",
+			match: /^(?:content\.jwplatform|cdn\.jwplayer)\.com$/,
+			selector: sharedSelectors.jwPlayer,
+			rawResult: true
+		},
+		{
+			host: VideoService$1.nzherald,
+			url: "https://www.nzherald.co.nz/",
+			match: /^(?:www\.)?nzherald\.co\.nz$/,
+			selector: sharedSelectors.videoJsUniversal,
+			rawResult: true
+		},
+		{
+			host: VideoService$1.onefootball,
+			url: "https://onefootball.com/",
+			match: /^(?:www\.)?onefootball\.com$/,
+			selector: "div[aria-label=\"Video Player\"]",
+			rawResult: true
+		},
+		{
+			host: VideoService$1.spiegel,
+			url: "https://www.spiegel.de/",
+			match: /^(?:www\.)?spiegel\.de$/,
+			selector: ".jwplayer, [data-component=\"JWPlayer\"]",
+			rawResult: true
+		},
+		{
+			host: VideoService$1.vidly,
+			url: "https://vid.ly/",
+			match: /^(?:s\.)?vid\.ly$/,
+			selector: sharedSelectors.jwPlayer,
+			rawResult: true
+		},
+		{
+			host: VideoService$1.cnn,
+			url: "stub",
+			match: /^(?:www\.|edition\.)?cnn\.com$/,
+			selector: ".video-player, .video-player__wrapper, [data-component-name=\"video-resource\"], .fave-player-container",
+			rawResult: true
+		},
+		{
+			host: VideoService$1.bluesky,
+			url: "stub",
+			match: /^bsky\.app$/,
+			selector: "figure",
+			rawResult: true
+		},
+		{
 			host: VideoService$1.custom,
 			url: "stub",
 			match: (url) => /([^/]+)\.(mp4|webm)/.test(url.pathname),
 			rawResult: true
 		}
 	];
-	//#endregion
-	//#region node_modules/@vot.js/shared/dist/data/config.js
+	// node_modules/@vot.js/shared/dist/data/config.js
 	var config_default$1 = {
 		host: "api.browser.yandex.ru",
 		hostWorker: "vot-worker.toil.cc",
 		mediaProxy: "media-proxy.toil.cc",
 		userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 YaBrowser/26.8.0.0 Safari/537.36",
-		componentVersion: "26.10.0.1796",
-		chromiumRevision: "1796",
+		componentVersion: "26.10.0.1854",
+		chromiumRevision: "1854",
 		hmac: "bt8xH3VOlb4mqf0nqAibnDOoiPlXsisf",
 		defaultDuration: 310,
 		minChunkSize: 5295308,
 		loggerLevel: 1,
 		version: "3.2.0"
 	};
-	//#endregion
-	//#region node_modules/@vot.js/shared/dist/types/logger.js
+	// node_modules/@vot.js/shared/dist/types/logger.js
 	var LoggerLevel;
 	(function(LoggerLevel) {
 		LoggerLevel[LoggerLevel["DEBUG"] = 0] = "DEBUG";
@@ -1269,13 +1544,12 @@ var vot = (function(exports) {
 		LoggerLevel[LoggerLevel["ERROR"] = 3] = "ERROR";
 		LoggerLevel[LoggerLevel["SILENCE"] = 4] = "SILENCE";
 	})(LoggerLevel || (LoggerLevel = {}));
-	//#endregion
-	//#region node_modules/@vot.js/shared/dist/utils/logger.js
+	// node_modules/@vot.js/shared/dist/utils/logger.js
 	var prefix = `[vot.js v${config_default$1.version}]`;
 	function canLog(level) {
 		return config_default$1.loggerLevel <= level;
 	}
-	function log(...messages) {
+	function log$1(...messages) {
 		if (!canLog(LoggerLevel.DEBUG)) return;
 		console.log(prefix, ...messages);
 	}
@@ -1283,23 +1557,22 @@ var vot = (function(exports) {
 		if (!canLog(LoggerLevel.INFO)) return;
 		console.info(prefix, ...messages);
 	}
-	function warn(...messages) {
+	function warn$1(...messages) {
 		if (!canLog(LoggerLevel.WARN)) return;
 		console.warn(prefix, ...messages);
 	}
-	function error(...messages) {
+	function error$1(...messages) {
 		if (!canLog(LoggerLevel.ERROR)) return;
 		console.error(prefix, ...messages);
 	}
 	var Logger$1 = {
 		canLog,
-		log,
+		log: log$1,
 		info,
-		warn,
-		error
+		warn: warn$1,
+		error: error$1
 	};
-	//#endregion
-	//#region node_modules/@vot.js/shared/dist/utils/utils.js
+	// node_modules/@vot.js/shared/dist/utils/utils.js
 	var iso6392to6391 = {
 		afr: "af",
 		aka: "ak",
@@ -1439,8 +1712,7 @@ var vot = (function(exports) {
 		if (!(url instanceof URL)) return `${generalUrl}&url=${encodeURIComponent(btoa(url))}`;
 		return `${generalUrl}&url=${encodeURIComponent(btoa(url.href))}&origin=${url.origin}&referer=${url.origin}`;
 	}
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/base.js
+	// node_modules/@vot.js/ext/dist/helpers/base.js
 	var VideoHelperError = class extends Error {
 		constructor(message) {
 			super(message);
@@ -1483,8 +1755,7 @@ var vot = (function(exports) {
 			};
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/appledeveloper.js
+	// node_modules/@vot.js/ext/dist/helpers/appledeveloper.js
 	var AppleDeveloperHelper = class extends BaseHelper {
 		API_ORIGIN = "https://developer.apple.com";
 		async getVideoData(videoId) {
@@ -1501,8 +1772,7 @@ var vot = (function(exports) {
 			return /videos\/play\/([^/]+)\/([\d]+)/.exec(url.pathname)?.[0];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/archive.js
+	// node_modules/@vot.js/ext/dist/helpers/archive.js
 	var ArchiveHelper = class extends BaseHelper {
 		async getVideoData(videoId) {
 			const baseData = this.returnBaseData(videoId);
@@ -1517,8 +1787,7 @@ var vot = (function(exports) {
 			return /(?:details|embed)\/(.+)/.exec(url.pathname)?.[1]?.replace(/\/$/, "") || void 0;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/artstation.js
+	// node_modules/@vot.js/ext/dist/helpers/artstation.js
 	var ArtstationHelper = class extends BaseHelper {
 		API_ORIGIN = "https://www.artstation.com/api/v2/learning";
 		getCSRFToken() {
@@ -1569,15 +1838,13 @@ var vot = (function(exports) {
 			return /courses\/(\w{3,5})\/([^/]+)\/chapters\/(\w{3,5})/.exec(url.pathname)?.[0];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/bannedvideo.js
+	// node_modules/@vot.js/ext/dist/helpers/bannedvideo.js
 	var BannedVideoHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /\/(?:embed\/|v\/)([a-zA-Z0-9]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/bilibili.js
+	// node_modules/@vot.js/ext/dist/helpers/bilibili.js
 	var BilibiliHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			const playId = /(?:bangumi|cheese)\/play\/[^/]+/.exec(url.pathname)?.[0];
@@ -1593,15 +1860,13 @@ var vot = (function(exports) {
 			}
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/bitchute.js
+	// node_modules/@vot.js/ext/dist/helpers/bitchute.js
 	var BitchuteHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /(video|embed)\/([^/]+)/.exec(url.pathname)?.[2];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/bitview.js
+	// node_modules/@vot.js/ext/dist/helpers/bitview.js
 	var BitviewHelper = class extends BaseHelper {
 		async getVideoData(videoId) {
 			try {
@@ -1617,8 +1882,7 @@ var vot = (function(exports) {
 			return url.searchParams.get("v");
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/utils/dom.js
+	// node_modules/@vot.js/ext/dist/utils/dom.js
 	function querySelectorDeep(selector, root = document) {
 		const match = root.querySelector(selector);
 		if (match) return match;
@@ -1631,8 +1895,7 @@ var vot = (function(exports) {
 	function getVideoSrc(videoEl) {
 		return videoEl?.src || videoEl?.currentSrc || videoEl?.querySelector("source[src]")?.src;
 	}
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/players/plyr.js
+	// node_modules/@vot.js/ext/dist/players/plyr.js
 	var PlyrHelper = class {
 		SUBTITLE_SOURCE = "plyr";
 		SUBTITLE_FORMAT = "vtt";
@@ -1707,8 +1970,7 @@ var vot = (function(exports) {
 			return subtitles;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/bunkr.js
+	// node_modules/@vot.js/ext/dist/helpers/bunkr.js
 	var BunkrHelper = class extends BaseHelper {
 		async getVideoData(videoId) {
 			return new PlyrHelper().getVideoData(videoId);
@@ -1717,22 +1979,19 @@ var vot = (function(exports) {
 			return /\/(?:f|v)\/([^/]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/bunnystream.js
+	// node_modules/@vot.js/ext/dist/helpers/bunnystream.js
 	var BunnyStreamHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.pathname + url.search;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/cloudflarestream.js
+	// node_modules/@vot.js/ext/dist/helpers/cloudflarestream.js
 	var CloudflareStreamHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.pathname + url.search;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/coursehunterLike.js
+	// node_modules/@vot.js/ext/dist/helpers/coursehunterLike.js
 	var CoursehunterLikeHelper = class extends BaseHelper {
 		API_ORIGIN = this.origin ?? "https://coursehunter.net";
 		async getCourseId() {
@@ -1780,8 +2039,7 @@ var vot = (function(exports) {
 			return url.href;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/shared/dist/data/consts.js
+	// node_modules/@vot.js/shared/dist/data/consts.js
 	var availableLangs = [
 		"auto",
 		"ru",
@@ -1805,8 +2063,7 @@ var vot = (function(exports) {
 		"vtt",
 		"json"
 	];
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/players/videojs.js
+	// node_modules/@vot.js/ext/dist/players/videojs.js
 	var VIDEOJS_SELECTOR = "video.vjs-tech, video[id$='_html5_api'], video[src], video";
 	function isPreferredMedia(source) {
 		const type = source.type?.toLowerCase().split(";")[0].trim();
@@ -1889,8 +2146,7 @@ var vot = (function(exports) {
 			});
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/coursera.js
+	// node_modules/@vot.js/ext/dist/helpers/coursera.js
 	var CourseraHelper = class CourseraHelper extends VideoJSHelper {
 		API_ORIGIN = "https://www.coursera.org/api";
 		SUBTITLE_SOURCE = "coursera";
@@ -1978,8 +2234,7 @@ var vot = (function(exports) {
 			return CourseraHelper.LEARN_ITEM_RE.exec(url.pathname)?.[0] ?? CourseraHelper.PREVIEW_LECTURE_RE.exec(url.pathname)?.[0];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/dailymotion.js
+	// node_modules/@vot.js/ext/dist/helpers/dailymotion.js
 	var DailymotionHelper = class extends BaseHelper {
 		getVideoIdFromUrl(url) {
 			const videoIdFromQuery = url.searchParams.get("video");
@@ -2010,8 +2265,7 @@ var vot = (function(exports) {
 			return url.hostname === "dai.ly" ? url.pathname.slice(1) : /video\/([^/]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/datacamp.js
+	// node_modules/@vot.js/ext/dist/helpers/datacamp.js
 	var DataCampHelper = class extends VideoJSHelper {
 		SUBTITLE_SOURCE = "datacamp";
 		getVideoUrlFromInput(input) {
@@ -2066,8 +2320,7 @@ var vot = (function(exports) {
 			return url.href;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/deeplearningai.js
+	// node_modules/@vot.js/ext/dist/helpers/deeplearningai.js
 	var DeeplearningAIHelper = class extends BaseHelper {
 		async getVideoData(_videoId) {
 			if (!this.video) return;
@@ -2079,8 +2332,7 @@ var vot = (function(exports) {
 			return /courses\/(([^/]+)\/lesson\/([^/]+)\/([^/]+))/.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/douyin.js
+	// node_modules/@vot.js/ext/dist/helpers/douyin.js
 	var DouyinHelper = class DouyinHelper extends BaseHelper {
 		static getPlayer() {
 			if (typeof player === "undefined") return;
@@ -2106,8 +2358,7 @@ var vot = (function(exports) {
 			return DouyinHelper.getPlayer()?.config.vid;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/vimeo.js
+	// node_modules/@vot.js/ext/dist/helpers/vimeo.js
 	var VimeoHelper = class extends BaseHelper {
 		API_KEY = "";
 		DEFAULT_SITE_ORIGIN = "https://vimeo.com";
@@ -2287,8 +2538,7 @@ var vot = (function(exports) {
 			return /([^/]+\/)?[^/]+$/.exec(normalizedPathname)?.[0];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/dropout.js
+	// node_modules/@vot.js/ext/dist/helpers/dropout.js
 	var CONFIG_URL_RE = /^https:\/\/player\.vimeo\.com\/video\/[a-z0-9_-]+\/config/i;
 	var CONFIG_WAIT_TIMEOUT = 1e4;
 	var CONFIG_WAIT_INTERVAL = 500;
@@ -2434,22 +2684,19 @@ var vot = (function(exports) {
 			return /videos\/([^/?#]+)/.exec(url.pathname)?.[1] ?? url.pathname;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/dzen.js
+	// node_modules/@vot.js/ext/dist/helpers/dzen.js
 	var DzenHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /video\/watch\/([^/]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/egghead.js
+	// node_modules/@vot.js/ext/dist/helpers/egghead.js
 	var EggheadHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.pathname.slice(1);
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/epicgames.js
+	// node_modules/@vot.js/ext/dist/helpers/epicgames.js
 	var EpicGamesHelper = class extends BaseHelper {
 		API_ORIGIN = "https://dev.epicgames.com/community/api/learning";
 		async getPostInfo(videoId) {
@@ -2518,8 +2765,7 @@ var vot = (function(exports) {
 			});
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/eporner.js
+	// node_modules/@vot.js/ext/dist/helpers/eporner.js
 	var getPlayerHash = () => {
 		if (typeof EP === "undefined") return;
 		return EP?.video?.player?.hash;
@@ -2578,8 +2824,7 @@ var vot = (function(exports) {
 			return /\/(?:video-|embed\/)([a-zA-Z0-9]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/facebook.js
+	// node_modules/@vot.js/ext/dist/helpers/facebook.js
 	function extractAudioUrl(text) {
 		const stack = [];
 		for (const match of text.matchAll(/"(?:\\.|[^"\\])*"|\{|\}/g)) if (match[0] === "{") stack.push(match.index);
@@ -2608,8 +2853,7 @@ var vot = (function(exports) {
 			return url.pathname.slice(1);
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/googledrive.js
+	// node_modules/@vot.js/ext/dist/helpers/googledrive.js
 	var GoogleDriveHelper = class extends BaseHelper {
 		getPlayerData() {
 			return document.querySelector("#movie_player")?.getVideoData?.() ?? void 0;
@@ -2618,8 +2862,7 @@ var vot = (function(exports) {
 			return this.getPlayerData()?.video_id;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/ign.js
+	// node_modules/@vot.js/ext/dist/helpers/ign.js
 	var IgnHelper = class extends BaseHelper {
 		getVideoDataBySource(videoId) {
 			const url = document.querySelector(".icms.video > source[type=\"video/mp4\"][data-quality=\"360\"]")?.src;
@@ -2652,15 +2895,13 @@ var vot = (function(exports) {
 			return /([^/]+)\/([\d]+)\/video\/([^/]+)/.exec(url.pathname)?.[0] ?? /\/videos\/([^/]+)/.exec(url.pathname)?.[0];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/imdb.js
+	// node_modules/@vot.js/ext/dist/helpers/imdb.js
 	var IMDbHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /video\/([^/]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/kinopoisk.js
+	// node_modules/@vot.js/ext/dist/helpers/kinopoisk.js
 	function parseKinopoiskWidgetDocument(doc) {
 		const raw = doc.querySelector("script[data-state]")?.textContent;
 		return raw ? decodeKinopoiskState(raw) : void 0;
@@ -2709,8 +2950,7 @@ var vot = (function(exports) {
 			return iframe ? getKinopoiskVideoId(new URL(iframe.src, url)) : void 0;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/joidatabase.js
+	// node_modules/@vot.js/ext/dist/helpers/joidatabase.js
 	var JOIDatabaseHelper = class extends BaseHelper {
 		async getVideoData(videoId) {
 			const baseData = this.returnBaseData(videoId);
@@ -2733,8 +2973,7 @@ var vot = (function(exports) {
 			return /\/(?:watch|embed)\/([0-9a-f]+)\/?$/.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/jove.js
+	// node_modules/@vot.js/ext/dist/helpers/jove.js
 	var JoveHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			const match = /^\/(?:[a-z]{2}\/)?v\/(\d+)\/([^/?#]+)/i.exec(url.pathname);
@@ -2794,8 +3033,7 @@ var vot = (function(exports) {
 			};
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/kick.js
+	// node_modules/@vot.js/ext/dist/helpers/kick.js
 	var KickHelper = class extends BaseHelper {
 		API_ORIGIN = "https://kick.com/api";
 		async getClipInfo(clipId) {
@@ -2832,8 +3070,7 @@ var vot = (function(exports) {
 			return /([^/]+)\/((videos|clips)\/([^/]+))/.exec(url.pathname)?.[2];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/kickstarter.js
+	// node_modules/@vot.js/ext/dist/helpers/kickstarter.js
 	var KickstarterHelper = class extends BaseHelper {
 		async getVideoData(videoId) {
 			try {
@@ -2865,8 +3102,7 @@ var vot = (function(exports) {
 			return url.pathname.slice(1);
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/kodik.js
+	// node_modules/@vot.js/ext/dist/helpers/kodik.js
 	var KodikHelper = class extends BaseHelper {
 		API_ORIGIN = window.location.origin;
 		getSecureData(videoPath) {
@@ -2962,8 +3198,7 @@ var vot = (function(exports) {
 			return /\/(uv|video|seria|episode|season|serial)\/([^/]+)\/([^/]+)\/([\d]+)p/.exec(url.pathname)?.[0];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/linkedin.js
+	// node_modules/@vot.js/ext/dist/helpers/linkedin.js
 	var LinkedinHelper = class extends VideoJSHelper {
 		SUBTITLE_SOURCE = "linkedin";
 		async getVideoData(videoId) {
@@ -2980,8 +3215,7 @@ var vot = (function(exports) {
 			return /\/learning\/(([^/]+)\/([^/]+))/.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/varint.js
+	// node_modules/@bufbuild/protobuf/dist/esm/wire/varint.js
 	function varint64read() {
 		const buf = this.buf;
 		let pos = this.pos;
@@ -3124,8 +3358,7 @@ var vot = (function(exports) {
 		this.assertBounds();
 		return result >>> 0;
 	}
-	//#endregion
-	//#region node_modules/@bufbuild/protobuf/dist/esm/proto-int64.js
+	// node_modules/@bufbuild/protobuf/dist/esm/proto-int64.js
 	var protoInt64 = makeInt64Support();
 	function makeInt64Support() {
 		const dv = new DataView(new ArrayBuffer(8));
@@ -3210,8 +3443,7 @@ var vot = (function(exports) {
 	function assertUInt64String(value) {
 		if (!/^[0-9]+$/.test(value)) throw new Error("invalid uint64: " + value);
 	}
-	//#endregion
-	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/text-encoding.js
+	// node_modules/@bufbuild/protobuf/dist/esm/wire/text-encoding.js
 	var te$1;
 	function configureTextEncoding(textEncoding) {
 		var _a;
@@ -3259,8 +3491,7 @@ var vot = (function(exports) {
 			return { written: bytes.byteLength };
 		};
 	}
-	//#endregion
-	//#region node_modules/@bufbuild/protobuf/dist/esm/wire/binary-encoding.js
+	// node_modules/@bufbuild/protobuf/dist/esm/wire/binary-encoding.js
 	var WireType;
 	(function(WireType) {
 		WireType[WireType["Varint"] = 0] = "Varint";
@@ -3647,8 +3878,7 @@ var vot = (function(exports) {
 		} else if (typeof arg != "number") throw new Error("invalid float32: " + typeof arg);
 		if (!Number.isFinite(Math.fround(arg)) && Number.isFinite(arg)) throw new Error("invalid float32: " + arg);
 	}
-	//#endregion
-	//#region node_modules/@vot.js/shared/dist/protos/yandex.js
+	// node_modules/@vot.js/shared/dist/protos/yandex.js
 	var StreamInterval;
 	(function(StreamInterval) {
 		StreamInterval[StreamInterval["NO_CONNECTION"] = 0] = "NO_CONNECTION";
@@ -5290,15 +5520,13 @@ var vot = (function(exports) {
 	function isSet(value) {
 		return value !== null && value !== void 0;
 	}
-	//#endregion
-	//#region node_modules/@vot.js/shared/dist/types/helpers/bannedvideo.js
+	// node_modules/@vot.js/shared/dist/types/helpers/bannedvideo.js
 	var TypeName;
 	(function(TypeName) {
 		TypeName["Channel"] = "Channel";
 		TypeName["Video"] = "Video";
 	})(TypeName || (TypeName = {}));
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/loom.js
+	// node_modules/@vot.js/ext/dist/helpers/loom.js
 	var LoomHelper = class extends BaseHelper {
 		getClientVersion() {
 			if (typeof SENTRY_RELEASE === "undefined") return;
@@ -5341,8 +5569,7 @@ var vot = (function(exports) {
 			return /(embed|share)\/([^/]+)?/.exec(url.pathname)?.[2];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/mailru.js
+	// node_modules/@vot.js/ext/dist/helpers/mailru.js
 	var MailRuHelper = class extends BaseHelper {
 		API_ORIGIN = "https://my.mail.ru";
 		async getVideoMeta(videoId) {
@@ -5363,8 +5590,7 @@ var vot = (function(exports) {
 			return videoData.meta.url.replace("//my.mail.ru/", "");
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/mediafile.js
+	// node_modules/@vot.js/ext/dist/helpers/mediafile.js
 	var MediafileHelper = class extends BaseHelper {
 		DEFAULT_SITE_ORIGIN = "https://mediafile.cc";
 		SITE_ORIGIN = this.service?.url?.slice(0, -1) ?? this.DEFAULT_SITE_ORIGIN;
@@ -5384,8 +5610,7 @@ var vot = (function(exports) {
 			return url.pathname.replace(/^\/+/, "") || void 0;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/netacad.js
+	// node_modules/@vot.js/ext/dist/helpers/netacad.js
 	var NetacadHelper = class extends VideoJSHelper {
 		SUBTITLE_SOURCE = "netacad";
 		async getVideoData(videoId) {
@@ -5397,23 +5622,20 @@ var vot = (function(exports) {
 			return url.pathname + url.search;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/newgrounds.js
+	// node_modules/@vot.js/ext/dist/helpers/newgrounds.js
 	var NewgroundsHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /([^/]+)\/(view)\/([^/]+)/.exec(url.pathname)?.[0];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/niconico.js
+	// node_modules/@vot.js/ext/dist/helpers/niconico.js
 	var NicoNicoHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			if (url.hostname === "nico.ms") return url.pathname.replace(/^\//, "").split("/")[0] || void 0;
 			return /\/watch\/([^/?#]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/nine_gag.js
+	// node_modules/@vot.js/ext/dist/helpers/nine_gag.js
 	var NineGAGHelper = class extends BaseHelper {
 		async getVideoData(videoId) {
 			const data = this.returnBaseData(videoId);
@@ -5437,25 +5659,31 @@ var vot = (function(exports) {
 			return /gag\/([^/]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/players/jwplayer.js
+	// node_modules/@vot.js/ext/dist/players/jwplayer.js
+	function isVideoFile(source) {
+		const mimeType = source.mimeType || source.type;
+		const type = typeof mimeType === "string" ? mimeType.toLowerCase().split(";")[0].trim() : "";
+		return type === "mp4" || type === "video/mp4" || type === "webm" || type === "video/webm" || /\.(?:mp4|webm)$/i.test(new URL(source.file).pathname);
+	}
 	var JWPlayerHelper = class {
 		SUBTITLE_SOURCE = "jwplayer";
 		SUBTITLE_FORMAT = "vtt";
 		getHeight(source) {
-			if (typeof source.height === "number" && source.height > 0) return source.height;
-			const match = source.label?.match(/^(\d+)/);
+			if (typeof source.height === "number" && Number.isFinite(source.height) && source.height > 0) return source.height;
+			const label = typeof source.label === "string" ? source.label : "";
+			const match = label.match(/\d+\s*x\s*(\d+)/i) ?? label.match(/(\d+)p\b/i) ?? label.match(/^(\d+)/);
 			return match ? Number.parseInt(match[1], 10) : 0;
 		}
 		getPlayer() {
-			if (typeof jwplayer === "undefined") return;
+			if (typeof jwplayer !== "function") return;
 			const playerEl = document.querySelector(".jwplayer");
 			if (playerEl?.id) try {
 				const player = jwplayer(playerEl.id);
-				if (player && typeof player.getPlaylistItem === "function") return player;
+				if (player && (typeof player.getPlaylistItem === "function" || typeof player.getPlaylist === "function")) return player;
 			} catch {}
 			try {
-				return jwplayer();
+				const player = jwplayer();
+				return player && (typeof player.getPlaylistItem === "function" || typeof player.getPlaylist === "function") ? player : void 0;
 			} catch {
 				return;
 			}
@@ -5464,31 +5692,47 @@ var vot = (function(exports) {
 			try {
 				const player = this.getPlayer();
 				if (!player) throw new Error("JW Player instance not ready or not found");
-				let item = player.getPlaylistItem ? player.getPlaylistItem() : null;
+				let item = typeof player.getPlaylistItem === "function" ? player.getPlaylistItem() : null;
 				if (!item && typeof player.getPlaylist === "function") {
 					const playlist = player.getPlaylist();
 					const index = typeof player.getPlaylistIndex === "function" ? player.getPlaylistIndex() : 0;
 					if (Array.isArray(playlist) && playlist[index]) item = playlist[index];
 				}
 				if (!item) throw new Error("No playlist item found");
+				if (item.drm && Object.keys(item.drm).length > 0) throw new Error("DRM-protected playlist item");
 				let duration = 0;
 				if (typeof player.getDuration === "function") duration = player.getDuration();
-				if ((typeof duration !== "number" || duration <= 0) && typeof item.duration === "number") duration = item.duration;
-				const sources = [];
-				if (Array.isArray(item.allSources)) sources.push(...item.allSources);
-				if (Array.isArray(item.sources)) {
-					for (const s of item.sources) if (s?.file && !sources.some((existing) => existing.file === s.file)) sources.push(s);
+				if ((!Number.isFinite(duration) || duration <= 0) && typeof item.duration === "number") duration = item.duration;
+				if (!Number.isFinite(duration) || duration <= 0) duration = 0;
+				const sources = [
+					...Array.isArray(item.allSources) ? item.allSources : [],
+					...Array.isArray(item.sources) ? item.sources : [],
+					...typeof item.file === "string" ? [{ file: item.file }] : []
+				];
+				const seenUrls = new Set();
+				const protectedUrls = new Set();
+				let validSources = [];
+				for (const source of sources) {
+					if (!source || typeof source.file !== "string" || !source.file.trim()) continue;
+					try {
+						const url = new URL(source.file, window.location.href);
+						if (source.drm && Object.keys(source.drm).length > 0) {
+							protectedUrls.add(url.href);
+							continue;
+						}
+						if (url.protocol !== "http:" && url.protocol !== "https:" || seenUrls.has(url.href)) continue;
+						seenUrls.add(url.href);
+						validSources.push({
+							...source,
+							file: url.href
+						});
+					} catch {}
 				}
-				const validSources = sources.filter((s) => s && typeof s.file === "string" && s.file.length > 0);
-				if (validSources.length === 0) {
-					if (typeof item.file === "string" && item.file.length > 0) validSources.push({
-						file: item.file,
-						type: "",
-						label: "default"
-					});
-					else throw new Error("No valid sources found");
-				}
+				validSources = validSources.filter((source) => !protectedUrls.has(source.file));
+				if (validSources.length === 0) throw new Error("No valid sources found");
 				validSources.sort((a, b) => {
+					const filePreference = Number(isVideoFile(b)) - Number(isVideoFile(a));
+					if (filePreference) return filePreference;
 					const heightA = this.getHeight(a);
 					const heightB = this.getHeight(b);
 					if (heightA === 0 && heightB > 0) return 1;
@@ -5505,8 +5749,8 @@ var vot = (function(exports) {
 					}],
 					subtitles: this.getSubtitles()
 				};
-			} catch (err) {
-				console.error("[VOT] JWPlayerHelper error:", err instanceof Error ? err.message : String(err));
+			} catch {
+				console.error("[VOT] JWPlayerHelper error: Failed to read player data");
 				return;
 			}
 		}
@@ -5515,7 +5759,7 @@ var vot = (function(exports) {
 			try {
 				const player = this.getPlayer();
 				if (!player) return subtitles;
-				let item = player.getPlaylistItem ? player.getPlaylistItem() : null;
+				let item = typeof player.getPlaylistItem === "function" ? player.getPlaylistItem() : null;
 				if (!item && typeof player.getPlaylist === "function") {
 					const playlist = player.getPlaylist();
 					const index = typeof player.getPlaylistIndex === "function" ? player.getPlaylistIndex() : 0;
@@ -5545,14 +5789,13 @@ var vot = (function(exports) {
 				if (Array.isArray(captionsList)) {
 					for (const track of captionsList) if (track && typeof track === "object" && track.file) addSubtitle(track.label || "en", track.file);
 				}
-			} catch (err) {
-				console.error("[VOT] JWPlayerHelper getSubtitles error:", err);
+			} catch {
+				console.error("[VOT] JWPlayerHelper getSubtitles error: Failed to read tracks");
 			}
 			return subtitles;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/noodlemagazine.js
+	// node_modules/@vot.js/ext/dist/helpers/noodlemagazine.js
 	var NoodleMagazineHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.pathname.slice(1);
@@ -5561,8 +5804,7 @@ var vot = (function(exports) {
 			return new JWPlayerHelper().getVideoData(videoId);
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/odysee.js
+	// node_modules/@vot.js/ext/dist/helpers/odysee.js
 	var OdyseeHelper = class extends BaseHelper {
 		API_ORIGIN = "https://odysee.com";
 		async getVideoData(videoId) {
@@ -5572,22 +5814,19 @@ var vot = (function(exports) {
 			return url.pathname.slice(1);
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/okru.js
+	// node_modules/@vot.js/ext/dist/helpers/okru.js
 	var OKRuHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /\/video\/(\d+)/.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/olympicsreplay.js
+	// node_modules/@vot.js/ext/dist/helpers/olympicsreplay.js
 	var OlympicsReplayHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /\/([a-z]{2}\/(?:[a-z0-9-]+\/)?(?:replay|videos?|original-series\/episode)\/[\w-]+)\/?$/i.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/oraclelearn.js
+	// node_modules/@vot.js/ext/dist/helpers/oraclelearn.js
 	var OracleLearnHelper = class extends VideoJSHelper {
 		SUBTITLE_SOURCE = "oraclelearn";
 		async getVideoData(videoId) {
@@ -5615,8 +5854,7 @@ var vot = (function(exports) {
 			return /\/ou\/course\/(([^/]+)\/(\d+)\/(\d+))/.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/patreon.js
+	// node_modules/@vot.js/ext/dist/helpers/patreon.js
 	var PatreonHelper = class extends BaseHelper {
 		API_ORIGIN = "https://www.patreon.com/api";
 		async getPosts(postId) {
@@ -5640,8 +5878,7 @@ var vot = (function(exports) {
 			return fullPostId.replace(/[^\d.]/g, "");
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/peertube.js
+	// node_modules/@vot.js/ext/dist/helpers/peertube.js
 	var PeertubeHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			const normalizedPathname = url.pathname.replace(/\/+$/, "");
@@ -5651,22 +5888,19 @@ var vot = (function(exports) {
 			if (shortVideoId) return `/videos/watch/${shortVideoId}`;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/picarto.js
+	// node_modules/@vot.js/ext/dist/helpers/picarto.js
 	var PicartoHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /\/((?:videopopout|[^/]+(?:\/profile)?\/videos)\/[^/?#&/]+)\/?$/.exec(url.pathname)?.[1] ?? /^\/([^/#?]+)\/?$/.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/pornhub.js
+	// node_modules/@vot.js/ext/dist/helpers/pornhub.js
 	var PornhubHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.searchParams.get("viewkey") ?? /embed\/([^/]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/porntn.js
+	// node_modules/@vot.js/ext/dist/helpers/porntn.js
 	var PornTNHelper = class extends BaseHelper {
 		async getVideoData(videoId) {
 			try {
@@ -5692,8 +5926,7 @@ var vot = (function(exports) {
 			return /\/videos\/(([^/]+)\/([^/]+))/.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/preservetube.js
+	// node_modules/@vot.js/ext/dist/helpers/preservetube.js
 	var PreserveTubeHelper = class extends BaseHelper {
 		async getVideoData(videoId) {
 			try {
@@ -5709,8 +5942,7 @@ var vot = (function(exports) {
 			return url.searchParams.get("v") ?? void 0;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/reddit.js
+	// node_modules/@vot.js/ext/dist/helpers/reddit.js
 	var RedditHelper = class extends BaseHelper {
 		API_ORIGIN = "https://www.reddit.com";
 		async getDashAudioUrl(dashUrl) {
@@ -5744,8 +5976,7 @@ var vot = (function(exports) {
 			return /\/r\/(([^/]+)\/([^/]+)\/([^/]+)\/([^/]+))/.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/rtnews.js
+	// node_modules/@vot.js/ext/dist/helpers/rtnews.js
 	var RtNewsHelper = class extends BaseHelper {
 		async getVideoData(videoId) {
 			const videoEl = document.querySelector(".jw-video, .media__video_noscript");
@@ -5762,8 +5993,7 @@ var vot = (function(exports) {
 			return url.pathname.slice(1);
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/players/flowplayer.js
+	// node_modules/@vot.js/ext/dist/players/flowplayer.js
 	var FlowplayerHelper = class {
 		SUBTITLE_SOURCE = "flowplayer";
 		SUBTITLE_FORMAT = "vtt";
@@ -5806,8 +6036,7 @@ var vot = (function(exports) {
 			return [];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/rule34video.js
+	// node_modules/@vot.js/ext/dist/helpers/rule34video.js
 	var Rule34VideoHelper = class extends BaseHelper {
 		resolveVideoIdViaPostMessage(url) {
 			return new Promise((resolve) => {
@@ -5856,22 +6085,19 @@ var vot = (function(exports) {
 			return tail ? `${id}/${tail.replace(/\/+$/, "")}/` : id;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/rumble.js
+	// node_modules/@vot.js/ext/dist/helpers/rumble.js
 	var RumbleHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.pathname.slice(1);
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/rutube.js
+	// node_modules/@vot.js/ext/dist/helpers/rutube.js
 	var RutubeHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /(?:video|embed)\/([^/]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/sap.js
+	// node_modules/@vot.js/ext/dist/helpers/sap.js
 	var SapHelper = class extends BaseHelper {
 		API_ORIGIN = "https://learning.sap.com/";
 		async requestKaltura(kalturaDomain, partnerId, entryId) {
@@ -5963,8 +6189,7 @@ var vot = (function(exports) {
 			return /((courses|learning-journeys)\/([^/]+)(\/[^/]+)?)/.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/skilljar.js
+	// node_modules/@vot.js/ext/dist/helpers/skilljar.js
 	var SkilljarHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.pathname.slice(1);
@@ -5973,8 +6198,7 @@ var vot = (function(exports) {
 			return new JWPlayerHelper().getVideoData(videoId);
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/spankbang.js
+	// node_modules/@vot.js/ext/dist/helpers/spankbang.js
 	var SpankBangHelper = class extends VideoJSHelper {
 		SUBTITLE_SOURCE = "spankbang";
 		TECH_EL_SELECTOR = "video.vjs-tech, video[id$=\"_html5_api\"], video[src]:not([id^=\"video_dropdown_\"]), video:not([id^=\"video_dropdown_\"])";
@@ -5998,8 +6222,7 @@ var vot = (function(exports) {
 			return /\/([\da-z]+\/(?:video|play|embed)(?:\/[^/]+)?)\/?$/i.exec(url.pathname)?.[1] ?? /\/([\da-z]+-[\da-z]+\/playlist\/[^/]+)\/?$/i.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/telegram.js
+	// node_modules/@vot.js/ext/dist/helpers/telegram.js
 	var TelegramHelper = class TelegramHelper extends BaseHelper {
 		static getMediaViewer() {
 			if (typeof appMediaViewer === "undefined") return;
@@ -6018,15 +6241,13 @@ var vot = (function(exports) {
 			return `${await mediaViewer.managers.appPeersManager.getPeerUsername(message.peerId)}/${postId}`;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/thisvid.js
+	// node_modules/@vot.js/ext/dist/helpers/thisvid.js
 	var ThisVidHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /(videos|embed)\/[^/]+/.exec(url.pathname)?.[0];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/tiktok.js
+	// node_modules/@vot.js/ext/dist/helpers/tiktok.js
 	var TikTokHelper = class TikTokHelper extends BaseHelper {
 		static PLAYER_CLASS = ".tiktok-web-player";
 		static getPlayer(video) {
@@ -6071,8 +6292,7 @@ var vot = (function(exports) {
 			return `${authorUsername}/video/${parsedVideoId}`;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/trovo.js
+	// node_modules/@vot.js/ext/dist/helpers/trovo.js
 	var TrovoHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			const vid = url.searchParams.get("vid");
@@ -6081,8 +6301,7 @@ var vot = (function(exports) {
 			return `${path}?vid=${vid}`;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/twitch.js
+	// node_modules/@vot.js/ext/dist/helpers/twitch.js
 	var TwitchHelper = class extends BaseHelper {
 		API_ORIGIN = "https://clips.twitch.tv";
 		async getClipLink(pathname, clipId) {
@@ -6124,8 +6343,7 @@ var vot = (function(exports) {
 			return document.querySelector(".persistent-player") ? pathname : void 0;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/twitter.js
+	// node_modules/@vot.js/ext/dist/helpers/twitter.js
 	var TwitterHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			const videoId = /status\/([^/]+)/.exec(url.pathname)?.[1];
@@ -6134,8 +6352,7 @@ var vot = (function(exports) {
 			return newLink ? /status\/([^/]+)/.exec(newLink)?.[1] : void 0;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/udemy.js
+	// node_modules/@vot.js/ext/dist/helpers/udemy.js
 	function isObject$1(value) {
 		return typeof value === "object" && value !== null;
 	}
@@ -6377,8 +6594,7 @@ var vot = (function(exports) {
 			return url.pathname.slice(1);
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/vk.js
+	// node_modules/@vot.js/ext/dist/helpers/vk.js
 	var VKHelper = class VKHelper extends BaseHelper {
 		static getPlayer() {
 			if (typeof Videoview === "undefined") return;
@@ -6423,15 +6639,13 @@ var vot = (function(exports) {
 			if (paramOID && paramID) return `video-${Math.abs(parseInt(paramOID, 10))}_${paramID}`;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/watchpornto.js
+	// node_modules/@vot.js/ext/dist/helpers/watchpornto.js
 	var WatchPornToHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /(video|embed)\/(\d+)(\/[^/]+\/)?/.exec(url.pathname)?.[0];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/weibo.js
+	// node_modules/@vot.js/ext/dist/helpers/weibo.js
 	var weiboVideoIdRe = /^\d+:(?:[\da-f]{32}|\d{16,})$/i;
 	var weiboLayerIdRe = /^[A-Za-z0-9]+$/;
 	var weiboHostRe = /^(?:www\.)?weibo\.com$/;
@@ -6459,8 +6673,7 @@ var vot = (function(exports) {
 			if (/^\/\d+\/[A-Za-z0-9]+$/.test(normalizedPath) || /^\/0\/[A-Za-z0-9]+$/.test(normalizedPath) || /^\/tv\/show\/\d+:(?:[\da-f]{32}|\d{16,})$/i.test(normalizedPath)) return normalizedPath.slice(1);
 		}
 	};
-	//#endregion
-	//#region src/shims/nodeCrypto.ts
+	// src/shims/nodeCrypto.ts
 	var nodeCrypto_exports = __exportAll({
 		default: () => webCrypto,
 		getRandomValues: () => getRandomValues,
@@ -6475,8 +6688,7 @@ var vot = (function(exports) {
 		getRandomValues = webCrypto.getRandomValues.bind(webCrypto);
 		randomUUID = typeof webCrypto.randomUUID === "function" ? webCrypto.randomUUID.bind(webCrypto) : void 0;
 	}));
-	//#endregion
-	//#region node_modules/@vot.js/shared/dist/secure.js
+	// node_modules/@vot.js/shared/dist/secure.js
 	var { componentVersion, chromiumRevision } = config_default$1;
 	async function getCrypto() {
 		if (typeof window !== "undefined" && window.crypto) return window.crypto;
@@ -6534,8 +6746,7 @@ var vot = (function(exports) {
 		"sec-ch-ua-full-version-list": `"Not;A=Brand";v="8.0.0.0", "Chromium";v="150.0.7871.${chromiumRevision}", "YaBrowser";v="${componentVersion}", "Yowser";v="2.5"`,
 		"Sec-Fetch-Mode": "no-cors"
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/weverse.js
+	// node_modules/@vot.js/ext/dist/helpers/weverse.js
 	var WeverseHelper = class extends BaseHelper {
 		API_ORIGIN = "https://global.apis.naver.com/weverse/wevweb";
 		API_APP_ID = "be4d79eb8fc7bd008ee82c8ec4ff6fd4";
@@ -6643,8 +6854,7 @@ var vot = (function(exports) {
 			return /([^/]+)\/(live|media)\/([^/]+)/.exec(url.pathname)?.[3];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/xhamster.js
+	// node_modules/@vot.js/ext/dist/helpers/xhamster.js
 	var XHamsterHelper = class extends BaseHelper {
 		SUBTITLE_SOURCE = "xhamster";
 		SUBTITLE_FORMAT = "vtt";
@@ -6671,15 +6881,13 @@ var vot = (function(exports) {
 			return /\/(videos\/[^/]+-[\dA-Za-z]+)\/?$/.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/xvideos.js
+	// node_modules/@vot.js/ext/dist/helpers/xvideos.js
 	var XVideosHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /[^/]+\/[^/]+$/.exec(url.pathname)?.[0];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/yandexdisk.js
+	// node_modules/@vot.js/ext/dist/helpers/yandexdisk.js
 	var YandexDiskHelper = class extends BaseHelper {
 		API_ORIGIN = window.location.origin;
 		CLIENT_PREFIX = "/client/disk";
@@ -6835,15 +7043,13 @@ var vot = (function(exports) {
 			return /\/d\/([^/]+)/.exec(url.pathname) ? url.pathname : void 0;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/youku.js
+	// node_modules/@vot.js/ext/dist/helpers/youku.js
 	var YoukuHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /v_show\/id_[\w=]+/.exec(url.pathname)?.[0];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/youtube.js
+	// node_modules/@vot.js/ext/dist/helpers/youtube.js
 	var YoutubeHelper = class YoutubeHelper extends BaseHelper {
 		static isMobile() {
 			return /^m\.youtube\.com$/.test(window.location.hostname);
@@ -6993,8 +7199,7 @@ var vot = (function(exports) {
 			return YoutubeHelper.extractVideoId(url);
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/zdf.js
+	// node_modules/@vot.js/ext/dist/helpers/zdf.js
 	var zdfPlayPathRe = /^\/play\/([^/?#]+)\/([^/?#]+)\/([^/?#]+)\/?$/i;
 	var ZDFHelper = class extends BaseHelper {
 		async getVideoId(url) {
@@ -7004,16 +7209,263 @@ var vot = (function(exports) {
 			return `${publicationForm}/${collectionCanonical}/${videoCanonical}`;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/wistia.js
+	// node_modules/@vot.js/ext/dist/helpers/wistia.js
 	var WistiaHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /\/embed\/iframe\/([^/]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/helpers/index.js
+	// node_modules/@vot.js/ext/dist/helpers/abcnews.js
+	var AbcNewsHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+		async getVideoData(videoId) {
+			const articleId = /\/video\/(\d+)/.exec(videoId)?.[1];
+			if (!articleId) return { url: videoId };
+			try {
+				const html = await (await this.fetch(videoId)).text();
+				const match = new RegExp(`"link":"[^"]*/video/${articleId}/?","duration":"[^"]*","durationISO":"PT(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)S)?"`).exec(html);
+				if (!match) return { url: videoId };
+				const [, hours = 0, minutes = 0, seconds = 0] = match;
+				return {
+					url: videoId,
+					duration: Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds) || void 0
+				};
+			} catch {
+				return { url: videoId };
+			}
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/bfmtv.js
+	var BfmTvHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/videopress.js
+	var VideoPressHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			const source = getVideoSrc(this.video ?? querySelectorDeep("video"));
+			if (source && /^https?:\/\//.test(source)) return source;
+			const videoId = /^\/embed\/([a-z\d]{8})(?:\/|$)/i.exec(url.pathname)?.[1];
+			if (!videoId) return;
+			const res = await this.fetch(`https://public-api.wordpress.com/rest/v1.1/videos/${videoId}`, { credentials: "include" });
+			if (!res.ok) return;
+			const data = await res.json();
+			const file = data.files?.hd?.mp4 ?? data.files?.dvd?.mp4 ?? data.files?.std?.mp4 ?? data.original ?? Object.values(data.files ?? {}).find((file) => file?.hls)?.hls;
+			if (!file) return;
+			try {
+				const stream = new URL(file, data.file_url_base?.https ?? data.file_url_base?.http);
+				return /^https?:$/.test(stream.protocol) ? stream.href : void 0;
+			} catch {
+				return;
+			}
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/vidlii.js
+	var VidliiHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/cbsnews.js
+	var CBSNewsHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/nytimes.js
+	var NYTimesHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/wsj.js
+	var WSJHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/acfun.js
+	var AcFunHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/gettr.js
+	var GettrHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/huya.js
+	var HuyaHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/medaltv.js
+	var MedalTvHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/redgifs.js
+	var RedgifsHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/pinterest.js
+	var PinterestHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/navertv.js
+	var NaverTVHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			if (!/^\/shorts\/?$/.test(url.pathname)) return url.href;
+			const source = getVideoSrc(this.video ?? querySelectorDeep("video"));
+			if (source && /^https?:\/\//.test(source)) return source;
+			const mediaId = url.searchParams.get("seedMediaId");
+			if (!mediaId) return;
+			const params = new URLSearchParams({
+				seedType: "SPECIFIC",
+				seedMediaId: mediaId,
+				serviceType: url.searchParams.get("serviceType") ?? "CLIP",
+				mediaType: url.searchParams.get("mediaType") ?? "SHORT_FORM",
+				userInteraction: "true"
+			});
+			const res = await this.fetch(`https://creatorhub-api.naver.com/api/v7.0/clipviewer/card?${params}`, { credentials: "include" });
+			if (!res.ok) return;
+			const data = await res.json();
+			const content = data.body?.card?.content;
+			if (data.header?.code !== 0 || content?.mediaId?.toLowerCase() !== mediaId.toLowerCase() || !content?.vod?.playable) return;
+			const playback = content.vod.playback;
+			const direct = playback?.videos?.list?.find((video) => !video.useP2P && /^https?:\/\//.test(video.source ?? ""))?.source;
+			if (direct) return direct;
+			return playback?.MPD?.flatMap((mpd) => mpd.Period ?? []).flatMap((period) => period.AdaptationSet ?? []).flatMap((set) => set.Representation ?? []).filter((video) => !video.SegmentTemplate).flatMap((video) => video.BaseURL ?? []).find((stream) => /^https?:\/\/.*\.mp4(?:[?#]|$)/i.test(stream));
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/chzzk.js
+	var CHZZKHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/zhihu.js
+	var ZhihuHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/snapchat.js
+	var SnapchatSpotlightHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/streamable.js
+	var StreamableHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/beacon.js
+	var BeaconHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+		async getVideoData(videoId) {
+			return new JWPlayerHelper().getVideoData(videoId);
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/brightcove.js
+	var BrightcoveHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/craftsy.js
+	var CraftsyHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/jwplatform.js
+	var JWPlatformHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/nzherald.js
+	var NZHeraldHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/onefootball.js
+	var OneFootballHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/spiegel.js
+	var SpiegelHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/vidly.js
+	var VidlyHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/cnn.js
+	var CNNHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/bluesky.js
+	var BlueskyHelper = class extends BaseHelper {
+		async getVideoId(url) {
+			return url.href;
+		}
+	};
+	// node_modules/@vot.js/ext/dist/helpers/index.js
 	var availableHelpers = {
+		[VideoService$1.abcnews]: AbcNewsHelper,
+		[VideoService$1.bfmtv]: BfmTvHelper,
+		[VideoService$1.videopress]: VideoPressHelper,
+		[VideoService$1.vidlii]: VidliiHelper,
+		[VideoService$1.cbsnews]: CBSNewsHelper,
+		[VideoService$1.nytimes]: NYTimesHelper,
+		[VideoService$1.wsj]: WSJHelper,
+		[VideoService$1.acfun]: AcFunHelper,
+		[VideoService$1.gettr]: GettrHelper,
+		[VideoService$1.huya]: HuyaHelper,
+		[VideoService$1.medaltv]: MedalTvHelper,
+		[VideoService$1.redgifs]: RedgifsHelper,
+		[VideoService$1.pinterest]: PinterestHelper,
+		[VideoService$1.navertv]: NaverTVHelper,
+		[VideoService$1.chzzk]: CHZZKHelper,
+		[VideoService$1.zhihu]: ZhihuHelper,
+		[VideoService$1.snapchat]: SnapchatSpotlightHelper,
+		[VideoService$1.streamable]: StreamableHelper,
+		[VideoService$1.beacon]: BeaconHelper,
+		[VideoService$1.brightcove]: BrightcoveHelper,
+		[VideoService$1.craftsy]: CraftsyHelper,
+		[VideoService$1.jwplatform]: JWPlatformHelper,
+		[VideoService$1.nzherald]: NZHeraldHelper,
+		[VideoService$1.onefootball]: OneFootballHelper,
+		[VideoService$1.spiegel]: SpiegelHelper,
+		[VideoService$1.vidly]: VidlyHelper,
+		[VideoService$1.cnn]: CNNHelper,
+		[VideoService$1.bluesky]: BlueskyHelper,
 		[VideoService$1.mailru]: MailRuHelper,
 		[VideoService$1.weverse]: WeverseHelper,
 		[VideoService$1.weibo]: WeiboHelper,
@@ -7104,8 +7556,7 @@ var vot = (function(exports) {
 			return new availableHelpers[service](this.helpersData);
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/utils/videoData.js
+	// node_modules/@vot.js/ext/dist/utils/videoData.js
 	function hasHelper(host) {
 		return host in availableHelpers;
 	}
@@ -7166,8 +7617,7 @@ var vot = (function(exports) {
 			host: service.host
 		};
 	}
-	//#endregion
-	//#region src/modules/auth/consts.ts
+	// src/modules/auth/consts.ts
 	var YANDEX_AUTH_CLIENT_ID = "1666fbe22f3749c581002a4f97b2592d";
 	var YANDEX_AUTH_ORIGIN = "https://oauth.yandex.ru";
 	var YANDEX_AUTH_URL = `${YANDEX_AUTH_ORIGIN}/authorize`;
@@ -7176,8 +7626,7 @@ var vot = (function(exports) {
 	var YANDEX_AUTH_AVATAR_BASE = "https://avatars.mds.yandex.net/get-yapic";
 	var YANDEX_USER_INFO_URL = "https://login.yandex.ru/info";
 	var YANDEX_TOKEN_DEFAULT_LIFETIME = 3153418e4;
-	//#endregion
-	//#region src/utils/logger.ts
+	// src/utils/logger.ts
 	var LOG_COLORS = {
 		info: "#8bb4f5",
 		error: "#f28b82",
@@ -8908,8 +9357,7 @@ var vot = (function(exports) {
 			});
 		}));
 	}))(), 1).default.getParser(globalThis.navigator.userAgent).getResult();
-	//#endregion
-	//#region src/config/config.ts
+	// src/config/config.ts
 	var workerHost = "api.browser.yandex.ru";
 	var m3u8ProxyHost = "media-proxy.toil.cc/v1/proxy/m3u8";
 	var proxyWorkerHostMode1 = "vot-worker.vtrans.eu.cc";
@@ -8925,8 +9373,7 @@ var vot = (function(exports) {
 	];
 	var DEFAULT_AUTO_HIDE_DELAY = 1e3;
 	var actualCompatVersion = "2026-08-18";
-	//#endregion
-	//#region src/utils/json.ts
+	// src/utils/json.ts
 	function stringifyCircularSafe(value, { sortKeys = false } = {}) {
 		const seen = new WeakSet();
 		return JSON.stringify(value, (_key, val) => {
@@ -8940,8 +9387,7 @@ var vot = (function(exports) {
 			return sorted;
 		});
 	}
-	//#endregion
-	//#region src/utils/errors.ts
+	// src/utils/errors.ts
 	function stringifyUnknownObject(value) {
 		try {
 			return stringifyCircularSafe(value) ?? null;
@@ -9002,7 +9448,10 @@ var vot = (function(exports) {
 	}
 	function makeAbortError(reason = "Aborted") {
 		if (reason instanceof Error && isAbortError(reason)) return reason;
-		const message = reason instanceof Error ? reason.message : String(reason ?? "Aborted");
+		let message;
+		if (reason instanceof Error) message = reason.message;
+		else if (typeof reason === "object" && reason !== null) message = toErrorMessage(reason, "Aborted");
+		else message = String(reason ?? "Aborted");
 		try {
 			return new DOMException(message, "AbortError");
 		} catch {
@@ -9019,8 +9468,7 @@ var vot = (function(exports) {
 		}
 		return current;
 	}
-	//#endregion
-	//#region src/utils/abort.ts
+	// src/utils/abort.ts
 	var NEVER_ABORTED_SIGNAL = new AbortController().signal;
 	function throwIfAborted(signal) {
 		try {
@@ -9150,21 +9598,26 @@ var vot = (function(exports) {
 			}
 		};
 	}
-	//#endregion
-	//#region src/utils/debug.ts
-	var noop = () => {};
-	var debug = {
-		log: noop,
-		warn: noop,
-		error: noop
+	// src/utils/debug.ts
+	var log = (...text) => {
+		console.log("%c[VOT DEBUG]", "background: #3700ffff; color: #fff; padding: 5px;", ...text);
 	};
-	//#endregion
-	//#region src/utils/http.ts
+	var warn = (...text) => {
+		console.warn("%c[VOT DEBUG]", "background: #f6c177; color: #000; padding: 5px;", ...text);
+	};
+	var error = (...text) => {
+		console.error("%c[VOT DEBUG]", "background: #F2452D; color: #fff; padding: 5px;", ...text);
+	};
+	var debug = {
+		log,
+		warn,
+		error
+	};
+	// src/utils/http.ts
 	function normalizeHttpMethod(method) {
 		return (method || "GET").toUpperCase();
 	}
-	//#endregion
-	//#region src/utils/localization.ts
+	// src/utils/localization.ts
 	function getNavigatorLang() {
 		if (typeof navigator === "undefined") return "en";
 		return navigator.language?.substring(0, 2).toLowerCase() || "en";
@@ -9189,8 +9642,7 @@ var vot = (function(exports) {
 	}
 	var lang = getNavigatorLang();
 	var calculatedResLang = resolveCalculatedResLang(lang);
-	//#endregion
-	//#region src/utils/utils.ts
+	// src/utils/utils.ts
 	var DEFAULT_OBJECT_URL_REVOKE_DELAY_MS = 3e4;
 	var ASCII_CONTROL_CHARS_RE = /\p{Cc}/gu;
 	var INVALID_FILENAME_CHARS_RE = /[\\/:*?"'<>|]+/g;
@@ -9319,10 +9771,9 @@ var vot = (function(exports) {
 		return out;
 	}
 	function base64UrlEncode(bytes) {
-		return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+		return btoa(String.fromCodePoint(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 	}
-	//#endregion
-	//#region src/utils/responseCache.ts
+	// src/utils/responseCache.ts
 	var RESPONSE_CACHE_CREATED_AT_HEADER = "x-vot-cache-created-at";
 	var RESPONSE_CACHE_KEY_HEADER = "x-vot-cache-key";
 	var DEFAULT_RESPONSE_CACHE_NAME = "vot-http-cache-v1";
@@ -9465,8 +9916,7 @@ var vot = (function(exports) {
 	async function executeWithResponseCache(context, options, fetcher) {
 		return responseCacheManager.execute(context, options, fetcher);
 	}
-	//#endregion
-	//#region src/utils/gm.ts
+	// src/utils/gm.ts
 	var YANDEX_API_HOST = "api.browser.yandex.ru";
 	var GOOGLEVIDEO_HOST_SUFFIX = "googlevideo.com";
 	var HEADER_LINE_RE = /^(\w[\w-]*):\s*(\S.*)$/;
@@ -9638,10 +10088,7 @@ var vot = (function(exports) {
 			};
 			if (fetchOptions.signal) {
 				fetchOptions.signal.addEventListener("abort", onAbort, { once: true });
-				if (fetchOptions.signal.aborted) {
-					onAbort();
-					return;
-				}
+				if (fetchOptions.signal.aborted) onAbort();
 			}
 		});
 	}
@@ -9681,6 +10128,20 @@ var vot = (function(exports) {
 			if (abortHandler) fetchOptions.signal?.removeEventListener("abort", abortHandler);
 		}
 	}
+	function throwGmFetchFailure(urlStr, method, attempts) {
+		debug.warn("[GM_fetch] none of the GM approaches worked");
+		const lastCategory = attempts.at(-1)?.category;
+		const failure = new Error("All GM approaches failed", { cause: lastCategory ? new Error(lastCategory) : void 0 });
+		try {
+			gmFetchFailureHandler?.({
+				error: failure,
+				host: getRequestHost(urlStr),
+				method,
+				attempts
+			});
+		} catch {}
+		throw failure;
+	}
 	async function gmXhrFetch(urlStr, timeout, fetchOptions) {
 		const headers = getHeaders(fetchOptions.headers);
 		const method = normalizeHttpMethod(fetchOptions.method);
@@ -9708,16 +10169,11 @@ var vot = (function(exports) {
 					error: getGmXhrErrorMessage(error)
 				});
 			}
-		}
-		if (!callbackGmXhr) attempts.push({
+		} else attempts.push({
 			approach: "GM_xmlhttpRequest",
 			category: "unavailable"
 		});
 		const promiseGmXhr = getPromiseGmXhr();
-		if (!promiseGmXhr) attempts.push({
-			approach: "GM.xmlHttpRequest",
-			category: "unavailable"
-		});
 		if (promiseGmXhr) {
 			debug.log("[GM_fetch] attempting promise-style GM.xmlHttpRequest");
 			try {
@@ -9734,19 +10190,11 @@ var vot = (function(exports) {
 					error: getGmXhrErrorMessage(error)
 				});
 			}
-		}
-		debug.warn("[GM_fetch] none of the GM approaches worked");
-		const lastCategory = attempts.at(-1)?.category;
-		const failure = new Error("All GM approaches failed", { cause: lastCategory ? new Error(lastCategory) : void 0 });
-		try {
-			gmFetchFailureHandler?.({
-				error: failure,
-				host: getRequestHost(urlStr),
-				method,
-				attempts
-			});
-		} catch {}
-		throw failure;
+		} else attempts.push({
+			approach: "GM.xmlHttpRequest",
+			category: "unavailable"
+		});
+		throwGmFetchFailure(urlStr, method, attempts);
 	}
 	async function GM_fetch(url, opts = {}) {
 		const { timeout = 15e3, forceGmXhr = false, responseCache, ...fetchOptions } = opts;
@@ -9777,27 +10225,7 @@ var vot = (function(exports) {
 					host: host ?? "unknown",
 					reason: forceGmXhr ? "forced" : "host-policy"
 				});
-				try {
-					return await gmXhrFetch(urlStr, timeout, fetchOptions);
-				} catch (err) {
-					if (isAbortError(err)) throw err;
-					if (forceGmXhr || shouldUseGmXhr(host, urlStr)) throw err;
-					debug.warn("[GM_fetch] all GM approaches failed, falling back to native fetch", {
-						url: urlStr,
-						method,
-						host: host ?? "unknown",
-						error: getErrorMessage(err) || "Unknown error"
-					});
-					const { signal, cleanup } = createTimeoutSignal(timeout, fetchOptions.signal);
-					try {
-						return await fetch(url, {
-							...fetchOptions,
-							signal
-						});
-					} finally {
-						cleanup();
-					}
-				}
+				return await gmXhrFetch(urlStr, timeout, fetchOptions);
 			}
 			const { signal, cleanup } = createTimeoutSignal(timeout, fetchOptions.signal);
 			try {
@@ -9828,11 +10256,9 @@ var vot = (function(exports) {
 	function getGMInfo() {
 		return typeof GM_info === "undefined" ? void 0 : GM_info;
 	}
-	//#endregion
-	//#region src/utils/iframeConnector.ts
+	// src/utils/iframeConnector.ts
 	var isIframe = () => globalThis.self !== globalThis.top;
-	//#endregion
-	//#region src/types/storage.ts
+	// src/types/storage.ts
 	var AUTO_SUBTITLE_LANGUAGE_VALUE = "auto";
 	var ORIGINAL_SUBTITLE_LANGUAGE_VALUE = "original";
 	var storageKeys = [
@@ -9889,8 +10315,7 @@ var vot = (function(exports) {
 		"localeLangOverride",
 		"account"
 	];
-	//#endregion
-	//#region src/utils/storage.ts
+	// src/utils/storage.ts
 	function parseStoredValue(rawValue, fallback) {
 		if (rawValue === null) return fallback;
 		try {
@@ -10094,21 +10519,19 @@ var vot = (function(exports) {
 		scope[VOT_STORAGE_GLOBAL_KEY] = created;
 		return created;
 	})();
-	//#endregion
-	//#region src/modules/telemetry/consent.ts
+	// src/modules/telemetry/consent.ts
 	async function getDefaultSendErrorReports() {
 		return true;
 	}
-	//#endregion
-	//#region src/modules/telemetry/event.ts
+	// src/modules/telemetry/event.ts
 	var SENTRY_DSN = "https://fc1094f48d7348878978df534e30c96d@ingest.nirel.cc/1";
 	var SENTRY_KEY = "fc1094f48d7348878978df534e30c96d";
 	var SENTRY_CLIENT = "vot";
 	var ENVELOPE_URL = "https://ingest.nirel.cc/api/1/envelope/";
 	var V8_FRAME_RE = /^\s*at (?:(.+?) \()?(.+?):(\d+):(\d+)\)?\s*$/;
-	var GECKO_FRAME_RE = /^(.*?)@(.+?):(\d+):(\d+)\s*$/;
+	var GECKO_FRAME_RE = /^([^@]*)@(.+?):(\d+):(\d+)\s*$/;
 	var URL_RE = /https?:\/\/[^\s"'<>)]+/g;
-	var JSON_SNIPPET_RE = /"[\s\S]*"(?:\.\.\.)? is not valid JSON/;
+	var JSON_ERROR_SUFFIX = " is not valid JSON";
 	var UUID_RE = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
 	var HEX_ID_RE = /\b(?=[0-9a-f]*\d)[0-9a-f]{8,}\b/gi;
 	var MAX_CAUSE_DEPTH = 5;
@@ -10116,7 +10539,7 @@ var vot = (function(exports) {
 	var VOT_FRAME_RE = /^(?:(?:chrome|moz|safari-web)-extension:\/\/|user-script:|app:\/\/\/)/;
 	var PAGE_FILENAME = "<page>";
 	function normalizeFilename(filename) {
-		const cleaned = filename.replace(/[?#].*$/, "");
+		const cleaned = filename.split(/[?#]/, 1)[0];
 		if (!VOT_FRAME_RE.test(cleaned)) return {
 			filename: PAGE_FILENAME,
 			inApp: false
@@ -10155,8 +10578,19 @@ var vot = (function(exports) {
 	function toError(value) {
 		return value instanceof Error ? value : new Error(toErrorMessage(value));
 	}
+	function scrubJsonSnippet(message) {
+		const firstQuote = message.indexOf("\"");
+		if (firstQuote < 0) return message;
+		let suffixIndex = message.lastIndexOf(JSON_ERROR_SUFFIX);
+		while (suffixIndex > firstQuote) {
+			const quoteIndex = message.startsWith("...", suffixIndex - 3) ? suffixIndex - 4 : suffixIndex - 1;
+			if (quoteIndex > firstQuote && message[quoteIndex] === "\"") return `${message.slice(0, firstQuote)}<body>${message.slice(suffixIndex)}`;
+			suffixIndex = message.lastIndexOf(JSON_ERROR_SUFFIX, suffixIndex - 1);
+		}
+		return message;
+	}
 	function scrubMessage(message) {
-		return message.replace(URL_RE, "<url>").replace(JSON_SNIPPET_RE, "<body> is not valid JSON");
+		return scrubJsonSnippet(message.replace(URL_RE, "<url>"));
 	}
 	function normalizeMessage(message) {
 		return scrubMessage(message).replace(UUID_RE, "<id>").replace(HEX_ID_RE, "<id>").replace(/\d+/g, "<n>");
@@ -10186,38 +10620,8 @@ var vot = (function(exports) {
 			...frames.length > 0 && { stacktrace: { frames } }
 		};
 	}
-	function createEntryResolver(registry) {
-		const soleEntry = registry.size === 1 ? registry.values().next().value : void 0;
-		return (frame) => frame.in_app ? registry.get(frame.filename) ?? soleEntry : void 0;
-	}
-	function buildDebugMeta(values, resolveEntry) {
-		const images = new Map();
-		for (const { stacktrace } of values) for (const frame of stacktrace?.frames ?? []) {
-			if (images.has(frame.filename)) continue;
-			const entry = resolveEntry(frame);
-			if (entry) images.set(frame.filename, {
-				type: "sourcemap",
-				code_file: frame.filename,
-				debug_id: entry.debugId
-			});
-		}
-		return images.size ? { images: [...images.values()] } : void 0;
-	}
-	function removeLineOffsets(values, resolveEntry) {
-		for (const { stacktrace } of values) for (const frame of stacktrace?.frames ?? []) {
-			const lineOffset = resolveEntry(frame)?.lineOffset;
-			if (lineOffset && frame.lineno - lineOffset >= 1) frame.lineno -= lineOffset;
-		}
-	}
 	function buildEvent(error, context) {
 		const { source, service } = context.tags;
-		const values = collectCauses(error).map(toExceptionValue);
-		let debugMeta;
-		if (context.debugIds?.size) {
-			const resolveEntry = createEntryResolver(context.debugIds);
-			debugMeta = buildDebugMeta(values, resolveEntry);
-			removeLineOffsets(values, resolveEntry);
-		}
 		return {
 			event_id: createEventId(),
 			timestamp: Date.now() / 1e3,
@@ -10234,8 +10638,7 @@ var vot = (function(exports) {
 				service,
 				normalizeMessage(error.message)
 			].filter((part) => Boolean(part)),
-			exception: { values },
-			...debugMeta && { debug_meta: debugMeta }
+			exception: { values: collectCauses(error).map(toExceptionValue) }
 		};
 	}
 	function buildEnvelope(event) {
@@ -10252,31 +10655,7 @@ var vot = (function(exports) {
 	function buildAuthHeader(version) {
 		return `Sentry sentry_version=7, sentry_key=${SENTRY_KEY}, sentry_client=${SENTRY_CLIENT}/${version}`;
 	}
-	//#endregion
-	//#region src/modules/telemetry/debug-ids.ts
-	var REGISTRY_SYMBOL = Symbol.for("vot.debugIds");
-	var DEBUG_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-	function isRegistration(value) {
-		if (typeof value !== "object" || value === null) return false;
-		const { d, l } = value;
-		return typeof d === "string" && DEBUG_ID_RE.test(d) && typeof l === "number" && Number.isInteger(l) && l >= 1;
-	}
-	function readDebugIdRegistry(scope = globalThis) {
-		const registry = new Map();
-		const raw = scope[REGISTRY_SYMBOL];
-		if (typeof raw !== "object" || raw === null) return registry;
-		for (const [stack, registration] of Object.entries(raw)) {
-			if (!isRegistration(registration)) continue;
-			const frame = parseStack(stack).findLast((item) => item.in_app);
-			if (frame) registry.set(frame.filename, {
-				debugId: registration.d,
-				lineOffset: Math.max(0, frame.lineno - registration.l)
-			});
-		}
-		return registry;
-	}
-	//#endregion
-	//#region src/modules/telemetry/context.ts
+	// src/modules/telemetry/context.ts
 	var PROXY_MODES = [
 		"direct",
 		"proxy-client",
@@ -10335,12 +10714,12 @@ var vot = (function(exports) {
 			media_error_code: mediaErrorCode === void 0 ? void 0 : String(mediaErrorCode)
 		});
 	}
-	var SESSION_MODULES = [
+	var SESSION_MODULES = new Set([
 		"video-translation",
 		"summarization",
 		"neuroapi",
 		"neuroedit"
-	];
+	]);
 	function getSessionFailureTags(error, module) {
 		const detail = error?.data?.data;
 		let failure;
@@ -10348,7 +10727,7 @@ var vot = (function(exports) {
 		else if (typeof detail === "string") failure = categorizeFailure(detail);
 		else failure = "bad_response";
 		return compactTags({
-			session_module: SESSION_MODULES.includes(module) ? module : "other",
+			session_module: SESSION_MODULES.has(module) ? module : "other",
 			session_failure: failure
 		});
 	}
@@ -10358,8 +10737,7 @@ var vot = (function(exports) {
 			recovered: downloadSucceeded
 		}));
 	}
-	//#endregion
-	//#region src/modules/telemetry/reporter.ts
+	// src/modules/telemetry/reporter.ts
 	var MAX_EVENTS_PER_SESSION = 20;
 	var PUBLIC_HOSTS = [
 		workerHost,
@@ -10405,7 +10783,7 @@ var vot = (function(exports) {
 		return async function report(error, options) {
 			if (isExpectedError(error)) return;
 			if (!await isEnabled()) return;
-			const { version, environment, env, debugIds } = getRuntimeInfo();
+			const { version, environment, env } = getRuntimeInfo();
 			if (isIgnoredForHandler(error, env.scriptHandler)) return;
 			const normalized = toError(error);
 			const involved = [error, ...collectCauses(normalized)].filter(isObject);
@@ -10420,7 +10798,6 @@ var vot = (function(exports) {
 			await send(buildEvent(reported, {
 				version,
 				environment,
-				debugIds,
 				level: options.level ?? classifyLevel(error),
 				tags: compactTags({
 					...buildEnvironmentTags(env),
@@ -10448,8 +10825,7 @@ var vot = (function(exports) {
 			});
 		};
 	}
-	//#endregion
-	//#region src/modules/telemetry/client.ts
+	// src/modules/telemetry/client.ts
 	function isInIframe() {
 		try {
 			return isIframe();
@@ -10471,10 +10847,9 @@ var vot = (function(exports) {
 	}
 	function getRuntimeInfo() {
 		return {
-			version: "1.12.3",
+			version: "1.12.2",
 			environment: "master",
-			env: getEnvironmentInfo$1(),
-			debugIds: readDebugIdRegistry()
+			env: getEnvironmentInfo$1()
 		};
 	}
 	async function sendEvent(event) {
@@ -10482,7 +10857,7 @@ var vot = (function(exports) {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/x-sentry-envelope",
-				"X-Sentry-Auth": buildAuthHeader("1.12.3")
+				"X-Sentry-Auth": buildAuthHeader("1.12.2")
 			},
 			body: buildEnvelope(event),
 			forceGmXhr: true,
@@ -10500,8 +10875,7 @@ var vot = (function(exports) {
 		});
 	}
 	setGmFetchFailureHandler(createGmFetchFailureHandler(captureException));
-	//#endregion
-	//#region src/bootstrap/bootState.ts
+	// src/bootstrap/bootState.ts
 	var MAIN_BOOT_KEY = "__VOT_MAIN_BOOT_STATE__";
 	var BOOTSTRAP_STATUSES = new Set([
 		"idle",
@@ -10527,19 +10901,16 @@ var vot = (function(exports) {
 		scope[bootKey] = created;
 		return created;
 	}
-	//#endregion
-	//#region src/bootstrap/iframeInteractor.ts
+	// src/bootstrap/iframeInteractor.ts
 	var iframeInteractorInitialized = false;
 	var IFRAME_CONFIGS = {
 		"https://dev.epicgames.com": {
 			targetOrigin: "https://dev.epicgames.com",
-			dataFilter: (data) => typeof data === "string" && data.startsWith("getVideoId:"),
 			extractVideoId: (url) => url.pathname.split("/").at(-2) ?? null,
-			responseFormatter: (videoId, data) => `${typeof data === "string" ? data : ""}:${videoId}`
+			responseFormatter: (videoId, data) => `${data}:${videoId}`
 		},
 		"https://www.dailymotion.com": {
 			targetOrigin: "https://geo.dailymotion.com",
-			dataFilter: (data) => typeof data === "string" && data.startsWith("getVideoId:"),
 			extractVideoId: (url) => /(?:^|\/)video\/([^/]+)/.exec(url.pathname)?.[1] ?? null,
 			responseFormatter: (videoId) => `getVideoId:${videoId}`
 		}
@@ -10557,7 +10928,7 @@ var vot = (function(exports) {
 		globalThis.addEventListener("message", (event) => {
 			try {
 				if (event.origin !== currentConfig.targetOrigin) return;
-				if (!currentConfig.dataFilter(event.data)) return;
+				if (typeof event.data !== "string" || !event.data.startsWith("getVideoId:")) return;
 				const videoId = currentConfig.extractVideoId(new URL(globalThis.location.href));
 				if (!videoId) return;
 				const response = currentConfig.responseFormatter(videoId, event.data);
@@ -10846,8 +11217,7 @@ var vot = (function(exports) {
 		VOTSubtitlesTranslationLanguage: "Word and phrase translation language",
 		VOTSameAsMenuLanguage: "Same as menu language"
 	};
-	//#endregion
-	//#region src/localization/localizationProvider.ts
+	// src/localization/localizationProvider.ts
 	var LOCALE_STORAGE_KEYS = [
 		"localePhrases",
 		"localeLang",
@@ -10994,7 +11364,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.12.3"), String(getGMInfo()?.script?.version || ""));
+		return resolveRuntimeLocaleVersion(String("1.12.2"), String(getGMInfo()?.script?.version || ""));
 	}
 	var LocalizationProvider = class {
 		lang;
@@ -11140,12 +11510,10 @@ var vot = (function(exports) {
 		localizationProviderReadyPromise ??= localizationProvider.init();
 		return localizationProviderReadyPromise;
 	}
-	//#endregion
-	//#region src/modules/auth/types/message.ts
+	// src/modules/auth/types/message.ts
 	var AUTH_DATA_MESSAGE_SOURCE = "vot-auth";
 	var AUTH_DATA_MESSAGE_TYPE = "auth-data";
-	//#endregion
-	//#region src/modules/auth/message.ts
+	// src/modules/auth/message.ts
 	function createAuthDataMessage(data) {
 		return {
 			source: AUTH_DATA_MESSAGE_SOURCE,
@@ -11158,7 +11526,7 @@ var vot = (function(exports) {
 		const candidate = value;
 		return candidate.source === "vot-auth" && candidate.type === "auth-data";
 	}
-	async function handleAuthCallbackPage() {
+	function postAuthCallbackData() {
 		if (globalThis.location.pathname !== "/verification_code") return;
 		const { state, code } = Object.fromEntries(new URLSearchParams(globalThis.location.search));
 		if (!state || !code) throw new Error("[VOT] Missing state or code value");
@@ -11170,31 +11538,32 @@ var vot = (function(exports) {
 		}), "*");
 		globalThis.close();
 	}
-	//#endregion
-	//#region src/bootstrap/runtimeActivation.ts
-	var runtimeActivated = false;
+	function handleAuthCallbackPage() {
+		return new Promise((resolve) => {
+			postAuthCallbackData();
+			resolve();
+		});
+	}
+	// src/bootstrap/runtimeActivation.ts
 	var runtimeActivationPromise = null;
 	async function activateRuntime(reason, logBootstrap) {
 		logBootstrap("Activating runtime", { reason });
 		if (globalThis.location.origin === "https://oauth.yandex.ru") {
 			await handleAuthCallbackPage();
-			runtimeActivated = true;
 			return;
 		}
 		await ensureLocalizationProviderReady();
 		if (!isIframe() || !await localizationProvider.hasUsableCache()) await localizationProvider.update();
 		debug.log(`Selected menu language: ${localizationProvider.lang}`);
-		runtimeActivated = true;
 	}
-	async function ensureRuntimeActivated(reason, logBootstrap) {
-		if (runtimeActivated) return;
-		runtimeActivationPromise ??= activateRuntime(reason, logBootstrap).finally(() => {
+	function ensureRuntimeActivated(reason, logBootstrap) {
+		runtimeActivationPromise ??= activateRuntime(reason, logBootstrap).catch((error) => {
 			runtimeActivationPromise = null;
+			throw error;
 		});
-		await runtimeActivationPromise;
+		return runtimeActivationPromise;
 	}
-	//#endregion
-	//#region src/bootstrap/videoObserverBinding.ts
+	// src/bootstrap/videoObserverBinding.ts
 	var boundObservers = new WeakSet();
 	function reportInitError(error, operation, videoHandler) {
 		captureException(error, {
@@ -11216,6 +11585,7 @@ var vot = (function(exports) {
 		const containerOwners = new WeakMap();
 		const videoContainers = new WeakMap();
 		const pendingVideoByContainer = new WeakMap();
+		const canInitializeVideo = (video) => video.isConnected && !videosWrappers.has(video);
 		const clearContainerOwner = (video) => {
 			const container = videoContainers.get(video);
 			if (container && containerOwners.get(container) === video) containerOwners.delete(container);
@@ -11244,18 +11614,12 @@ var vot = (function(exports) {
 			}
 			return null;
 		};
-		const withRuntimeSiteUrl = (site) => {
-			return RUNTIME_URL_HOSTS.has(String(site.host)) ? {
-				...site,
-				url: globalThis.location.origin
-			} : site;
-		};
 		const tryReplaceVideo = async (oldVideo, newVideo, container) => {
 			const videoHandler = videosWrappers.get(oldVideo);
 			const previousVideoId = videoHandler?.videoData?.videoId;
 			if (!videoHandler?.hasActiveSource() || !previousVideoId) return false;
 			try {
-				if (await resolveVideoId(videoHandler.site, newVideo) !== previousVideoId) return false;
+				if (await resolveVideoId(videoHandler.site, newVideo) !== previousVideoId || !newVideo.isConnected || videosWrappers.get(oldVideo) !== videoHandler) return false;
 				await videoHandler.replaceVideo(newVideo);
 			} catch (error) {
 				logger_default.error("Failed to replace video element", error);
@@ -11281,7 +11645,14 @@ var vot = (function(exports) {
 			if (videosWrappers.has(video) || initializingVideos.has(video)) return;
 			initializingVideos.add(video);
 			try {
-				if (!await ensureRuntimeReady()) return;
+				try {
+					await ensureRuntimeActivated("video-detected");
+				} catch (err) {
+					logger_default.error("Failed to activate runtime", err);
+					reportInitError(err, "activateRuntime");
+					return;
+				}
+				if (!canInitializeVideo(video)) return;
 				const match = getMatchedSiteAndContainer(video);
 				if (!match) return;
 				const { site, container } = match;
@@ -11295,7 +11666,11 @@ var vot = (function(exports) {
 					await releaseVideoHandler(activeVideoForContainer, "stale container");
 					clearContainerOwner(activeVideoForContainer);
 				}
-				const videoHandler = createVideoHandler(video, container, withRuntimeSiteUrl(site));
+				if (!canInitializeVideo(video)) return;
+				const videoHandler = createVideoHandler(video, container, RUNTIME_URL_HOSTS.has(String(site.host)) ? {
+					...site,
+					url: globalThis.location.origin
+				} : site);
 				videosWrappers.set(video, videoHandler);
 				videoContainers.set(video, container);
 				containerOwners.set(container, video);
@@ -11312,7 +11687,6 @@ var vot = (function(exports) {
 					if (videosWrappers.get(video) === videoHandler) {
 						await releaseVideoHandler(video, "init failed");
 						const container = clearContainerOwner(video);
-						if (container) pendingVideoByContainer.delete(container);
 						await promotePendingVideo(container);
 					}
 					logger_default.error("Failed to initialize videoHandler", err);
@@ -11320,16 +11694,6 @@ var vot = (function(exports) {
 				}
 			} finally {
 				initializingVideos.delete(video);
-			}
-		};
-		const ensureRuntimeReady = async () => {
-			try {
-				await ensureRuntimeActivated("video-detected");
-				return true;
-			} catch (err) {
-				logger_default.error("Failed to activate runtime", err);
-				reportInitError(err, "activateRuntime");
-				return false;
 			}
 		};
 		videoObserver.onVideoAdded.addListener(handleVideoAdded);
@@ -11347,8 +11711,7 @@ var vot = (function(exports) {
 			await promotePendingVideo(container);
 		});
 	}
-	//#endregion
-	//#region src/core/bootstrapPolicy.ts
+	// src/core/bootstrapPolicy.ts
 	function shouldSkipIframeBootstrap(input) {
 		if (!input.isIframe) return false;
 		return input.href === "about:blank" || input.href.startsWith("about:srcdoc") || input.origin === "https://www.youtube.com" && input.href.includes("#ya_iframe") || input.origin === "null";
@@ -11358,8 +11721,7 @@ var vot = (function(exports) {
 		if (!input.isIframe && input.origin === input.authOrigin) return "auth-eager";
 		return "lazy";
 	}
-	//#endregion
-	//#region src/utils/dom.ts
+	// src/utils/dom.ts
 	function getComposableParent(node) {
 		if (!node) return null;
 		if (typeof ShadowRoot !== "undefined" && node instanceof ShadowRoot) return node.host;
@@ -11416,16 +11778,14 @@ var vot = (function(exports) {
 	function getHostElement(root) {
 		return root instanceof ShadowRoot ? root.host : root;
 	}
-	//#endregion
-	//#region src/core/containerResolution.ts
+	// src/core/containerResolution.ts
 	function findConnectedContainerBySelector(video, selector) {
 		if (!selector) return null;
 		const matched = closestCrossShadow(video, selector);
 		if (matched instanceof HTMLElement && matched.isConnected && containsCrossShadow(matched, video)) return matched;
 		return null;
 	}
-	//#endregion
-	//#region src/utils/environment.ts
+	// src/utils/environment.ts
 	var UNKNOWN_VALUE = "unknown";
 	var joinParts = (...parts) => {
 		return parts.filter(Boolean).join(" ").trim() || UNKNOWN_VALUE;
@@ -11455,28 +11815,24 @@ var vot = (function(exports) {
 			url: globalThis?.location?.href ?? UNKNOWN_VALUE
 		};
 	}
-	//#endregion
-	//#region src/utils/intervalIdleChecker.ts
+	// src/utils/intervalIdleChecker.ts
 	var DEFAULT_PROFILE = {
 		checkIntervalMs: 250,
 		idleAfterMs: 180,
 		idleIntervalMs: 1e3,
 		hiddenIntervalMs: 2e3
 	};
-	function normalizePositiveMs(value, fallback) {
+	function normalizeMs(value, fallback, minimum = 1) {
 		if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
-		return Math.max(1, Math.trunc(value));
-	}
-	function normalizeNonNegativeMs(value, fallback) {
-		if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
-		return Math.max(0, Math.trunc(value));
+		return Math.max(minimum, Math.trunc(value));
 	}
 	function normalizeProfile(profile = {}) {
+		const checkIntervalMs = normalizeMs(profile.checkIntervalMs, DEFAULT_PROFILE.checkIntervalMs);
 		return {
-			checkIntervalMs: normalizePositiveMs(profile.checkIntervalMs, DEFAULT_PROFILE.checkIntervalMs),
-			idleAfterMs: normalizeNonNegativeMs(profile.idleAfterMs, DEFAULT_PROFILE.idleAfterMs),
-			idleIntervalMs: normalizePositiveMs(profile.idleIntervalMs, Math.max(DEFAULT_PROFILE.idleIntervalMs, normalizePositiveMs(profile.checkIntervalMs, DEFAULT_PROFILE.checkIntervalMs))),
-			hiddenIntervalMs: normalizePositiveMs(profile.hiddenIntervalMs, Math.max(DEFAULT_PROFILE.hiddenIntervalMs, normalizePositiveMs(profile.checkIntervalMs, DEFAULT_PROFILE.checkIntervalMs)))
+			checkIntervalMs,
+			idleAfterMs: normalizeMs(profile.idleAfterMs, DEFAULT_PROFILE.idleAfterMs, 0),
+			idleIntervalMs: normalizeMs(profile.idleIntervalMs, Math.max(DEFAULT_PROFILE.idleIntervalMs, checkIntervalMs)),
+			hiddenIntervalMs: normalizeMs(profile.hiddenIntervalMs, Math.max(DEFAULT_PROFILE.hiddenIntervalMs, checkIntervalMs))
 		};
 	}
 	function getDefaultRuntime() {
@@ -11648,8 +12004,7 @@ var vot = (function(exports) {
 	function createIntervalIdleChecker(profile) {
 		return new IntervalIdleChecker({ profile });
 	}
-	//#endregion
-	//#region src/utils/domTraversal.ts
+	// src/utils/domTraversal.ts
 	function getComposedParentElement(node) {
 		if (!node) return null;
 		const parentElement = node.parentElement ?? null;
@@ -11663,20 +12018,8 @@ var vot = (function(exports) {
 		for (let parent = getComposedParentElement(node); parent; parent = getComposedParentElement(parent)) if (predicate(parent)) return true;
 		return false;
 	}
-	function isArrayLikeChildren(children) {
-		return "length" in children;
-	}
 	function pushChildrenToStack(stack, stackSize, children) {
-		if (isArrayLikeChildren(children)) {
-			const arrayLike = children;
-			for (let index = 0; index < arrayLike.length; index += 1) {
-				const child = arrayLike[index];
-				if (child !== void 0 && child !== null) {
-					stack[stackSize] = child;
-					stackSize += 1;
-				}
-			}
-		} else for (const child of children) if (child !== void 0 && child !== null) {
+		for (const child of children) if (child !== void 0 && child !== null) {
 			stack[stackSize] = child;
 			stackSize += 1;
 		}
@@ -11698,8 +12041,7 @@ var vot = (function(exports) {
 			}
 		}
 	}
-	//#endregion
-	//#region src/utils/eventImpl.ts
+	// src/utils/eventImpl.ts
 	var EventImpl = class {
 		listeners = new Set();
 		get size() {
@@ -11715,7 +12057,10 @@ var vot = (function(exports) {
 		}
 		dispatch(...args) {
 			for (const handler of this.listeners) try {
-				handler(...args);
+				const result = handler(...args);
+				if (result) result.catch((exception) => {
+					logger_default.error(exception);
+				});
 			} catch (exception) {
 				logger_default.error(exception);
 			}
@@ -11736,8 +12081,7 @@ var vot = (function(exports) {
 			this.listeners.clear();
 		}
 	};
-	//#endregion
-	//#region src/utils/VideoObserver.ts
+	// src/utils/VideoObserver.ts
 	var AD_ATTRS = [
 		"class",
 		"id",
@@ -11989,13 +12333,9 @@ var vot = (function(exports) {
 			});
 			return Array.from(set);
 		}
-		getNowMs() {
-			if (typeof performance !== "undefined" && typeof performance.now === "function") return performance.now();
-			return Date.now();
-		}
 		isSliceBudgetReached(startMs, processed) {
 			if (processed >= VideoObserver.MAX_NODES_PER_SLICE) return true;
-			return this.getNowMs() - startMs >= VideoObserver.MAX_FLUSH_BUDGET_MS;
+			return getNowMs() - startMs >= VideoObserver.MAX_FLUSH_BUDGET_MS;
 		}
 		processPendingAdded(startMs) {
 			let processed = 0;
@@ -12028,7 +12368,7 @@ var vot = (function(exports) {
 				this.flushPending = false;
 				return;
 			}
-			const startMs = this.getNowMs();
+			const startMs = getNowMs();
 			const processedAdded = this.processPendingAdded(startMs);
 			this.processPendingRemoved(startMs, processedAdded);
 			this.flushPending = this.pendingAdded.size > 0 || this.pendingRemoved.size > 0;
@@ -12129,8 +12469,7 @@ var vot = (function(exports) {
 			this.observedRoots = new WeakSet();
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/core/dist/providers/base.js
+	// node_modules/@vot.js/core/dist/providers/base.js
 	var BaseProvider = class {
 		host;
 		schema;
@@ -12208,8 +12547,7 @@ var vot = (function(exports) {
 			};
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/core/dist/client.js
+	// node_modules/@vot.js/core/dist/client.js
 	var VOTJSError = class extends Error {
 		data;
 		constructor(message, data = void 0) {
@@ -12254,8 +12592,7 @@ var vot = (function(exports) {
 			this.provider.responseLang = lang;
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/core/dist/protobuf.js
+	// node_modules/@vot.js/core/dist/protobuf.js
 	function encodeTranslationRequest(url, duration, requestLang, responseLang, translationHelp, { forceSourceLang = false, wasStream = false, videoTitle = "", bypassCache = false, useLivelyVoice = false, firstRequest = true } = {}) {
 		return VideoTranslationRequest.encode({
 			url,
@@ -12372,8 +12709,7 @@ var vot = (function(exports) {
 		encodeSessionRequest,
 		decodeSessionResponse
 	};
-	//#endregion
-	//#region node_modules/@vot.js/core/dist/types/providers/yandex.js
+	// node_modules/@vot.js/core/dist/types/providers/yandex.js
 	var VideoTranslationStatus;
 	(function(VideoTranslationStatus) {
 		VideoTranslationStatus[VideoTranslationStatus["FAILED"] = 0] = "FAILED";
@@ -12400,8 +12736,7 @@ var vot = (function(exports) {
 		AudioDownloadType["WEB_MSE_PROXY"] = "web_mse_proxy";
 		AudioDownloadType["EMPTY_PLUG"] = "empty_plug";
 	})(AudioDownloadType || (AudioDownloadType = {}));
-	//#endregion
-	//#region node_modules/@vot.js/core/dist/providers/yandex.js
+	// node_modules/@vot.js/core/dist/providers/yandex.js
 	var YandexProvider = class extends BaseProvider {
 		headers = {
 			"User-Agent": this.userAgent,
@@ -12610,8 +12945,7 @@ var vot = (function(exports) {
 			return YandexVOTProtobuf.decodeTranslationCacheResponse(res.data);
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/core/dist/providers/votworker.js
+	// node_modules/@vot.js/core/dist/providers/votworker.js
 	var VOTNextWorkerProvider = class extends YandexProvider {
 		constructor(opts = {}) {
 			opts.host = opts.host ?? config_default$1.hostWorker;
@@ -12629,8 +12963,7 @@ var vot = (function(exports) {
 			}
 		}
 	};
-	//#endregion
-	//#region node_modules/@vot.js/ext/dist/client.js
+	// node_modules/@vot.js/ext/dist/client.js
 	var VOTClient = class extends VOTClient$1 {
 		constructor(opts) {
 			super(opts);
@@ -12644,21 +12977,18 @@ var vot = (function(exports) {
 			return this;
 		}
 	};
-	//#endregion
-	//#region node_modules/chaimu/dist/config.js
+	// node_modules/chaimu/dist/config.js
 	var config_default = {
 		version: "1.1.0",
 		debug: false,
 		fetchFn: fetch.bind(window)
 	};
-	//#endregion
-	//#region node_modules/chaimu/dist/debug.js
+	// node_modules/chaimu/dist/debug.js
 	var debug_default = { log: (...text) => {
 		if (!config_default.debug) return;
 		return console.log(`%c✦ chaimu.js v${config_default.version} ✦`, "background: #000; color: #fff; padding: 0 8px", ...text);
 	} };
-	//#endregion
-	//#region node_modules/chaimu/dist/player.js
+	// node_modules/chaimu/dist/player.js
 	var videoLipSyncEvents = [
 		"playing",
 		"ratechange",
@@ -13204,8 +13534,7 @@ var vot = (function(exports) {
 			return this.audioElement?.currentTime ?? 0;
 		}
 	};
-	//#endregion
-	//#region node_modules/chaimu/dist/client.js
+	// node_modules/chaimu/dist/client.js
 	var Chaimu = class {
 		_debug = false;
 		audioContext;
@@ -13285,8 +13614,7 @@ var vot = (function(exports) {
 			return this._debug;
 		}
 	};
-	//#endregion
-	//#region src/modules/cache/manager.ts
+	// src/modules/cache/manager.ts
 	var YANDEX_TTL_MS = 72e5;
 	var VOT_SESSION_STORAGE_KEY = "VOTSession";
 	function isClientSession(value) {
@@ -13297,11 +13625,7 @@ var vot = (function(exports) {
 	function sanitizeVOTSessions(value) {
 		if (!value || typeof value !== "object") return {};
 		const now = getTimestamp();
-		const entries = Object.entries(value).flatMap(([module, session]) => {
-			if (!isClientSession(session)) return [];
-			if (session.timestamp + session.expires <= now) return [];
-			return [[module, session]];
-		});
+		const entries = Object.entries(value).filter(([, session]) => isClientSession(session) && session.timestamp + session.expires > now);
 		return Object.fromEntries(entries);
 	}
 	function hasSessions(sessions) {
@@ -13312,11 +13636,8 @@ var vot = (function(exports) {
 		constructor(storage = votStorage) {
 			this.storage = storage;
 		}
-		getStorageKey() {
-			return VOT_SESSION_STORAGE_KEY;
-		}
 		async restore(_host, currentSessions = {}) {
-			const storageKey = this.getStorageKey();
+			const storageKey = VOT_SESSION_STORAGE_KEY;
 			const rawStoredSession = await this.storage.getRaw(storageKey);
 			const restoredSessions = sanitizeVOTSessions(rawStoredSession);
 			if (!hasSessions(restoredSessions)) {
@@ -13329,8 +13650,11 @@ var vot = (function(exports) {
 			};
 		}
 		async persist(_host, sessions) {
-			const storageKey = this.getStorageKey();
-			const sanitizedSessions = sanitizeVOTSessions(sessions);
+			const storageKey = VOT_SESSION_STORAGE_KEY;
+			const sanitizedSessions = {
+				...sanitizeVOTSessions(await this.storage.getRaw(storageKey)),
+				...sanitizeVOTSessions(sessions)
+			};
 			if (!hasSessions(sanitizedSessions)) {
 				await this.storage.deleteRaw(storageKey);
 				return;
@@ -13376,8 +13700,7 @@ var vot = (function(exports) {
 			});
 		}
 	};
-	//#endregion
-	//#region src/modules/fullscreen/helper.ts
+	// src/modules/fullscreen/helper.ts
 	var FullscreenHelper = class FullscreenHelper {
 		container;
 		video;
@@ -13425,31 +13748,18 @@ var vot = (function(exports) {
 		}
 		addFullscreenChangeListener(listener) {
 			this.fullscreenChangeListeners.add(listener);
-			if (this.fullscreenChangeListeners.size === 1) this.setupFullscreenListeners();
+			if (this.fullscreenChangeListeners.size === 1) this.setNativeFullscreenListeners(true);
 		}
 		removeFullscreenChangeListener(listener) {
 			this.fullscreenChangeListeners.delete(listener);
-			if (this.fullscreenChangeListeners.size === 0) this.cleanupFullscreenListeners();
+			if (this.fullscreenChangeListeners.size === 0) this.setNativeFullscreenListeners(false);
 		}
-		setupFullscreenListeners() {
-			if (this.nativeFullscreenListenersActive) return;
-			document.addEventListener("fullscreenchange", this.handleFullscreenChange);
-			document.addEventListener("webkitfullscreenchange", this.handleFullscreenChange);
-			if (this.video) {
-				this.video.addEventListener("webkitbeginfullscreen", this.handleFullscreenChange);
-				this.video.addEventListener("webkitendfullscreen", this.handleFullscreenChange);
-			}
-			this.nativeFullscreenListenersActive = true;
-		}
-		cleanupFullscreenListeners() {
-			if (!this.nativeFullscreenListenersActive) return;
-			document.removeEventListener("fullscreenchange", this.handleFullscreenChange);
-			document.removeEventListener("webkitfullscreenchange", this.handleFullscreenChange);
-			if (this.video) {
-				this.video.removeEventListener("webkitbeginfullscreen", this.handleFullscreenChange);
-				this.video.removeEventListener("webkitendfullscreen", this.handleFullscreenChange);
-			}
-			this.nativeFullscreenListenersActive = false;
+		setNativeFullscreenListeners(active) {
+			if (this.nativeFullscreenListenersActive === active) return;
+			const method = active ? "addEventListener" : "removeEventListener";
+			for (const event of ["fullscreenchange", "webkitfullscreenchange"]) document[method](event, this.handleFullscreenChange);
+			for (const event of ["webkitbeginfullscreen", "webkitendfullscreen"]) this.video?.[method](event, this.handleFullscreenChange);
+			this.nativeFullscreenListenersActive = active;
 		}
 		notifyFullscreenChange() {
 			for (const listener of this.fullscreenChangeListeners) try {
@@ -13463,25 +13773,23 @@ var vot = (function(exports) {
 		}
 		updateVideo(video) {
 			const shouldRebind = this.nativeFullscreenListenersActive && this.video !== video;
-			if (shouldRebind) this.cleanupFullscreenListeners();
+			if (shouldRebind) this.setNativeFullscreenListeners(false);
 			this.video = video;
-			if (shouldRebind && this.fullscreenChangeListeners.size > 0) this.setupFullscreenListeners();
+			if (shouldRebind && this.fullscreenChangeListeners.size > 0) this.setNativeFullscreenListeners(true);
 		}
 		destroy() {
-			this.cleanupFullscreenListeners();
+			this.setNativeFullscreenListeners(false);
 			this.fullscreenChangeListeners.clear();
 		}
 	};
-	//#endregion
-	//#region src/modules/translateText/consts.ts
+	// src/modules/translateText/consts.ts
 	var TRANSLATE_TEXT_SERVICES = ["yandexbrowser", "msedge"];
 	var DEFAULT_TRANSLATION_SERVICE = "yandexbrowser";
 	var DETECT_SERVICES = [...TRANSLATE_TEXT_SERVICES, "rust-server"];
 	var DEFAULT_DETECT_SERVICE = "yandexbrowser";
 	var FOSWLY_TRANSLATE_URL = "https://translate-backend.transly.eu.cc/v2";
 	var DETECT_RUST_SERVER_URL = "https://rust-server-531j.onrender.com/detect";
-	//#endregion
-	//#region src/modules/translateText/service.ts
+	// src/modules/translateText/service.ts
 	var SETTINGS_CACHE_TTL_MS = 5e3;
 	var IMMUTABLE_LOOKUP_CACHE_TTL_MS = Number.MAX_SAFE_INTEGER;
 	function createCachedSetting(key, allowed, fallback) {
@@ -13586,8 +13894,7 @@ var vot = (function(exports) {
 			default: return "en";
 		}
 	}
-	//#endregion
-	//#region src/core/overlayMountTargets.ts
+	// src/core/overlayMountTargets.ts
 	function resolveOverlayBaseContainer(container, site) {
 		return site.host === "youtube" && site.additionalData !== "mobile" ? container.parentElement ?? container : container;
 	}
@@ -13601,23 +13908,24 @@ var vot = (function(exports) {
 			subtitlesMountContainer: root
 		};
 	}
-	//#endregion
-	//#region src/audioDownloader/strategies/audioStrategy.ts
+	// src/audioDownloader/strategies/audioStrategy.ts
 	var SABR_STRATEGY = AudioDownloadType.WEB_SABR;
 	var WEB_ABR_STRATEGY = AudioDownloadType.WEB_ABR;
 	var WEB_MSE_PROXY_STRATEGY = AudioDownloadType.WEB_MSE_PROXY;
 	function isAudioBridgeStrategy(value) {
 		return value === SABR_STRATEGY || value === WEB_ABR_STRATEGY || value === WEB_MSE_PROXY_STRATEGY;
 	}
-	//#endregion
-	//#region src/audioDownloader/strategies/webAudioBridge.ts
+	// src/audioDownloader/strategies/webAudioBridge.ts
 	var MESSAGE_TYPE$1 = "get-audio-chunks-by-mse-in-main-world";
 	var STREAM_TIMEOUT_MS = 18e5;
 	var MESSAGE_TIMEOUT_MS = 3e5;
 	function parseAudioBridgeChunk(payload) {
 		if (!payload || typeof payload !== "object" || !("buffer" in payload)) throw new Error("Audio downloader. Invalid audio bridge chunk");
 		const { buffer, isLastChunk } = payload;
-		const bytes = buffer instanceof Uint8Array ? buffer : buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : ArrayBuffer.isView(buffer) ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength) : null;
+		let bytes = null;
+		if (buffer instanceof Uint8Array) bytes = buffer;
+		else if (buffer instanceof ArrayBuffer) bytes = new Uint8Array(buffer);
+		else if (ArrayBuffer.isView(buffer)) bytes = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
 		if (!bytes || typeof isLastChunk !== "boolean") throw new Error("Audio downloader. Invalid audio bridge chunk");
 		return {
 			buffer: bytes,
@@ -13771,8 +14079,7 @@ var vot = (function(exports) {
 			getMediaBuffers: () => getAudioBridgeChunks(videoId, signal, audioDownloadType, sourceLanguage)
 		};
 	}
-	//#endregion
-	//#region src/audioDownloader/strategies/audioChunks.ts
+	// src/audioDownloader/strategies/audioChunks.ts
 	function concatBuffers(buffers) {
 		const result = new Uint8Array(buffers.reduce((length, buffer) => length + buffer.byteLength, 0));
 		let offset = 0;
@@ -13782,417 +14089,1412 @@ var vot = (function(exports) {
 		}
 		return result;
 	}
-	//#endregion
-	//#region node_modules/googlevideo/dist/protos/generated/misc/common.js
+	// src/audioDownloader/strategies/audioDownloadQueue.ts
+	async function* getQueuedAudioChunks(queue, strategy, videoId, signal, download) {
+		const queueKey = String(videoId);
+		const previous = queue.get(queueKey) ?? Promise.resolve();
+		const hadPrevious = queue.has(queueKey);
+		let releaseCurrent;
+		const current = new Promise((resolve) => {
+			releaseCurrent = resolve;
+		});
+		queue.set(queueKey, current);
+		debug.log(`Audio downloader. ${strategy} queued`, {
+			videoId,
+			hasPrevious: hadPrevious
+		});
+		try {
+			await previous;
+			signal.throwIfAborted();
+			yield* download();
+		} finally {
+			releaseCurrent();
+			if (queue.get(queueKey) === current) queue.delete(queueKey);
+			debug.log(`Audio downloader. ${strategy} queue released`, { videoId });
+		}
+	}
+	// node_modules/googlevideo/dist/src/core/CompositeBuffer.js
+	var CompositeBuffer = class CompositeBuffer {
+		chunks;
+		currentChunkOffset;
+		currentChunkIndex;
+		currentDataView;
+		totalLength;
+		constructor(chunks = []) {
+			this.chunks = [];
+			this.currentChunkOffset = this.currentChunkIndex = 0;
+			this.currentDataView = void 0;
+			this.totalLength = 0;
+			for (const chunk of chunks) this.append(chunk);
+		}
+		append(data) {
+			if (data instanceof Uint8Array) {
+				if (this.canMergeWithLastChunk(data)) {
+					const lastChunk = this.chunks[this.chunks.length - 1];
+					this.chunks[this.chunks.length - 1] = new Uint8Array(lastChunk.buffer, lastChunk.byteOffset, lastChunk.length + data.length);
+					this.resetFocus();
+				} else this.chunks.push(data);
+				this.totalLength += data.length;
+			} else for (const chunk of data.chunks) this.append(chunk);
+		}
+		split(position) {
+			const extractedBuffer = new CompositeBuffer();
+			const remainingBuffer = new CompositeBuffer();
+			for (const chunk of this.chunks) if (position >= chunk.length) {
+				extractedBuffer.append(chunk);
+				position -= chunk.length;
+			} else if (position > 0) {
+				extractedBuffer.append(new Uint8Array(chunk.buffer, chunk.byteOffset, position));
+				remainingBuffer.append(new Uint8Array(chunk.buffer, chunk.byteOffset + position, chunk.length - position));
+				position = 0;
+			} else remainingBuffer.append(chunk);
+			return {
+				extractedBuffer,
+				remainingBuffer
+			};
+		}
+		getLength() {
+			return this.totalLength;
+		}
+		canReadBytes(position, length) {
+			return position + length <= this.totalLength;
+		}
+		getUint8(position) {
+			this.focus(position);
+			return this.chunks[this.currentChunkIndex][position - this.currentChunkOffset];
+		}
+		focus(position) {
+			if (!this.isFocused(position)) {
+				for (position < this.currentChunkOffset && this.resetFocus(); this.currentChunkOffset + this.chunks[this.currentChunkIndex].length <= position && this.currentChunkIndex < this.chunks.length;) {
+					this.currentChunkOffset += this.chunks[this.currentChunkIndex].length;
+					this.currentChunkIndex += 1;
+				}
+				this.currentDataView = void 0;
+			}
+		}
+		isFocused(position) {
+			return position >= this.currentChunkOffset && position < this.currentChunkOffset + this.chunks[this.currentChunkIndex].length;
+		}
+		resetFocus() {
+			this.currentDataView = void 0;
+			this.currentChunkIndex = 0;
+			this.currentChunkOffset = 0;
+		}
+		canMergeWithLastChunk(chunk) {
+			if (this.chunks.length === 0) return false;
+			const lastChunk = this.chunks[this.chunks.length - 1];
+			return lastChunk.buffer === chunk.buffer && lastChunk.byteOffset + lastChunk.length === chunk.byteOffset;
+		}
+	};
+	// node_modules/googlevideo/dist/src/core/UmpReader.js
+	var UmpReader = class {
+		callbacks;
+		compositeBuffer;
+		pendingType;
+		pendingOffset;
+		pendingTotalSize;
+		constructor(callbacks) {
+			this.callbacks = callbacks;
+			this.compositeBuffer = new CompositeBuffer();
+		}
+		async feed(chunk) {
+			this.compositeBuffer.append(chunk);
+			return this.parse();
+		}
+		async parse() {
+			if (this.pendingType !== void 0) {
+				if (this.compositeBuffer.totalLength === 0) return;
+				const needed = this.pendingTotalSize - this.pendingOffset;
+				const split = this.compositeBuffer.split(needed);
+				if (!this.callbacks.onPartialPart) return;
+				if (!this.callbacks.onPartialPart(this.pendingType, split.extractedBuffer, this.pendingOffset, this.pendingTotalSize)) return;
+				this.pendingOffset += split.extractedBuffer.totalLength;
+				this.compositeBuffer = split.remainingBuffer;
+				if (this.pendingOffset === this.pendingTotalSize) {
+					this.pendingType = void 0;
+					this.pendingTotalSize = void 0;
+					this.pendingOffset = void 0;
+				}
+			}
+			while (true) {
+				let offset = 0;
+				const [partType, newOffset] = this.readVarInt(offset);
+				offset = newOffset;
+				const [partSize, finalOffset] = this.readVarInt(offset);
+				offset = finalOffset;
+				if (partType < 0 || partSize < 0) break;
+				if (!this.compositeBuffer.canReadBytes(offset, partSize)) {
+					if (!(this.callbacks.onPartialPart && this.compositeBuffer.canReadBytes(offset, 1))) break;
+					const remainingBuff = this.compositeBuffer.split(offset).remainingBuffer;
+					if (this.callbacks.onPartialPart(partType, remainingBuff, 0, partSize)) {
+						this.pendingType = partType;
+						this.pendingOffset = remainingBuff.totalLength;
+						this.pendingTotalSize = partSize;
+						this.compositeBuffer = new CompositeBuffer();
+					}
+					break;
+				}
+				const finalSplit = this.compositeBuffer.split(offset).remainingBuffer.split(partSize);
+				await this.callbacks.onPart(partType, finalSplit.extractedBuffer);
+				this.compositeBuffer = finalSplit.remainingBuffer;
+			}
+		}
+		readVarInt(offset) {
+			if (!this.compositeBuffer.canReadBytes(offset, 1)) return [-1, offset];
+			const firstByte = this.compositeBuffer.getUint8(offset);
+			const byteLength = firstByte < 128 ? 1 : firstByte < 192 ? 2 : firstByte < 224 ? 3 : firstByte < 240 ? 4 : 5;
+			if (!this.compositeBuffer.canReadBytes(offset, byteLength)) return [-1, offset];
+			let value = 0;
+			switch (byteLength) {
+				case 1:
+					value = this.compositeBuffer.getUint8(offset++);
+					break;
+				case 2: {
+					const b1 = this.compositeBuffer.getUint8(offset++);
+					const b2 = this.compositeBuffer.getUint8(offset++);
+					value = b1 & 63 | b2 << 6;
+					break;
+				}
+				case 3: {
+					const b1 = this.compositeBuffer.getUint8(offset++);
+					const b2 = this.compositeBuffer.getUint8(offset++);
+					const b3 = this.compositeBuffer.getUint8(offset++);
+					value = b1 & 31 | b2 << 5 | b3 << 13;
+					break;
+				}
+				case 4: {
+					const b1 = this.compositeBuffer.getUint8(offset++);
+					const b2 = this.compositeBuffer.getUint8(offset++);
+					const b3 = this.compositeBuffer.getUint8(offset++);
+					const b4 = this.compositeBuffer.getUint8(offset++);
+					value = b1 & 15 | b2 << 4 | b3 << 12 | b4 << 20;
+					break;
+				}
+				default: {
+					const dataOffset = offset + 1;
+					this.compositeBuffer.focus(dataOffset);
+					if (this.canReadFromCurrentChunk(dataOffset, 4)) {
+						const relativeOffset = dataOffset - this.compositeBuffer.currentChunkOffset;
+						value = this.getCurrentDataView().getUint32(relativeOffset, true);
+					} else {
+						const b1 = this.compositeBuffer.getUint8(dataOffset);
+						const b2 = this.compositeBuffer.getUint8(dataOffset + 1);
+						const b3 = this.compositeBuffer.getUint8(dataOffset + 2);
+						const b4 = this.compositeBuffer.getUint8(dataOffset + 3);
+						value = (b1 | b2 << 8 | b3 << 16 | b4 << 24) >>> 0;
+					}
+					offset += 5;
+					break;
+				}
+			}
+			return [value, offset];
+		}
+		canReadFromCurrentChunk(offset, length) {
+			const activeChunk = this.compositeBuffer.chunks[this.compositeBuffer.currentChunkIndex];
+			return offset - this.compositeBuffer.currentChunkOffset + length <= activeChunk.length;
+		}
+		getCurrentDataView() {
+			if (!this.compositeBuffer.currentDataView) {
+				const currentChunk = this.compositeBuffer.chunks[this.compositeBuffer.currentChunkIndex];
+				this.compositeBuffer.currentDataView = new DataView(currentChunk.buffer, currentChunk.byteOffset, currentChunk.length);
+			}
+			return this.compositeBuffer.currentDataView;
+		}
+		dispose() {
+			this.compositeBuffer = new CompositeBuffer();
+		}
+	};
+	// node_modules/googlevideo/dist/src/utils/Logger.js
+	var LogLevel = {
+		NONE: 0,
+		0: "NONE",
+		ERROR: 1,
+		1: "ERROR",
+		WARN: 2,
+		2: "WARN",
+		INFO: 3,
+		3: "INFO",
+		DEBUG: 4,
+		4: "DEBUG",
+		ALL: 99,
+		99: "ALL"
+	};
+	var Logger = class Logger {
+		static instance;
+		currentLogLevels = new Set([LogLevel.INFO, LogLevel.ERROR]);
+		static getInstance() {
+			if (!Logger.instance) Logger.instance = new Logger();
+			return Logger.instance;
+		}
+		setLogLevels(...levels) {
+			if (levels.length === 0 || levels.includes(LogLevel.NONE)) this.currentLogLevels = new Set();
+			else if (levels.includes(LogLevel.ALL)) this.currentLogLevels = new Set([
+				LogLevel.ERROR,
+				LogLevel.WARN,
+				LogLevel.INFO,
+				LogLevel.DEBUG
+			]);
+			else this.currentLogLevels = new Set(levels.filter((level) => level !== LogLevel.NONE && level !== LogLevel.ALL));
+		}
+		getLogLevels() {
+			return new Set(this.currentLogLevels);
+		}
+		log(level, tag, ...messages) {
+			if (level !== LogLevel.NONE && this.currentLogLevels.has(level)) {
+				const prefix = `[${LogLevel[level]}] [${tag}]`;
+				switch (level) {
+					case LogLevel.ERROR:
+						console.error(prefix, ...messages);
+						break;
+					case LogLevel.WARN:
+						console.warn(prefix, ...messages);
+						break;
+					case LogLevel.INFO:
+						console.info(prefix, ...messages);
+						break;
+					case LogLevel.DEBUG: console.debug(prefix, ...messages);
+				}
+			}
+		}
+		error(tag, ...messages) {
+			this.log(LogLevel.ERROR, tag, ...messages);
+		}
+		warn(tag, ...messages) {
+			this.log(LogLevel.WARN, tag, ...messages);
+		}
+		info(tag, ...messages) {
+			this.log(LogLevel.INFO, tag, ...messages);
+		}
+		debug(tag, ...messages) {
+			this.log(LogLevel.DEBUG, tag, ...messages);
+		}
+	};
+	// node_modules/googlevideo/dist/src/utils/uint8arrayUtils.js
+	function base64ToU8(base64) {
+		const standardBase64 = base64.replace(/-/g, "+").replace(/_/g, "/");
+		const paddedBase64 = standardBase64.padEnd(standardBase64.length + (4 - standardBase64.length % 4) % 4, "=");
+		return new Uint8Array(atob(paddedBase64).split("").map((char) => char.charCodeAt(0)));
+	}
+	function concatenateChunks(chunks) {
+		const chunkCount = chunks.length;
+		let totalLength = 0;
+		for (let i = 0; i < chunkCount; i++) totalLength += chunks[i].length;
+		const result = new Uint8Array(totalLength);
+		let offset = 0;
+		for (let i = 0; i < chunkCount; i++) {
+			const chunk = chunks[i];
+			result.set(chunk, offset);
+			offset += chunk.length;
+		}
+		return result;
+	}
+	function decodePart(chunks, decoder) {
+		if (!chunks.length) return void 0;
+		try {
+			return decoder.decode(concatenateChunks(chunks));
+		} catch {
+			return;
+		}
+	}
+	// node_modules/googlevideo/dist/src/utils/mediaCapabilityUtils.js
+	var CODEC_CODES = {
+		0: "f",
+		160: "h",
+		133: "h",
+		134: "h",
+		135: "h",
+		136: "h",
+		137: "h",
+		264: "h",
+		266: "h",
+		138: "h",
+		298: "h",
+		299: "h",
+		304: "h",
+		305: "h",
+		214: "h",
+		216: "h",
+		374: "h",
+		375: "h",
+		140: "a",
+		141: "a",
+		327: "sa",
+		258: "m",
+		380: "mac3",
+		328: "meac3",
+		161: "H",
+		142: "H",
+		143: "H",
+		144: "H",
+		222: "H",
+		223: "H",
+		145: "H",
+		224: "H",
+		225: "H",
+		146: "H",
+		226: "H",
+		227: "H",
+		147: "H",
+		384: "H",
+		376: "H",
+		385: "H",
+		377: "H",
+		149: "A",
+		261: "M",
+		381: "MAC3",
+		329: "MEAC3",
+		598: "9",
+		278: "9",
+		242: "9",
+		243: "9",
+		244: "9",
+		775: "9",
+		776: "9",
+		777: "9",
+		778: "9",
+		779: "9",
+		780: "9",
+		781: "9",
+		782: "9",
+		783: "9",
+		247: "9",
+		248: "9",
+		353: "9",
+		355: "9",
+		356: "9",
+		271: "9",
+		577: "9",
+		313: "9",
+		579: "9",
+		272: "9",
+		302: "9",
+		303: "9",
+		407: "9",
+		408: "9",
+		308: "9",
+		315: "9",
+		330: "9h",
+		331: "9h",
+		332: "9h",
+		333: "9h",
+		334: "9h",
+		335: "9h",
+		336: "9h",
+		337: "9h",
+		338: "so",
+		600: "o",
+		250: "o",
+		251: "o",
+		774: "o",
+		194: "*",
+		195: "*",
+		220: "*",
+		221: "*",
+		196: "*",
+		197: "*",
+		279: "(",
+		280: "(",
+		317: "(",
+		318: "(",
+		273: "(",
+		274: "(",
+		357: "(",
+		358: "(",
+		275: "(",
+		359: "(",
+		360: "(",
+		276: "(",
+		583: "(",
+		584: "(",
+		314: "(",
+		585: "(",
+		561: "(",
+		277: "(",
+		361: "(h",
+		362: "(h",
+		363: "(h",
+		364: "(h",
+		365: "(h",
+		366: "(h",
+		591: "(h",
+		592: "(h",
+		367: "(h",
+		586: "(h",
+		587: "(h",
+		368: "(h",
+		588: "(h",
+		562: "(h",
+		409: "(",
+		410: "(",
+		411: "(",
+		412: "(",
+		557: "(",
+		558: "(",
+		394: "1",
+		395: "1",
+		396: "1",
+		397: "1",
+		716: "1",
+		717: "1",
+		919: "1",
+		398: "1",
+		718: "1",
+		719: "1",
+		399: "1",
+		720: "1",
+		721: "1",
+		400: "1",
+		722: "1",
+		723: "1",
+		401: "1",
+		724: "1",
+		725: "1",
+		571: "1",
+		402: "1",
+		694: "1h",
+		695: "1h",
+		696: "1h",
+		697: "1h",
+		698: "1h",
+		699: "1h",
+		700: "1h",
+		701: "1h",
+		702: "1h",
+		703: "1h",
+		386: "3",
+		387: "w",
+		406: "6",
+		787: "1",
+		788: "1",
+		917: "1",
+		918: "1",
+		548: "1e",
+		549: "1e",
+		550: "1e",
+		551: "1e",
+		809: "1e",
+		810: "1e",
+		552: "1e",
+		811: "1e",
+		812: "1e",
+		553: "1e",
+		813: "1e",
+		814: "1e",
+		554: "1e",
+		815: "1e",
+		816: "1e",
+		555: "1e",
+		817: "1e",
+		818: "1e",
+		572: "1e",
+		556: "1e",
+		645: "(",
+		646: "(",
+		647: "(",
+		648: "(",
+		649: "(",
+		650: "(",
+		651: "(",
+		652: "(",
+		653: "(",
+		654: "(",
+		655: "(",
+		656: "(",
+		657: "(",
+		658: "(",
+		659: "(",
+		660: "(",
+		661: "(",
+		662: "(",
+		663: "(",
+		664: "(",
+		665: "(",
+		666: "(",
+		667: "(",
+		668: "(",
+		669: "(",
+		670: "(",
+		671: "(",
+		672: "(",
+		673: "(",
+		674: "(h",
+		675: "(h",
+		676: "(h",
+		677: "(h",
+		678: "(h",
+		679: "(h",
+		680: "(h",
+		681: "(h",
+		682: "(h",
+		683: "(h",
+		684: "(h",
+		685: "(h",
+		686: "(h",
+		687: "(h",
+		688: "A",
+		689: "A",
+		690: "A",
+		691: "MEAC3",
+		773: "i",
+		806: "I",
+		805: "I",
+		829: "9",
+		830: "9",
+		831: "9",
+		832: "9",
+		833: "9",
+		834: "9",
+		835: "9",
+		836: "9",
+		892: "9",
+		893: "9",
+		837: "9",
+		838: "9",
+		839: "9",
+		840: "9",
+		841: "(",
+		842: "(",
+		843: "(",
+		844: "(",
+		845: "(",
+		846: "(",
+		847: "(",
+		848: "(",
+		894: "(",
+		895: "(",
+		849: "(",
+		850: "(",
+		851: "(",
+		852: "(",
+		865: "9",
+		866: "9",
+		867: "9",
+		868: "9",
+		869: "9",
+		870: "9",
+		871: "9",
+		872: "9",
+		896: "9",
+		897: "9",
+		873: "9",
+		874: "9",
+		875: "9",
+		876: "9",
+		877: "(",
+		878: "(",
+		879: "(",
+		880: "(",
+		881: "(",
+		882: "(",
+		883: "(",
+		884: "(",
+		898: "(",
+		899: "(",
+		885: "(",
+		886: "(",
+		887: "(",
+		888: "(",
+		900: "2",
+		901: "2",
+		902: "2",
+		903: "2",
+		904: "2",
+		905: "2",
+		906: "2",
+		907: "2",
+		908: "2",
+		911: "9",
+		912: "9",
+		913: "9",
+		914: "1",
+		915: "1",
+		916: "1"
+	};
+	var AUDIO_CODECS = {
+		o: 3,
+		O: 3,
+		so: 3,
+		a: 1,
+		ah: 1,
+		A: 1,
+		m: 1,
+		M: 1,
+		sa: 1,
+		mac3: 7,
+		MAC3: 7,
+		meac3: 5,
+		MEAC3: 5,
+		i: 13,
+		I: 13
+	};
+	var SPATIAL_AUDIO_CODECS = {
+		o: 0,
+		O: 0,
+		a: 0,
+		ah: 0,
+		A: 0,
+		m: 1,
+		M: 1,
+		mac3: 1,
+		MAC3: 1,
+		meac3: 1,
+		MEAC3: 1,
+		so: 4,
+		sa: 4,
+		i: 0,
+		I: 0
+	};
+	var VIDEO_CODECS = {
+		["1h"]: 8,
+		["9h"]: 4,
+		["1"]: 8,
+		["9"]: 4,
+		["("]: 4,
+		h: 2,
+		H: 2
+	};
+	var surroundAudioCodes = new Set([
+		"m",
+		"M",
+		"mac3",
+		"MAC3",
+		"meac3",
+		"MEAC3",
+		"i",
+		"I"
+	]);
+	function buildAudioCapability(format, isSurroundSupported = true) {
+		const codecCode = format.codecCode;
+		if (!codecCode || codecCode === "f") return void 0;
+		if (!isSurroundSupported && surroundAudioCodes.has(codecCode)) return void 0;
+		return {
+			audioCodec: AUDIO_CODECS[codecCode],
+			spatialCapabilityBitmask: SPATIAL_AUDIO_CODECS[codecCode],
+			numChannels: format.numChannels
+		};
+	}
+	function buildVideoCapability(format) {
+		const codecCode = format.codecCode;
+		if (!codecCode || codecCode === "f") return void 0;
+		return {
+			videoCodec: VIDEO_CODECS[codecCode],
+			maxWidth: format.width || 0,
+			maxHeight: format.height || 0,
+			maxFramerate: format.fps || 0,
+			is10BitSupported: !!format.isHdr,
+			maxBitrateBps: format.bitrate || 0,
+			efficient: true
+		};
+	}
+	function buildMediaCapabilities(videoFormat, audioFormat, isSurroundSupported = true) {
+		const video = videoFormat ? buildVideoCapability(videoFormat) : void 0;
+		const audio = audioFormat ? buildAudioCapability(audioFormat, isSurroundSupported) : void 0;
+		if (!video && !audio) return void 0;
+		return {
+			videoFormatCapabilities: video ? [video] : [],
+			audioFormatCapabilities: audio ? [audio] : [],
+			hdrModeBitmask: 3
+		};
+	}
+	// node_modules/googlevideo/dist/protos/generated/misc/common.js
+	var SeekSource = {
+		UNKNOWN: 0,
+		0: "UNKNOWN",
+		TIMESTAMP_IN_COMMENTS: 1,
+		1: "TIMESTAMP_IN_COMMENTS",
+		TIMESTAMP_IN_DESCRIPTION: 2,
+		2: "TIMESTAMP_IN_DESCRIPTION",
+		MACRO_MARKER_LIST_ITEM: 3,
+		3: "MACRO_MARKER_LIST_ITEM",
+		DOUBLE_TAP_TO_SEEK: 4,
+		4: "DOUBLE_TAP_TO_SEEK",
+		DOUBLE_TAP_TO_SKIP_CHAPTER: 5,
+		5: "DOUBLE_TAP_TO_SKIP_CHAPTER",
+		PICK_UP_PLAY_HEAD: 6,
+		6: "PICK_UP_PLAY_HEAD",
+		SLIDE_ON_SCRUBBER_BAR: 7,
+		7: "SLIDE_ON_SCRUBBER_BAR",
+		SLIDE_ON_PLAYER: 8,
+		8: "SLIDE_ON_PLAYER",
+		SABR_PARTIAL_CHUNK: 9,
+		9: "SABR_PARTIAL_CHUNK",
+		SABR_SEEK_TO_HEAD: 10,
+		10: "SABR_SEEK_TO_HEAD",
+		SABR_LIVE_DVR_USER_SEEK: 11,
+		11: "SABR_LIVE_DVR_USER_SEEK",
+		SABR_SEEK_TO_DVR_LOWER_BOUND: 12,
+		12: "SABR_SEEK_TO_DVR_LOWER_BOUND",
+		SABR_SEEK_TO_DVR_UPPER_BOUND: 13,
+		13: "SABR_SEEK_TO_DVR_UPPER_BOUND",
+		SSDAI_INTERNAL: 14,
+		14: "SSDAI_INTERNAL",
+		START_PLAYBACK: 15,
+		15: "START_PLAYBACK",
+		SABR_ACCURATE_SEEK: 17,
+		17: "SABR_ACCURATE_SEEK",
+		START_PLAYBACK_SEEK_TO_END: 18,
+		18: "START_PLAYBACK_SEEK_TO_END",
+		IOS_PLAYER_REMOVED_SEGMENTS: 19,
+		19: "IOS_PLAYER_REMOVED_SEGMENTS",
+		IOS_PLAYER_SEGMENT_LIST: 20,
+		20: "IOS_PLAYER_SEGMENT_LIST",
+		IOS_PLAYER_ITEM_SEEK: 21,
+		21: "IOS_PLAYER_ITEM_SEEK",
+		IOS_PLAYER_ITEM_SEEK_TO_END: 22,
+		22: "IOS_PLAYER_ITEM_SEEK_TO_END",
+		IOS_PLAYER_SEEK_TO_END_TO_RESYNC: 23,
+		23: "IOS_PLAYER_SEEK_TO_END_TO_RESYNC",
+		IOS_SEEK_ACCESSIBILITY_BUTTON: 24,
+		24: "IOS_SEEK_ACCESSIBILITY_BUTTON",
+		FINE_SCRUBBER_SLIDE_ON_FILMSTRIP: 25,
+		25: "FINE_SCRUBBER_SLIDE_ON_FILMSTRIP",
+		FINE_SCRUBBER_TAP_ON_FILMSTRIP: 26,
+		26: "FINE_SCRUBBER_TAP_ON_FILMSTRIP",
+		FINE_SCRUBBER_SLIDE_ON_SCRUBBER_BAR: 27,
+		27: "FINE_SCRUBBER_SLIDE_ON_SCRUBBER_BAR",
+		SEEK_BUTTON_ON_PLAYER_CONTROL: 28,
+		28: "SEEK_BUTTON_ON_PLAYER_CONTROL",
+		SABR_INGESTION_WALL_TIME_SEEK: 29,
+		29: "SABR_INGESTION_WALL_TIME_SEEK",
+		PLAYER_VIEW_REPARENT_INTERNAL: 30,
+		30: "PLAYER_VIEW_REPARENT_INTERNAL",
+		PRESS_REWIND_PLAY_BACK_CONTROL: 31,
+		31: "PRESS_REWIND_PLAY_BACK_CONTROL",
+		PRESS_FAST_FORWARD_PLAY_BACK_CONTROL: 32,
+		32: "PRESS_FAST_FORWARD_PLAY_BACK_CONTROL",
+		PRESS_LIVE_SYNC_ICON: 33,
+		33: "PRESS_LIVE_SYNC_ICON",
+		PEG_TO_LIVE: 34,
+		34: "PEG_TO_LIVE",
+		ANDROID_MEDIA_SESSION: 35,
+		35: "ANDROID_MEDIA_SESSION",
+		TAP_ON_REPLAY_ACTION: 36,
+		36: "TAP_ON_REPLAY_ACTION",
+		AUTOMATIC_REPLAY_ACTION: 37,
+		37: "AUTOMATIC_REPLAY_ACTION",
+		NON_USER_SEEK_TO_PREVIOUS: 38,
+		38: "NON_USER_SEEK_TO_PREVIOUS",
+		NON_USER_SEEK_TO_NEXT: 39,
+		39: "NON_USER_SEEK_TO_NEXT",
+		HIGHLIGHTS_TAP_PREVIOUS_PLAY: 66,
+		66: "HIGHLIGHTS_TAP_PREVIOUS_PLAY",
+		HIGHLIGHTS_TAP_NEXT_PLAY: 40,
+		40: "HIGHLIGHTS_TAP_NEXT_PLAY",
+		HIGHLIGHTS_TAP_HIDDEN_NEXT_PLAY: 41,
+		41: "HIGHLIGHTS_TAP_HIDDEN_NEXT_PLAY",
+		HIGHLIGHTS_TAP_LIST_ITEM: 42,
+		42: "HIGHLIGHTS_TAP_LIST_ITEM",
+		HIGHLIGHTS_AUTOMATIC_NEXT_PLAY: 43,
+		43: "HIGHLIGHTS_AUTOMATIC_NEXT_PLAY",
+		HIGHLIGHTS_SEEK_TO_FIRST_PLAY: 44,
+		44: "HIGHLIGHTS_SEEK_TO_FIRST_PLAY",
+		HIGHLIGHTS_SEEK_TO_END: 45,
+		45: "HIGHLIGHTS_SEEK_TO_END",
+		SEGMENTS_TAP_LIST_ITEM: 46,
+		46: "SEGMENTS_TAP_LIST_ITEM",
+		PIP_FAST_FORWARD_BUTTON: 47,
+		47: "PIP_FAST_FORWARD_BUTTON",
+		PIP_REWIND_BUTTON: 48,
+		48: "PIP_REWIND_BUTTON",
+		PIP_RESUME_ON_HEAD: 49,
+		49: "PIP_RESUME_ON_HEAD",
+		MOVING_CLIP_FRAME: 50,
+		50: "MOVING_CLIP_FRAME",
+		RESUME_CLIP_PREVIOUS_POSITION: 51,
+		51: "RESUME_CLIP_PREVIOUS_POSITION",
+		SEEK_TO_NEXT_CHAPTER: 52,
+		52: "SEEK_TO_NEXT_CHAPTER",
+		SEEK_TO_PREVIOUS_CHAPTER: 53,
+		53: "SEEK_TO_PREVIOUS_CHAPTER",
+		IOS_SHAREPLAY_PAUSE: 54,
+		54: "IOS_SHAREPLAY_PAUSE",
+		IOS_SHAREPLAY_SEEK: 55,
+		55: "IOS_SHAREPLAY_SEEK",
+		IOS_SHAREPLAY_SYNC_RESPONSE: 56,
+		56: "IOS_SHAREPLAY_SYNC_RESPONSE",
+		SEEK_TO_HEAD_IMMERSIVE_LIVE_VIDEO: 57,
+		57: "SEEK_TO_HEAD_IMMERSIVE_LIVE_VIDEO",
+		SEEK_TO_START_OF_LOOPING_RANGE_OF_SHORTS: 58,
+		58: "SEEK_TO_START_OF_LOOPING_RANGE_OF_SHORTS",
+		SABR_SEEK_TO_CLOSEST_KEYFRAME: 59,
+		59: "SABR_SEEK_TO_CLOSEST_KEYFRAME",
+		SEEK_TO_END_OF_LOOPING_RANGE_OF_SHORTS: 60,
+		60: "SEEK_TO_END_OF_LOOPING_RANGE_OF_SHORTS",
+		CLIP_SLIDE_ON_FLIMSTRIP: 61,
+		61: "CLIP_SLIDE_ON_FLIMSTRIP",
+		PICK_UP_CLIP_SLIDER: 62,
+		62: "PICK_UP_CLIP_SLIDER",
+		FINE_SCRUBBER_CANCELLED: 63,
+		63: "FINE_SCRUBBER_CANCELLED",
+		INLINE_PLAYER_SEEK_CHAPTER: 64,
+		64: "INLINE_PLAYER_SEEK_CHAPTER",
+		INLINE_PLAYER_SEEK_SECONDS: 65,
+		65: "INLINE_PLAYER_SEEK_SECONDS",
+		HIGHLIGHTS_PLAYER_EXIT_FULLSCREEN: 67,
+		67: "HIGHLIGHTS_PLAYER_EXIT_FULLSCREEN",
+		LARGE_CONTROLS_FORWARD_BUTTON: 68,
+		68: "LARGE_CONTROLS_FORWARD_BUTTON",
+		LARGE_CONTROLS_REWIND_BUTTON: 69,
+		69: "LARGE_CONTROLS_REWIND_BUTTON",
+		LARGE_CONTROLS_SCRUBBER_BAR: 70,
+		70: "LARGE_CONTROLS_SCRUBBER_BAR",
+		SEEK_BACKWARD_5S: 71,
+		71: "SEEK_BACKWARD_5S",
+		SEEK_FORWARD_5S: 72,
+		72: "SEEK_FORWARD_5S",
+		SEEK_BACKWARD_10S: 73,
+		73: "SEEK_BACKWARD_10S",
+		SEEK_FORWARD_10S: 74,
+		74: "SEEK_FORWARD_10S",
+		SEEK_FORWARD_60S: 75,
+		75: "SEEK_FORWARD_60S",
+		SEEK_BACKWARD_60S: 76,
+		76: "SEEK_BACKWARD_60S",
+		SEEK_TO_NEXT_FRAME: 77,
+		77: "SEEK_TO_NEXT_FRAME",
+		SEEK_TO_PREV_FRAME: 78,
+		78: "SEEK_TO_PREV_FRAME",
+		KEYBOARD_SEEK_TO_BEGINNING: 79,
+		79: "KEYBOARD_SEEK_TO_BEGINNING",
+		KEYBOARD_SEEK_TO_END: 80,
+		80: "KEYBOARD_SEEK_TO_END",
+		SEEK_PERCENT_OF_VIDEO: 81,
+		81: "SEEK_PERCENT_OF_VIDEO",
+		HIDDEN_FAST_FORWARD_BUTTON: 82,
+		82: "HIDDEN_FAST_FORWARD_BUTTON",
+		HIDDEN_REWIND_BUTTON: 83,
+		83: "HIDDEN_REWIND_BUTTON",
+		TIMESTAMP: 84,
+		84: "TIMESTAMP",
+		LR_MEDIA_SESSION_SEEK: 87,
+		87: "LR_MEDIA_SESSION_SEEK",
+		MIDROLLS_WITH_TIME_RANGE: 88,
+		88: "MIDROLLS_WITH_TIME_RANGE",
+		SKIP_AD: 89,
+		89: "SKIP_AD",
+		SEEK_TO_PREVIOUS: 90,
+		90: "SEEK_TO_PREVIOUS",
+		SEEK_TO_NEXT: 91,
+		91: "SEEK_TO_NEXT",
+		LR_QUICK_SEEK: 92,
+		92: "LR_QUICK_SEEK",
+		ONESIE_LIVE: 93,
+		93: "ONESIE_LIVE",
+		LR_PLAYER_CONTROL_ACTION: 94,
+		94: "LR_PLAYER_CONTROL_ACTION",
+		UNPLUGGED_LENS_START_CLIP: 95,
+		95: "UNPLUGGED_LENS_START_CLIP",
+		LR_KEY_PLAYS: 96,
+		96: "LR_KEY_PLAYS",
+		SSAP_AD_FMT_FATAL: 97,
+		97: "SSAP_AD_FMT_FATAL",
+		TVHTML5_INPUT_SOURCE_KEY_EVENT: 98,
+		98: "TVHTML5_INPUT_SOURCE_KEY_EVENT",
+		TVHTML5_INPUT_SOURCE_CONTROLS: 99,
+		99: "TVHTML5_INPUT_SOURCE_CONTROLS",
+		TVHTML5_INPUT_SOURCE_TOUCH: 100,
+		100: "TVHTML5_INPUT_SOURCE_TOUCH",
+		TVHTML5_INPUT_SOURCE_TOUCHPAD: 101,
+		101: "TVHTML5_INPUT_SOURCE_TOUCHPAD",
+		SEEK_TO_HEAD: 102,
+		102: "SEEK_TO_HEAD",
+		AUTOMATIC_PREVIEW_REPLAY_ACTION: 103,
+		103: "AUTOMATIC_PREVIEW_REPLAY_ACTION",
+		H5_MEDIA_ELEMENT_EVENT: 104,
+		104: "H5_MEDIA_ELEMENT_EVENT",
+		H5_WORKAROUND_SEEK: 105,
+		105: "H5_WORKAROUND_SEEK",
+		MINIPLAYER_REWIND_BUTTON: 106,
+		106: "MINIPLAYER_REWIND_BUTTON",
+		MINIPLAYER_FAST_FORWARD_BUTTON: 107,
+		107: "MINIPLAYER_FAST_FORWARD_BUTTON",
+		SABR_RELOAD_PLAYER_RESPONSE_TOKEN_SEEK: 108,
+		108: "SABR_RELOAD_PLAYER_RESPONSE_TOKEN_SEEK",
+		SLIDE_ON_SCRUBBER_BAR_CHAPTER: 109,
+		109: "SLIDE_ON_SCRUBBER_BAR_CHAPTER",
+		ANDROID_CLEAR_BUFFER: 110,
+		110: "ANDROID_CLEAR_BUFFER",
+		UNRECOGNIZED: -1,
+		"-1": "UNRECOGNIZED"
+	};
 	function createBaseFormatId() {
 		return {
-			itag: 0,
-			lastModified: "0",
-			xtags: ""
+			itag: void 0,
+			lastModified: void 0,
+			xtags: void 0
 		};
 	}
 	var FormatId = {
 		encode(message, writer = new BinaryWriter()) {
-			if (message.itag !== void 0 && message.itag !== 0) writer.uint32(8).int32(message.itag);
-			if (message.lastModified !== void 0 && message.lastModified !== "0") writer.uint32(16).uint64(message.lastModified);
-			if (message.xtags !== void 0 && message.xtags !== "") writer.uint32(26).string(message.xtags);
+			if (message.itag !== void 0) writer.uint32(8).int32(message.itag);
+			if (message.lastModified !== void 0) writer.uint32(16).uint64(message.lastModified);
+			if (message.xtags !== void 0) writer.uint32(26).string(message.xtags);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseFormatId();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 8) break;
-						message.itag = reader.int32();
-						continue;
-					case 2:
-						if (tag !== 16) break;
-						message.lastModified = reader.uint64().toString();
-						continue;
-					case 3:
-						if (tag !== 26) break;
-						message.xtags = reader.string();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseFormatId();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 8) break;
+							message.itag = reader.int32();
+							continue;
+						case 2:
+							if (tag !== 16) break;
+							message.lastModified = reader.uint64().toString();
+							continue;
+						case 3:
+							if (tag !== 26) break;
+							message.xtags = reader.string();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
 	function createBaseRange() {
 		return {
-			legacyStart: 0,
-			legacyEnd: 0,
-			start: 0,
-			end: 0
+			legacyStart: void 0,
+			legacyEnd: void 0,
+			start: void 0,
+			end: void 0
 		};
 	}
 	var Range = {
 		encode(message, writer = new BinaryWriter()) {
-			if (message.legacyStart !== void 0 && message.legacyStart !== 0) writer.uint32(8).int32(message.legacyStart);
-			if (message.legacyEnd !== void 0 && message.legacyEnd !== 0) writer.uint32(16).int32(message.legacyEnd);
-			if (message.start !== void 0 && message.start !== 0) writer.uint32(24).int32(message.start);
-			if (message.end !== void 0 && message.end !== 0) writer.uint32(32).int32(message.end);
+			if (message.legacyStart !== void 0) writer.uint32(8).int32(message.legacyStart);
+			if (message.legacyEnd !== void 0) writer.uint32(16).int32(message.legacyEnd);
+			if (message.start !== void 0) writer.uint32(24).int32(message.start);
+			if (message.end !== void 0) writer.uint32(32).int32(message.end);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseRange();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 8) break;
-						message.legacyStart = reader.int32();
-						continue;
-					case 2:
-						if (tag !== 16) break;
-						message.legacyEnd = reader.int32();
-						continue;
-					case 3:
-						if (tag !== 24) break;
-						message.start = reader.int32();
-						continue;
-					case 4:
-						if (tag !== 32) break;
-						message.end = reader.int32();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseRange();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 8) break;
+							message.legacyStart = reader.int32();
+							continue;
+						case 2:
+							if (tag !== 16) break;
+							message.legacyEnd = reader.int32();
+							continue;
+						case 3:
+							if (tag !== 24) break;
+							message.start = reader.int32();
+							continue;
+						case 4:
+							if (tag !== 32) break;
+							message.end = reader.int32();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
 	function createBaseAuthorizedFormat() {
 		return {
-			trackType: 0,
-			isHdr: false
+			trackType: void 0,
+			isHdr: void 0
 		};
 	}
 	var AuthorizedFormat = {
 		encode(message, writer = new BinaryWriter()) {
-			if (message.trackType !== void 0 && message.trackType !== 0) writer.uint32(8).int32(message.trackType);
-			if (message.isHdr !== void 0 && message.isHdr !== false) writer.uint32(16).bool(message.isHdr);
+			if (message.trackType !== void 0) writer.uint32(8).int32(message.trackType);
+			if (message.isHdr !== void 0) writer.uint32(16).bool(message.isHdr);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseAuthorizedFormat();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 8) break;
-						message.trackType = reader.int32();
-						continue;
-					case 2:
-						if (tag !== 16) break;
-						message.isHdr = reader.bool();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseAuthorizedFormat();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 8) break;
+							message.trackType = reader.int32();
+							continue;
+						case 2:
+							if (tag !== 16) break;
+							message.isHdr = reader.bool();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
 	function createBasePlaybackAuthorization() {
 		return {
 			authorizedFormats: [],
-			sabrLicenseConstraint: new Uint8Array(0)
+			sabrLicenseConstraint: void 0
 		};
 	}
 	var PlaybackAuthorization = {
 		encode(message, writer = new BinaryWriter()) {
 			for (const v of message.authorizedFormats) AuthorizedFormat.encode(v, writer.uint32(10).fork()).join();
-			if (message.sabrLicenseConstraint !== void 0 && message.sabrLicenseConstraint.length !== 0) writer.uint32(18).bytes(message.sabrLicenseConstraint);
+			if (message.sabrLicenseConstraint !== void 0) writer.uint32(18).bytes(message.sabrLicenseConstraint);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBasePlaybackAuthorization();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.authorizedFormats.push(AuthorizedFormat.decode(reader, reader.uint32()));
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.sabrLicenseConstraint = reader.bytes();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBasePlaybackAuthorization();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.authorizedFormats.push(AuthorizedFormat.decode(reader, reader.uint32()));
+							continue;
+						case 2:
+							if (tag !== 18) break;
+							message.sabrLicenseConstraint = reader.bytes();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
-	//#endregion
-	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/format_initialization_metadata.js
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/format_initialization_metadata.js
 	function createBaseFormatInitializationMetadata() {
 		return {
-			videoId: "",
+			videoId: void 0,
 			formatId: void 0,
-			endTimeMs: "0",
-			endSegmentNumber: "0",
-			mimeType: "",
-			initRange: void 0,
+			endTimeMs: void 0,
+			endSegmentNum: void 0,
+			mimeType: void 0,
+			initSegmentRange: void 0,
 			indexRange: void 0,
-			field8: "0",
-			durationUnits: "0",
-			durationTimescale: "0"
+			field8: void 0,
+			endTimeTicks: void 0,
+			endTimeTimescale: void 0,
+			clipId: void 0,
+			formatStream: void 0
 		};
 	}
 	var FormatInitializationMetadata = {
 		encode(message, writer = new BinaryWriter()) {
-			if (message.videoId !== void 0 && message.videoId !== "") writer.uint32(10).string(message.videoId);
+			if (message.videoId !== void 0) writer.uint32(10).string(message.videoId);
 			if (message.formatId !== void 0) FormatId.encode(message.formatId, writer.uint32(18).fork()).join();
-			if (message.endTimeMs !== void 0 && message.endTimeMs !== "0") writer.uint32(24).int64(message.endTimeMs);
-			if (message.endSegmentNumber !== void 0 && message.endSegmentNumber !== "0") writer.uint32(32).int64(message.endSegmentNumber);
-			if (message.mimeType !== void 0 && message.mimeType !== "") writer.uint32(42).string(message.mimeType);
-			if (message.initRange !== void 0) Range.encode(message.initRange, writer.uint32(50).fork()).join();
+			if (message.endTimeMs !== void 0) writer.uint32(24).int64(message.endTimeMs);
+			if (message.endSegmentNum !== void 0) writer.uint32(32).int64(message.endSegmentNum);
+			if (message.mimeType !== void 0) writer.uint32(42).string(message.mimeType);
+			if (message.initSegmentRange !== void 0) Range.encode(message.initSegmentRange, writer.uint32(50).fork()).join();
 			if (message.indexRange !== void 0) Range.encode(message.indexRange, writer.uint32(58).fork()).join();
-			if (message.field8 !== void 0 && message.field8 !== "0") writer.uint32(64).int64(message.field8);
-			if (message.durationUnits !== void 0 && message.durationUnits !== "0") writer.uint32(72).int64(message.durationUnits);
-			if (message.durationTimescale !== void 0 && message.durationTimescale !== "0") writer.uint32(80).int64(message.durationTimescale);
+			if (message.field8 !== void 0) writer.uint32(64).int64(message.field8);
+			if (message.endTimeTicks !== void 0) writer.uint32(72).int64(message.endTimeTicks);
+			if (message.endTimeTimescale !== void 0) writer.uint32(80).int64(message.endTimeTimescale);
+			if (message.clipId !== void 0) writer.uint32(90).string(message.clipId);
+			if (message.formatStream !== void 0) writer.uint32(98).bytes(message.formatStream);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseFormatInitializationMetadata();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.videoId = reader.string();
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.formatId = FormatId.decode(reader, reader.uint32());
-						continue;
-					case 3:
-						if (tag !== 24) break;
-						message.endTimeMs = reader.int64().toString();
-						continue;
-					case 4:
-						if (tag !== 32) break;
-						message.endSegmentNumber = reader.int64().toString();
-						continue;
-					case 5:
-						if (tag !== 42) break;
-						message.mimeType = reader.string();
-						continue;
-					case 6:
-						if (tag !== 50) break;
-						message.initRange = Range.decode(reader, reader.uint32());
-						continue;
-					case 7:
-						if (tag !== 58) break;
-						message.indexRange = Range.decode(reader, reader.uint32());
-						continue;
-					case 8:
-						if (tag !== 64) break;
-						message.field8 = reader.int64().toString();
-						continue;
-					case 9:
-						if (tag !== 72) break;
-						message.durationUnits = reader.int64().toString();
-						continue;
-					case 10:
-						if (tag !== 80) break;
-						message.durationTimescale = reader.int64().toString();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseFormatInitializationMetadata();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.videoId = reader.string();
+							continue;
+						case 2:
+							if (tag !== 18) break;
+							message.formatId = FormatId.decode(reader, reader.uint32());
+							continue;
+						case 3:
+							if (tag !== 24) break;
+							message.endTimeMs = reader.int64().toString();
+							continue;
+						case 4:
+							if (tag !== 32) break;
+							message.endSegmentNum = reader.int64().toString();
+							continue;
+						case 5:
+							if (tag !== 42) break;
+							message.mimeType = reader.string();
+							continue;
+						case 6:
+							if (tag !== 50) break;
+							message.initSegmentRange = Range.decode(reader, reader.uint32());
+							continue;
+						case 7:
+							if (tag !== 58) break;
+							message.indexRange = Range.decode(reader, reader.uint32());
+							continue;
+						case 8:
+							if (tag !== 64) break;
+							message.field8 = reader.int64().toString();
+							continue;
+						case 9:
+							if (tag !== 72) break;
+							message.endTimeTicks = reader.int64().toString();
+							continue;
+						case 10:
+							if (tag !== 80) break;
+							message.endTimeTimescale = reader.int64().toString();
+							continue;
+						case 11:
+							if (tag !== 90) break;
+							message.clipId = reader.string();
+							continue;
+						case 12:
+							if (tag !== 98) break;
+							message.formatStream = reader.bytes();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
-	//#endregion
-	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/time_range.js
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/time_range.js
 	function createBaseTimeRange() {
 		return {
-			startTicks: "0",
-			durationTicks: "0",
-			timescale: 0
+			startTicks: void 0,
+			durationTicks: void 0,
+			timescale: void 0
 		};
 	}
 	var TimeRange = {
 		encode(message, writer = new BinaryWriter()) {
-			if (message.startTicks !== void 0 && message.startTicks !== "0") writer.uint32(8).int64(message.startTicks);
-			if (message.durationTicks !== void 0 && message.durationTicks !== "0") writer.uint32(16).int64(message.durationTicks);
-			if (message.timescale !== void 0 && message.timescale !== 0) writer.uint32(24).int32(message.timescale);
+			if (message.startTicks !== void 0) writer.uint32(8).int64(message.startTicks);
+			if (message.durationTicks !== void 0) writer.uint32(16).int64(message.durationTicks);
+			if (message.timescale !== void 0) writer.uint32(24).int32(message.timescale);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseTimeRange();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 8) break;
-						message.startTicks = reader.int64().toString();
-						continue;
-					case 2:
-						if (tag !== 16) break;
-						message.durationTicks = reader.int64().toString();
-						continue;
-					case 3:
-						if (tag !== 24) break;
-						message.timescale = reader.int32();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseTimeRange();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 8) break;
+							message.startTicks = reader.int64().toString();
+							continue;
+						case 2:
+							if (tag !== 16) break;
+							message.durationTicks = reader.int64().toString();
+							continue;
+						case 3:
+							if (tag !== 24) break;
+							message.timescale = reader.int32();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
-	//#endregion
-	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/media_header.js
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/media_header.js
 	function createBaseMediaHeader() {
 		return {
-			headerId: 0,
-			videoId: "",
-			itag: 0,
-			lmt: "0",
-			xtags: "",
-			startRange: "0",
-			compressionAlgorithm: 0,
-			isInitSeg: false,
-			sequenceNumber: 0,
-			bitrateBps: "0",
-			startMs: "0",
-			durationMs: "0",
+			headerId: void 0,
+			videoId: void 0,
+			itag: void 0,
+			lmt: void 0,
+			xtags: void 0,
+			segmentByteRangeStart: void 0,
+			compressionType: void 0,
+			isInitializationSegment: void 0,
+			segmentNum: void 0,
+			bitrateBps: void 0,
+			startMs: void 0,
+			durationMs: void 0,
 			formatId: void 0,
-			contentLength: "0",
+			segmentLengthBytes: void 0,
 			timeRange: void 0,
-			sequenceLmt: "0"
+			segmentLmt: void 0,
+			offsetFromStartOfSegment: void 0,
+			partialBytesToReturn: void 0
 		};
 	}
 	var MediaHeader = {
 		encode(message, writer = new BinaryWriter()) {
-			if (message.headerId !== void 0 && message.headerId !== 0) writer.uint32(8).uint32(message.headerId);
-			if (message.videoId !== void 0 && message.videoId !== "") writer.uint32(18).string(message.videoId);
-			if (message.itag !== void 0 && message.itag !== 0) writer.uint32(24).int32(message.itag);
-			if (message.lmt !== void 0 && message.lmt !== "0") writer.uint32(32).uint64(message.lmt);
-			if (message.xtags !== void 0 && message.xtags !== "") writer.uint32(42).string(message.xtags);
-			if (message.startRange !== void 0 && message.startRange !== "0") writer.uint32(48).int64(message.startRange);
-			if (message.compressionAlgorithm !== void 0 && message.compressionAlgorithm !== 0) writer.uint32(56).int32(message.compressionAlgorithm);
-			if (message.isInitSeg !== void 0 && message.isInitSeg !== false) writer.uint32(64).bool(message.isInitSeg);
-			if (message.sequenceNumber !== void 0 && message.sequenceNumber !== 0) writer.uint32(72).int32(message.sequenceNumber);
-			if (message.bitrateBps !== void 0 && message.bitrateBps !== "0") writer.uint32(80).int64(message.bitrateBps);
-			if (message.startMs !== void 0 && message.startMs !== "0") writer.uint32(88).int64(message.startMs);
-			if (message.durationMs !== void 0 && message.durationMs !== "0") writer.uint32(96).int64(message.durationMs);
+			if (message.headerId !== void 0) writer.uint32(8).uint32(message.headerId);
+			if (message.videoId !== void 0) writer.uint32(18).string(message.videoId);
+			if (message.itag !== void 0) writer.uint32(24).int32(message.itag);
+			if (message.lmt !== void 0) writer.uint32(32).uint64(message.lmt);
+			if (message.xtags !== void 0) writer.uint32(42).string(message.xtags);
+			if (message.segmentByteRangeStart !== void 0) writer.uint32(48).int64(message.segmentByteRangeStart);
+			if (message.compressionType !== void 0) writer.uint32(56).int32(message.compressionType);
+			if (message.isInitializationSegment !== void 0) writer.uint32(64).bool(message.isInitializationSegment);
+			if (message.segmentNum !== void 0) writer.uint32(72).int32(message.segmentNum);
+			if (message.bitrateBps !== void 0) writer.uint32(80).int64(message.bitrateBps);
+			if (message.startMs !== void 0) writer.uint32(88).int64(message.startMs);
+			if (message.durationMs !== void 0) writer.uint32(96).int64(message.durationMs);
 			if (message.formatId !== void 0) FormatId.encode(message.formatId, writer.uint32(106).fork()).join();
-			if (message.contentLength !== void 0 && message.contentLength !== "0") writer.uint32(112).int64(message.contentLength);
+			if (message.segmentLengthBytes !== void 0) writer.uint32(112).int64(message.segmentLengthBytes);
 			if (message.timeRange !== void 0) TimeRange.encode(message.timeRange, writer.uint32(122).fork()).join();
-			if (message.sequenceLmt !== void 0 && message.sequenceLmt !== "0") writer.uint32(128).uint64(message.sequenceLmt);
+			if (message.segmentLmt !== void 0) writer.uint32(128).uint64(message.segmentLmt);
+			if (message.offsetFromStartOfSegment !== void 0) writer.uint32(136).int64(message.offsetFromStartOfSegment);
+			if (message.partialBytesToReturn !== void 0) writer.uint32(144).int64(message.partialBytesToReturn);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseMediaHeader();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 8) break;
-						message.headerId = reader.uint32();
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.videoId = reader.string();
-						continue;
-					case 3:
-						if (tag !== 24) break;
-						message.itag = reader.int32();
-						continue;
-					case 4:
-						if (tag !== 32) break;
-						message.lmt = reader.uint64().toString();
-						continue;
-					case 5:
-						if (tag !== 42) break;
-						message.xtags = reader.string();
-						continue;
-					case 6:
-						if (tag !== 48) break;
-						message.startRange = reader.int64().toString();
-						continue;
-					case 7:
-						if (tag !== 56) break;
-						message.compressionAlgorithm = reader.int32();
-						continue;
-					case 8:
-						if (tag !== 64) break;
-						message.isInitSeg = reader.bool();
-						continue;
-					case 9:
-						if (tag !== 72) break;
-						message.sequenceNumber = reader.int32();
-						continue;
-					case 10:
-						if (tag !== 80) break;
-						message.bitrateBps = reader.int64().toString();
-						continue;
-					case 11:
-						if (tag !== 88) break;
-						message.startMs = reader.int64().toString();
-						continue;
-					case 12:
-						if (tag !== 96) break;
-						message.durationMs = reader.int64().toString();
-						continue;
-					case 13:
-						if (tag !== 106) break;
-						message.formatId = FormatId.decode(reader, reader.uint32());
-						continue;
-					case 14:
-						if (tag !== 112) break;
-						message.contentLength = reader.int64().toString();
-						continue;
-					case 15:
-						if (tag !== 122) break;
-						message.timeRange = TimeRange.decode(reader, reader.uint32());
-						continue;
-					case 16:
-						if (tag !== 128) break;
-						message.sequenceLmt = reader.uint64().toString();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseMediaHeader();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 8) break;
+							message.headerId = reader.uint32();
+							continue;
+						case 2:
+							if (tag !== 18) break;
+							message.videoId = reader.string();
+							continue;
+						case 3:
+							if (tag !== 24) break;
+							message.itag = reader.int32();
+							continue;
+						case 4:
+							if (tag !== 32) break;
+							message.lmt = reader.uint64().toString();
+							continue;
+						case 5:
+							if (tag !== 42) break;
+							message.xtags = reader.string();
+							continue;
+						case 6:
+							if (tag !== 48) break;
+							message.segmentByteRangeStart = reader.int64().toString();
+							continue;
+						case 7:
+							if (tag !== 56) break;
+							message.compressionType = reader.int32();
+							continue;
+						case 8:
+							if (tag !== 64) break;
+							message.isInitializationSegment = reader.bool();
+							continue;
+						case 9:
+							if (tag !== 72) break;
+							message.segmentNum = reader.int32();
+							continue;
+						case 10:
+							if (tag !== 80) break;
+							message.bitrateBps = reader.int64().toString();
+							continue;
+						case 11:
+							if (tag !== 88) break;
+							message.startMs = reader.int64().toString();
+							continue;
+						case 12:
+							if (tag !== 96) break;
+							message.durationMs = reader.int64().toString();
+							continue;
+						case 13:
+							if (tag !== 106) break;
+							message.formatId = FormatId.decode(reader, reader.uint32());
+							continue;
+						case 14:
+							if (tag !== 112) break;
+							message.segmentLengthBytes = reader.int64().toString();
+							continue;
+						case 15:
+							if (tag !== 122) break;
+							message.timeRange = TimeRange.decode(reader, reader.uint32());
+							continue;
+						case 16:
+							if (tag !== 128) break;
+							message.segmentLmt = reader.uint64().toString();
+							continue;
+						case 17:
+							if (tag !== 136) break;
+							message.offsetFromStartOfSegment = reader.int64().toString();
+							continue;
+						case 18:
+							if (tag !== 144) break;
+							message.partialBytesToReturn = reader.int64().toString();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
-	//#endregion
-	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/buffered_range.js
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/buffered_range.js
 	function createBaseBufferedRange() {
 		return {
 			formatId: void 0,
-			startTimeMs: "0",
-			durationMs: "0",
-			startSegmentIndex: 0,
-			endSegmentIndex: 0,
+			startTimeMs: void 0,
+			durationMs: void 0,
+			startSegmentIndex: void 0,
+			endSegmentIndex: void 0,
 			timeRange: void 0,
 			field9: void 0,
 			field11: void 0,
@@ -14202,10 +15504,10 @@ var vot = (function(exports) {
 	var BufferedRange = {
 		encode(message, writer = new BinaryWriter()) {
 			if (message.formatId !== void 0) FormatId.encode(message.formatId, writer.uint32(10).fork()).join();
-			if (message.startTimeMs !== "0") writer.uint32(16).int64(message.startTimeMs);
-			if (message.durationMs !== "0") writer.uint32(24).int64(message.durationMs);
-			if (message.startSegmentIndex !== 0) writer.uint32(32).int32(message.startSegmentIndex);
-			if (message.endSegmentIndex !== 0) writer.uint32(40).int32(message.endSegmentIndex);
+			if (message.startTimeMs !== void 0) writer.uint32(16).int64(message.startTimeMs);
+			if (message.durationMs !== void 0) writer.uint32(24).int64(message.durationMs);
+			if (message.startSegmentIndex !== void 0) writer.uint32(32).int32(message.startSegmentIndex);
+			if (message.endSegmentIndex !== void 0) writer.uint32(40).int32(message.endSegmentIndex);
 			if (message.timeRange !== void 0) TimeRange.encode(message.timeRange, writer.uint32(50).fork()).join();
 			if (message.field9 !== void 0) BufferedRange_UnknownMessage1.encode(message.field9, writer.uint32(74).fork()).join();
 			if (message.field11 !== void 0) BufferedRange_UnknownMessage2.encode(message.field11, writer.uint32(90).fork()).join();
@@ -14214,52 +15516,59 @@ var vot = (function(exports) {
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseBufferedRange();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.formatId = FormatId.decode(reader, reader.uint32());
-						continue;
-					case 2:
-						if (tag !== 16) break;
-						message.startTimeMs = reader.int64().toString();
-						continue;
-					case 3:
-						if (tag !== 24) break;
-						message.durationMs = reader.int64().toString();
-						continue;
-					case 4:
-						if (tag !== 32) break;
-						message.startSegmentIndex = reader.int32();
-						continue;
-					case 5:
-						if (tag !== 40) break;
-						message.endSegmentIndex = reader.int32();
-						continue;
-					case 6:
-						if (tag !== 50) break;
-						message.timeRange = TimeRange.decode(reader, reader.uint32());
-						continue;
-					case 9:
-						if (tag !== 74) break;
-						message.field9 = BufferedRange_UnknownMessage1.decode(reader, reader.uint32());
-						continue;
-					case 11:
-						if (tag !== 90) break;
-						message.field11 = BufferedRange_UnknownMessage2.decode(reader, reader.uint32());
-						continue;
-					case 12:
-						if (tag !== 98) break;
-						message.field12 = BufferedRange_UnknownMessage2.decode(reader, reader.uint32());
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseBufferedRange();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.formatId = FormatId.decode(reader, reader.uint32());
+							continue;
+						case 2:
+							if (tag !== 16) break;
+							message.startTimeMs = reader.int64().toString();
+							continue;
+						case 3:
+							if (tag !== 24) break;
+							message.durationMs = reader.int64().toString();
+							continue;
+						case 4:
+							if (tag !== 32) break;
+							message.startSegmentIndex = reader.int32();
+							continue;
+						case 5:
+							if (tag !== 40) break;
+							message.endSegmentIndex = reader.int32();
+							continue;
+						case 6:
+							if (tag !== 50) break;
+							message.timeRange = TimeRange.decode(reader, reader.uint32());
+							continue;
+						case 9:
+							if (tag !== 74) break;
+							message.field9 = BufferedRange_UnknownMessage1.decode(reader, reader.uint32());
+							continue;
+						case 11:
+							if (tag !== 90) break;
+							message.field11 = BufferedRange_UnknownMessage2.decode(reader, reader.uint32());
+							continue;
+						case 12:
+							if (tag !== 98) break;
+							message.field12 = BufferedRange_UnknownMessage2.decode(reader, reader.uint32());
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
 	function createBaseBufferedRange_UnknownMessage1() {
@@ -14272,1393 +15581,1757 @@ var vot = (function(exports) {
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseBufferedRange_UnknownMessage1();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.field1.push(BufferedRange_UnknownMessage1_UnknownInnerMessage.decode(reader, reader.uint32()));
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseBufferedRange_UnknownMessage1();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.field1.push(BufferedRange_UnknownMessage1_UnknownInnerMessage.decode(reader, reader.uint32()));
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
 	function createBaseBufferedRange_UnknownMessage1_UnknownInnerMessage() {
 		return {
-			videoId: "",
-			lmt: "0"
+			videoId: void 0,
+			lmt: void 0
 		};
 	}
 	var BufferedRange_UnknownMessage1_UnknownInnerMessage = {
 		encode(message, writer = new BinaryWriter()) {
-			if (message.videoId !== void 0 && message.videoId !== "") writer.uint32(10).string(message.videoId);
-			if (message.lmt !== void 0 && message.lmt !== "0") writer.uint32(16).uint64(message.lmt);
+			if (message.videoId !== void 0) writer.uint32(10).string(message.videoId);
+			if (message.lmt !== void 0) writer.uint32(16).uint64(message.lmt);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseBufferedRange_UnknownMessage1_UnknownInnerMessage();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.videoId = reader.string();
-						continue;
-					case 2:
-						if (tag !== 16) break;
-						message.lmt = reader.uint64().toString();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseBufferedRange_UnknownMessage1_UnknownInnerMessage();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.videoId = reader.string();
+							continue;
+						case 2:
+							if (tag !== 16) break;
+							message.lmt = reader.uint64().toString();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
 	function createBaseBufferedRange_UnknownMessage2() {
 		return {
-			field1: 0,
-			field2: 0,
-			field3: 0
+			field1: void 0,
+			field2: void 0,
+			field3: void 0
 		};
 	}
 	var BufferedRange_UnknownMessage2 = {
 		encode(message, writer = new BinaryWriter()) {
-			if (message.field1 !== void 0 && message.field1 !== 0) writer.uint32(8).int32(message.field1);
-			if (message.field2 !== void 0 && message.field2 !== 0) writer.uint32(16).int32(message.field2);
-			if (message.field3 !== void 0 && message.field3 !== 0) writer.uint32(24).int32(message.field3);
+			if (message.field1 !== void 0) writer.uint32(8).int32(message.field1);
+			if (message.field2 !== void 0) writer.uint32(16).int32(message.field2);
+			if (message.field3 !== void 0) writer.uint32(24).int32(message.field3);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseBufferedRange_UnknownMessage2();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 8) break;
-						message.field1 = reader.int32();
-						continue;
-					case 2:
-						if (tag !== 16) break;
-						message.field2 = reader.int32();
-						continue;
-					case 3:
-						if (tag !== 24) break;
-						message.field3 = reader.int32();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseBufferedRange_UnknownMessage2();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 8) break;
+							message.field1 = reader.int32();
+							continue;
+						case 2:
+							if (tag !== 16) break;
+							message.field2 = reader.int32();
+							continue;
+						case 3:
+							if (tag !== 24) break;
+							message.field3 = reader.int32();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
-	//#endregion
-	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/media_capabilities.js
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/cuepoint.js
+	var Cuepoint_CuepointEvent = {
+		UNKNOWN: 0,
+		0: "UNKNOWN",
+		START: 1,
+		1: "START",
+		CONTINUE: 2,
+		2: "CONTINUE",
+		STOP: 3,
+		3: "STOP",
+		INSERTION: 4,
+		4: "INSERTION",
+		PREDICT_START: 5,
+		5: "PREDICT_START",
+		PREFETCH: 6,
+		6: "PREFETCH",
+		UNRECOGNIZED: -1,
+		"-1": "UNRECOGNIZED"
+	};
+	function createBaseCuepoint() {
+		return {
+			type: void 0,
+			event: void 0,
+			totalDurationSec: void 0,
+			playheadTimeSec: void 0,
+			context: void 0,
+			identifier: void 0,
+			playheadTimeAtStartSec: void 0,
+			mediaTimeSinceStartSec: void 0,
+			startSequenceNumber: void 0
+		};
+	}
+	var Cuepoint = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.type !== void 0) writer.uint32(8).int32(message.type);
+			if (message.event !== void 0) writer.uint32(16).int32(message.event);
+			if (message.totalDurationSec !== void 0) writer.uint32(25).double(message.totalDurationSec);
+			if (message.playheadTimeSec !== void 0) writer.uint32(33).double(message.playheadTimeSec);
+			if (message.context !== void 0) writer.uint32(42).string(message.context);
+			if (message.identifier !== void 0) writer.uint32(50).string(message.identifier);
+			if (message.playheadTimeAtStartSec !== void 0) writer.uint32(57).double(message.playheadTimeAtStartSec);
+			if (message.mediaTimeSinceStartSec !== void 0) writer.uint32(65).double(message.mediaTimeSinceStartSec);
+			if (message.startSequenceNumber !== void 0) writer.uint32(72).int32(message.startSequenceNumber);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseCuepoint();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 8) break;
+							message.type = reader.int32();
+							continue;
+						case 2:
+							if (tag !== 16) break;
+							message.event = reader.int32();
+							continue;
+						case 3:
+							if (tag !== 25) break;
+							message.totalDurationSec = reader.double();
+							continue;
+						case 4:
+							if (tag !== 33) break;
+							message.playheadTimeSec = reader.double();
+							continue;
+						case 5:
+							if (tag !== 42) break;
+							message.context = reader.string();
+							continue;
+						case 6:
+							if (tag !== 50) break;
+							message.identifier = reader.string();
+							continue;
+						case 7:
+							if (tag !== 57) break;
+							message.playheadTimeAtStartSec = reader.double();
+							continue;
+						case 8:
+							if (tag !== 65) break;
+							message.mediaTimeSinceStartSec = reader.double();
+							continue;
+						case 9:
+							if (tag !== 72) break;
+							message.startSequenceNumber = reader.int32();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
+				}
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
+			}
+		}
+	};
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/cuepoint_info.js
+	function createBaseCuepointInfo() {
+		return {
+			cuepoint: void 0,
+			trackType: void 0,
+			sequenceNumber: void 0,
+			timeRange: void 0,
+			tileContext: void 0,
+			unknownField6: void 0,
+			unknownField7: void 0,
+			opportunityId: void 0,
+			serializedPrefetchContext: void 0
+		};
+	}
+	var CuepointInfo = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.cuepoint !== void 0) Cuepoint.encode(message.cuepoint, writer.uint32(10).fork()).join();
+			if (message.trackType !== void 0) writer.uint32(16).int32(message.trackType);
+			if (message.sequenceNumber !== void 0) writer.uint32(24).int32(message.sequenceNumber);
+			if (message.timeRange !== void 0) TimeRange.encode(message.timeRange, writer.uint32(34).fork()).join();
+			if (message.tileContext !== void 0) writer.uint32(42).string(message.tileContext);
+			if (message.unknownField6 !== void 0) writer.uint32(48).int32(message.unknownField6);
+			if (message.unknownField7 !== void 0) writer.uint32(56).int32(message.unknownField7);
+			if (message.opportunityId !== void 0) writer.uint32(66).string(message.opportunityId);
+			if (message.serializedPrefetchContext !== void 0) writer.uint32(74).bytes(message.serializedPrefetchContext);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseCuepointInfo();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.cuepoint = Cuepoint.decode(reader, reader.uint32());
+							continue;
+						case 2:
+							if (tag !== 16) break;
+							message.trackType = reader.int32();
+							continue;
+						case 3:
+							if (tag !== 24) break;
+							message.sequenceNumber = reader.int32();
+							continue;
+						case 4:
+							if (tag !== 34) break;
+							message.timeRange = TimeRange.decode(reader, reader.uint32());
+							continue;
+						case 5:
+							if (tag !== 42) break;
+							message.tileContext = reader.string();
+							continue;
+						case 6:
+							if (tag !== 48) break;
+							message.unknownField6 = reader.int32();
+							continue;
+						case 7:
+							if (tag !== 56) break;
+							message.unknownField7 = reader.int32();
+							continue;
+						case 8:
+							if (tag !== 66) break;
+							message.opportunityId = reader.string();
+							continue;
+						case 9:
+							if (tag !== 74) break;
+							message.serializedPrefetchContext = reader.bytes();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
+				}
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
+			}
+		}
+	};
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/cuepoint_list.js
+	function createBaseCuepointList() {
+		return { ssapInfos: [] };
+	}
+	var CuepointList = {
+		encode(message, writer = new BinaryWriter()) {
+			for (const v of message.ssapInfos) CuepointInfo.encode(v, writer.uint32(10).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseCuepointList();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.ssapInfos.push(CuepointInfo.decode(reader, reader.uint32()));
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
+				}
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
+			}
+		}
+	};
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/media_capabilities.js
 	function createBaseMediaCapabilities() {
 		return {
 			videoFormatCapabilities: [],
 			audioFormatCapabilities: [],
-			hdrModeBitmask: 0
+			perPlaybackAttributes: void 0,
+			hdrModeBitmask: void 0
 		};
 	}
 	var MediaCapabilities = {
 		encode(message, writer = new BinaryWriter()) {
 			for (const v of message.videoFormatCapabilities) MediaCapabilities_VideoFormatCapability.encode(v, writer.uint32(10).fork()).join();
 			for (const v of message.audioFormatCapabilities) MediaCapabilities_AudioFormatCapability.encode(v, writer.uint32(18).fork()).join();
-			if (message.hdrModeBitmask !== void 0 && message.hdrModeBitmask !== 0) writer.uint32(40).int32(message.hdrModeBitmask);
+			if (message.perPlaybackAttributes !== void 0) MediaCapabilities_PerPlaybackAttributes.encode(message.perPlaybackAttributes, writer.uint32(34).fork()).join();
+			if (message.hdrModeBitmask !== void 0) writer.uint32(40).int32(message.hdrModeBitmask);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseMediaCapabilities();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.videoFormatCapabilities.push(MediaCapabilities_VideoFormatCapability.decode(reader, reader.uint32()));
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.audioFormatCapabilities.push(MediaCapabilities_AudioFormatCapability.decode(reader, reader.uint32()));
-						continue;
-					case 5:
-						if (tag !== 40) break;
-						message.hdrModeBitmask = reader.int32();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseMediaCapabilities();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.videoFormatCapabilities.push(MediaCapabilities_VideoFormatCapability.decode(reader, reader.uint32()));
+							continue;
+						case 2:
+							if (tag !== 18) break;
+							message.audioFormatCapabilities.push(MediaCapabilities_AudioFormatCapability.decode(reader, reader.uint32()));
+							continue;
+						case 4:
+							if (tag !== 34) break;
+							message.perPlaybackAttributes = MediaCapabilities_PerPlaybackAttributes.decode(reader, reader.uint32());
+							continue;
+						case 5:
+							if (tag !== 40) break;
+							message.hdrModeBitmask = reader.int32();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
+		}
+	};
+	function createBaseMediaCapabilities_PerPlaybackAttributes() {
+		return { itagDenylist: [] };
+	}
+	var MediaCapabilities_PerPlaybackAttributes = {
+		encode(message, writer = new BinaryWriter()) {
+			for (const v of message.itagDenylist) writer.uint32(8).int32(v);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseMediaCapabilities_PerPlaybackAttributes();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag === 8) {
+								message.itagDenylist.push(reader.int32());
+								continue;
+							}
+							if (tag === 10) {
+								const end2 = reader.uint32() + reader.pos;
+								while (reader.pos < end2) message.itagDenylist.push(reader.int32());
+								continue;
+							}
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
+				}
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
+			}
 		}
 	};
 	function createBaseMediaCapabilities_VideoFormatCapability() {
 		return {
-			videoCodec: 0,
-			maxHeight: 0,
-			maxWidth: 0,
-			maxFramerate: 0,
-			maxBitrateBps: 0,
-			is10BitSupported: false
+			videoCodec: void 0,
+			efficient: void 0,
+			maxHeight: void 0,
+			maxWidth: void 0,
+			maxFramerate: void 0,
+			maxBitrateBps: void 0,
+			is10BitSupported: void 0
 		};
 	}
 	var MediaCapabilities_VideoFormatCapability = {
 		encode(message, writer = new BinaryWriter()) {
-			if (message.videoCodec !== void 0 && message.videoCodec !== 0) writer.uint32(8).int32(message.videoCodec);
-			if (message.maxHeight !== void 0 && message.maxHeight !== 0) writer.uint32(24).int32(message.maxHeight);
-			if (message.maxWidth !== void 0 && message.maxWidth !== 0) writer.uint32(32).int32(message.maxWidth);
-			if (message.maxFramerate !== void 0 && message.maxFramerate !== 0) writer.uint32(88).int32(message.maxFramerate);
-			if (message.maxBitrateBps !== void 0 && message.maxBitrateBps !== 0) writer.uint32(96).int32(message.maxBitrateBps);
-			if (message.is10BitSupported !== void 0 && message.is10BitSupported !== false) writer.uint32(120).bool(message.is10BitSupported);
+			if (message.videoCodec !== void 0) writer.uint32(8).int32(message.videoCodec);
+			if (message.efficient !== void 0) writer.uint32(16).bool(message.efficient);
+			if (message.maxHeight !== void 0) writer.uint32(24).int32(message.maxHeight);
+			if (message.maxWidth !== void 0) writer.uint32(32).int32(message.maxWidth);
+			if (message.maxFramerate !== void 0) writer.uint32(88).int32(message.maxFramerate);
+			if (message.maxBitrateBps !== void 0) writer.uint32(96).int32(message.maxBitrateBps);
+			if (message.is10BitSupported !== void 0) writer.uint32(120).bool(message.is10BitSupported);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseMediaCapabilities_VideoFormatCapability();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 8) break;
-						message.videoCodec = reader.int32();
-						continue;
-					case 3:
-						if (tag !== 24) break;
-						message.maxHeight = reader.int32();
-						continue;
-					case 4:
-						if (tag !== 32) break;
-						message.maxWidth = reader.int32();
-						continue;
-					case 11:
-						if (tag !== 88) break;
-						message.maxFramerate = reader.int32();
-						continue;
-					case 12:
-						if (tag !== 96) break;
-						message.maxBitrateBps = reader.int32();
-						continue;
-					case 15:
-						if (tag !== 120) break;
-						message.is10BitSupported = reader.bool();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseMediaCapabilities_VideoFormatCapability();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 8) break;
+							message.videoCodec = reader.int32();
+							continue;
+						case 2:
+							if (tag !== 16) break;
+							message.efficient = reader.bool();
+							continue;
+						case 3:
+							if (tag !== 24) break;
+							message.maxHeight = reader.int32();
+							continue;
+						case 4:
+							if (tag !== 32) break;
+							message.maxWidth = reader.int32();
+							continue;
+						case 11:
+							if (tag !== 88) break;
+							message.maxFramerate = reader.int32();
+							continue;
+						case 12:
+							if (tag !== 96) break;
+							message.maxBitrateBps = reader.int32();
+							continue;
+						case 15:
+							if (tag !== 120) break;
+							message.is10BitSupported = reader.bool();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
 	function createBaseMediaCapabilities_AudioFormatCapability() {
 		return {
-			audioCodec: 0,
-			numChannels: 0,
-			maxBitrateBps: 0,
-			spatialCapabilityBitmask: 0
+			audioCodec: void 0,
+			numChannels: void 0,
+			maxBitrateBps: void 0,
+			spatialCapabilityBitmask: void 0
 		};
 	}
 	var MediaCapabilities_AudioFormatCapability = {
 		encode(message, writer = new BinaryWriter()) {
-			if (message.audioCodec !== void 0 && message.audioCodec !== 0) writer.uint32(8).int32(message.audioCodec);
-			if (message.numChannels !== void 0 && message.numChannels !== 0) writer.uint32(16).int32(message.numChannels);
-			if (message.maxBitrateBps !== void 0 && message.maxBitrateBps !== 0) writer.uint32(24).int32(message.maxBitrateBps);
-			if (message.spatialCapabilityBitmask !== void 0 && message.spatialCapabilityBitmask !== 0) writer.uint32(48).int32(message.spatialCapabilityBitmask);
+			if (message.audioCodec !== void 0) writer.uint32(8).int32(message.audioCodec);
+			if (message.numChannels !== void 0) writer.uint32(16).int32(message.numChannels);
+			if (message.maxBitrateBps !== void 0) writer.uint32(24).int32(message.maxBitrateBps);
+			if (message.spatialCapabilityBitmask !== void 0) writer.uint32(48).int32(message.spatialCapabilityBitmask);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseMediaCapabilities_AudioFormatCapability();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 8) break;
-						message.audioCodec = reader.int32();
-						continue;
-					case 2:
-						if (tag !== 16) break;
-						message.numChannels = reader.int32();
-						continue;
-					case 3:
-						if (tag !== 24) break;
-						message.maxBitrateBps = reader.int32();
-						continue;
-					case 6:
-						if (tag !== 48) break;
-						message.spatialCapabilityBitmask = reader.int32();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseMediaCapabilities_AudioFormatCapability();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 8) break;
+							message.audioCodec = reader.int32();
+							continue;
+						case 2:
+							if (tag !== 16) break;
+							message.numChannels = reader.int32();
+							continue;
+						case 3:
+							if (tag !== 24) break;
+							message.maxBitrateBps = reader.int32();
+							continue;
+						case 6:
+							if (tag !== 48) break;
+							message.spatialCapabilityBitmask = reader.int32();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
-	//#endregion
-	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/playback_cookie.js
-	function createBasePlaybackCookie() {
-		return {
-			resolution: 0,
-			field2: 0,
-			videoFmt: void 0,
-			audioFmt: void 0
-		};
-	}
-	var PlaybackCookie = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.resolution !== void 0 && message.resolution !== 0) writer.uint32(8).int32(message.resolution);
-			if (message.field2 !== void 0 && message.field2 !== 0) writer.uint32(16).int32(message.field2);
-			if (message.videoFmt !== void 0) FormatId.encode(message.videoFmt, writer.uint32(58).fork()).join();
-			if (message.audioFmt !== void 0) FormatId.encode(message.audioFmt, writer.uint32(66).fork()).join();
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBasePlaybackCookie();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 8) break;
-						message.resolution = reader.int32();
-						continue;
-					case 2:
-						if (tag !== 16) break;
-						message.field2 = reader.int32();
-						continue;
-					case 7:
-						if (tag !== 58) break;
-						message.videoFmt = FormatId.decode(reader, reader.uint32());
-						continue;
-					case 8:
-						if (tag !== 66) break;
-						message.audioFmt = FormatId.decode(reader, reader.uint32());
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		}
-	};
-	//#endregion
-	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/client_abr_state.js
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/client_abr_state.js
 	function createBaseClientAbrState() {
 		return {
-			timeSinceLastManualFormatSelectionMs: "0",
-			lastManualDirection: 0,
-			lastManualSelectedResolution: 0,
-			detailedNetworkType: 0,
-			clientViewportWidth: 0,
-			clientViewportHeight: 0,
-			clientBitrateCapBytesPerSec: "0",
-			stickyResolution: 0,
-			clientViewportIsFlexible: false,
-			bandwidthEstimate: "0",
-			minAudioQuality: 0,
-			maxAudioQuality: 0,
-			videoQualitySetting: 0,
-			audioRoute: 0,
-			playerTimeMs: "0",
-			timeSinceLastSeek: "0",
-			dataSaverMode: false,
-			networkMeteredState: 0,
-			visibility: 0,
-			playbackRate: 0,
-			elapsedWallTimeMs: "0",
+			timeSinceLastManualFormatSelectionMs: void 0,
+			lastManualDirection: void 0,
+			lastManualSelectedResolution: void 0,
+			detailedNetworkType: void 0,
+			clientViewportWidth: void 0,
+			clientViewportHeight: void 0,
+			clientBitrateCapBytesPerSec: void 0,
+			stickyResolution: void 0,
+			clientViewportIsFlexible: void 0,
+			bandwidthEstimate: void 0,
+			minAudioQuality: void 0,
+			maxAudioQuality: void 0,
+			videoQualitySetting: void 0,
+			audioRoute: void 0,
+			playerTimeMs: void 0,
+			timeSinceLastSeek: void 0,
+			dataSaverMode: void 0,
+			networkMeteredState: void 0,
+			visibility: void 0,
+			playbackRate: void 0,
+			elapsedWallTimeMs: void 0,
 			mediaCapabilities: void 0,
-			timeSinceLastActionMs: "0",
-			enabledTrackTypesBitfield: 0,
-			maxPacingRate: 0,
-			playerState: "0",
-			drcEnabled: false,
-			field48: 0,
-			field50: 0,
-			field51: 0,
-			sabrReportRequestCancellationInfo: 0,
-			disableStreamingXhr: false,
-			field57: "0",
-			preferVp9: false,
-			av1QualityThreshold: 0,
-			field60: 0,
-			isPrefetch: false,
-			sabrSupportQualityConstraints: false,
-			sabrLicenseConstraint: new Uint8Array(0),
-			allowProximaLiveLatency: 0,
-			sabrForceProxima: 0,
-			field67: 0,
-			sabrForceMaxNetworkInterruptionDurationMs: "0",
-			audioTrackId: "",
-			enableVoiceBoost: false,
-			playbackAuthorization: void 0
+			timeSinceLastActionMs: void 0,
+			enabledTrackTypesBitfield: void 0,
+			maxPacingRate: void 0,
+			playerState: void 0,
+			drcEnabled: void 0,
+			field48: void 0,
+			field50: void 0,
+			field51: void 0,
+			sabrReportRequestCancellationInfo: void 0,
+			disableStreamingXhr: void 0,
+			field57: void 0,
+			preferVp9: void 0,
+			av1QualityThreshold: void 0,
+			field60: void 0,
+			isPrefetch: void 0,
+			sabrSupportQualityConstraints: void 0,
+			sabrLicenseConstraint: void 0,
+			allowProximaLiveLatency: void 0,
+			sabrForceProxima: void 0,
+			field67: void 0,
+			sabrForceMaxNetworkInterruptionDurationMs: void 0,
+			audioTrackId: void 0,
+			enableSabrHostFallback: void 0,
+			enableVoiceBoost: void 0,
+			playbackAuthorization: void 0,
+			unknownField80: void 0,
+			supportsChangeType: void 0,
+			unknownField86: void 0
 		};
 	}
 	var ClientAbrState = {
 		encode(message, writer = new BinaryWriter()) {
-			if (message.timeSinceLastManualFormatSelectionMs !== void 0 && message.timeSinceLastManualFormatSelectionMs !== "0") writer.uint32(104).int64(message.timeSinceLastManualFormatSelectionMs);
-			if (message.lastManualDirection !== void 0 && message.lastManualDirection !== 0) writer.uint32(112).sint32(message.lastManualDirection);
-			if (message.lastManualSelectedResolution !== void 0 && message.lastManualSelectedResolution !== 0) writer.uint32(128).int32(message.lastManualSelectedResolution);
-			if (message.detailedNetworkType !== void 0 && message.detailedNetworkType !== 0) writer.uint32(136).int32(message.detailedNetworkType);
-			if (message.clientViewportWidth !== void 0 && message.clientViewportWidth !== 0) writer.uint32(144).int32(message.clientViewportWidth);
-			if (message.clientViewportHeight !== void 0 && message.clientViewportHeight !== 0) writer.uint32(152).int32(message.clientViewportHeight);
-			if (message.clientBitrateCapBytesPerSec !== void 0 && message.clientBitrateCapBytesPerSec !== "0") writer.uint32(160).int64(message.clientBitrateCapBytesPerSec);
-			if (message.stickyResolution !== void 0 && message.stickyResolution !== 0) writer.uint32(168).int32(message.stickyResolution);
-			if (message.clientViewportIsFlexible !== void 0 && message.clientViewportIsFlexible !== false) writer.uint32(176).bool(message.clientViewportIsFlexible);
-			if (message.bandwidthEstimate !== void 0 && message.bandwidthEstimate !== "0") writer.uint32(184).int64(message.bandwidthEstimate);
-			if (message.minAudioQuality !== void 0 && message.minAudioQuality !== 0) writer.uint32(192).int32(message.minAudioQuality);
-			if (message.maxAudioQuality !== void 0 && message.maxAudioQuality !== 0) writer.uint32(200).int32(message.maxAudioQuality);
-			if (message.videoQualitySetting !== void 0 && message.videoQualitySetting !== 0) writer.uint32(208).int32(message.videoQualitySetting);
-			if (message.audioRoute !== void 0 && message.audioRoute !== 0) writer.uint32(216).int32(message.audioRoute);
-			if (message.playerTimeMs !== void 0 && message.playerTimeMs !== "0") writer.uint32(224).int64(message.playerTimeMs);
-			if (message.timeSinceLastSeek !== void 0 && message.timeSinceLastSeek !== "0") writer.uint32(232).int64(message.timeSinceLastSeek);
-			if (message.dataSaverMode !== void 0 && message.dataSaverMode !== false) writer.uint32(240).bool(message.dataSaverMode);
-			if (message.networkMeteredState !== void 0 && message.networkMeteredState !== 0) writer.uint32(256).int32(message.networkMeteredState);
-			if (message.visibility !== void 0 && message.visibility !== 0) writer.uint32(272).int32(message.visibility);
-			if (message.playbackRate !== void 0 && message.playbackRate !== 0) writer.uint32(285).float(message.playbackRate);
-			if (message.elapsedWallTimeMs !== void 0 && message.elapsedWallTimeMs !== "0") writer.uint32(288).int64(message.elapsedWallTimeMs);
+			if (message.timeSinceLastManualFormatSelectionMs !== void 0) writer.uint32(104).int64(message.timeSinceLastManualFormatSelectionMs);
+			if (message.lastManualDirection !== void 0) writer.uint32(112).sint32(message.lastManualDirection);
+			if (message.lastManualSelectedResolution !== void 0) writer.uint32(128).int32(message.lastManualSelectedResolution);
+			if (message.detailedNetworkType !== void 0) writer.uint32(136).int32(message.detailedNetworkType);
+			if (message.clientViewportWidth !== void 0) writer.uint32(144).int32(message.clientViewportWidth);
+			if (message.clientViewportHeight !== void 0) writer.uint32(152).int32(message.clientViewportHeight);
+			if (message.clientBitrateCapBytesPerSec !== void 0) writer.uint32(160).int64(message.clientBitrateCapBytesPerSec);
+			if (message.stickyResolution !== void 0) writer.uint32(168).int32(message.stickyResolution);
+			if (message.clientViewportIsFlexible !== void 0) writer.uint32(176).bool(message.clientViewportIsFlexible);
+			if (message.bandwidthEstimate !== void 0) writer.uint32(184).int64(message.bandwidthEstimate);
+			if (message.minAudioQuality !== void 0) writer.uint32(192).int32(message.minAudioQuality);
+			if (message.maxAudioQuality !== void 0) writer.uint32(200).int32(message.maxAudioQuality);
+			if (message.videoQualitySetting !== void 0) writer.uint32(208).int32(message.videoQualitySetting);
+			if (message.audioRoute !== void 0) writer.uint32(216).int32(message.audioRoute);
+			if (message.playerTimeMs !== void 0) writer.uint32(224).int64(message.playerTimeMs);
+			if (message.timeSinceLastSeek !== void 0) writer.uint32(232).int64(message.timeSinceLastSeek);
+			if (message.dataSaverMode !== void 0) writer.uint32(240).bool(message.dataSaverMode);
+			if (message.networkMeteredState !== void 0) writer.uint32(256).int32(message.networkMeteredState);
+			if (message.visibility !== void 0) writer.uint32(272).int32(message.visibility);
+			if (message.playbackRate !== void 0) writer.uint32(285).float(message.playbackRate);
+			if (message.elapsedWallTimeMs !== void 0) writer.uint32(288).int64(message.elapsedWallTimeMs);
 			if (message.mediaCapabilities !== void 0) MediaCapabilities.encode(message.mediaCapabilities, writer.uint32(306).fork()).join();
-			if (message.timeSinceLastActionMs !== void 0 && message.timeSinceLastActionMs !== "0") writer.uint32(312).int64(message.timeSinceLastActionMs);
-			if (message.enabledTrackTypesBitfield !== void 0 && message.enabledTrackTypesBitfield !== 0) writer.uint32(320).int32(message.enabledTrackTypesBitfield);
-			if (message.maxPacingRate !== void 0 && message.maxPacingRate !== 0) writer.uint32(344).int32(message.maxPacingRate);
-			if (message.playerState !== void 0 && message.playerState !== "0") writer.uint32(352).int64(message.playerState);
-			if (message.drcEnabled !== void 0 && message.drcEnabled !== false) writer.uint32(368).bool(message.drcEnabled);
-			if (message.field48 !== void 0 && message.field48 !== 0) writer.uint32(384).int32(message.field48);
-			if (message.field50 !== void 0 && message.field50 !== 0) writer.uint32(400).int32(message.field50);
-			if (message.field51 !== void 0 && message.field51 !== 0) writer.uint32(408).int32(message.field51);
-			if (message.sabrReportRequestCancellationInfo !== void 0 && message.sabrReportRequestCancellationInfo !== 0) writer.uint32(432).int32(message.sabrReportRequestCancellationInfo);
-			if (message.disableStreamingXhr !== void 0 && message.disableStreamingXhr !== false) writer.uint32(448).bool(message.disableStreamingXhr);
-			if (message.field57 !== void 0 && message.field57 !== "0") writer.uint32(456).int64(message.field57);
-			if (message.preferVp9 !== void 0 && message.preferVp9 !== false) writer.uint32(464).bool(message.preferVp9);
-			if (message.av1QualityThreshold !== void 0 && message.av1QualityThreshold !== 0) writer.uint32(472).int32(message.av1QualityThreshold);
-			if (message.field60 !== void 0 && message.field60 !== 0) writer.uint32(480).int32(message.field60);
-			if (message.isPrefetch !== void 0 && message.isPrefetch !== false) writer.uint32(488).bool(message.isPrefetch);
-			if (message.sabrSupportQualityConstraints !== void 0 && message.sabrSupportQualityConstraints !== false) writer.uint32(496).bool(message.sabrSupportQualityConstraints);
-			if (message.sabrLicenseConstraint !== void 0 && message.sabrLicenseConstraint.length !== 0) writer.uint32(506).bytes(message.sabrLicenseConstraint);
-			if (message.allowProximaLiveLatency !== void 0 && message.allowProximaLiveLatency !== 0) writer.uint32(512).int32(message.allowProximaLiveLatency);
-			if (message.sabrForceProxima !== void 0 && message.sabrForceProxima !== 0) writer.uint32(528).int32(message.sabrForceProxima);
-			if (message.field67 !== void 0 && message.field67 !== 0) writer.uint32(536).int32(message.field67);
-			if (message.sabrForceMaxNetworkInterruptionDurationMs !== void 0 && message.sabrForceMaxNetworkInterruptionDurationMs !== "0") writer.uint32(544).int64(message.sabrForceMaxNetworkInterruptionDurationMs);
-			if (message.audioTrackId !== void 0 && message.audioTrackId !== "") writer.uint32(554).string(message.audioTrackId);
-			if (message.enableVoiceBoost !== void 0 && message.enableVoiceBoost !== false) writer.uint32(608).bool(message.enableVoiceBoost);
+			if (message.timeSinceLastActionMs !== void 0) writer.uint32(312).int64(message.timeSinceLastActionMs);
+			if (message.enabledTrackTypesBitfield !== void 0) writer.uint32(320).int32(message.enabledTrackTypesBitfield);
+			if (message.maxPacingRate !== void 0) writer.uint32(344).int32(message.maxPacingRate);
+			if (message.playerState !== void 0) writer.uint32(352).int64(message.playerState);
+			if (message.drcEnabled !== void 0) writer.uint32(368).bool(message.drcEnabled);
+			if (message.field48 !== void 0) writer.uint32(384).int32(message.field48);
+			if (message.field50 !== void 0) writer.uint32(400).int32(message.field50);
+			if (message.field51 !== void 0) writer.uint32(408).int32(message.field51);
+			if (message.sabrReportRequestCancellationInfo !== void 0) writer.uint32(432).int32(message.sabrReportRequestCancellationInfo);
+			if (message.disableStreamingXhr !== void 0) writer.uint32(448).bool(message.disableStreamingXhr);
+			if (message.field57 !== void 0) writer.uint32(456).int64(message.field57);
+			if (message.preferVp9 !== void 0) writer.uint32(464).bool(message.preferVp9);
+			if (message.av1QualityThreshold !== void 0) writer.uint32(472).int32(message.av1QualityThreshold);
+			if (message.field60 !== void 0) writer.uint32(480).int32(message.field60);
+			if (message.isPrefetch !== void 0) writer.uint32(488).bool(message.isPrefetch);
+			if (message.sabrSupportQualityConstraints !== void 0) writer.uint32(496).bool(message.sabrSupportQualityConstraints);
+			if (message.sabrLicenseConstraint !== void 0) writer.uint32(506).bytes(message.sabrLicenseConstraint);
+			if (message.allowProximaLiveLatency !== void 0) writer.uint32(512).int32(message.allowProximaLiveLatency);
+			if (message.sabrForceProxima !== void 0) writer.uint32(528).int32(message.sabrForceProxima);
+			if (message.field67 !== void 0) writer.uint32(536).int32(message.field67);
+			if (message.sabrForceMaxNetworkInterruptionDurationMs !== void 0) writer.uint32(544).int64(message.sabrForceMaxNetworkInterruptionDurationMs);
+			if (message.audioTrackId !== void 0) writer.uint32(554).string(message.audioTrackId);
+			if (message.enableSabrHostFallback !== void 0) writer.uint32(568).bool(message.enableSabrHostFallback);
+			if (message.enableVoiceBoost !== void 0) writer.uint32(608).bool(message.enableVoiceBoost);
 			if (message.playbackAuthorization !== void 0) PlaybackAuthorization.encode(message.playbackAuthorization, writer.uint32(634).fork()).join();
+			if (message.unknownField80 !== void 0) writer.uint32(640).int32(message.unknownField80);
+			if (message.supportsChangeType !== void 0) writer.uint32(680).bool(message.supportsChangeType);
+			if (message.unknownField86 !== void 0) writer.uint32(688).bool(message.unknownField86);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseClientAbrState();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 13:
-						if (tag !== 104) break;
-						message.timeSinceLastManualFormatSelectionMs = reader.int64().toString();
-						continue;
-					case 14:
-						if (tag !== 112) break;
-						message.lastManualDirection = reader.sint32();
-						continue;
-					case 16:
-						if (tag !== 128) break;
-						message.lastManualSelectedResolution = reader.int32();
-						continue;
-					case 17:
-						if (tag !== 136) break;
-						message.detailedNetworkType = reader.int32();
-						continue;
-					case 18:
-						if (tag !== 144) break;
-						message.clientViewportWidth = reader.int32();
-						continue;
-					case 19:
-						if (tag !== 152) break;
-						message.clientViewportHeight = reader.int32();
-						continue;
-					case 20:
-						if (tag !== 160) break;
-						message.clientBitrateCapBytesPerSec = reader.int64().toString();
-						continue;
-					case 21:
-						if (tag !== 168) break;
-						message.stickyResolution = reader.int32();
-						continue;
-					case 22:
-						if (tag !== 176) break;
-						message.clientViewportIsFlexible = reader.bool();
-						continue;
-					case 23:
-						if (tag !== 184) break;
-						message.bandwidthEstimate = reader.int64().toString();
-						continue;
-					case 24:
-						if (tag !== 192) break;
-						message.minAudioQuality = reader.int32();
-						continue;
-					case 25:
-						if (tag !== 200) break;
-						message.maxAudioQuality = reader.int32();
-						continue;
-					case 26:
-						if (tag !== 208) break;
-						message.videoQualitySetting = reader.int32();
-						continue;
-					case 27:
-						if (tag !== 216) break;
-						message.audioRoute = reader.int32();
-						continue;
-					case 28:
-						if (tag !== 224) break;
-						message.playerTimeMs = reader.int64().toString();
-						continue;
-					case 29:
-						if (tag !== 232) break;
-						message.timeSinceLastSeek = reader.int64().toString();
-						continue;
-					case 30:
-						if (tag !== 240) break;
-						message.dataSaverMode = reader.bool();
-						continue;
-					case 32:
-						if (tag !== 256) break;
-						message.networkMeteredState = reader.int32();
-						continue;
-					case 34:
-						if (tag !== 272) break;
-						message.visibility = reader.int32();
-						continue;
-					case 35:
-						if (tag !== 285) break;
-						message.playbackRate = reader.float();
-						continue;
-					case 36:
-						if (tag !== 288) break;
-						message.elapsedWallTimeMs = reader.int64().toString();
-						continue;
-					case 38:
-						if (tag !== 306) break;
-						message.mediaCapabilities = MediaCapabilities.decode(reader, reader.uint32());
-						continue;
-					case 39:
-						if (tag !== 312) break;
-						message.timeSinceLastActionMs = reader.int64().toString();
-						continue;
-					case 40:
-						if (tag !== 320) break;
-						message.enabledTrackTypesBitfield = reader.int32();
-						continue;
-					case 43:
-						if (tag !== 344) break;
-						message.maxPacingRate = reader.int32();
-						continue;
-					case 44:
-						if (tag !== 352) break;
-						message.playerState = reader.int64().toString();
-						continue;
-					case 46:
-						if (tag !== 368) break;
-						message.drcEnabled = reader.bool();
-						continue;
-					case 48:
-						if (tag !== 384) break;
-						message.field48 = reader.int32();
-						continue;
-					case 50:
-						if (tag !== 400) break;
-						message.field50 = reader.int32();
-						continue;
-					case 51:
-						if (tag !== 408) break;
-						message.field51 = reader.int32();
-						continue;
-					case 54:
-						if (tag !== 432) break;
-						message.sabrReportRequestCancellationInfo = reader.int32();
-						continue;
-					case 56:
-						if (tag !== 448) break;
-						message.disableStreamingXhr = reader.bool();
-						continue;
-					case 57:
-						if (tag !== 456) break;
-						message.field57 = reader.int64().toString();
-						continue;
-					case 58:
-						if (tag !== 464) break;
-						message.preferVp9 = reader.bool();
-						continue;
-					case 59:
-						if (tag !== 472) break;
-						message.av1QualityThreshold = reader.int32();
-						continue;
-					case 60:
-						if (tag !== 480) break;
-						message.field60 = reader.int32();
-						continue;
-					case 61:
-						if (tag !== 488) break;
-						message.isPrefetch = reader.bool();
-						continue;
-					case 62:
-						if (tag !== 496) break;
-						message.sabrSupportQualityConstraints = reader.bool();
-						continue;
-					case 63:
-						if (tag !== 506) break;
-						message.sabrLicenseConstraint = reader.bytes();
-						continue;
-					case 64:
-						if (tag !== 512) break;
-						message.allowProximaLiveLatency = reader.int32();
-						continue;
-					case 66:
-						if (tag !== 528) break;
-						message.sabrForceProxima = reader.int32();
-						continue;
-					case 67:
-						if (tag !== 536) break;
-						message.field67 = reader.int32();
-						continue;
-					case 68:
-						if (tag !== 544) break;
-						message.sabrForceMaxNetworkInterruptionDurationMs = reader.int64().toString();
-						continue;
-					case 69:
-						if (tag !== 554) break;
-						message.audioTrackId = reader.string();
-						continue;
-					case 76:
-						if (tag !== 608) break;
-						message.enableVoiceBoost = reader.bool();
-						continue;
-					case 79:
-						if (tag !== 634) break;
-						message.playbackAuthorization = PlaybackAuthorization.decode(reader, reader.uint32());
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseClientAbrState();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 13:
+							if (tag !== 104) break;
+							message.timeSinceLastManualFormatSelectionMs = reader.int64().toString();
+							continue;
+						case 14:
+							if (tag !== 112) break;
+							message.lastManualDirection = reader.sint32();
+							continue;
+						case 16:
+							if (tag !== 128) break;
+							message.lastManualSelectedResolution = reader.int32();
+							continue;
+						case 17:
+							if (tag !== 136) break;
+							message.detailedNetworkType = reader.int32();
+							continue;
+						case 18:
+							if (tag !== 144) break;
+							message.clientViewportWidth = reader.int32();
+							continue;
+						case 19:
+							if (tag !== 152) break;
+							message.clientViewportHeight = reader.int32();
+							continue;
+						case 20:
+							if (tag !== 160) break;
+							message.clientBitrateCapBytesPerSec = reader.int64().toString();
+							continue;
+						case 21:
+							if (tag !== 168) break;
+							message.stickyResolution = reader.int32();
+							continue;
+						case 22:
+							if (tag !== 176) break;
+							message.clientViewportIsFlexible = reader.bool();
+							continue;
+						case 23:
+							if (tag !== 184) break;
+							message.bandwidthEstimate = reader.int64().toString();
+							continue;
+						case 24:
+							if (tag !== 192) break;
+							message.minAudioQuality = reader.int32();
+							continue;
+						case 25:
+							if (tag !== 200) break;
+							message.maxAudioQuality = reader.int32();
+							continue;
+						case 26:
+							if (tag !== 208) break;
+							message.videoQualitySetting = reader.int32();
+							continue;
+						case 27:
+							if (tag !== 216) break;
+							message.audioRoute = reader.int32();
+							continue;
+						case 28:
+							if (tag !== 224) break;
+							message.playerTimeMs = reader.int64().toString();
+							continue;
+						case 29:
+							if (tag !== 232) break;
+							message.timeSinceLastSeek = reader.int64().toString();
+							continue;
+						case 30:
+							if (tag !== 240) break;
+							message.dataSaverMode = reader.bool();
+							continue;
+						case 32:
+							if (tag !== 256) break;
+							message.networkMeteredState = reader.int32();
+							continue;
+						case 34:
+							if (tag !== 272) break;
+							message.visibility = reader.int32();
+							continue;
+						case 35:
+							if (tag !== 285) break;
+							message.playbackRate = reader.float();
+							continue;
+						case 36:
+							if (tag !== 288) break;
+							message.elapsedWallTimeMs = reader.int64().toString();
+							continue;
+						case 38:
+							if (tag !== 306) break;
+							message.mediaCapabilities = MediaCapabilities.decode(reader, reader.uint32());
+							continue;
+						case 39:
+							if (tag !== 312) break;
+							message.timeSinceLastActionMs = reader.int64().toString();
+							continue;
+						case 40:
+							if (tag !== 320) break;
+							message.enabledTrackTypesBitfield = reader.int32();
+							continue;
+						case 43:
+							if (tag !== 344) break;
+							message.maxPacingRate = reader.int32();
+							continue;
+						case 44:
+							if (tag !== 352) break;
+							message.playerState = reader.int64().toString();
+							continue;
+						case 46:
+							if (tag !== 368) break;
+							message.drcEnabled = reader.bool();
+							continue;
+						case 48:
+							if (tag !== 384) break;
+							message.field48 = reader.int32();
+							continue;
+						case 50:
+							if (tag !== 400) break;
+							message.field50 = reader.int32();
+							continue;
+						case 51:
+							if (tag !== 408) break;
+							message.field51 = reader.int32();
+							continue;
+						case 54:
+							if (tag !== 432) break;
+							message.sabrReportRequestCancellationInfo = reader.int32();
+							continue;
+						case 56:
+							if (tag !== 448) break;
+							message.disableStreamingXhr = reader.bool();
+							continue;
+						case 57:
+							if (tag !== 456) break;
+							message.field57 = reader.int64().toString();
+							continue;
+						case 58:
+							if (tag !== 464) break;
+							message.preferVp9 = reader.bool();
+							continue;
+						case 59:
+							if (tag !== 472) break;
+							message.av1QualityThreshold = reader.int32();
+							continue;
+						case 60:
+							if (tag !== 480) break;
+							message.field60 = reader.int32();
+							continue;
+						case 61:
+							if (tag !== 488) break;
+							message.isPrefetch = reader.bool();
+							continue;
+						case 62:
+							if (tag !== 496) break;
+							message.sabrSupportQualityConstraints = reader.bool();
+							continue;
+						case 63:
+							if (tag !== 506) break;
+							message.sabrLicenseConstraint = reader.bytes();
+							continue;
+						case 64:
+							if (tag !== 512) break;
+							message.allowProximaLiveLatency = reader.int32();
+							continue;
+						case 66:
+							if (tag !== 528) break;
+							message.sabrForceProxima = reader.int32();
+							continue;
+						case 67:
+							if (tag !== 536) break;
+							message.field67 = reader.int32();
+							continue;
+						case 68:
+							if (tag !== 544) break;
+							message.sabrForceMaxNetworkInterruptionDurationMs = reader.int64().toString();
+							continue;
+						case 69:
+							if (tag !== 554) break;
+							message.audioTrackId = reader.string();
+							continue;
+						case 71:
+							if (tag !== 568) break;
+							message.enableSabrHostFallback = reader.bool();
+							continue;
+						case 76:
+							if (tag !== 608) break;
+							message.enableVoiceBoost = reader.bool();
+							continue;
+						case 79:
+							if (tag !== 634) break;
+							message.playbackAuthorization = PlaybackAuthorization.decode(reader, reader.uint32());
+							continue;
+						case 80:
+							if (tag !== 640) break;
+							message.unknownField80 = reader.int32();
+							continue;
+						case 85:
+							if (tag !== 680) break;
+							message.supportsChangeType = reader.bool();
+							continue;
+						case 86:
+							if (tag !== 688) break;
+							message.unknownField86 = reader.bool();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
-	//#endregion
-	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/streamer_context.js
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/ssap_playback_info.js
+	var SsapPlaybackInfo_AdState = {
+		UNKNOWN: 0,
+		0: "UNKNOWN",
+		TIMEOUT: 1,
+		1: "TIMEOUT",
+		RATECONTROL: 2,
+		2: "RATECONTROL",
+		RATECONTROL_CLIENT: 11,
+		11: "RATECONTROL_CLIENT",
+		SERVER_ERROR: 3,
+		3: "SERVER_ERROR",
+		DELETED: 4,
+		4: "DELETED",
+		WAITING: 5,
+		5: "WAITING",
+		READY: 6,
+		6: "READY",
+		SSDISABLED: 7,
+		7: "SSDISABLED",
+		SSDISABLED_USTREAMER: 9,
+		9: "SSDISABLED_USTREAMER",
+		SSDISABLED_NO_CONFIG: 10,
+		10: "SSDISABLED_NO_CONFIG",
+		NO_DAI_CONFIG_RETURNED_IN_GAB: 12,
+		12: "NO_DAI_CONFIG_RETURNED_IN_GAB",
+		INACTIVE: 8,
+		8: "INACTIVE",
+		CACHE_MISS: 13,
+		13: "CACHE_MISS",
+		UNRECOGNIZED: -1,
+		"-1": "UNRECOGNIZED"
+	};
+	function createBaseSsapPlaybackInfo() {
+		return {
+			adCpns: [],
+			adsConfig: void 0,
+			daiState: void 0,
+			skipSequence: void 0,
+			unknownField5: void 0,
+			unknownField6: void 0,
+			cuepointId: void 0,
+			state: void 0,
+			tileContext: void 0,
+			startTimeMs: void 0,
+			durationMs: void 0
+		};
+	}
+	var SsapPlaybackInfo = {
+		encode(message, writer = new BinaryWriter()) {
+			for (const v of message.adCpns) writer.uint32(10).string(v);
+			if (message.adsConfig !== void 0) writer.uint32(18).bytes(message.adsConfig);
+			if (message.daiState !== void 0) writer.uint32(26).string(message.daiState);
+			if (message.skipSequence !== void 0) writer.uint32(32).int32(message.skipSequence);
+			if (message.unknownField5 !== void 0) writer.uint32(40).int32(message.unknownField5);
+			if (message.unknownField6 !== void 0) writer.uint32(50).string(message.unknownField6);
+			if (message.cuepointId !== void 0) writer.uint32(58).string(message.cuepointId);
+			if (message.state !== void 0) writer.uint32(64).int32(message.state);
+			if (message.tileContext !== void 0) writer.uint32(74).string(message.tileContext);
+			if (message.startTimeMs !== void 0) writer.uint32(80).int64(message.startTimeMs);
+			if (message.durationMs !== void 0) writer.uint32(88).int64(message.durationMs);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseSsapPlaybackInfo();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.adCpns.push(reader.string());
+							continue;
+						case 2:
+							if (tag !== 18) break;
+							message.adsConfig = reader.bytes();
+							continue;
+						case 3:
+							if (tag !== 26) break;
+							message.daiState = reader.string();
+							continue;
+						case 4:
+							if (tag !== 32) break;
+							message.skipSequence = reader.int32();
+							continue;
+						case 5:
+							if (tag !== 40) break;
+							message.unknownField5 = reader.int32();
+							continue;
+						case 6:
+							if (tag !== 50) break;
+							message.unknownField6 = reader.string();
+							continue;
+						case 7:
+							if (tag !== 58) break;
+							message.cuepointId = reader.string();
+							continue;
+						case 8:
+							if (tag !== 64) break;
+							message.state = reader.int32();
+							continue;
+						case 9:
+							if (tag !== 74) break;
+							message.tileContext = reader.string();
+							continue;
+						case 10:
+							if (tag !== 80) break;
+							message.startTimeMs = reader.int64().toString();
+							continue;
+						case 11:
+							if (tag !== 88) break;
+							message.durationMs = reader.int64().toString();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
+				}
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
+			}
+		}
+	};
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/streamer_context.js
 	function createBaseStreamerContext() {
 		return {
 			clientInfo: void 0,
-			poToken: new Uint8Array(0),
-			playbackCookie: new Uint8Array(0),
-			field4: new Uint8Array(0),
+			poToken: void 0,
+			playbackCookie: void 0,
+			field4: void 0,
 			sabrContexts: [],
 			unsentSabrContexts: [],
-			field7: "",
+			field7: void 0,
 			field8: void 0
 		};
 	}
 	var StreamerContext = {
 		encode(message, writer = new BinaryWriter()) {
 			if (message.clientInfo !== void 0) StreamerContext_ClientInfo.encode(message.clientInfo, writer.uint32(10).fork()).join();
-			if (message.poToken !== void 0 && message.poToken.length !== 0) writer.uint32(18).bytes(message.poToken);
-			if (message.playbackCookie !== void 0 && message.playbackCookie.length !== 0) writer.uint32(26).bytes(message.playbackCookie);
-			if (message.field4 !== void 0 && message.field4.length !== 0) writer.uint32(34).bytes(message.field4);
+			if (message.poToken !== void 0) writer.uint32(18).bytes(message.poToken);
+			if (message.playbackCookie !== void 0) writer.uint32(26).bytes(message.playbackCookie);
+			if (message.field4 !== void 0) writer.uint32(34).bytes(message.field4);
 			for (const v of message.sabrContexts) StreamerContext_SabrContext.encode(v, writer.uint32(42).fork()).join();
-			writer.uint32(50).fork();
-			for (const v of message.unsentSabrContexts) writer.int32(v);
-			writer.join();
-			if (message.field7 !== void 0 && message.field7 !== "") writer.uint32(58).string(message.field7);
+			for (const v of message.unsentSabrContexts) writer.uint32(48).int32(v);
+			if (message.field7 !== void 0) writer.uint32(58).string(message.field7);
 			if (message.field8 !== void 0) StreamerContext_UnknownMessage1.encode(message.field8, writer.uint32(66).fork()).join();
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseStreamerContext();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.clientInfo = StreamerContext_ClientInfo.decode(reader, reader.uint32());
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.poToken = reader.bytes();
-						continue;
-					case 3:
-						if (tag !== 26) break;
-						message.playbackCookie = reader.bytes();
-						continue;
-					case 4:
-						if (tag !== 34) break;
-						message.field4 = reader.bytes();
-						continue;
-					case 5:
-						if (tag !== 42) break;
-						message.sabrContexts.push(StreamerContext_SabrContext.decode(reader, reader.uint32()));
-						continue;
-					case 6:
-						if (tag === 48) {
-							message.unsentSabrContexts.push(reader.int32());
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseStreamerContext();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.clientInfo = StreamerContext_ClientInfo.decode(reader, reader.uint32());
 							continue;
-						}
-						if (tag === 50) {
-							const end2 = reader.uint32() + reader.pos;
-							while (reader.pos < end2) message.unsentSabrContexts.push(reader.int32());
+						case 2:
+							if (tag !== 18) break;
+							message.poToken = reader.bytes();
 							continue;
-						}
-						break;
-					case 7:
-						if (tag !== 58) break;
-						message.field7 = reader.string();
-						continue;
-					case 8:
-						if (tag !== 66) break;
-						message.field8 = StreamerContext_UnknownMessage1.decode(reader, reader.uint32());
-						continue;
+						case 3:
+							if (tag !== 26) break;
+							message.playbackCookie = reader.bytes();
+							continue;
+						case 4:
+							if (tag !== 34) break;
+							message.field4 = reader.bytes();
+							continue;
+						case 5:
+							if (tag !== 42) break;
+							message.sabrContexts.push(StreamerContext_SabrContext.decode(reader, reader.uint32()));
+							continue;
+						case 6:
+							if (tag === 48) {
+								message.unsentSabrContexts.push(reader.int32());
+								continue;
+							}
+							if (tag === 50) {
+								const end2 = reader.uint32() + reader.pos;
+								while (reader.pos < end2) message.unsentSabrContexts.push(reader.int32());
+								continue;
+							}
+							break;
+						case 7:
+							if (tag !== 58) break;
+							message.field7 = reader.string();
+							continue;
+						case 8:
+							if (tag !== 66) break;
+							message.field8 = StreamerContext_UnknownMessage1.decode(reader, reader.uint32());
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
 	function createBaseStreamerContext_ClientInfo() {
 		return {
-			deviceMake: "",
-			deviceModel: "",
-			clientName: 0,
-			clientVersion: "",
-			osName: "",
-			osVersion: "",
-			acceptLanguage: "",
-			acceptRegion: "",
-			screenWidthPoints: 0,
-			screenHeightPoints: 0,
-			screenWidthInches: 0,
-			screenHeightInches: 0,
-			screenPixelDensity: 0,
-			clientFormFactor: 0,
-			gmscoreVersionCode: 0,
-			windowWidthPoints: 0,
-			windowHeightPoints: 0,
-			androidSdkVersion: 0,
-			screenDensityFloat: 0,
-			utcOffsetMinutes: "0",
-			timeZone: "",
-			chipset: "",
-			glDeviceInfo: void 0
+			hl: void 0,
+			deviceMake: void 0,
+			deviceModel: void 0,
+			clientName: void 0,
+			clientVersion: void 0,
+			osName: void 0,
+			osVersion: void 0
 		};
 	}
 	var StreamerContext_ClientInfo = {
 		encode(message, writer = new BinaryWriter()) {
-			if (message.deviceMake !== void 0 && message.deviceMake !== "") writer.uint32(98).string(message.deviceMake);
-			if (message.deviceModel !== void 0 && message.deviceModel !== "") writer.uint32(106).string(message.deviceModel);
-			if (message.clientName !== void 0 && message.clientName !== 0) writer.uint32(128).int32(message.clientName);
-			if (message.clientVersion !== void 0 && message.clientVersion !== "") writer.uint32(138).string(message.clientVersion);
-			if (message.osName !== void 0 && message.osName !== "") writer.uint32(146).string(message.osName);
-			if (message.osVersion !== void 0 && message.osVersion !== "") writer.uint32(154).string(message.osVersion);
-			if (message.acceptLanguage !== void 0 && message.acceptLanguage !== "") writer.uint32(170).string(message.acceptLanguage);
-			if (message.acceptRegion !== void 0 && message.acceptRegion !== "") writer.uint32(178).string(message.acceptRegion);
-			if (message.screenWidthPoints !== void 0 && message.screenWidthPoints !== 0) writer.uint32(296).int32(message.screenWidthPoints);
-			if (message.screenHeightPoints !== void 0 && message.screenHeightPoints !== 0) writer.uint32(304).int32(message.screenHeightPoints);
-			if (message.screenWidthInches !== void 0 && message.screenWidthInches !== 0) writer.uint32(317).float(message.screenWidthInches);
-			if (message.screenHeightInches !== void 0 && message.screenHeightInches !== 0) writer.uint32(325).float(message.screenHeightInches);
-			if (message.screenPixelDensity !== void 0 && message.screenPixelDensity !== 0) writer.uint32(328).int32(message.screenPixelDensity);
-			if (message.clientFormFactor !== void 0 && message.clientFormFactor !== 0) writer.uint32(368).int32(message.clientFormFactor);
-			if (message.gmscoreVersionCode !== void 0 && message.gmscoreVersionCode !== 0) writer.uint32(400).int32(message.gmscoreVersionCode);
-			if (message.windowWidthPoints !== void 0 && message.windowWidthPoints !== 0) writer.uint32(440).int32(message.windowWidthPoints);
-			if (message.windowHeightPoints !== void 0 && message.windowHeightPoints !== 0) writer.uint32(448).int32(message.windowHeightPoints);
-			if (message.androidSdkVersion !== void 0 && message.androidSdkVersion !== 0) writer.uint32(512).int32(message.androidSdkVersion);
-			if (message.screenDensityFloat !== void 0 && message.screenDensityFloat !== 0) writer.uint32(525).float(message.screenDensityFloat);
-			if (message.utcOffsetMinutes !== void 0 && message.utcOffsetMinutes !== "0") writer.uint32(536).int64(message.utcOffsetMinutes);
-			if (message.timeZone !== void 0 && message.timeZone !== "") writer.uint32(642).string(message.timeZone);
-			if (message.chipset !== void 0 && message.chipset !== "") writer.uint32(738).string(message.chipset);
-			if (message.glDeviceInfo !== void 0) StreamerContext_GLDeviceInfo.encode(message.glDeviceInfo, writer.uint32(818).fork()).join();
+			if (message.hl !== void 0) writer.uint32(10).string(message.hl);
+			if (message.deviceMake !== void 0) writer.uint32(98).string(message.deviceMake);
+			if (message.deviceModel !== void 0) writer.uint32(106).string(message.deviceModel);
+			if (message.clientName !== void 0) writer.uint32(128).int32(message.clientName);
+			if (message.clientVersion !== void 0) writer.uint32(138).string(message.clientVersion);
+			if (message.osName !== void 0) writer.uint32(146).string(message.osName);
+			if (message.osVersion !== void 0) writer.uint32(154).string(message.osVersion);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseStreamerContext_ClientInfo();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 12:
-						if (tag !== 98) break;
-						message.deviceMake = reader.string();
-						continue;
-					case 13:
-						if (tag !== 106) break;
-						message.deviceModel = reader.string();
-						continue;
-					case 16:
-						if (tag !== 128) break;
-						message.clientName = reader.int32();
-						continue;
-					case 17:
-						if (tag !== 138) break;
-						message.clientVersion = reader.string();
-						continue;
-					case 18:
-						if (tag !== 146) break;
-						message.osName = reader.string();
-						continue;
-					case 19:
-						if (tag !== 154) break;
-						message.osVersion = reader.string();
-						continue;
-					case 21:
-						if (tag !== 170) break;
-						message.acceptLanguage = reader.string();
-						continue;
-					case 22:
-						if (tag !== 178) break;
-						message.acceptRegion = reader.string();
-						continue;
-					case 37:
-						if (tag !== 296) break;
-						message.screenWidthPoints = reader.int32();
-						continue;
-					case 38:
-						if (tag !== 304) break;
-						message.screenHeightPoints = reader.int32();
-						continue;
-					case 39:
-						if (tag !== 317) break;
-						message.screenWidthInches = reader.float();
-						continue;
-					case 40:
-						if (tag !== 325) break;
-						message.screenHeightInches = reader.float();
-						continue;
-					case 41:
-						if (tag !== 328) break;
-						message.screenPixelDensity = reader.int32();
-						continue;
-					case 46:
-						if (tag !== 368) break;
-						message.clientFormFactor = reader.int32();
-						continue;
-					case 50:
-						if (tag !== 400) break;
-						message.gmscoreVersionCode = reader.int32();
-						continue;
-					case 55:
-						if (tag !== 440) break;
-						message.windowWidthPoints = reader.int32();
-						continue;
-					case 56:
-						if (tag !== 448) break;
-						message.windowHeightPoints = reader.int32();
-						continue;
-					case 64:
-						if (tag !== 512) break;
-						message.androidSdkVersion = reader.int32();
-						continue;
-					case 65:
-						if (tag !== 525) break;
-						message.screenDensityFloat = reader.float();
-						continue;
-					case 67:
-						if (tag !== 536) break;
-						message.utcOffsetMinutes = reader.int64().toString();
-						continue;
-					case 80:
-						if (tag !== 642) break;
-						message.timeZone = reader.string();
-						continue;
-					case 92:
-						if (tag !== 738) break;
-						message.chipset = reader.string();
-						continue;
-					case 102:
-						if (tag !== 818) break;
-						message.glDeviceInfo = StreamerContext_GLDeviceInfo.decode(reader, reader.uint32());
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseStreamerContext_ClientInfo();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.hl = reader.string();
+							continue;
+						case 12:
+							if (tag !== 98) break;
+							message.deviceMake = reader.string();
+							continue;
+						case 13:
+							if (tag !== 106) break;
+							message.deviceModel = reader.string();
+							continue;
+						case 16:
+							if (tag !== 128) break;
+							message.clientName = reader.int32();
+							continue;
+						case 17:
+							if (tag !== 138) break;
+							message.clientVersion = reader.string();
+							continue;
+						case 18:
+							if (tag !== 146) break;
+							message.osName = reader.string();
+							continue;
+						case 19:
+							if (tag !== 154) break;
+							message.osVersion = reader.string();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
-		}
-	};
-	function createBaseStreamerContext_GLDeviceInfo() {
-		return {
-			glRenderer: "",
-			glEsVersionMajor: 0,
-			glEsVersionMinor: 0
-		};
-	}
-	var StreamerContext_GLDeviceInfo = {
-		encode(message, writer = new BinaryWriter()) {
-			if (message.glRenderer !== void 0 && message.glRenderer !== "") writer.uint32(10).string(message.glRenderer);
-			if (message.glEsVersionMajor !== void 0 && message.glEsVersionMajor !== 0) writer.uint32(16).int32(message.glEsVersionMajor);
-			if (message.glEsVersionMinor !== void 0 && message.glEsVersionMinor !== 0) writer.uint32(24).int32(message.glEsVersionMinor);
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseStreamerContext_GLDeviceInfo();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.glRenderer = reader.string();
-						continue;
-					case 2:
-						if (tag !== 16) break;
-						message.glEsVersionMajor = reader.int32();
-						continue;
-					case 3:
-						if (tag !== 24) break;
-						message.glEsVersionMinor = reader.int32();
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
 		}
 	};
 	function createBaseStreamerContext_SabrContext() {
 		return {
-			type: 0,
-			value: new Uint8Array(0)
+			type: void 0,
+			value: void 0
 		};
 	}
 	var StreamerContext_SabrContext = {
 		encode(message, writer = new BinaryWriter()) {
-			if (message.type !== void 0 && message.type !== 0) writer.uint32(8).int32(message.type);
-			if (message.value !== void 0 && message.value.length !== 0) writer.uint32(18).bytes(message.value);
+			if (message.type !== void 0) writer.uint32(8).int32(message.type);
+			if (message.value !== void 0) writer.uint32(18).bytes(message.value);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseStreamerContext_SabrContext();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 8) break;
-						message.type = reader.int32();
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.value = reader.bytes();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseStreamerContext_SabrContext();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 8) break;
+							message.type = reader.int32();
+							continue;
+						case 2:
+							if (tag !== 18) break;
+							message.value = reader.bytes();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
 	function createBaseStreamerContext_UnknownMessage1() {
 		return {
-			field1: new Uint8Array(0),
+			field1: void 0,
 			field2: void 0
 		};
 	}
 	var StreamerContext_UnknownMessage1 = {
 		encode(message, writer = new BinaryWriter()) {
-			if (message.field1 !== void 0 && message.field1.length !== 0) writer.uint32(10).bytes(message.field1);
+			if (message.field1 !== void 0) writer.uint32(10).bytes(message.field1);
 			if (message.field2 !== void 0) StreamerContext_UnknownMessage1_UnknownInnerMessage1.encode(message.field2, writer.uint32(18).fork()).join();
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseStreamerContext_UnknownMessage1();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.field1 = reader.bytes();
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.field2 = StreamerContext_UnknownMessage1_UnknownInnerMessage1.decode(reader, reader.uint32());
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseStreamerContext_UnknownMessage1();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.field1 = reader.bytes();
+							continue;
+						case 2:
+							if (tag !== 18) break;
+							message.field2 = StreamerContext_UnknownMessage1_UnknownInnerMessage1.decode(reader, reader.uint32());
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
 	function createBaseStreamerContext_UnknownMessage1_UnknownInnerMessage1() {
 		return {
-			code: 0,
-			message: ""
+			code: void 0,
+			message: void 0
 		};
 	}
 	var StreamerContext_UnknownMessage1_UnknownInnerMessage1 = {
 		encode(message, writer = new BinaryWriter()) {
-			if (message.code !== void 0 && message.code !== 0) writer.uint32(8).int32(message.code);
-			if (message.message !== void 0 && message.message !== "") writer.uint32(18).string(message.message);
+			if (message.code !== void 0) writer.uint32(8).int32(message.code);
+			if (message.message !== void 0) writer.uint32(18).string(message.message);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseStreamerContext_UnknownMessage1_UnknownInnerMessage1();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 8) break;
-						message.code = reader.int32();
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.message = reader.string();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseStreamerContext_UnknownMessage1_UnknownInnerMessage1();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 8) break;
+							message.code = reader.int32();
+							continue;
+						case 2:
+							if (tag !== 18) break;
+							message.message = reader.string();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
-	//#endregion
-	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/video_playback_abr_request.js
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/video_playback_abr_request.js
 	function createBaseVideoPlaybackAbrRequest() {
 		return {
 			clientAbrState: void 0,
-			selectedFormatIds: [],
+			initializationFormatIds: [],
 			bufferedRanges: [],
-			playerTimeMs: "0",
-			videoPlaybackUstreamerConfig: new Uint8Array(0),
+			mediaStartTimeMs: void 0,
+			videoPlaybackUstreamerConfig: void 0,
 			field6: void 0,
-			preferredAudioFormatIds: [],
-			preferredVideoFormatIds: [],
-			preferredSubtitleFormatIds: [],
+			selectedAudioFormatIds: [],
+			selectedVideoFormatIds: [],
+			selectedCaptionFormatIds: [],
 			streamerContext: void 0,
-			field21: void 0,
-			field22: 0,
-			field23: 0,
+			serverStitchedDaiInfo: void 0,
+			lastVideoItag: void 0,
+			lastAudioItag: void 0,
+			ssapPlaybackInfos: [],
+			unusedBloatSizeBytes: void 0,
 			field1000: []
 		};
 	}
 	var VideoPlaybackAbrRequest = {
 		encode(message, writer = new BinaryWriter()) {
 			if (message.clientAbrState !== void 0) ClientAbrState.encode(message.clientAbrState, writer.uint32(10).fork()).join();
-			for (const v of message.selectedFormatIds) FormatId.encode(v, writer.uint32(18).fork()).join();
+			for (const v of message.initializationFormatIds) FormatId.encode(v, writer.uint32(18).fork()).join();
 			for (const v of message.bufferedRanges) BufferedRange.encode(v, writer.uint32(26).fork()).join();
-			if (message.playerTimeMs !== void 0 && message.playerTimeMs !== "0") writer.uint32(32).int64(message.playerTimeMs);
-			if (message.videoPlaybackUstreamerConfig !== void 0 && message.videoPlaybackUstreamerConfig.length !== 0) writer.uint32(42).bytes(message.videoPlaybackUstreamerConfig);
+			if (message.mediaStartTimeMs !== void 0) writer.uint32(32).int64(message.mediaStartTimeMs);
+			if (message.videoPlaybackUstreamerConfig !== void 0) writer.uint32(42).bytes(message.videoPlaybackUstreamerConfig);
 			if (message.field6 !== void 0) UnknownMessage1.encode(message.field6, writer.uint32(50).fork()).join();
-			for (const v of message.preferredAudioFormatIds) FormatId.encode(v, writer.uint32(130).fork()).join();
-			for (const v of message.preferredVideoFormatIds) FormatId.encode(v, writer.uint32(138).fork()).join();
-			for (const v of message.preferredSubtitleFormatIds) FormatId.encode(v, writer.uint32(146).fork()).join();
+			for (const v of message.selectedAudioFormatIds) FormatId.encode(v, writer.uint32(130).fork()).join();
+			for (const v of message.selectedVideoFormatIds) FormatId.encode(v, writer.uint32(138).fork()).join();
+			for (const v of message.selectedCaptionFormatIds) FormatId.encode(v, writer.uint32(146).fork()).join();
 			if (message.streamerContext !== void 0) StreamerContext.encode(message.streamerContext, writer.uint32(154).fork()).join();
-			if (message.field21 !== void 0) UnknownMessage2.encode(message.field21, writer.uint32(170).fork()).join();
-			if (message.field22 !== void 0 && message.field22 !== 0) writer.uint32(176).int32(message.field22);
-			if (message.field23 !== void 0 && message.field23 !== 0) writer.uint32(184).int32(message.field23);
-			for (const v of message.field1000) UnknownMessage3.encode(v, writer.uint32(8002).fork()).join();
+			if (message.serverStitchedDaiInfo !== void 0) SsapPlaybackInfo.encode(message.serverStitchedDaiInfo, writer.uint32(170).fork()).join();
+			if (message.lastVideoItag !== void 0) writer.uint32(176).int32(message.lastVideoItag);
+			if (message.lastAudioItag !== void 0) writer.uint32(184).int32(message.lastAudioItag);
+			for (const v of message.ssapPlaybackInfos) SsapPlaybackInfo.encode(v, writer.uint32(194).fork()).join();
+			if (message.unusedBloatSizeBytes !== void 0) writer.uint32(202).bytes(message.unusedBloatSizeBytes);
+			for (const v of message.field1000) UnknownMessage2.encode(v, writer.uint32(8002).fork()).join();
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseVideoPlaybackAbrRequest();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.clientAbrState = ClientAbrState.decode(reader, reader.uint32());
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.selectedFormatIds.push(FormatId.decode(reader, reader.uint32()));
-						continue;
-					case 3:
-						if (tag !== 26) break;
-						message.bufferedRanges.push(BufferedRange.decode(reader, reader.uint32()));
-						continue;
-					case 4:
-						if (tag !== 32) break;
-						message.playerTimeMs = reader.int64().toString();
-						continue;
-					case 5:
-						if (tag !== 42) break;
-						message.videoPlaybackUstreamerConfig = reader.bytes();
-						continue;
-					case 6:
-						if (tag !== 50) break;
-						message.field6 = UnknownMessage1.decode(reader, reader.uint32());
-						continue;
-					case 16:
-						if (tag !== 130) break;
-						message.preferredAudioFormatIds.push(FormatId.decode(reader, reader.uint32()));
-						continue;
-					case 17:
-						if (tag !== 138) break;
-						message.preferredVideoFormatIds.push(FormatId.decode(reader, reader.uint32()));
-						continue;
-					case 18:
-						if (tag !== 146) break;
-						message.preferredSubtitleFormatIds.push(FormatId.decode(reader, reader.uint32()));
-						continue;
-					case 19:
-						if (tag !== 154) break;
-						message.streamerContext = StreamerContext.decode(reader, reader.uint32());
-						continue;
-					case 21:
-						if (tag !== 170) break;
-						message.field21 = UnknownMessage2.decode(reader, reader.uint32());
-						continue;
-					case 22:
-						if (tag !== 176) break;
-						message.field22 = reader.int32();
-						continue;
-					case 23:
-						if (tag !== 184) break;
-						message.field23 = reader.int32();
-						continue;
-					case 1e3:
-						if (tag !== 8002) break;
-						message.field1000.push(UnknownMessage3.decode(reader, reader.uint32()));
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseVideoPlaybackAbrRequest();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.clientAbrState = ClientAbrState.decode(reader, reader.uint32());
+							continue;
+						case 2:
+							if (tag !== 18) break;
+							message.initializationFormatIds.push(FormatId.decode(reader, reader.uint32()));
+							continue;
+						case 3:
+							if (tag !== 26) break;
+							message.bufferedRanges.push(BufferedRange.decode(reader, reader.uint32()));
+							continue;
+						case 4:
+							if (tag !== 32) break;
+							message.mediaStartTimeMs = reader.int64().toString();
+							continue;
+						case 5:
+							if (tag !== 42) break;
+							message.videoPlaybackUstreamerConfig = reader.bytes();
+							continue;
+						case 6:
+							if (tag !== 50) break;
+							message.field6 = UnknownMessage1.decode(reader, reader.uint32());
+							continue;
+						case 16:
+							if (tag !== 130) break;
+							message.selectedAudioFormatIds.push(FormatId.decode(reader, reader.uint32()));
+							continue;
+						case 17:
+							if (tag !== 138) break;
+							message.selectedVideoFormatIds.push(FormatId.decode(reader, reader.uint32()));
+							continue;
+						case 18:
+							if (tag !== 146) break;
+							message.selectedCaptionFormatIds.push(FormatId.decode(reader, reader.uint32()));
+							continue;
+						case 19:
+							if (tag !== 154) break;
+							message.streamerContext = StreamerContext.decode(reader, reader.uint32());
+							continue;
+						case 21:
+							if (tag !== 170) break;
+							message.serverStitchedDaiInfo = SsapPlaybackInfo.decode(reader, reader.uint32());
+							continue;
+						case 22:
+							if (tag !== 176) break;
+							message.lastVideoItag = reader.int32();
+							continue;
+						case 23:
+							if (tag !== 184) break;
+							message.lastAudioItag = reader.int32();
+							continue;
+						case 24:
+							if (tag !== 194) break;
+							message.ssapPlaybackInfos.push(SsapPlaybackInfo.decode(reader, reader.uint32()));
+							continue;
+						case 25:
+							if (tag !== 202) break;
+							message.unusedBloatSizeBytes = reader.bytes();
+							continue;
+						case 1e3:
+							if (tag !== 8002) break;
+							message.field1000.push(UnknownMessage2.decode(reader, reader.uint32()));
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
 	function createBaseUnknownMessage1() {
 		return {
 			formatId: void 0,
-			lmt: "0",
-			sequenceNumber: 0,
+			lmt: void 0,
+			sequenceNumber: void 0,
 			timeRange: void 0,
-			field5: 0
+			field5: void 0
 		};
 	}
 	var UnknownMessage1 = {
 		encode(message, writer = new BinaryWriter()) {
 			if (message.formatId !== void 0) FormatId.encode(message.formatId, writer.uint32(10).fork()).join();
-			if (message.lmt !== void 0 && message.lmt !== "0") writer.uint32(16).sint64(message.lmt);
-			if (message.sequenceNumber !== void 0 && message.sequenceNumber !== 0) writer.uint32(24).int32(message.sequenceNumber);
+			if (message.lmt !== void 0) writer.uint32(16).sint64(message.lmt);
+			if (message.sequenceNumber !== void 0) writer.uint32(24).int32(message.sequenceNumber);
 			if (message.timeRange !== void 0) TimeRange.encode(message.timeRange, writer.uint32(34).fork()).join();
-			if (message.field5 !== void 0 && message.field5 !== 0) writer.uint32(40).int32(message.field5);
+			if (message.field5 !== void 0) writer.uint32(40).int32(message.field5);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseUnknownMessage1();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.formatId = FormatId.decode(reader, reader.uint32());
-						continue;
-					case 2:
-						if (tag !== 16) break;
-						message.lmt = reader.sint64().toString();
-						continue;
-					case 3:
-						if (tag !== 24) break;
-						message.sequenceNumber = reader.int32();
-						continue;
-					case 4:
-						if (tag !== 34) break;
-						message.timeRange = TimeRange.decode(reader, reader.uint32());
-						continue;
-					case 5:
-						if (tag !== 40) break;
-						message.field5 = reader.int32();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseUnknownMessage1();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.formatId = FormatId.decode(reader, reader.uint32());
+							continue;
+						case 2:
+							if (tag !== 16) break;
+							message.lmt = reader.sint64().toString();
+							continue;
+						case 3:
+							if (tag !== 24) break;
+							message.sequenceNumber = reader.int32();
+							continue;
+						case 4:
+							if (tag !== 34) break;
+							message.timeRange = TimeRange.decode(reader, reader.uint32());
+							continue;
+						case 5:
+							if (tag !== 40) break;
+							message.field5 = reader.int32();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
 	function createBaseUnknownMessage2() {
 		return {
-			field1: [],
-			field2: new Uint8Array(0),
-			field3: "",
-			field4: 0,
-			field5: 0,
-			field6: ""
+			formatIds: [],
+			ud: [],
+			clipId: void 0
 		};
 	}
 	var UnknownMessage2 = {
 		encode(message, writer = new BinaryWriter()) {
-			for (const v of message.field1) writer.uint32(10).string(v);
-			if (message.field2 !== void 0 && message.field2.length !== 0) writer.uint32(18).bytes(message.field2);
-			if (message.field3 !== void 0 && message.field3 !== "") writer.uint32(26).string(message.field3);
-			if (message.field4 !== void 0 && message.field4 !== 0) writer.uint32(32).int32(message.field4);
-			if (message.field5 !== void 0 && message.field5 !== 0) writer.uint32(40).int32(message.field5);
-			if (message.field6 !== void 0 && message.field6 !== "") writer.uint32(50).string(message.field6);
-			return writer;
-		},
-		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseUnknownMessage2();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.field1.push(reader.string());
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.field2 = reader.bytes();
-						continue;
-					case 3:
-						if (tag !== 26) break;
-						message.field3 = reader.string();
-						continue;
-					case 4:
-						if (tag !== 32) break;
-						message.field4 = reader.int32();
-						continue;
-					case 5:
-						if (tag !== 40) break;
-						message.field5 = reader.int32();
-						continue;
-					case 6:
-						if (tag !== 50) break;
-						message.field6 = reader.string();
-						continue;
-				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
-			}
-			return message;
-		}
-	};
-	function createBaseUnknownMessage3() {
-		return {
-			formatIds: [],
-			ud: [],
-			clipId: ""
-		};
-	}
-	var UnknownMessage3 = {
-		encode(message, writer = new BinaryWriter()) {
 			for (const v of message.formatIds) FormatId.encode(v, writer.uint32(10).fork()).join();
 			for (const v of message.ud) BufferedRange.encode(v, writer.uint32(18).fork()).join();
-			if (message.clipId !== void 0 && message.clipId !== "") writer.uint32(26).string(message.clipId);
+			if (message.clipId !== void 0) writer.uint32(26).string(message.clipId);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseUnknownMessage3();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.formatIds.push(FormatId.decode(reader, reader.uint32()));
-						continue;
-					case 2:
-						if (tag !== 18) break;
-						message.ud.push(BufferedRange.decode(reader, reader.uint32()));
-						continue;
-					case 3:
-						if (tag !== 26) break;
-						message.clipId = reader.string();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseUnknownMessage2();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.formatIds.push(FormatId.decode(reader, reader.uint32()));
+							continue;
+						case 2:
+							if (tag !== 18) break;
+							message.ud.push(BufferedRange.decode(reader, reader.uint32()));
+							continue;
+						case 3:
+							if (tag !== 26) break;
+							message.clipId = reader.string();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
-	//#endregion
-	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/next_request_policy.js
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/next_request_policy.js
 	function createBaseNextRequestPolicy() {
 		return {
-			targetAudioReadaheadMs: 0,
-			targetVideoReadaheadMs: 0,
-			maxTimeSinceLastRequestMs: 0,
-			backoffTimeMs: 0,
-			minAudioReadaheadMs: 0,
-			minVideoReadaheadMs: 0,
+			targetAudioReadaheadMs: void 0,
+			targetVideoReadaheadMs: void 0,
+			maxTimeSinceLastRequestMs: void 0,
+			backoffTimeMs: void 0,
+			minAudioReadaheadMs: void 0,
+			minVideoReadaheadMs: void 0,
 			playbackCookie: void 0,
-			videoId: ""
+			videoId: void 0
 		};
 	}
 	var NextRequestPolicy = {
 		encode(message, writer = new BinaryWriter()) {
-			if (message.targetAudioReadaheadMs !== void 0 && message.targetAudioReadaheadMs !== 0) writer.uint32(8).int32(message.targetAudioReadaheadMs);
-			if (message.targetVideoReadaheadMs !== void 0 && message.targetVideoReadaheadMs !== 0) writer.uint32(16).int32(message.targetVideoReadaheadMs);
-			if (message.maxTimeSinceLastRequestMs !== void 0 && message.maxTimeSinceLastRequestMs !== 0) writer.uint32(24).int32(message.maxTimeSinceLastRequestMs);
-			if (message.backoffTimeMs !== void 0 && message.backoffTimeMs !== 0) writer.uint32(32).int32(message.backoffTimeMs);
-			if (message.minAudioReadaheadMs !== void 0 && message.minAudioReadaheadMs !== 0) writer.uint32(40).int32(message.minAudioReadaheadMs);
-			if (message.minVideoReadaheadMs !== void 0 && message.minVideoReadaheadMs !== 0) writer.uint32(48).int32(message.minVideoReadaheadMs);
-			if (message.playbackCookie !== void 0) PlaybackCookie.encode(message.playbackCookie, writer.uint32(58).fork()).join();
-			if (message.videoId !== void 0 && message.videoId !== "") writer.uint32(66).string(message.videoId);
+			if (message.targetAudioReadaheadMs !== void 0) writer.uint32(8).int32(message.targetAudioReadaheadMs);
+			if (message.targetVideoReadaheadMs !== void 0) writer.uint32(16).int32(message.targetVideoReadaheadMs);
+			if (message.maxTimeSinceLastRequestMs !== void 0) writer.uint32(24).int32(message.maxTimeSinceLastRequestMs);
+			if (message.backoffTimeMs !== void 0) writer.uint32(32).int32(message.backoffTimeMs);
+			if (message.minAudioReadaheadMs !== void 0) writer.uint32(40).int32(message.minAudioReadaheadMs);
+			if (message.minVideoReadaheadMs !== void 0) writer.uint32(48).int32(message.minVideoReadaheadMs);
+			if (message.playbackCookie !== void 0) writer.uint32(58).bytes(message.playbackCookie);
+			if (message.videoId !== void 0) writer.uint32(66).string(message.videoId);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseNextRequestPolicy();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 8) break;
-						message.targetAudioReadaheadMs = reader.int32();
-						continue;
-					case 2:
-						if (tag !== 16) break;
-						message.targetVideoReadaheadMs = reader.int32();
-						continue;
-					case 3:
-						if (tag !== 24) break;
-						message.maxTimeSinceLastRequestMs = reader.int32();
-						continue;
-					case 4:
-						if (tag !== 32) break;
-						message.backoffTimeMs = reader.int32();
-						continue;
-					case 5:
-						if (tag !== 40) break;
-						message.minAudioReadaheadMs = reader.int32();
-						continue;
-					case 6:
-						if (tag !== 48) break;
-						message.minVideoReadaheadMs = reader.int32();
-						continue;
-					case 7:
-						if (tag !== 58) break;
-						message.playbackCookie = PlaybackCookie.decode(reader, reader.uint32());
-						continue;
-					case 8:
-						if (tag !== 66) break;
-						message.videoId = reader.string();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseNextRequestPolicy();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 8) break;
+							message.targetAudioReadaheadMs = reader.int32();
+							continue;
+						case 2:
+							if (tag !== 16) break;
+							message.targetVideoReadaheadMs = reader.int32();
+							continue;
+						case 3:
+							if (tag !== 24) break;
+							message.maxTimeSinceLastRequestMs = reader.int32();
+							continue;
+						case 4:
+							if (tag !== 32) break;
+							message.backoffTimeMs = reader.int32();
+							continue;
+						case 5:
+							if (tag !== 40) break;
+							message.minAudioReadaheadMs = reader.int32();
+							continue;
+						case 6:
+							if (tag !== 48) break;
+							message.minVideoReadaheadMs = reader.int32();
+							continue;
+						case 7:
+							if (tag !== 58) break;
+							message.playbackCookie = reader.bytes();
+							continue;
+						case 8:
+							if (tag !== 66) break;
+							message.videoId = reader.string();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
-	//#endregion
-	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/sabr_error.js
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/sabr_error.js
 	function createBaseSabrError() {
 		return {
-			type: "",
-			code: 0
+			type: void 0,
+			code: void 0
 		};
 	}
 	var SabrError = {
 		encode(message, writer = new BinaryWriter()) {
-			if (message.type !== void 0 && message.type !== "") writer.uint32(10).string(message.type);
-			if (message.code !== void 0 && message.code !== 0) writer.uint32(16).int32(message.code);
+			if (message.type !== void 0) writer.uint32(10).string(message.type);
+			if (message.code !== void 0) writer.uint32(16).int32(message.code);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseSabrError();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.type = reader.string();
-						continue;
-					case 2:
-						if (tag !== 16) break;
-						message.code = reader.int32();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseSabrError();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.type = reader.string();
+							continue;
+						case 2:
+							if (tag !== 16) break;
+							message.code = reader.int32();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
-	//#endregion
-	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/sabr_redirect.js
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/sabr_redirect.js
 	function createBaseSabrRedirect() {
-		return { url: "" };
+		return { url: void 0 };
 	}
 	var SabrRedirect = {
 		encode(message, writer = new BinaryWriter()) {
-			if (message.url !== void 0 && message.url !== "") writer.uint32(10).string(message.url);
+			if (message.url !== void 0) writer.uint32(10).string(message.url);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseSabrRedirect();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.url = reader.string();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseSabrRedirect();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.url = reader.string();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
-	//#endregion
-	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/reload_player_response.js
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/sabr_seek.js
+	function createBaseSabrSeek() {
+		return {
+			seekMediaTime: void 0,
+			seekMediaTimescale: void 0,
+			seekSource: void 0
+		};
+	}
+	var SabrSeek = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.seekMediaTime !== void 0) writer.uint32(8).int64(message.seekMediaTime);
+			if (message.seekMediaTimescale !== void 0) writer.uint32(16).int32(message.seekMediaTimescale);
+			if (message.seekSource !== void 0) writer.uint32(24).int32(message.seekSource);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseSabrSeek();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 8) break;
+							message.seekMediaTime = reader.int64().toString();
+							continue;
+						case 2:
+							if (tag !== 16) break;
+							message.seekMediaTimescale = reader.int32();
+							continue;
+						case 3:
+							if (tag !== 24) break;
+							message.seekSource = reader.int32();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
+				}
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
+			}
+		}
+	};
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/reload_player_response.js
 	function createBaseReloadPlaybackParams() {
-		return { token: "" };
+		return { token: void 0 };
 	}
 	var ReloadPlaybackParams = {
 		encode(message, writer = new BinaryWriter()) {
-			if (message.token !== void 0 && message.token !== "") writer.uint32(10).string(message.token);
+			if (message.token !== void 0) writer.uint32(10).string(message.token);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseReloadPlaybackParams();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.token = reader.string();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseReloadPlaybackParams();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.token = reader.string();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
 	function createBaseReloadPlaybackContext() {
@@ -15671,24 +17344,30 @@ var vot = (function(exports) {
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseReloadPlaybackContext();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 10) break;
-						message.reloadPlaybackParams = ReloadPlaybackParams.decode(reader, reader.uint32());
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseReloadPlaybackContext();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.reloadPlaybackParams = ReloadPlaybackParams.decode(reader, reader.uint32());
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
-	//#endregion
-	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/sabr_context_update.js
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/sabr_context_update.js
 	var SabrContextUpdate_SabrContextWritePolicy = {
 		UNSPECIFIED: 0,
 		0: "UNSPECIFIED",
@@ -15701,58 +17380,64 @@ var vot = (function(exports) {
 	};
 	function createBaseSabrContextUpdate() {
 		return {
-			type: 0,
-			scope: 0,
-			value: new Uint8Array(0),
-			sendByDefault: false,
-			writePolicy: 0
+			type: void 0,
+			scope: void 0,
+			value: void 0,
+			sendByDefault: void 0,
+			writePolicy: void 0
 		};
 	}
 	var SabrContextUpdate = {
 		encode(message, writer = new BinaryWriter()) {
-			if (message.type !== void 0 && message.type !== 0) writer.uint32(8).int32(message.type);
-			if (message.scope !== void 0 && message.scope !== 0) writer.uint32(16).int32(message.scope);
-			if (message.value !== void 0 && message.value.length !== 0) writer.uint32(26).bytes(message.value);
-			if (message.sendByDefault !== void 0 && message.sendByDefault !== false) writer.uint32(32).bool(message.sendByDefault);
-			if (message.writePolicy !== void 0 && message.writePolicy !== 0) writer.uint32(40).int32(message.writePolicy);
+			if (message.type !== void 0) writer.uint32(8).int32(message.type);
+			if (message.scope !== void 0) writer.uint32(16).int32(message.scope);
+			if (message.value !== void 0) writer.uint32(26).bytes(message.value);
+			if (message.sendByDefault !== void 0) writer.uint32(32).bool(message.sendByDefault);
+			if (message.writePolicy !== void 0) writer.uint32(40).int32(message.writePolicy);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseSabrContextUpdate();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 8) break;
-						message.type = reader.int32();
-						continue;
-					case 2:
-						if (tag !== 16) break;
-						message.scope = reader.int32();
-						continue;
-					case 3:
-						if (tag !== 26) break;
-						message.value = reader.bytes();
-						continue;
-					case 4:
-						if (tag !== 32) break;
-						message.sendByDefault = reader.bool();
-						continue;
-					case 5:
-						if (tag !== 40) break;
-						message.writePolicy = reader.int32();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseSabrContextUpdate();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 8) break;
+							message.type = reader.int32();
+							continue;
+						case 2:
+							if (tag !== 16) break;
+							message.scope = reader.int32();
+							continue;
+						case 3:
+							if (tag !== 26) break;
+							message.value = reader.bytes();
+							continue;
+						case 4:
+							if (tag !== 32) break;
+							message.sendByDefault = reader.bool();
+							continue;
+						case 5:
+							if (tag !== 40) break;
+							message.writePolicy = reader.int32();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
-	//#endregion
-	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/sabr_context_sending_policy.js
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/sabr_context_sending_policy.js
 	function createBaseSabrContextSendingPolicy() {
 		return {
 			startPolicy: [],
@@ -15762,101 +17447,203 @@ var vot = (function(exports) {
 	}
 	var SabrContextSendingPolicy = {
 		encode(message, writer = new BinaryWriter()) {
-			writer.uint32(10).fork();
-			for (const v of message.startPolicy) writer.int32(v);
-			writer.join();
-			writer.uint32(18).fork();
-			for (const v of message.stopPolicy) writer.int32(v);
-			writer.join();
-			writer.uint32(26).fork();
-			for (const v of message.discardPolicy) writer.int32(v);
-			writer.join();
+			for (const v of message.startPolicy) writer.uint32(8).int32(v);
+			for (const v of message.stopPolicy) writer.uint32(16).int32(v);
+			for (const v of message.discardPolicy) writer.uint32(24).int32(v);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseSabrContextSendingPolicy();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag === 8) {
-							message.startPolicy.push(reader.int32());
-							continue;
-						}
-						if (tag === 10) {
-							const end2 = reader.uint32() + reader.pos;
-							while (reader.pos < end2) message.startPolicy.push(reader.int32());
-							continue;
-						}
-						break;
-					case 2:
-						if (tag === 16) {
-							message.stopPolicy.push(reader.int32());
-							continue;
-						}
-						if (tag === 18) {
-							const end2 = reader.uint32() + reader.pos;
-							while (reader.pos < end2) message.stopPolicy.push(reader.int32());
-							continue;
-						}
-						break;
-					case 3:
-						if (tag === 24) {
-							message.discardPolicy.push(reader.int32());
-							continue;
-						}
-						if (tag === 26) {
-							const end2 = reader.uint32() + reader.pos;
-							while (reader.pos < end2) message.discardPolicy.push(reader.int32());
-							continue;
-						}
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseSabrContextSendingPolicy();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag === 8) {
+								message.startPolicy.push(reader.int32());
+								continue;
+							}
+							if (tag === 10) {
+								const end2 = reader.uint32() + reader.pos;
+								while (reader.pos < end2) message.startPolicy.push(reader.int32());
+								continue;
+							}
+							break;
+						case 2:
+							if (tag === 16) {
+								message.stopPolicy.push(reader.int32());
+								continue;
+							}
+							if (tag === 18) {
+								const end2 = reader.uint32() + reader.pos;
+								while (reader.pos < end2) message.stopPolicy.push(reader.int32());
+								continue;
+							}
+							break;
+						case 3:
+							if (tag === 24) {
+								message.discardPolicy.push(reader.int32());
+								continue;
+							}
+							if (tag === 26) {
+								const end2 = reader.uint32() + reader.pos;
+								while (reader.pos < end2) message.discardPolicy.push(reader.int32());
+								continue;
+							}
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
-	//#endregion
-	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/stream_protection_status.js
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/sabr_live_metadata.js
+	function createBaseSabrLiveMetadata() {
+		return {
+			broadcastId: void 0,
+			headSequenceNumber: void 0,
+			headTimeMs: void 0,
+			wallTimeMs: void 0,
+			videoId: void 0,
+			postLiveDvr: void 0,
+			headm: void 0,
+			minSeekableTimeTicks: void 0,
+			minSeekableTimescale: void 0,
+			maxSeekableTimeTicks: void 0,
+			maxSeekableTimescale: void 0
+		};
+	}
+	var SabrLiveMetadata = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.broadcastId !== void 0) writer.uint32(10).string(message.broadcastId);
+			if (message.headSequenceNumber !== void 0) writer.uint32(24).int64(message.headSequenceNumber);
+			if (message.headTimeMs !== void 0) writer.uint32(32).int64(message.headTimeMs);
+			if (message.wallTimeMs !== void 0) writer.uint32(40).int64(message.wallTimeMs);
+			if (message.videoId !== void 0) writer.uint32(50).string(message.videoId);
+			if (message.postLiveDvr !== void 0) writer.uint32(64).bool(message.postLiveDvr);
+			if (message.headm !== void 0) writer.uint32(80).int64(message.headm);
+			if (message.minSeekableTimeTicks !== void 0) writer.uint32(96).int64(message.minSeekableTimeTicks);
+			if (message.minSeekableTimescale !== void 0) writer.uint32(104).int32(message.minSeekableTimescale);
+			if (message.maxSeekableTimeTicks !== void 0) writer.uint32(112).int64(message.maxSeekableTimeTicks);
+			if (message.maxSeekableTimescale !== void 0) writer.uint32(120).int32(message.maxSeekableTimescale);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseSabrLiveMetadata();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.broadcastId = reader.string();
+							continue;
+						case 3:
+							if (tag !== 24) break;
+							message.headSequenceNumber = reader.int64().toString();
+							continue;
+						case 4:
+							if (tag !== 32) break;
+							message.headTimeMs = reader.int64().toString();
+							continue;
+						case 5:
+							if (tag !== 40) break;
+							message.wallTimeMs = reader.int64().toString();
+							continue;
+						case 6:
+							if (tag !== 50) break;
+							message.videoId = reader.string();
+							continue;
+						case 8:
+							if (tag !== 64) break;
+							message.postLiveDvr = reader.bool();
+							continue;
+						case 10:
+							if (tag !== 80) break;
+							message.headm = reader.int64().toString();
+							continue;
+						case 12:
+							if (tag !== 96) break;
+							message.minSeekableTimeTicks = reader.int64().toString();
+							continue;
+						case 13:
+							if (tag !== 104) break;
+							message.minSeekableTimescale = reader.int32();
+							continue;
+						case 14:
+							if (tag !== 112) break;
+							message.maxSeekableTimeTicks = reader.int64().toString();
+							continue;
+						case 15:
+							if (tag !== 120) break;
+							message.maxSeekableTimescale = reader.int32();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
+				}
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
+			}
+		}
+	};
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/stream_protection_status.js
 	function createBaseStreamProtectionStatus() {
 		return {
-			status: 0,
-			maxRetries: 0
+			status: void 0,
+			maxRetries: void 0
 		};
 	}
 	var StreamProtectionStatus = {
 		encode(message, writer = new BinaryWriter()) {
-			if (message.status !== void 0 && message.status !== 0) writer.uint32(8).int32(message.status);
-			if (message.maxRetries !== void 0 && message.maxRetries !== 0) writer.uint32(16).int32(message.maxRetries);
+			if (message.status !== void 0) writer.uint32(8).int32(message.status);
+			if (message.maxRetries !== void 0) writer.uint32(16).int32(message.maxRetries);
 			return writer;
 		},
 		decode(input, length) {
 			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
-			const end = length === void 0 ? reader.len : reader.pos + length;
-			const message = createBaseStreamProtectionStatus();
-			while (reader.pos < end) {
-				const tag = reader.uint32();
-				switch (tag >>> 3) {
-					case 1:
-						if (tag !== 8) break;
-						message.status = reader.int32();
-						continue;
-					case 2:
-						if (tag !== 16) break;
-						message.maxRetries = reader.int32();
-						continue;
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseStreamProtectionStatus();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 8) break;
+							message.status = reader.int32();
+							continue;
+						case 2:
+							if (tag !== 16) break;
+							message.maxRetries = reader.int32();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
 				}
-				if ((tag & 7) === 4 || tag === 0) break;
-				reader.skip(tag & 7);
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
 			}
-			return message;
 		}
 	};
-	//#endregion
-	//#region node_modules/googlevideo/dist/protos/generated/video_streaming/ump_part_id.js
+	// node_modules/googlevideo/dist/protos/generated/video_streaming/ump_part_id.js
 	var UMPPartId = {
 		UNKNOWN: 0,
 		0: "UNKNOWN",
@@ -15942,79 +17729,20 @@ var vot = (function(exports) {
 		66: "PLAYBACK_DEBUG_INFO",
 		SNACKBAR_MESSAGE: 67,
 		67: "SNACKBAR_MESSAGE",
+		NETWORK_TIMING: 68,
+		68: "NETWORK_TIMING",
+		CUEPOINT_LIST: 69,
+		69: "CUEPOINT_LIST",
+		STITCHED_REGIONS_OF_INTEREST: 70,
+		70: "STITCHED_REGIONS_OF_INTEREST",
+		STITCHED_SEGMENTS_METADATA_LIST: 71,
+		71: "STITCHED_SEGMENTS_METADATA_LIST",
+		PROBE_SUCCESS: 72,
+		72: "PROBE_SUCCESS",
 		UNRECOGNIZED: -1,
 		"-1": "UNRECOGNIZED"
 	};
-	//#endregion
-	//#region node_modules/googlevideo/dist/src/utils/Logger.js
-	var LogLevel = {
-		NONE: 0,
-		0: "NONE",
-		ERROR: 1,
-		1: "ERROR",
-		WARN: 2,
-		2: "WARN",
-		INFO: 3,
-		3: "INFO",
-		DEBUG: 4,
-		4: "DEBUG",
-		ALL: 99,
-		99: "ALL"
-	};
-	var Logger = class Logger {
-		constructor() {
-			this.currentLogLevels = new Set([LogLevel.INFO, LogLevel.ERROR]);
-		}
-		static getInstance() {
-			if (!Logger.instance) Logger.instance = new Logger();
-			return Logger.instance;
-		}
-		setLogLevels(...levels) {
-			if (levels.length === 0 || levels.includes(LogLevel.NONE)) this.currentLogLevels = new Set();
-			else if (levels.includes(LogLevel.ALL)) this.currentLogLevels = new Set([
-				LogLevel.ERROR,
-				LogLevel.WARN,
-				LogLevel.INFO,
-				LogLevel.DEBUG
-			]);
-			else this.currentLogLevels = new Set(levels.filter((level) => level !== LogLevel.NONE && level !== LogLevel.ALL));
-		}
-		getLogLevels() {
-			return new Set(this.currentLogLevels);
-		}
-		log(level, tag, ...messages) {
-			if (level !== LogLevel.NONE && this.currentLogLevels.has(level)) {
-				const prefix = `[${LogLevel[level]}] [${tag}]`;
-				switch (level) {
-					case LogLevel.ERROR:
-						console.error(prefix, ...messages);
-						break;
-					case LogLevel.WARN:
-						console.warn(prefix, ...messages);
-						break;
-					case LogLevel.INFO:
-						console.info(prefix, ...messages);
-						break;
-					case LogLevel.DEBUG: console.debug(prefix, ...messages);
-				}
-			}
-		}
-		error(tag, ...messages) {
-			this.log(LogLevel.ERROR, tag, ...messages);
-		}
-		warn(tag, ...messages) {
-			this.log(LogLevel.WARN, tag, ...messages);
-		}
-		info(tag, ...messages) {
-			this.log(LogLevel.INFO, tag, ...messages);
-		}
-		debug(tag, ...messages) {
-			this.log(LogLevel.DEBUG, tag, ...messages);
-		}
-	};
-	//#endregion
-	//#region node_modules/googlevideo/dist/src/utils/shared.js
-	var MAX_INT32_VALUE = "2147483647";
+	// node_modules/googlevideo/dist/src/utils/formatUtils.js
 	var EnabledTrackTypes = {
 		VIDEO_AND_AUDIO: 0,
 		0: "VIDEO_AND_AUDIO",
@@ -16023,131 +17751,11 @@ var vot = (function(exports) {
 		VIDEO_ONLY: 2,
 		2: "VIDEO_ONLY"
 	};
-	function base64ToU8(base64) {
-		const standard_base64 = base64.replace(/-/g, "+").replace(/_/g, "/");
-		const padded_base64 = standard_base64.padEnd(standard_base64.length + (4 - standard_base64.length % 4) % 4, "=");
-		return new Uint8Array(atob(padded_base64).split("").map((char) => char.charCodeAt(0)));
-	}
-	function concatenateChunks(chunks) {
-		const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-		const result = new Uint8Array(totalLength);
-		let offset = 0;
-		for (const chunk of chunks) {
-			result.set(chunk, offset);
-			offset += chunk.length;
-		}
-		return result;
-	}
-	function wait(ms) {
-		return new Promise((resolve) => setTimeout(resolve, ms));
-	}
-	//#endregion
-	//#region node_modules/googlevideo/dist/src/utils/EventEmitterLike.js
-	var __classPrivateFieldSet = function(receiver, state, value, kind, f) {
-		if (kind === "m") throw new TypeError("Private method is not writable");
-		if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
-		if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
-		return kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value), value;
-	};
-	var __classPrivateFieldGet = function(receiver, state, kind, f) {
-		if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
-		if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
-		return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
-	};
-	var _CustomEvent_detail;
-	var _EventEmitterLike_legacyListeners;
-	var CustomEvent$1 = class extends Event {
-		constructor(type, options) {
-			super(type, options);
-			_CustomEvent_detail.set(this, void 0);
-			__classPrivateFieldSet(this, _CustomEvent_detail, options?.detail ?? null, "f");
-		}
-		get detail() {
-			return __classPrivateFieldGet(this, _CustomEvent_detail, "f");
-		}
-	};
-	_CustomEvent_detail = new WeakMap();
-	var EventEmitterLike = class extends EventTarget {
-		constructor() {
-			super();
-			_EventEmitterLike_legacyListeners.set(this, new Map());
-		}
-		emit(type, ...args) {
-			const event = new CustomEvent$1(type, { detail: args });
-			this.dispatchEvent(event);
-		}
-		on(type, listener) {
-			const wrapper = (ev) => {
-				if (ev instanceof CustomEvent$1) listener(...ev.detail);
-				else listener(ev);
-			};
-			__classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").set(listener, {
-				type,
-				wrapper
-			});
-			this.addEventListener(type, wrapper);
-		}
-		once(type, listener) {
-			const wrapper = (ev) => {
-				if (ev instanceof CustomEvent$1) listener(...ev.detail);
-				else listener(ev);
-				this.off(type, listener);
-			};
-			__classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").set(listener, {
-				type,
-				wrapper
-			});
-			this.addEventListener(type, wrapper);
-		}
-		off(type, listener) {
-			const listenerData = __classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").get(listener);
-			if (listenerData && listenerData.type === type) {
-				this.removeEventListener(type, listenerData.wrapper);
-				__classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").delete(listener);
-			}
-		}
-		removeAllListeners(type) {
-			if (type) {
-				for (const [listener, listenerData] of __classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").entries()) if (listenerData.type === type) {
-					this.removeEventListener(type, listenerData.wrapper);
-					__classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").delete(listener);
-				}
-			} else for (const [listener, listenerData] of __classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").entries()) {
-				this.removeEventListener(listenerData.type, listenerData.wrapper);
-				__classPrivateFieldGet(this, _EventEmitterLike_legacyListeners, "f").delete(listener);
-			}
-		}
-	};
-	_EventEmitterLike_legacyListeners = new WeakMap();
-	//#endregion
-	//#region node_modules/googlevideo/dist/src/utils/formatKeyUtils.js
-	function createKey(itag, xtags) {
-		return `${itag || ""}:${xtags || ""}`;
-	}
-	function fromFormat(format) {
-		if (!format) return void 0;
-		return createKey(format.itag, format.xtags);
-	}
-	function fromMediaHeader(mediaHeader) {
-		return createKey(mediaHeader.itag, mediaHeader.xtags);
-	}
-	function fromFormatInitializationMetadata(formatInitMetadata) {
-		if (!formatInitMetadata.formatId) return "";
-		return createKey(formatInitMetadata.formatId.itag, formatInitMetadata.formatId.xtags);
-	}
-	//#endregion
-	//#region node_modules/googlevideo/dist/src/utils/sabrStreamUtils.js
-	function getMediaType(initializedFormat) {
-		return initializedFormat.formatInitializationMetadata?.mimeType?.includes("video") ? "video" : "audio";
-	}
-	function getTotalDownloadedDuration(initializedFormat) {
-		return Array.from(initializedFormat.downloadedSegments.values()).reduce((sum, segment) => sum + parseInt(segment.durationMs || "0"), 0);
-	}
-	function filterFormatsByType(formats, isAudio) {
-		return formats.filter((format) => {
-			if (!format.mimeType) return false;
-			return isAudio ? format.mimeType.includes("audio") : format.mimeType.includes("video");
-		});
+	function describeMissingFormat(type, formatOption, formats) {
+		const available = filterFormatsByType(formats, type === "audio").map((f) => `${f.itag}[qualityLabel=${f.qualityLabel || f.audioQuality || ""}, mimeType=${f.mimeType || ""}, isVb=${f.isVb || false}, isDrc=${f.isDrc || false}]`).join(", ") || "none";
+		if (typeof formatOption === "number") return `no ${type} format with itag ${formatOption} found (available ${type} formats: ${available})`;
+		if (typeof formatOption === "function") return `no ${type} format matched the provided selector function (available ${type} formats: ${available})`;
+		return `no ${type} format matched the given criteria (available ${type} formats: ${available})`;
 	}
 	function chooseFormat(formats, formatOption, preferences) {
 		if (!formats.length) return void 0;
@@ -16157,852 +17765,1386 @@ var vot = (function(exports) {
 		if (formatOption && typeof formatOption !== "function") return formatOption;
 		if (typeof formatOption === "function") return formatOption(typeFormats);
 		let filteredFormats = typeFormats;
-		if (preferences.language) filteredFormats = filteredFormats.filter((format) => format.language === preferences.language);
-		if (preferences.quality) filteredFormats = filteredFormats.filter((format) => preferences.isAudio ? !!format.audioQuality?.toLowerCase().includes(preferences.quality?.toLowerCase() || "") : !!format.qualityLabel?.toLowerCase().includes(preferences.quality?.toLowerCase() || ""));
-		if (preferences.isAudio) {
-			if (preferences.preferOpus) filteredFormats = applyMimeTypeFilter(filteredFormats, "opus");
-		} else if (preferences.preferH264) filteredFormats = filteredFormats.filter((format) => !!format.mimeType && format.mimeType.includes("mp4") && format.mimeType.includes("avc"));
-		if (preferences.preferWebM) filteredFormats = applyMimeTypeFilter(filteredFormats, "webm");
-		else if (preferences.preferMP4) filteredFormats = applyMimeTypeFilter(filteredFormats, "mp4");
-		return preferences.isAudio ? filteredFormats.sort((a, b) => (b.bitrate || 0) - (a.bitrate || 0))[0] : filteredFormats.sort((a, b) => (b.height || 0) - (a.height || 0))[0];
+		const language = preferences.language;
+		if (language && preferences.isAudio) filteredFormats = filteredFormats.filter((format) => format.language === language);
+		const quality = preferences.quality;
+		if (quality !== void 0) filteredFormats = filteredFormats.filter((format) => preferences.isAudio ? !!format.audioQuality?.toLowerCase().includes(quality?.toLowerCase() || "") : !!format.qualityLabel?.toLowerCase().includes(quality?.toLowerCase() || ""));
+		const container = preferences.container;
+		if (container !== void 0) filteredFormats = filteredFormats.filter((format) => format.mimeType?.includes(container));
+		const voiceBoost = preferences.voiceBoost;
+		if (voiceBoost !== void 0) filteredFormats = filteredFormats.filter((format) => format.isVb === voiceBoost);
+		const dynamicRangeCompression = preferences.dynamicRangeCompression;
+		if (dynamicRangeCompression !== void 0) filteredFormats = filteredFormats.filter((format) => format.isDrc === dynamicRangeCompression);
+		const superResolution = preferences.superResolution;
+		if (superResolution !== void 0) filteredFormats = filteredFormats.filter((format) => format.isSr === superResolution);
+		const hdr = preferences.hdr;
+		if (hdr !== void 0) filteredFormats = filteredFormats.filter((format) => format.isHdr === hdr);
+		return filteredFormats.sort((a, b) => {
+			const preferredCodec = preferences.isAudio ? preferences.preferredAudioCodec : preferences.preferredVideoCodec;
+			const preferenceDifference = Number(matchesCodec(b, preferredCodec)) - Number(matchesCodec(a, preferredCodec));
+			if (preferenceDifference) return preferenceDifference;
+			return preferences.isAudio ? (b.bitrate || 0) - (a.bitrate || 0) : (b.height || 0) - (a.height || 0);
+		})[0];
 	}
-	function applyMimeTypeFilter(formats, mimeTypePart) {
-		return formats.filter((format) => format.mimeType?.includes(mimeTypePart));
+	function matchesCodec(format, codec) {
+		if (!codec) return false;
+		return {
+			h264: ["avc1", "avc3"],
+			vp9: ["vp9", "vp09"],
+			av1: ["av01"],
+			aac: ["mp4a"],
+			opus: ["opus"]
+		}[codec].some((prefix) => format.mimeType?.includes(prefix));
 	}
-	//#endregion
-	//#region node_modules/googlevideo/dist/src/core/CompositeBuffer.js
-	var CompositeBuffer = class CompositeBuffer {
-		constructor(chunks = []) {
-			this.chunks = [];
-			this.currentChunkOffset = this.currentChunkIndex = 0;
-			this.currentDataView = void 0;
-			this.totalLength = 0;
-			chunks.forEach((chunk) => this.append(chunk));
+	function filterFormatsByType(formats, isAudio) {
+		return formats.filter((format) => {
+			if (!format.mimeType) return false;
+			return isAudio ? format.mimeType.includes("audio") : format.mimeType.includes("video");
+		});
+	}
+	function createFormatKey(input) {
+		if ("formatId" in input && (input.formatId?.itag !== void 0 || input.formatId?.xtags !== void 0)) return `${input.formatId?.itag || ""}:${input.formatId?.xtags || ""}`;
+		if (("itag" in input || "xtags" in input) && (input.itag !== void 0 || input.xtags !== void 0)) return `${input.itag || ""}:${input.xtags || ""}`;
+		throw new Error("Unsupported format type");
+	}
+	// node_modules/googlevideo/dist/src/utils/mediaTimeUtils.js
+	function ticksToMs(ticks, timescale, round) {
+		return round(ticks / timescale * 1e3);
+	}
+	function getDurationMs(mediaHeader) {
+		const durationMsFromHeader = Number(mediaHeader.durationMs ?? 0);
+		if (Number.isFinite(durationMsFromHeader) && durationMsFromHeader > 0) return durationMsFromHeader;
+		const durationTicks = Number(mediaHeader.timeRange?.durationTicks ?? 0);
+		const timescale = Number(mediaHeader.timeRange?.timescale ?? 0);
+		if (durationTicks > 0 && timescale > 0) return ticksToMs(durationTicks, timescale, Math.ceil);
+		return 0;
+	}
+	function getStartMs(mediaHeader) {
+		const startMsFromHeader = Number(mediaHeader.startMs ?? 0);
+		if (Number.isFinite(startMsFromHeader) && startMsFromHeader > 0) return startMsFromHeader;
+		const startTicks = Number(mediaHeader.timeRange?.startTicks ?? 0);
+		const timescale = Number(mediaHeader.timeRange?.timescale ?? 0);
+		if (startTicks > 0 && timescale > 0) return ticksToMs(startTicks, timescale, Math.floor);
+		return 0;
+	}
+	// node_modules/googlevideo/dist/src/utils/EmsgSegmentMetadata.js
+	var EMSG_BOX_TYPE = 1701671783;
+	var textDecoder = typeof TextDecoder !== "undefined" ? new TextDecoder() : null;
+	function makeBoxReader(data, offset) {
+		return {
+			data,
+			offset,
+			size: data.getUint32(offset),
+			type: data.getUint32(offset + 4),
+			cursor: 8
+		};
+	}
+	function readUint32Field(box) {
+		const value = box.data.getUint32(box.offset + box.cursor);
+		box.cursor += 4;
+		return value;
+	}
+	function bytesToString(bytes) {
+		if (!bytes.length) return "";
+		if (textDecoder) return textDecoder.decode(bytes);
+		let str = "";
+		for (let i = 0; i < bytes.length; i++) str += String.fromCharCode(bytes[i]);
+		return str;
+	}
+	function readString(box, terminator) {
+		let end;
+		if (terminator === void 0) end = box.size;
+		else {
+			end = box.cursor;
+			while (end < box.size && box.data.getUint8(box.offset + end) !== terminator) end++;
 		}
-		append(chunk) {
-			if (chunk instanceof Uint8Array) {
-				if (this.canMergeWithLastChunk(chunk)) {
-					const lastChunk = this.chunks[this.chunks.length - 1];
-					this.chunks[this.chunks.length - 1] = new Uint8Array(lastChunk.buffer, lastChunk.byteOffset, lastChunk.length + chunk.length);
-					this.resetFocus();
-				} else this.chunks.push(chunk);
-				this.totalLength += chunk.length;
-			} else chunk.chunks.forEach((c) => this.append(c));
+		const bytes = new Uint8Array(box.data.buffer, box.data.byteOffset + box.offset + box.cursor, end - box.cursor);
+		box.cursor = Math.min(end + 1, box.size);
+		return bytesToString(bytes);
+	}
+	function looksLikeBox(data, offset) {
+		if (data.byteLength - offset < 8) return false;
+		const size = data.getUint32(offset);
+		if (size < 8 || data.byteLength - offset < size) return false;
+		for (let i = 4; i < 8; i++) {
+			const byte = data.getUint8(offset + i);
+			if (byte < 48 || byte > 122) return false;
 		}
-		split(position) {
-			const extractedBuffer = new CompositeBuffer();
-			const remainingBuffer = new CompositeBuffer();
-			const iterator = this.chunks[Symbol.iterator]();
-			let item = iterator.next();
-			while (!item.done) {
-				const chunk = item.value;
-				if (position >= chunk.length) {
-					extractedBuffer.append(chunk);
-					position -= chunk.length;
-				} else if (position > 0) {
-					extractedBuffer.append(new Uint8Array(chunk.buffer, chunk.byteOffset, position));
-					remainingBuffer.append(new Uint8Array(chunk.buffer, chunk.byteOffset + position, chunk.length - position));
-					position = 0;
-				} else remainingBuffer.append(chunk);
-				item = iterator.next();
+		return true;
+	}
+	function findBox(data, offset, targetType) {
+		while (looksLikeBox(data, offset)) {
+			const box = makeBoxReader(data, offset);
+			if (box.type === targetType) return box;
+			offset += box.size;
+		}
+		return null;
+	}
+	function parseEmsgBody(box) {
+		box.cursor += 4;
+		return {
+			schemeIdUri: readString(box, 0),
+			value: readString(box, 0),
+			timescale: readUint32Field(box),
+			presentationTimeDelta: readUint32Field(box),
+			eventDuration: readUint32Field(box),
+			id: readUint32Field(box),
+			messageData: readString(box)
+		};
+	}
+	function parseHeaderBlock(text) {
+		const lines = text.split("\r\n");
+		const headers = {};
+		for (const line of lines) {
+			if (line.length === 0) return headers;
+			const match = line.match(/([^:]+):\s+([\S\s]+)/);
+			if (match) headers[match[1]] = match[2];
+		}
+		return null;
+	}
+	function getNumber(headers, key) {
+		return Number(headers[key]) || 0;
+	}
+	var EmsgSegmentMetadata = class {
+		data;
+		uri;
+		receivedAtMs = Date.now();
+		segmentNumber;
+		totalSegmentCount;
+		segmentDurationsMs;
+		ingestionTimeSec;
+		ingestionUncertaintySec;
+		safeFirstFrameTimeSec;
+		targetDurationSec;
+		cryptoPeriodIndex;
+		cryptoPeriodSeconds;
+		currentAbsoluteLoudnessLkfs;
+		constructor(data, uri = "https://youtube.com") {
+			this.data = data;
+			this.uri = uri;
+			this.segmentNumber = getNumber(this.data, "Sequence-Number");
+			this.totalSegmentCount = getNumber(this.data, "Segment-Count");
+			this.segmentDurationsMs = this.data["Segment-Durations-Ms"] || "";
+			this.ingestionTimeSec = getNumber(this.data, "Ingestion-Walltime-Us") / 1e6;
+			this.ingestionUncertaintySec = getNumber(this.data, "Ingestion-Uncertainty-Us") / 1e6;
+			this.safeFirstFrameTimeSec = (getNumber(this.data, "First-Frame-Time-Us") + getNumber(this.data, "First-Frame-Uncertainty-Us")) / 1e6;
+			this.targetDurationSec = getNumber(this.data, "Target-Duration-Us") / 1e6;
+			this.cryptoPeriodIndex = getNumber(this.data, "Crypto-Period-Index");
+			this.cryptoPeriodSeconds = getNumber(this.data, "Crypto-Period-Seconds");
+			this.currentAbsoluteLoudnessLkfs = "Current-Absolute-Loudness-Lkfs" in this.data ? getNumber(this.data, "Current-Absolute-Loudness-Lkfs") : null;
+		}
+		get latencyMs() {
+			const ingestionTimeMs = this.ingestionTimeSec * 1e3;
+			const uncertaintyMs = this.ingestionUncertaintySec * 1e3;
+			return Math.max(0, this.receivedAtMs - ingestionTimeMs + uncertaintyMs);
+		}
+		getStitchedCPNs() {
+			return this.data["Stitched-Video-Cpn"] ? this.data["Stitched-Video-Cpn"].split(",").slice(0, -1) : [];
+		}
+		hasStitchedAdBreakMetadata() {
+			return !!(this.data["Stitched-Video-Id"] || this.data["Stitched-Video-Cpn"] || this.data["Stitched-Video-Duration-Us"] || this.data["Stitched-Video-Start-Frame-Index"] || this.data["Stitched-Video-Absolute-Loudness-Lkfs"] || this.data["Serialized-State"] || this.data["Is-Ad-Break-Finished"]);
+		}
+	};
+	// node_modules/googlevideo/dist/src/utils/mediaSegmentUtils.js
+	function stripMp4Init(segment) {
+		const view = new DataView(segment.buffer, segment.byteOffset, segment.byteLength);
+		let offset = 0;
+		while (offset < segment.length - 8) {
+			let size = view.getUint32(offset, false);
+			const type = String.fromCharCode(segment[offset + 4], segment[offset + 5], segment[offset + 6], segment[offset + 7]);
+			if (type === "moof" || type === "mdat") return segment.subarray(offset);
+			if (size === 1) {
+				if (offset + 16 > segment.length) break;
+				size = Number(view.getBigUint64(offset + 8, false));
+			} else if (size === 0) break;
+			offset += size;
+		}
+		return segment;
+	}
+	function stripWebmInit(segment) {
+		let offset = 0;
+		while (offset < segment.length) {
+			let firstByte = segment[offset];
+			let idLength = 1;
+			let mask = 128;
+			while (idLength <= 4 && !(firstByte & mask)) {
+				idLength++;
+				mask >>= 1;
 			}
+			if (idLength > 4 || offset + idLength >= segment.length) break;
+			let id = 0;
+			for (let i = 0; i < idLength; i++) id = id * 256 + segment[offset + i];
+			if (id === 524531317) return segment.subarray(offset);
+			offset += idLength;
+			firstByte = segment[offset];
+			let sizeLength = 1;
+			mask = 128;
+			while (sizeLength <= 8 && !(firstByte & mask)) {
+				sizeLength++;
+				mask >>= 1;
+			}
+			if (sizeLength > 8 || offset + sizeLength > segment.length) break;
+			let size = firstByte & ~mask;
+			let isUnknown = firstByte === (mask | mask - 1);
+			for (let i = 1; i < sizeLength; i++) {
+				const b = segment[offset + i];
+				size = size * 256 + b;
+				if (b !== 255) isUnknown = false;
+			}
+			offset += sizeLength;
+			if (id === 408125543) continue;
+			if (isUnknown) break;
+			offset += size;
+		}
+		return segment;
+	}
+	function parseEmsgSegmentMetadata(buffer) {
+		const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+		const firstBox = findBox(view, 0, EMSG_BOX_TYPE);
+		if (!firstBox) return;
+		const firstBody = parseEmsgBody(firstBox);
+		let headers = parseHeaderBlock(firstBody.messageData);
+		const secondBox = findBox(view, firstBox.offset + firstBox.size, EMSG_BOX_TYPE);
+		if (secondBox) {
+			const secondHeaders = parseHeaderBlock(parseEmsgBody(secondBox).messageData);
+			if (headers && secondHeaders) headers = {
+				...headers,
+				...secondHeaders
+			};
+		}
+		if (headers) return new EmsgSegmentMetadata(headers, firstBody.schemeIdUri);
+	}
+	// node_modules/googlevideo/dist/src/utils/SabrSegmentBuffer.js
+	var TAG$1 = "SabrSegmentBuffer";
+	var SabrSegmentBuffer = class {
+		trackMetadata;
+		isBroadcast;
+		stripDuplicateInit;
+		logger = Logger.getInstance();
+		pendingSegments = new Map();
+		constructor(trackMetadata, isBroadcast = false, stripDuplicateInit = true) {
+			this.trackMetadata = trackMetadata;
+			this.isBroadcast = isBroadcast;
+			this.stripDuplicateInit = stripDuplicateInit;
+		}
+		reset() {
+			this.trackMetadata.initializedTracksMap.clear();
+			this.pendingSegments.clear();
+		}
+		queueMediaHeader(mediaHeader) {
+			const headerId = mediaHeader.headerId ?? 0;
+			const formatKey = createFormatKey(mediaHeader);
+			const track = this.trackMetadata.initializedTracksMap.get(formatKey);
+			if (!track) {
+				this.logger.warn(TAG$1, `No track found: formatKey=${formatKey}, headerId=${headerId}`);
+				return;
+			}
+			const segmentNumber = mediaHeader.isInitializationSegment ? 0 : mediaHeader.segmentNum;
+			if (track.trackedSegments.has(segmentNumber)) {
+				this.logger.debug(TAG$1, `Ignoring recently downloaded segment: formatKey=${formatKey}, segmentNumber=${segmentNumber}`);
+				return;
+			}
+			this.pendingSegments.set(headerId, {
+				formatKey,
+				segmentNumber,
+				mediaHeader,
+				startTimeMs: getStartMs(mediaHeader),
+				durationMs: getDurationMs(mediaHeader),
+				bufferedChunks: [],
+				loadedLengthBytes: 0,
+				type: track.type
+			});
+		}
+		appendMediaData(headerId, buffer) {
+			const pendingSegment = this.pendingSegments.get(headerId);
+			if (!pendingSegment) {
+				this.logger.debug(TAG$1, `Received MEDIA for unknown header id ${headerId}`);
+				return;
+			}
+			pendingSegment.bufferedChunks.push(...buffer.chunks);
+			pendingSegment.loadedLengthBytes += buffer.getLength();
+		}
+		finalizeSegment(headerId) {
+			const pendingSegment = this.pendingSegments.get(headerId);
+			if (!pendingSegment) {
+				this.logger.debug(TAG$1, `Received MEDIA_END for unknown header id ${headerId}`);
+				return false;
+			}
+			const track = this.trackMetadata.getInitializedTrack(pendingSegment.formatKey);
+			if (!track) {
+				this.pendingSegments.delete(headerId);
+				return false;
+			}
+			const expectedLengthBytes = parseInt(pendingSegment.mediaHeader.segmentLengthBytes || "0");
+			const loadedLengthBytes = pendingSegment.loadedLengthBytes;
+			if (expectedLengthBytes > 0 && loadedLengthBytes !== expectedLengthBytes) {
+				this.logger.warn(TAG$1, `Ignoring partial segment ${pendingSegment.segmentNumber} for ${pendingSegment.formatKey}.\nexpected=${expectedLengthBytes}, received=${loadedLengthBytes}`);
+				this.pendingSegments.delete(headerId);
+				return false;
+			}
+			let segment = concatenateChunks(pendingSegment.bufferedChunks);
+			const emsgMetadata = parseEmsgSegmentMetadata(segment);
+			if (this.isBroadcast && this.stripDuplicateInit && track.trackedSegments.size !== 0) segment = track.mimeType?.includes("webm") ? stripWebmInit(segment) : stripMp4Init(segment);
+			if (track.streamLocked || track.streamDesiredSize > 0) track.streamController.enqueue(segment);
+			track.recordCompletedSegment(pendingSegment, emsgMetadata);
+			this.pendingSegments.delete(headerId);
+			return !pendingSegment.mediaHeader.isInitializationSegment;
+		}
+	};
+	// node_modules/googlevideo/dist/src/utils/EventEmitterLike.js
+	var EventEmitterLike = class {
+		listeners = new Map();
+		onceWrappers = new Map();
+		emit(type, ...args) {
+			const listeners = this.listeners.get(type);
+			if (!listeners || listeners.size === 0) return;
+			for (const listener of [...listeners]) listener(...args);
+		}
+		on(type, listener) {
+			let listeners = this.listeners.get(type);
+			if (!listeners) {
+				listeners = new Set();
+				this.listeners.set(type, listeners);
+			}
+			listeners.add(listener);
+		}
+		once(type, listener) {
+			const wrapper = (...args) => {
+				this.off(type, listener);
+				listener(...args);
+			};
+			let wrappersByType = this.onceWrappers.get(listener);
+			if (!wrappersByType) {
+				wrappersByType = new Map();
+				this.onceWrappers.set(listener, wrappersByType);
+			}
+			wrappersByType.set(type, wrapper);
+			this.on(type, wrapper);
+		}
+		off(type, listener) {
+			const listeners = this.listeners.get(type);
+			if (!listeners) return;
+			let target = listener;
+			const wrappersByType = this.onceWrappers.get(listener);
+			if (wrappersByType) {
+				const onceWrapper = wrappersByType.get(type);
+				if (onceWrapper) {
+					target = onceWrapper;
+					wrappersByType.delete(type);
+					if (wrappersByType.size === 0) this.onceWrappers.delete(listener);
+				}
+			}
+			listeners.delete(target);
+			if (listeners.size === 0) this.listeners.delete(type);
+		}
+		removeAllListeners(type) {
+			if (!type) {
+				this.listeners.clear();
+				this.onceWrappers.clear();
+				return;
+			}
+			this.listeners.delete(type);
+			for (const [listener, wrappersByType] of this.onceWrappers.entries()) {
+				wrappersByType.delete(type);
+				if (wrappersByType.size === 0) this.onceWrappers.delete(listener);
+			}
+		}
+	};
+	// node_modules/googlevideo/dist/src/utils/misc.js
+	function wait(ms) {
+		return new Promise((resolve) => setTimeout(resolve, ms));
+	}
+	function assert(condition, msg) {
+		if (!condition) throw new Error(msg);
+	}
+	function assertIsDefined(val, msg) {
+		if (val === void 0 || val === null) throw new Error(msg ?? `Expected value to be defined, but got ${val}`);
+	}
+	function getMediaType(input) {
+		return input.mimeType?.includes("audio") ? "audio" : "video";
+	}
+	// node_modules/googlevideo/dist/src/utils/urlUtils.js
+	function getBroadcastId(url) {
+		const idParam = url.searchParams.get("id");
+		if (!idParam) return void 0;
+		const parts = idParam.split(".");
+		return parts.length === 2 ? parts[1] : void 0;
+	}
+	function getNextFallbackUrl(input) {
+		const urlMod = input instanceof URL ? new URL(input.href) : new URL(input);
+		const fvip = urlMod.searchParams.get("fvip");
+		const mnRaw = urlMod.searchParams.get("mn");
+		const fallbackCount = parseInt(urlMod.searchParams.get("fallback_count") ?? "0", 10);
+		if (fvip && mnRaw) {
+			const mn = mnRaw.split(",");
+			const nextIndex = fallbackCount + 1;
+			if (nextIndex < mn.length && mn[nextIndex]) {
+				const nextNode = mn[nextIndex];
+				const currentHost = urlMod.hostname;
+				const suffix = currentHost.replace(/^[^.]*/, "");
+				urlMod.hostname = `${currentHost.startsWith("rr") ? "rr" : "r"}${fvip}---${nextNode}${suffix}`;
+				urlMod.searchParams.set("fallback_count", String(fallbackCount + 1));
+				return urlMod;
+			}
+		}
+	}
+	// node_modules/googlevideo/dist/src/utils/Track.js
+	var MAX_TRACKED_SEGMENTS = 64;
+	var Track = class {
+		type;
+		formatId;
+		mimeType;
+		endSegmentNum;
+		endTimeTicks;
+		endTimescale;
+		targetDurationSec;
+		trackedSegments = new Map();
+		bufferedRangeSummary;
+		emsgSegmentMetadata;
+		_output;
+		constructor(type) {
+			this.type = type;
+		}
+		set output(value) {
+			this._output = value;
+		}
+		get output() {
+			return this._output;
+		}
+		get streamLocked() {
+			return this.output.stream.locked;
+		}
+		get streamDesiredSize() {
+			return this.output.controller.desiredSize ?? 0;
+		}
+		get streamController() {
+			return this.output.controller;
+		}
+		get streamFull() {
+			return this.streamLocked && this.streamDesiredSize <= 0;
+		}
+		get endTimeMs() {
+			if (this.endTimeTicks === void 0 || this.endTimescale === void 0) return 0;
+			return ticksToMs(this.endTimeTicks, this.endTimescale, Math.ceil);
+		}
+		get endOfStreamReached() {
+			return this.endSegmentNum !== void 0 && this.endSegmentNum > 0 && this.trackedSegments.has(this.endSegmentNum);
+		}
+		get latencyMs() {
+			if (!this.emsgSegmentMetadata) return void 0;
+			return this.emsgSegmentMetadata.latencyMs;
+		}
+		update(state) {
+			if ("formatId" in state) this.formatId = state.formatId;
+			if ("mimeType" in state) this.mimeType = state.mimeType;
+			if ("endSegmentNum" in state) this.endSegmentNum = state.endSegmentNum;
+			if ("endTimeTicks" in state) this.endTimeTicks = state.endTimeTicks;
+			if ("endTimescale" in state) this.endTimescale = state.endTimescale;
+			if ("targetDurationSec" in state) this.targetDurationSec = state.targetDurationSec;
+			if ("trackedSegments" in state) this.trackedSegments = new Map(state.trackedSegments);
+			if ("bufferedRangeSummary" in state) this.bufferedRangeSummary = state.bufferedRangeSummary;
+		}
+		snapshot() {
 			return {
-				extractedBuffer,
-				remainingBuffer
+				formatId: this.formatId,
+				mimeType: this.mimeType,
+				endSegmentNum: this.endSegmentNum,
+				endTimeTicks: this.endTimeTicks,
+				endTimescale: this.endTimescale,
+				targetDurationSec: this.targetDurationSec,
+				trackedSegments: Array.from(this.trackedSegments.entries()),
+				bufferedRangeSummary: this.bufferedRangeSummary
 			};
 		}
-		getLength() {
-			return this.totalLength;
-		}
-		canReadBytes(position, length) {
-			return position + length <= this.totalLength;
-		}
-		getUint8(position) {
-			this.focus(position);
-			return this.chunks[this.currentChunkIndex][position - this.currentChunkOffset];
-		}
-		focus(position) {
-			if (!this.isFocused(position)) {
-				if (position < this.currentChunkOffset) this.resetFocus();
-				while (this.currentChunkOffset + this.chunks[this.currentChunkIndex].length <= position && this.currentChunkIndex < this.chunks.length - 1) {
-					this.currentChunkOffset += this.chunks[this.currentChunkIndex].length;
-					this.currentChunkIndex += 1;
-				}
-				this.currentDataView = void 0;
+		recordCompletedSegment(info, emsgMetadata) {
+			let durationMs = info.durationMs;
+			if (durationMs <= 0 && !info.mediaHeader.isInitializationSegment) durationMs = this.targetDurationSec ? this.targetDurationSec * 1e3 : void 0;
+			if (emsgMetadata) {
+				this.emsgSegmentMetadata = emsgMetadata;
+				if (emsgMetadata.targetDurationSec > 0) durationMs = emsgMetadata.targetDurationSec * 1e3;
 			}
+			assertIsDefined(durationMs, `Track is missing durationMs: formatKey=${info.formatKey}, segmentNumber=${info.segmentNumber}`);
+			const segmentNumber = info.segmentNumber;
+			const mediaHeader = info.mediaHeader;
+			const startTimeMs = info.startTimeMs;
+			const endTimeMs = startTimeMs + durationMs;
+			this.trackedSegments.set(segmentNumber, {
+				segmentNumber,
+				startTimeMs,
+				endTimeMs,
+				durationMs,
+				mediaHeader
+			});
+			this.evictOldestTrackedSegments();
+			this.refreshBufferedRanges();
 		}
-		isFocused(position) {
-			return position >= this.currentChunkOffset && position < this.currentChunkOffset + this.chunks[this.currentChunkIndex].length;
+		refreshBufferedRanges() {
+			let first;
+			let last;
+			for (const segment of this.trackedSegments.values()) {
+				if (segment.mediaHeader.isInitializationSegment) continue;
+				if (!first || segment.segmentNumber < first.segmentNumber) first = segment;
+				if (!last || segment.segmentNumber > last.segmentNumber) last = segment;
+			}
+			if (!first || !last) {
+				this.bufferedRangeSummary = void 0;
+				return;
+			}
+			this.bufferedRangeSummary = {
+				startTimeMs: first.startTimeMs,
+				durationMs: Math.max(0, last.endTimeMs - first.startTimeMs),
+				startSegmentIndex: first.segmentNumber,
+				endSegmentIndex: last.segmentNumber
+			};
 		}
-		resetFocus() {
-			this.currentDataView = void 0;
-			this.currentChunkIndex = 0;
-			this.currentChunkOffset = 0;
-		}
-		canMergeWithLastChunk(chunk) {
-			if (this.chunks.length === 0) return false;
-			const lastChunk = this.chunks[this.chunks.length - 1];
-			return lastChunk.buffer === chunk.buffer && lastChunk.byteOffset + lastChunk.length === chunk.byteOffset;
+		evictOldestTrackedSegments() {
+			while (this.trackedSegments.size > MAX_TRACKED_SEGMENTS) {
+				const oldestKey = this.trackedSegments.keys().next().value;
+				if (oldestKey === void 0) break;
+				this.trackedSegments.delete(oldestKey);
+			}
 		}
 	};
-	//#endregion
-	//#region node_modules/googlevideo/dist/src/core/UmpReader.js
-	var UmpReader = class {
-		constructor(compositeBuffer) {
-			this.compositeBuffer = compositeBuffer;
+	// node_modules/googlevideo/dist/src/utils/TrackCollection.js
+	var TrackCollection = class {
+		video = new Track("video");
+		audio = new Track("audio");
+		initializedTracksMap = new Map();
+		get needsDrain() {
+			return this.video.streamFull || this.audio.streamFull;
 		}
-		read(handlePart) {
-			while (true) {
-				let offset = 0;
-				const [partType, newOffset] = this.readVarInt(offset);
-				offset = newOffset;
-				const [partSize, finalOffset] = this.readVarInt(offset);
-				offset = finalOffset;
-				if (partType < 0 || partSize < 0) break;
-				if (!this.compositeBuffer.canReadBytes(offset, partSize)) {
-					if (!this.compositeBuffer.canReadBytes(offset, 1)) break;
-					return {
-						type: partType,
-						size: partSize,
-						data: this.compositeBuffer
-					};
-				}
-				const splitResult = this.compositeBuffer.split(offset).remainingBuffer.split(partSize);
-				offset = 0;
-				handlePart({
-					type: partType,
-					size: partSize,
-					data: splitResult.extractedBuffer
-				});
-				this.compositeBuffer = splitResult.remainingBuffer;
+		get buffered() {
+			let bufferedUntil = Infinity;
+			for (const track of this.initializedTracks) {
+				const summary = track.bufferedRangeSummary;
+				if (!summary) return 0;
+				bufferedUntil = Math.min(bufferedUntil, summary.startTimeMs + summary.durationMs);
 			}
+			return bufferedUntil;
 		}
-		readVarInt(offset) {
-			let byteLength;
-			if (this.compositeBuffer.canReadBytes(offset, 1)) {
-				const firstByte = this.compositeBuffer.getUint8(offset);
-				byteLength = firstByte < 128 ? 1 : firstByte < 192 ? 2 : firstByte < 224 ? 3 : firstByte < 240 ? 4 : 5;
-			} else byteLength = 0;
-			if (byteLength < 1 || !this.compositeBuffer.canReadBytes(offset, byteLength)) return [-1, offset];
-			let value;
-			switch (byteLength) {
-				case 1:
-					value = this.compositeBuffer.getUint8(offset++);
-					break;
-				case 2: {
-					const byte1 = this.compositeBuffer.getUint8(offset++);
-					const byte2 = this.compositeBuffer.getUint8(offset++);
-					value = (byte1 & 63) + 64 * byte2;
-					break;
-				}
-				case 3: {
-					const byte1 = this.compositeBuffer.getUint8(offset++);
-					const byte2 = this.compositeBuffer.getUint8(offset++);
-					const byte3 = this.compositeBuffer.getUint8(offset++);
-					value = (byte1 & 31) + 32 * (byte2 + 256 * byte3);
-					break;
-				}
-				case 4: {
-					const byte1 = this.compositeBuffer.getUint8(offset++);
-					const byte2 = this.compositeBuffer.getUint8(offset++);
-					const byte3 = this.compositeBuffer.getUint8(offset++);
-					const byte4 = this.compositeBuffer.getUint8(offset++);
-					value = (byte1 & 15) + 16 * (byte2 + 256 * (byte3 + 256 * byte4));
-					break;
-				}
-				default: {
-					const tempOffset = offset + 1;
-					this.compositeBuffer.focus(tempOffset);
-					if (this.canReadFromCurrentChunk(tempOffset, 4)) value = this.getCurrentDataView().getUint32(tempOffset - this.compositeBuffer.currentChunkOffset, true);
-					else {
-						const byte3 = this.compositeBuffer.getUint8(tempOffset + 2) + 256 * this.compositeBuffer.getUint8(tempOffset + 3);
-						value = this.compositeBuffer.getUint8(tempOffset) + 256 * (this.compositeBuffer.getUint8(tempOffset + 1) + 256 * byte3);
+		get bufferedRanges() {
+			const ranges = [];
+			for (const track of this.initializedTracks) {
+				const summary = track.bufferedRangeSummary;
+				if (!summary) continue;
+				ranges.push({
+					formatId: track.formatId,
+					startTimeMs: summary.startTimeMs === 0 ? "" : String(summary.startTimeMs),
+					durationMs: String(summary.durationMs),
+					startSegmentIndex: summary.startSegmentIndex,
+					endSegmentIndex: summary.endSegmentIndex,
+					timeRange: {
+						startTicks: String(summary.startTimeMs),
+						durationTicks: String(summary.durationMs),
+						timescale: 1e3
 					}
-					offset += 5;
-					break;
-				}
+				});
 			}
-			return [value, offset];
+			return ranges;
 		}
-		canReadFromCurrentChunk(offset, length) {
-			return offset - this.compositeBuffer.currentChunkOffset + length <= this.compositeBuffer.chunks[this.compositeBuffer.currentChunkIndex].length;
+		get initializedTracks() {
+			return this.initializedTracksMap.values();
 		}
-		getCurrentDataView() {
-			if (!this.compositeBuffer.currentDataView) {
-				const currentChunk = this.compositeBuffer.chunks[this.compositeBuffer.currentChunkIndex];
-				this.compositeBuffer.currentDataView = new DataView(currentChunk.buffer, currentChunk.byteOffset, currentChunk.length);
-			}
-			return this.compositeBuffer.currentDataView;
+		get initializationFormatIds() {
+			const formatIds = [];
+			if (this.video.formatId) formatIds.push(this.video.formatId);
+			if (this.audio.formatId) formatIds.push(this.audio.formatId);
+			return formatIds;
+		}
+		get livePlaybackLatencyMs() {
+			const videoLatency = this.video.latencyMs;
+			const audioLatency = this.audio.latencyMs;
+			if (videoLatency === void 0 && audioLatency === void 0) return void 0;
+			return Math.max(videoLatency ?? 0, audioLatency ?? 0);
+		}
+		initialize(type, metadata) {
+			this[type].update(metadata);
+			if ("formatId" in metadata && metadata.formatId !== void 0) this.initializedTracksMap.set(createFormatKey(metadata.formatId), this[type]);
+		}
+		getInitializedTrack(formatKey) {
+			return this.initializedTracksMap.get(formatKey);
+		}
+		endOfStreamReached(enabledTrackTypes) {
+			const videoEndOfStreamReached = this.video.endOfStreamReached;
+			const audioEndOfStreamReached = this.audio.endOfStreamReached;
+			return videoEndOfStreamReached && audioEndOfStreamReached || enabledTrackTypes === EnabledTrackTypes.VIDEO_ONLY && videoEndOfStreamReached || enabledTrackTypes === EnabledTrackTypes.AUDIO_ONLY && audioEndOfStreamReached;
+		}
+		snapshot() {
+			const trackStates = [];
+			for (const initializedTrack of this.initializedTracksMap.values()) trackStates.push(initializedTrack.snapshot());
+			return trackStates;
+		}
+		error(err) {
+			const errorInstance = typeof err === "string" ? new Error(err) : err;
+			this.video.streamController.error(errorInstance);
+			this.audio.streamController.error(errorInstance);
+		}
+		close() {
+			this.video.streamController.close();
+			this.audio.streamController.close();
 		}
 	};
-	//#endregion
-	//#region node_modules/googlevideo/dist/src/core/SabrStream.js
+	// node_modules/googlevideo/dist/src/utils/BandwidthEstimator.js
+	var BandwidthEstimator = class {
+		halfLifeFastSec;
+		halfLifeSlowSec;
+		safetyFactor;
+		maxSampleDurationSec;
+		seedMinDurationSec;
+		fast = 0;
+		slow = 0;
+		hasValue = false;
+		pendingBytes = 0;
+		pendingSec = 0;
+		constructor(options = {}) {
+			this.halfLifeFastSec = options.halfLifeFastSec ?? 1;
+			this.halfLifeSlowSec = options.halfLifeSlowSec ?? 5;
+			this.safetyFactor = options.safetyFactor ?? .9;
+			this.maxSampleDurationSec = options.maxSampleDurationSec ?? 5;
+			this.seedMinDurationSec = options.seedMinDurationSec ?? .1;
+		}
+		reset() {
+			this.fast = this.slow = 0;
+			this.hasValue = false;
+			this.pendingBytes = this.pendingSec = 0;
+		}
+		add(bytes, seconds) {
+			if (!(bytes > 0) || !(seconds > 0)) return;
+			if (seconds > this.maxSampleDurationSec) return;
+			if (!this.hasValue) {
+				this.pendingBytes += bytes;
+				this.pendingSec += seconds;
+				if (this.pendingSec >= this.seedMinDurationSec) {
+					this.fast = this.slow = this.pendingBytes / this.pendingSec;
+					this.hasValue = true;
+					this.pendingBytes = this.pendingSec = 0;
+				}
+				return;
+			}
+			const rate = bytes / seconds;
+			const aFast = 1 - Math.exp(-seconds / this.halfLifeFastSec);
+			const aSlow = 1 - Math.exp(-seconds / this.halfLifeSlowSec);
+			this.fast += aFast * (rate - this.fast);
+			this.slow += aSlow * (rate - this.slow);
+		}
+		get() {
+			if (!this.hasValue) return 0;
+			return Math.min(this.fast, this.slow) * this.safetyFactor;
+		}
+	};
+	// node_modules/googlevideo/dist/src/core/SabrStream.js
 	var TAG = "SabrStream";
+	var MAX_STALLS = 3;
 	var DEFAULT_MAX_RETRIES = 10;
-	var MAX_BACKOFF_MS = 8e3;
-	var BACKOFF_MULTIPLIER = 500;
 	var DEFAULT_STALL_DETECTION_MS = 3e4;
-	var MAX_STALLS = 5;
+	var REQUEST_TIMEOUT_MS = 3e4;
+	var INITIAL_RETRY_BACKOFF_MS = 500;
+	var MAX_RETRY_BACKOFF_MS = 5e3;
+	var OFFLINE_GRACE_PERIOD_MS = 15e3;
+	var DEFAULT_HEARTBEAT_INTERVAL_MS = 1e4;
+	var LIVE_EDGE_SENTINEL_MS = Number.MAX_SAFE_INTEGER;
+	var DEFAULT_VIDEO_HWM = 16777216;
+	var DEFAULT_AUDIO_HWM = 3145728;
 	var SabrStream = class extends EventEmitterLike {
-		on(event, listener) {
-			super.on(event, listener);
-		}
-		once(event, listener) {
-			super.once(event, listener);
-		}
-		constructor(config = {}) {
+		logger = Logger.getInstance();
+		formats = [];
+		segmentBuffer;
+		fetchFunction;
+		abortController;
+		requestTimeoutId;
+		serverAbrStreamingUrl;
+		videoPlaybackUstreamerConfig;
+		clientInfo;
+		proofOfOriginToken;
+		heartbeatParams;
+		nextRequestPolicy;
+		ssapPlaybackInfos = new Map();
+		sabrContextUpdates = new Map();
+		activeSabrContextTypes = new Set();
+		trackCollection = new TrackCollection();
+		bandwidth = new BandwidthEstimator();
+		videoId;
+		broadcastId;
+		idleResolvers = [];
+		drainResolver;
+		shouldStop = false;
+		isMintingPoToken = false;
+		isBroadcast = false;
+		runtime = {
+			playerTimeMs: 0,
+			requestNumber: 0,
+			lastHeartbeatTimeMs: 0,
+			playbackSessionStartMs: void 0,
+			poTokenGenerationId: 0,
+			spsRejectCount: 0
+		};
+		lifecycle = {
+			aborted: false,
+			errored: false,
+			busy: false
+		};
+		health = {
+			lastProgressTime: Date.now(),
+			lastBufferedTimeMs: 0,
+			stallCount: 0
+		};
+		callbacks;
+		constructor(config) {
 			super();
-			this.logger = Logger.getInstance();
-			this.formatIds = [];
-			this.umpPartHandlers = new Map([
-				[UMPPartId.FORMAT_INITIALIZATION_METADATA, this.handleFormatInitializationMetadata.bind(this)],
-				[UMPPartId.NEXT_REQUEST_POLICY, this.handleNextRequestPolicy.bind(this)],
-				[UMPPartId.SABR_ERROR, this.handleSabrError.bind(this)],
-				[UMPPartId.SABR_REDIRECT, this.handleSabrRedirect.bind(this)],
-				[UMPPartId.SABR_CONTEXT_UPDATE, this.handleSabrContextUpdate.bind(this)],
-				[UMPPartId.SABR_CONTEXT_SENDING_POLICY, this.handleSabrContextSendingPolicy.bind(this)],
-				[UMPPartId.STREAM_PROTECTION_STATUS, this.handleStreamProtectionStatus.bind(this)],
-				[UMPPartId.RELOAD_PLAYER_RESPONSE, this.handleReloadPlayerResponse.bind(this)],
-				[UMPPartId.MEDIA_HEADER, this.handleMediaHeader.bind(this)],
-				[UMPPartId.MEDIA, this.handleMedia.bind(this)],
-				[UMPPartId.MEDIA_END, this.handleMediaEnd.bind(this)]
-			]);
-			this.sabrContexts = new Map();
-			this.activeSabrContextTypes = new Set();
-			this.initializedFormatsMap = new Map();
-			this.partialSegmentQueue = new Map();
-			this.requestNumber = 0;
-			this.durationMs = Infinity;
-			this.mediaHeadersProcessed = false;
-			this._errored = false;
-			this._aborted = false;
-			this.progressTracker = {
-				lastProgressTime: Date.now(),
-				lastDownloadedDuration: 0,
-				stallCount: 0
-			};
-			this.fetchFunction = config?.fetch || fetch;
-			this.serverAbrStreamingUrl = config.serverAbrStreamingUrl;
-			this.videoPlaybackUstreamerConfig = config.videoPlaybackUstreamerConfig;
+			this.fetchFunction = config.fetchFunction || fetch;
+			this.videoId = config.videoId;
+			this.formats = config.formats || [];
 			this.clientInfo = config.clientInfo;
-			this.poToken = config.poToken;
-			this.durationMs = config.durationMs || Infinity;
-			this.formatIds = config.formats || [];
-			this.videoStream = new ReadableStream({ start: (controller) => {
-				this.videoController = controller;
-			} });
-			this.audioStream = new ReadableStream({ start: (controller) => {
-				this.audioController = controller;
-			} });
+			this.videoPlaybackUstreamerConfig = config.videoPlaybackUstreamerConfig;
+			this.proofOfOriginToken = config.poToken ? base64ToU8(config.poToken) : void 0;
+			this.heartbeatParams = config.heartbeatParams || {};
+			this.callbacks = config.callbacks || {};
+			this.setStreamingURL(config.serverAbrStreamingUrl);
+			this.isBroadcast = ["yt_premiere_broadcast", "yt_live_broadcast"].includes(this.streamingURL.searchParams.get("source") || "");
+			this.broadcastId = this.isBroadcast ? getBroadcastId(this.streamingURL) : void 0;
+			this.trackCollection.video.output = this.createTrackStream(config.videoHighWaterMark ?? DEFAULT_VIDEO_HWM);
+			this.trackCollection.audio.output = this.createTrackStream(config.audioHighWaterMark ?? DEFAULT_AUDIO_HWM);
+			this.segmentBuffer = new SabrSegmentBuffer(this.trackCollection, this.isBroadcast, config.stripDuplicateInit);
 		}
-		setPoToken(poToken) {
-			this.poToken = poToken;
+		get isLive() {
+			return this.isBroadcast;
 		}
-		setServerAbrFormats(formats) {
-			this.formatIds.push(...formats);
+		get isBusy() {
+			return this.lifecycle.busy;
 		}
-		setDurationMs(durationMs) {
-			this.durationMs = durationMs;
+		get isAborted() {
+			return this.lifecycle.aborted;
+		}
+		get isErrored() {
+			return this.lifecycle.errored;
+		}
+		get videoEndTimeMs() {
+			return this.trackCollection.video.endTimeMs;
+		}
+		get audioEndTimeMs() {
+			return this.trackCollection.audio.endTimeMs;
+		}
+		get livePlaybackLatencyMs() {
+			if (!this.isBroadcast) return;
+			return this.trackCollection.livePlaybackLatencyMs;
+		}
+		get streamingURL() {
+			assertIsDefined(this.serverAbrStreamingUrl, "Streaming URL is not set");
+			return this.serverAbrStreamingUrl;
 		}
 		setStreamingURL(url) {
-			this.serverAbrStreamingUrl = url;
+			this.serverAbrStreamingUrl = url instanceof URL ? url : new URL(url);
+			this.validateStreamingUrl(this.serverAbrStreamingUrl);
 		}
 		setUstreamerConfig(config) {
 			this.videoPlaybackUstreamerConfig = config;
 		}
-		setClientInfo(clientInfo) {
-			this.clientInfo = clientInfo;
+		async waitForIdle() {
+			if (this.lifecycle.busy) await new Promise((resolve) => this.idleResolvers.push(resolve));
 		}
-		abort() {
-			this.logger.debug(TAG, "Aborting download process");
-			this._aborted = true;
-			this.abortController?.abort();
-			this.videoController?.error(new Error("Download aborted."));
-			this.audioController?.error(new Error("Download aborted."));
-			this.resetState();
-			this.emit("abort");
-		}
-		getState() {
-			if (!this.mainFormat) throw new Error("Main format is not initialized, cannot get state.");
-			const playerTimeMs = getTotalDownloadedDuration(this.mainFormat);
-			const initializedFormats = [];
-			for (const [formatKey, format] of this.initializedFormatsMap.entries()) initializedFormats.push({
-				formatKey,
-				formatInitializationMetadata: format.formatInitializationMetadata,
-				downloadedSegments: Array.from(format.downloadedSegments.entries()),
-				lastMediaHeaders: format.lastMediaHeaders
-			});
+		async snapshot() {
+			await this.waitForIdle();
 			return {
-				durationMs: this.durationMs,
-				requestNumber: this.requestNumber,
-				activeSabrContexts: Array.from(this.activeSabrContextTypes),
-				sabrContextUpdates: Array.from(this.sabrContexts.entries()),
-				formatToDiscard: this.formatToDiscard,
-				cachedBufferedRanges: this.cachedBufferedRanges || [],
-				nextRequestPolicy: this.nextRequestPolicy,
-				initializedFormats,
-				playerTimeMs
+				playerTimeMs: this.runtime.playerTimeMs,
+				tracks: this.trackCollection.snapshot()
 			};
 		}
-		async start(options) {
+		async abort(options = {}) {
+			let snapshotData;
+			if (options.snapshot) snapshotData = await this.snapshot();
+			this.emit("abort");
+			this.lifecycle.aborted = true;
+			this.abortController?.abort();
+			this.trackCollection.error("Stream aborted");
+			this.drainResolver?.();
+			this.drainResolver = void 0;
+			return snapshotData;
+		}
+		start(options) {
+			assert(this.runtime.playbackSessionStartMs === void 0, "This stream instance has already been started and cannot be reused");
 			const { videoFormat, audioFormat } = this.selectFormats(options);
-			this.setupStreamingProcess(videoFormat, audioFormat, options).then();
+			this.setupStreaming(options, audioFormat, videoFormat).catch(() => {});
 			return {
-				videoStream: this.videoStream,
-				audioStream: this.audioStream,
+				videoStream: this.trackCollection.video.output.stream,
+				audioStream: this.trackCollection.audio.output.stream,
 				selectedFormats: {
 					videoFormat,
 					audioFormat
 				}
 			};
 		}
-		async setupStreamingProcess(videoFormat, audioFormat, options) {
-			try {
-				this._errored = false;
-				this._aborted = false;
-				let playerTimeMs = 0;
-				if (options.state && this.restoreState(videoFormat, audioFormat, options.state)) playerTimeMs = options.state.playerTimeMs || 0;
-				const maxRetries = options.maxRetries !== void 0 ? options.maxRetries : DEFAULT_MAX_RETRIES;
-				const enabledTrackTypesBitfield = options.enabledTrackTypes ?? EnabledTrackTypes.VIDEO_AND_AUDIO;
-				const abrState = {
-					playerTimeMs,
-					audioTrackId: audioFormat.audioTrackId,
-					playbackRate: 1,
-					stickyResolution: videoFormat.height || 360,
-					drcEnabled: audioFormat.isDrc,
-					clientViewportIsFlexible: false,
-					visibility: 1,
-					enabledTrackTypesBitfield
-				};
-				if (abrState.enabledTrackTypesBitfield === 1 || abrState.enabledTrackTypesBitfield === 2) this.formatToDiscard = abrState.enabledTrackTypesBitfield === 1 ? fromFormat(videoFormat) : fromFormat(audioFormat);
-				while (parseInt(abrState.playerTimeMs) < this.durationMs) {
-					if (this._aborted) {
-						this.logger.debug(TAG, "Download process aborted, exiting streaming loop.");
-						break;
-					}
-					this.logger.debug(TAG, `Starting new segment fetch at playback position: ${abrState.playerTimeMs}ms`);
-					this.mainFormat = abrState.enabledTrackTypesBitfield === 1 ? this.initializedFormatsMap.get(fromFormat(audioFormat) || "") : this.initializedFormatsMap.get(fromFormat(videoFormat) || "");
-					if (this.mainFormat) this.validateAndCorrectDuration(this.mainFormat.formatInitializationMetadata);
-					abrState.playerTimeMs = this.mainFormat ? getTotalDownloadedDuration(this.mainFormat) : 0;
-					const { shouldStop } = this.checkForStall({
-						playerTimeMs: abrState.playerTimeMs,
-						stallDetectionMs: options.stallDetectionMs
-					});
-					if (shouldStop) break;
-					abrState.playerTimeMs = abrState.playerTimeMs.toString();
-					if (!await this.executeWithRetry(() => this.fetchAndProcessSegments(abrState, audioFormat, videoFormat), maxRetries)) break;
-				}
-			} catch (error) {
-				if (!this._aborted) this.errorHandler(error, true);
-			} finally {
-				if (!this._aborted) {
-					this.validateDownloadedSegments();
-					if (!this._errored) {
-						this.videoController?.close();
-						this.audioController?.close();
-					}
-					this.resetState();
-					this.emit("finish");
-				}
-			}
-		}
-		restoreState(videoFormat, audioFormat, state) {
-			this.resetState();
-			if (!state || typeof state !== "object" || !state.initializedFormats || !Array.isArray(state.initializedFormats) || !state.durationMs || !state.playerTimeMs) {
-				this.logger.warn(TAG, "Invalid or corrupt state object provided. Starting fresh.");
-				return false;
-			}
-			const expectedVideoFormatKey = fromFormat(videoFormat) || "";
-			const expectedAudioFormatKey = fromFormat(audioFormat) || "";
-			for (const format of state.initializedFormats) {
-				const { formatKey, formatInitializationMetadata, downloadedSegments, lastMediaHeaders } = format;
-				if (formatKey !== expectedVideoFormatKey && formatKey !== expectedAudioFormatKey) {
-					this.logger.warn(TAG, `State contains an unexpected format key "${formatKey}". It will be ignored.`);
-					continue;
-				}
-				this.initializedFormatsMap.set(formatKey, {
-					formatInitializationMetadata,
-					downloadedSegments: new Map(downloadedSegments),
-					lastMediaHeaders: lastMediaHeaders || []
-				});
-			}
-			if (!this.initializedFormatsMap.has(expectedVideoFormatKey) || !this.initializedFormatsMap.has(expectedAudioFormatKey)) {
-				this.logger.warn(TAG, "State is missing required format data for the selected video/audio formats. Starting fresh.");
-				this.resetState();
-				return false;
-			}
-			this.durationMs = state.durationMs;
-			this.requestNumber = state.requestNumber || 0;
-			this.activeSabrContextTypes = new Set(state.activeSabrContexts || []);
-			this.sabrContexts = new Map(state.sabrContextUpdates || []);
-			this.formatToDiscard = state.formatToDiscard;
-			this.cachedBufferedRanges = state.cachedBufferedRanges || [];
-			this.nextRequestPolicy = state.nextRequestPolicy;
-			return true;
-		}
-		checkForStall(options) {
-			const currentTime = Date.now();
-			const currentProgress = options.playerTimeMs;
-			const stallThreshold = options.stallDetectionMs || DEFAULT_STALL_DETECTION_MS;
-			if (currentProgress > this.progressTracker.lastDownloadedDuration) {
-				this.progressTracker.lastProgressTime = currentTime;
-				this.progressTracker.lastDownloadedDuration = currentProgress;
-				this.progressTracker.stallCount = 0;
-				return {
-					shouldStop: false,
-					stalled: false
-				};
-			} else if (currentTime - this.progressTracker.lastProgressTime > stallThreshold) {
-				this.progressTracker.stallCount++;
-				this.logger.warn(TAG, `Stream stalled for ${stallThreshold}ms (stall #${this.progressTracker.stallCount})`);
-				if (this.progressTracker.stallCount >= MAX_STALLS) throw new Error(`Stream stalled ${MAX_STALLS} times, aborting`);
-				this.progressTracker.lastProgressTime = currentTime;
-				if (Math.abs(this.durationMs - currentProgress) < 5e3) {
-					this.logger.warn(TAG, "Stream is close to completion, but stalled. Checking if we have the last segment.");
-					const endSegmentNumber = parseInt(this.mainFormat?.formatInitializationMetadata.endSegmentNumber || "0") || -1;
-					const lastSegment = this.mainFormat?.downloadedSegments.get(endSegmentNumber);
-					if (lastSegment && lastSegment.segmentNumber === endSegmentNumber) {
-						this.logger.warn(TAG, "Last segment is already downloaded. Stopping further processing.");
-						return {
-							shouldStop: true,
-							stalled: true
-						};
-					}
-				}
-				return {
-					shouldStop: false,
-					stalled: true
-				};
-			}
+		createTrackStream(highWaterMark) {
+			let controller;
 			return {
-				shouldStop: false,
-				stalled: false
+				stream: new ReadableStream({
+					start: (c) => controller = c,
+					pull: () => this.notifyDrain(),
+					cancel: (reason) => {
+						this.logger.debug(TAG, `Stream cancelled by consumer. Reason: ${reason || "N/A"}`);
+						this.abort().catch(() => {});
+					}
+				}, new ByteLengthQueuingStrategy({ highWaterMark })),
+				controller
 			};
 		}
+		notifyDrain() {
+			if (!this.trackCollection.needsDrain && this.drainResolver) {
+				this.drainResolver();
+				this.drainResolver = void 0;
+			}
+		}
+		waitForDrain() {
+			if (!this.trackCollection.needsDrain) return Promise.resolve();
+			this.logger.debug(TAG, "Waiting for drain");
+			return new Promise((resolve) => this.drainResolver = resolve);
+		}
+		validateStreamingUrl(url) {
+			const broadcastId = getBroadcastId(url);
+			if (broadcastId) this.validateBroadcastId(broadcastId);
+		}
+		validateBroadcastId(bid) {
+			if (this.isBroadcast && !!this.broadcastId && this.broadcastId !== bid) {
+				this.logger.warn(TAG, `Broadcast ID changed from ${this.broadcastId} to ${bid}. Stopping.`);
+				this.shouldStop = true;
+			}
+		}
 		selectFormats(options) {
-			const videoFormat = chooseFormat(this.formatIds, options.videoFormat, {
-				quality: options.videoQuality,
-				preferWebM: options.preferWebM,
-				preferH264: options.preferH264,
-				preferMP4: options.preferMP4,
-				isAudio: false
+			const audioOnly = options.enabledTrackTypes === EnabledTrackTypes.AUDIO_ONLY;
+			const needsVideo = !audioOnly;
+			const hasAudioSpecs = !!(options.audioFormat || options.audioPreferences);
+			const hasVideoSpecs = !!(options.videoFormat || options.videoPreferences);
+			if (audioOnly) assert(hasAudioSpecs, "Expected audio format or preferences to be provided");
+			else assert(hasAudioSpecs && hasVideoSpecs, "Expected both video and audio format or preferences to be provided");
+			const audioFormat = chooseFormat(this.formats, options.audioFormat, {
+				isAudio: true,
+				...options.audioPreferences
 			});
-			const audioFormat = chooseFormat(this.formatIds, options.audioFormat, {
-				quality: options.audioQuality,
-				language: options.audioLanguage,
-				preferOpus: options.preferOpus,
-				preferMP4: options.preferMP4,
-				preferWebM: options.preferWebM,
-				isAudio: true
-			});
-			if (this.durationMs < 0) throw new Error("Invalid duration");
-			if (!videoFormat || !audioFormat) throw new Error("No suitable formats found for download");
+			const videoFormat = needsVideo ? chooseFormat(this.formats, options.videoFormat, {
+				isAudio: false,
+				...options.videoPreferences
+			}) : void 0;
+			const missing = [];
+			if (needsVideo && !videoFormat) missing.push(describeMissingFormat("video", options.videoFormat, this.formats));
+			if (!audioFormat) missing.push(describeMissingFormat("audio", options.audioFormat, this.formats));
+			if (missing.length > 0) throw new Error(`Could not select formats: ${missing.join("; ")}`);
+			assertIsDefined(audioFormat, "Expected selected audio format");
 			return {
 				videoFormat,
 				audioFormat
 			};
 		}
-		async fetchAndProcessSegments(abrState, selectedAudioFormat, selectedVideoFormat) {
-			const initializedVideoFormat = this.initializedFormatsMap.get(fromFormat(selectedVideoFormat) || "");
-			const initializedAudioFormat = this.initializedFormatsMap.get(fromFormat(selectedAudioFormat) || "");
-			if (!this.cachedBufferedRanges?.length) this.cachedBufferedRanges = this.buildBufferedRanges(initializedVideoFormat, initializedAudioFormat);
-			const requestBody = this.buildRequestBody(abrState, selectedAudioFormat, selectedVideoFormat);
-			this.mediaHeadersProcessed = false;
-			const response = await this.makeStreamingRequest(requestBody);
-			const processedParts = await this.processStreamingResponse(response);
-			if (!processedParts.length) throw new Error("No valid parts received from server.");
-			else if ((this.streamProtectionStatus?.status || 0) >= 2 && !processedParts.includes(UMPPartId.MEDIA)) throw new Error("No media parts or protocol updates received from server.");
-			if (processedParts.includes(UMPPartId.MEDIA_HEADER) && initializedVideoFormat?.lastMediaHeaders?.length && initializedAudioFormat?.lastMediaHeaders?.length || abrState.enabledTrackTypesBitfield !== 0 && this.mainFormat?.lastMediaHeaders?.length) this.mediaHeadersProcessed = true;
-		}
-		buildBufferedRanges(initializedVideoFormat, initializedAudioFormat) {
-			const bufferedRanges = [];
-			const formats = [initializedVideoFormat, initializedAudioFormat];
-			for (const initializedFormat of formats) {
-				if (!initializedFormat?.lastMediaHeaders.length) continue;
-				if (fromFormatInitializationMetadata(initializedFormat.formatInitializationMetadata) === this.formatToDiscard) continue;
-				const mediaHeaders = initializedFormat.lastMediaHeaders;
-				const durationMs = mediaHeaders.reduce((sum, header) => sum + parseInt(header.durationMs || "0"), 0);
-				bufferedRanges.push({
-					durationMs: durationMs.toString(),
-					formatId: initializedFormat.formatInitializationMetadata.formatId,
-					startTimeMs: String(mediaHeaders[0].startMs || "0"),
-					startSegmentIndex: mediaHeaders[0].sequenceNumber || 1,
-					endSegmentIndex: mediaHeaders[mediaHeaders.length - 1].sequenceNumber || 1,
-					timeRange: {
-						durationTicks: durationMs.toString(),
-						startTicks: mediaHeaders[0].startMs,
-						timescale: mediaHeaders[0].timeRange?.timescale
+		async setupStreaming(options, audioFormat, videoFormat) {
+			try {
+				this.logger.debug(TAG, `Starting SABR stream: videoFormat=${videoFormat?.itag ?? "n/a"}, audioFormat=${audioFormat.itag}, isBroadcast=${this.isBroadcast}, isPostLiveDvr=${options.isPostLiveDvr}`);
+				this.tryMintPoToken();
+				const maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
+				const enabledTrackTypesBitfield = options.enabledTrackTypes ?? EnabledTrackTypes.VIDEO_AND_AUDIO;
+				if (options.snapshot && options.snapshot.tracks.length > 0) {
+					const snapshot = options.snapshot;
+					if (videoFormat) assert(snapshot.tracks.some((track) => createFormatKey(track) === createFormatKey(videoFormat)), "The selected video format does not match any format in the provided snapshot");
+					assert(snapshot.tracks.some((track) => createFormatKey(track) === createFormatKey(audioFormat)), "The selected audio format does not match any format in the provided snapshot");
+					for (const state of snapshot.tracks) this.trackCollection.initialize(getMediaType(state), state);
+					this.seekTo(snapshot.playerTimeMs, "client");
+				} else this.seekTo(options.startTimeMs ?? (this.isBroadcast && !options.isPostLiveDvr ? LIVE_EDGE_SENTINEL_MS : 0), "client");
+				const abrState = {
+					playerTimeMs: this.runtime.playerTimeMs.toString(),
+					audioTrackId: audioFormat?.audioTrackId,
+					clientViewportIsFlexible: false,
+					drcEnabled: audioFormat?.isVb ? false : audioFormat?.isDrc ?? false,
+					mediaCapabilities: buildMediaCapabilities(videoFormat, audioFormat),
+					enableVoiceBoost: audioFormat?.isVb,
+					stickyResolution: videoFormat?.height,
+					elapsedWallTimeMs: "0",
+					timeSinceLastActionMs: "0",
+					timeSinceLastSeek: "0",
+					visibility: 2,
+					enableSabrHostFallback: true,
+					supportsChangeType: false,
+					enabledTrackTypesBitfield
+				};
+				this.runtime.playbackSessionStartMs = Date.now();
+				while (!this.shouldStop) {
+					if (this.lifecycle.aborted) {
+						this.logger.debug(TAG, "Stream aborted");
+						break;
 					}
-				});
-				initializedFormat.lastMediaHeaders = [];
+					const elapsedTimeMs = this.getElapsedWallTimeMs().toString();
+					abrState.timeSinceLastSeek = elapsedTimeMs;
+					abrState.timeSinceLastActionMs = elapsedTimeMs;
+					abrState.elapsedWallTimeMs = elapsedTimeMs;
+					abrState.bandwidthEstimate = Math.round(this.bandwidth.get()).toString();
+					this.logger.debug(TAG, `Starting new segment fetch, playerTimeMs=${abrState.playerTimeMs}, bandwidthEstimate=${abrState.bandwidthEstimate ?? "n/a"}, elapsedWallTimeMs=${abrState.elapsedWallTimeMs}`);
+					this.checkForStall(options.stallDetectionMs);
+					const success = await this.executeWithRetry(() => this.fetchAndProcess(abrState, audioFormat, videoFormat), maxRetries);
+					abrState.playerTimeMs = this.runtime.playerTimeMs.toString();
+					if (this.trackCollection.endOfStreamReached(enabledTrackTypesBitfield)) this.shouldStop = true;
+					if (this.isBroadcast) this.heartbeat().then();
+					if (!success) break;
+				}
+			} catch (error) {
+				if (!this.lifecycle.aborted) this.errorHandler(error);
+			} finally {
+				if (!this.lifecycle.aborted && !this.lifecycle.errored) {
+					this.trackCollection.close();
+					this.emit("finish");
+				}
+				this.dispose();
 			}
-			return bufferedRanges;
+		}
+		async heartbeat() {
+			const heartbeatParams = this.heartbeatParams;
+			const heartbeatCallback = this.callbacks.onCheckHeartbeat;
+			if (!heartbeatCallback || !this.videoId) return;
+			const intervalMs = heartbeatParams.intervalMilliseconds !== void 0 ? parseInt(heartbeatParams.intervalMilliseconds, 10) : DEFAULT_HEARTBEAT_INTERVAL_MS;
+			if (Date.now() - this.runtime.lastHeartbeatTimeMs < intervalMs) return;
+			try {
+				this.runtime.lastHeartbeatTimeMs = Date.now();
+				const heartbeatBody = {
+					heartbeatRequestParams: { heartbeatChecks: ["HEARTBEAT_CHECK_TYPE_LIVE_STREAM_STATUS"] },
+					videoId: this.videoId
+				};
+				if ("heartbeatToken" in heartbeatParams) heartbeatBody.heartbeatToken = heartbeatParams.heartbeatToken;
+				if ("heartbeatServerData" in heartbeatParams) heartbeatBody.heartbeatServerData = heartbeatParams.heartbeatServerData;
+				const response = await heartbeatCallback(heartbeatBody);
+				if (this.shouldStop) return;
+				if ("heartbeatServerData" in response) this.heartbeatParams.heartbeatServerData = response.heartbeatServerData;
+				if ("broadcastId" in response && response.broadcastId !== void 0) this.validateBroadcastId(response.broadcastId);
+				if (response.status === "OK") {
+					this.logger.debug(TAG, "Live stream is online");
+					return;
+				}
+				if (response.status === "LIVE_STREAM_OFFLINE") {
+					if (response.offlineSlatePresent && !response.displayEndscreen) {
+						this.logger.debug(TAG, "Live stream is offline but not displaying end screen. Continuing.");
+						return;
+					}
+					if (!(response.displayEndscreen || response.offlineSlateButtonsPresent)) return;
+					const elapsedTimeSinceLastProgress = Date.now() - this.health.lastProgressTime;
+					if (elapsedTimeSinceLastProgress > OFFLINE_GRACE_PERIOD_MS) {
+						this.logger.debug(TAG, `Heartbeat check indicates live stream is offline and no activity for ${elapsedTimeSinceLastProgress}ms. Stopping stream.`);
+						this.shouldStop = true;
+						return;
+					}
+					this.logger.debug(TAG, `Heartbeat check indicates live stream is offline, but progress was made ${elapsedTimeSinceLastProgress}ms ago. Continuing.`);
+				}
+			} catch (error) {
+				this.logger.warn(TAG, "Heartbeat check failed:", error.message);
+			}
+		}
+		dispose() {
+			this.sabrContextUpdates.clear();
+			this.ssapPlaybackInfos.clear();
+			this.activeSabrContextTypes.clear();
+			this.segmentBuffer.reset();
+			this.abortController = void 0;
+			this.nextRequestPolicy = void 0;
+			this.runtime.spsRejectCount = 0;
+			this.runtime.playerTimeMs = 0;
+			this.runtime.requestNumber = 0;
+			this.bandwidth.reset();
+			this.isMintingPoToken = false;
+			this.recordActivity(0, true);
+			this.clearRequestTimeout();
+			this.setBusyState(false);
+		}
+		getElapsedWallTimeMs() {
+			if (this.runtime.playbackSessionStartMs === void 0) return 0;
+			return Date.now() - this.runtime.playbackSessionStartMs;
+		}
+		checkForStall(stallDetectionMs) {
+			if (this.isBroadcast && this.runtime.playerTimeMs === LIVE_EDGE_SENTINEL_MS) return;
+			const currentTime = Date.now();
+			const stallThreshold = stallDetectionMs ?? DEFAULT_STALL_DETECTION_MS;
+			if (currentTime - this.health.lastProgressTime > stallThreshold) {
+				this.health.stallCount++;
+				this.logger.warn(TAG, `Stream stalled for ${stallThreshold}ms (stall #${this.health.stallCount})`);
+				if (this.health.stallCount >= MAX_STALLS) {
+					if (this.isBroadcast) {
+						this.logger.warn(TAG, "Live stream stalled. Assuming end of stream and stopping download");
+						this.shouldStop = true;
+					} else throw new Error(`Stream stalled ${MAX_STALLS} times. Aborting`);
+				}
+				this.health.lastProgressTime = currentTime;
+			}
+		}
+		async executeWithRetry(fetchFn, maxRetries) {
+			const backoffTimeMs = this.nextRequestPolicy?.backoffTimeMs || 0;
+			if (backoffTimeMs > 0) {
+				this.logger.debug(TAG, `Backing off for ${backoffTimeMs}ms before next request`);
+				await wait(backoffTimeMs);
+			}
+			for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+				if (this.lifecycle.aborted) {
+					this.logger.debug(TAG, "Abort requested, preventing new requests");
+					return false;
+				}
+				try {
+					this.setBusyState(true);
+					await fetchFn();
+					this.setBusyState(false);
+					return true;
+				} catch (e) {
+					this.setBusyState(false);
+					const error = e;
+					if (this.lifecycle.aborted) {
+						this.logger.debug(TAG, "Abort requested, not retrying fetch");
+						return false;
+					}
+					if (attempt > maxRetries) {
+						this.logger.warn(TAG, `Retries exhausted while fetching segment: ${error.message}`);
+						this.errorHandler(error);
+						break;
+					}
+					const retryBackoffMs = Math.min(INITIAL_RETRY_BACKOFF_MS * Math.pow(2, attempt - 1), MAX_RETRY_BACKOFF_MS);
+					this.logger.warn(TAG, `Segment fetch attempt ${attempt}/${maxRetries} failed - retrying in ${retryBackoffMs}ms`, error);
+					await wait(retryBackoffMs);
+				}
+			}
+			return false;
+		}
+		setBusyState(newState) {
+			this.lifecycle.busy = newState;
+			if (!newState) {
+				this.idleResolvers.forEach((resolve) => resolve());
+				this.idleResolvers = [];
+			}
+		}
+		errorHandler(err) {
+			this.lifecycle.errored = true;
+			this.trackCollection.error(err);
+			this.emit("error", err);
+		}
+		async fetchAndProcess(abrState, selectedAudioFormat, selectedVideoFormat) {
+			const requestPoTokenGeneration = this.runtime.poTokenGenerationId;
+			const requestBody = this.buildRequestBody(abrState, selectedAudioFormat, selectedVideoFormat);
+			const response = await this.makeStreamingRequest(requestBody);
+			const contentType = response.headers.get("content-type");
+			if (response.status === 403 && this.hasExpired()) await this.tryReloadStreamingData();
+			assert(response.ok, `Server returned ${response.status} ${response.statusText}`);
+			assert(contentType === "application/vnd.yt-ump", `Unexpected content type from server: ${contentType}`);
+			assertIsDefined(response.body, "Response body is null");
+			const reader = response.body.getReader();
+			let serverSeek = false;
+			const umpReader = new UmpReader({ onPart: async (type, data) => {
+				switch (type) {
+					case UMPPartId.SABR_ERROR: {
+						const sabrError = decodePart(data.chunks, SabrError);
+						if (!sabrError) break;
+						throw new Error(`SABR Error: ${sabrError.type} - ${sabrError.code}`);
+					}
+					case UMPPartId.FORMAT_INITIALIZATION_METADATA: {
+						const formatInitializationMetadata = decodePart(data.chunks, FormatInitializationMetadata);
+						if (!formatInitializationMetadata) break;
+						if (this.videoId !== formatInitializationMetadata.videoId) {
+							this.logger.warn(TAG, `Video ID mismatch: expected ${this.videoId}, got ${formatInitializationMetadata.videoId}. Ignoring format initialization metadata.`);
+							return;
+						}
+						if (!this.trackCollection.initializedTracksMap.has(createFormatKey(formatInitializationMetadata))) {
+							const formatType = getMediaType(formatInitializationMetadata);
+							const selectedFormat = formatType === "video" ? selectedVideoFormat : selectedAudioFormat;
+							this.trackCollection.initialize(formatType, {
+								formatId: formatInitializationMetadata.formatId,
+								mimeType: formatInitializationMetadata.mimeType,
+								endTimeTicks: parseInt(formatInitializationMetadata.endTimeTicks || "0"),
+								endTimescale: parseInt(formatInitializationMetadata.endTimeTimescale || "1000"),
+								endSegmentNum: parseInt(formatInitializationMetadata.endSegmentNum || "0"),
+								targetDurationSec: selectedFormat?.targetDurationSec
+							});
+							this.logger.debug(TAG, `Initialized format: itag=${formatInitializationMetadata.formatId?.itag}, mimeType=${formatInitializationMetadata.mimeType}`);
+							this.emit("formatInitialization", this.trackCollection[formatType]);
+						}
+						break;
+					}
+					case UMPPartId.MEDIA_HEADER: {
+						const mediaHeader = decodePart(data.chunks, MediaHeader);
+						if (!mediaHeader) break;
+						if (this.videoId !== mediaHeader.videoId) {
+							this.logger.warn(TAG, `Video ID mismatch: expected ${this.videoId}, got ${mediaHeader.videoId}. Ignoring media header.`);
+							break;
+						}
+						this.logger.debug(TAG, `Received media header: headerId=${mediaHeader.headerId}, itag=${mediaHeader.itag}, segmentNum=${mediaHeader.segmentNum}, startMs=${mediaHeader.startMs}, durationMs=${mediaHeader.durationMs}, segmentLengthBytes=${mediaHeader.segmentLengthBytes}`);
+						this.segmentBuffer.queueMediaHeader(mediaHeader);
+						break;
+					}
+					case UMPPartId.MEDIA: {
+						const headerId = data.getUint8(0);
+						const dataBuffer = data.split(1).remainingBuffer;
+						this.segmentBuffer.appendMediaData(headerId, dataBuffer);
+						break;
+					}
+					case UMPPartId.MEDIA_END: {
+						const headerId = data.getUint8(0);
+						if (this.segmentBuffer.finalizeSegment(headerId)) {
+							this.recordActivity(this.trackCollection.buffered);
+							this.logger.debug(TAG, `Finalized segment: headerId=${headerId}`);
+							this.emit("trackStateUpdate", this.trackCollection);
+						}
+						break;
+					}
+					case UMPPartId.LIVE_METADATA: {
+						const sabrLiveMetadata = decodePart(data.chunks, SabrLiveMetadata);
+						if (!sabrLiveMetadata) break;
+						const broadcastId = sabrLiveMetadata.broadcastId;
+						if (broadcastId) this.validateBroadcastId(broadcastId);
+						this.emit("liveMetadataUpdate", sabrLiveMetadata);
+						break;
+					}
+					case UMPPartId.SABR_SEEK: {
+						const sabrSeek = decodePart(data.chunks, SabrSeek);
+						if (!sabrSeek) break;
+						if (sabrSeek.seekSource === SeekSource.SABR_SEEK_TO_HEAD) {
+							const seekTimeMs = ticksToMs(parseInt(sabrSeek.seekMediaTime || "0"), sabrSeek.seekMediaTimescale || 1e3, Math.floor);
+							this.seekTo(seekTimeMs, "server");
+							this.recordActivity(seekTimeMs, true);
+							this.ssapPlaybackInfos.clear();
+							serverSeek = true;
+						}
+						break;
+					}
+					case UMPPartId.CUEPOINT_LIST: {
+						const cuepointList = decodePart(data.chunks, CuepointList);
+						if (!(cuepointList && "ssapInfos" in cuepointList)) break;
+						for (const info of cuepointList.ssapInfos) {
+							const cuepoint = info.cuepoint;
+							const cuepointId = cuepoint?.identifier || "";
+							const timeRange = info.timeRange;
+							if (!cuepoint || !timeRange) continue;
+							if (cuepoint.event === Cuepoint_CuepointEvent.STOP) {
+								this.ssapPlaybackInfos.delete(cuepointId);
+								this.logger.debug(TAG, `Removed cuepoint: identifier=${cuepointId}`);
+							} else {
+								if (this.ssapPlaybackInfos.has(cuepointId)) continue;
+								const timescale = timeRange.timescale || 1e3;
+								const startTicks = parseInt(timeRange.startTicks || "0");
+								const startTimeMs = String(Math.floor(ticksToMs(startTicks, timescale, Math.floor) - (cuepoint.playheadTimeSec ?? 0) * 1e3));
+								const durationMs = String((cuepoint.totalDurationSec ?? 0) * 1e3);
+								this.ssapPlaybackInfos.set(cuepointId, {
+									adCpns: [],
+									cuepointId,
+									startTimeMs,
+									durationMs,
+									state: SsapPlaybackInfo_AdState.RATECONTROL_CLIENT
+								});
+								this.logger.debug(TAG, `Added new cuepoint: cuepointId=${cuepointId}, startTimeMs=${startTimeMs}, durationMs=${durationMs}`);
+							}
+						}
+						break;
+					}
+					case UMPPartId.SABR_CONTEXT_UPDATE: {
+						const contextUpdate = decodePart(data.chunks, SabrContextUpdate);
+						if (!contextUpdate || contextUpdate.type === void 0 || !contextUpdate.value?.length) break;
+						if (contextUpdate.writePolicy === SabrContextUpdate_SabrContextWritePolicy.KEEP_EXISTING && this.sabrContextUpdates.has(contextUpdate.type)) break;
+						this.sabrContextUpdates.set(contextUpdate.type, contextUpdate);
+						if (contextUpdate.sendByDefault) this.activeSabrContextTypes.add(contextUpdate.type);
+						break;
+					}
+					case UMPPartId.SABR_CONTEXT_SENDING_POLICY: {
+						const contextSendingPolicy = decodePart(data.chunks, SabrContextSendingPolicy);
+						if (!contextSendingPolicy) break;
+						for (const startPolicy of contextSendingPolicy.startPolicy) if (!this.activeSabrContextTypes.has(startPolicy)) {
+							this.activeSabrContextTypes.add(startPolicy);
+							this.logger.debug(TAG, `Activated SABR context: type=${startPolicy}`);
+						}
+						for (const stopPolicy of contextSendingPolicy.stopPolicy) if (this.activeSabrContextTypes.has(stopPolicy)) {
+							this.activeSabrContextTypes.delete(stopPolicy);
+							this.logger.debug(TAG, `Deactivated SABR context: type=${stopPolicy}`);
+						}
+						for (const discardPolicy of contextSendingPolicy.discardPolicy) if (this.sabrContextUpdates.has(discardPolicy)) {
+							this.sabrContextUpdates.delete(discardPolicy);
+							this.logger.debug(TAG, `Discarded SABR context: type=${discardPolicy}`);
+						}
+						break;
+					}
+					case UMPPartId.NEXT_REQUEST_POLICY:
+						this.nextRequestPolicy = decodePart(data.chunks, NextRequestPolicy);
+						break;
+					case UMPPartId.STREAM_PROTECTION_STATUS: {
+						const streamProtectionStatus = decodePart(data.chunks, StreamProtectionStatus);
+						if (!streamProtectionStatus || !streamProtectionStatus.status) break;
+						this.emit("streamProtectionStatusUpdate", streamProtectionStatus);
+						if (requestPoTokenGeneration !== this.runtime.poTokenGenerationId) break;
+						const isRejected = streamProtectionStatus.status === 3;
+						const isPending = streamProtectionStatus.status === 2;
+						const maxRetries = streamProtectionStatus.maxRetries || 5;
+						const spsRejectCount = this.runtime.spsRejectCount;
+						assert(spsRejectCount < maxRetries, `Stream protection attestation rejected after ${spsRejectCount} attempts`);
+						if ((isRejected || isPending) && !this.isMintingPoToken) {
+							this.logger.warn(TAG, isRejected ? `Stream protection attestation rejected: attempt ${spsRejectCount} of ${maxRetries}` : "Stream protection attestation pending");
+							if (isRejected) this.runtime.spsRejectCount += 1;
+							this.tryMintPoToken();
+						}
+						break;
+					}
+					case UMPPartId.SABR_REDIRECT: {
+						const sabrRedirect = decodePart(data.chunks, SabrRedirect);
+						if (!sabrRedirect || !sabrRedirect.url) break;
+						this.setStreamingURL(sabrRedirect.url);
+						this.logger.debug(TAG, `Received SABR redirect: newUrl=${sabrRedirect.url}`);
+						break;
+					}
+					case UMPPartId.RELOAD_PLAYER_RESPONSE: {
+						const reloadPlaybackContext = decodePart(data.chunks, ReloadPlaybackContext);
+						if (!reloadPlaybackContext) break;
+						this.logger.debug(TAG, `Reload requested: reloadPlaybackParams=${reloadPlaybackContext.reloadPlaybackParams}`);
+						await this.tryReloadStreamingData(reloadPlaybackContext);
+						break;
+					}
+				}
+			} });
+			const abortController = this.abortController;
+			let isFirstChunk = true;
+			try {
+				while (true) {
+					await this.waitForDrain();
+					if (abortController?.signal.aborted && !this.lifecycle.aborted) throw new Error("Request timed out");
+					if (this.lifecycle.aborted) break;
+					const readStart = performance.now();
+					const { done, value } = await reader.read();
+					const readSec = (performance.now() - readStart) / 1e3;
+					if (done) break;
+					if (value.length > 0) {
+						if (!isFirstChunk) this.bandwidth.add(value.length, readSec);
+						isFirstChunk = false;
+						this.resetRequestTimeout();
+						await umpReader.feed(value);
+					}
+				}
+			} finally {
+				this.clearRequestTimeout();
+				reader.cancel().catch(() => {});
+				reader.releaseLock();
+				umpReader.dispose();
+			}
+			if (!serverSeek) {
+				const buffered = this.trackCollection.buffered;
+				if (buffered !== Infinity) this.seekTo(buffered, "client");
+			}
+		}
+		tryMintPoToken() {
+			const onMintPoToken = this.callbacks.onMintPoToken;
+			if (onMintPoToken) {
+				this.isMintingPoToken = true;
+				(async () => {
+					try {
+						this.proofOfOriginToken = await onMintPoToken();
+						this.runtime.poTokenGenerationId += 1;
+					} catch (err) {
+						this.logger.warn(TAG, `An error occurred while minting proof of origin token: ${err?.message}`);
+					} finally {
+						this.isMintingPoToken = false;
+					}
+				})();
+			}
 		}
 		buildRequestBody(abrState, selectedAudioFormat, selectedVideoFormat) {
-			if (!this.videoPlaybackUstreamerConfig) throw new Error("Video playback ustreamer config must be set before starting.");
-			if (!this.clientInfo) throw new Error("Client info must be set before starting.");
-			const bufferedRanges = this.cachedBufferedRanges || [];
+			const ssapPlaybackInfos = Array.from(this.ssapPlaybackInfos.values());
+			const videoPlaybackUstreamerConfig = base64ToU8(this.videoPlaybackUstreamerConfig);
+			const bufferedRanges = this.trackCollection.bufferedRanges;
+			const playbackCookie = this.nextRequestPolicy?.playbackCookie;
+			const clientInfo = this.clientInfo;
+			const poToken = this.proofOfOriginToken;
+			const initializationFormatIds = !this.isBroadcast ? this.trackCollection.initializationFormatIds : [];
+			const selectedAudioFormatIds = selectedAudioFormat ? [selectedAudioFormat] : [];
+			const selectedVideoFormatIds = selectedVideoFormat ? [selectedVideoFormat] : [];
 			const { sabrContexts, unsentSabrContexts } = this.prepareSabrContexts();
-			const { selectedFormatIds, updatedBufferedRanges } = this.prepareFormatSelections([selectedVideoFormat, selectedAudioFormat], bufferedRanges);
 			return VideoPlaybackAbrRequest.encode({
 				clientAbrState: abrState,
-				preferredAudioFormatIds: [selectedAudioFormat],
-				preferredVideoFormatIds: [selectedVideoFormat],
-				preferredSubtitleFormatIds: [],
-				selectedFormatIds,
-				videoPlaybackUstreamerConfig: base64ToU8(this.videoPlaybackUstreamerConfig),
+				bufferedRanges,
+				ssapPlaybackInfos,
+				initializationFormatIds,
+				selectedAudioFormatIds,
+				selectedVideoFormatIds,
+				selectedCaptionFormatIds: [],
+				videoPlaybackUstreamerConfig,
 				streamerContext: {
-					sabrContexts,
+					clientInfo,
+					playbackCookie,
 					unsentSabrContexts,
-					poToken: this.poToken ? base64ToU8(this.poToken) : void 0,
-					playbackCookie: this.nextRequestPolicy?.playbackCookie ? PlaybackCookie.encode(this.nextRequestPolicy.playbackCookie).finish() : void 0,
-					clientInfo: this.clientInfo
+					sabrContexts,
+					poToken
 				},
-				bufferedRanges: updatedBufferedRanges,
 				field1000: []
 			}).finish();
 		}
 		prepareSabrContexts() {
 			const sabrContexts = [];
 			const unsentSabrContexts = [];
-			for (const ctxUpdate of this.sabrContexts.values()) if (this.activeSabrContextTypes.has(ctxUpdate.type)) sabrContexts.push(ctxUpdate);
-			else unsentSabrContexts.push(ctxUpdate.type);
+			for (const [type, ctxUpdate] of this.sabrContextUpdates.entries()) if (this.activeSabrContextTypes.has(type)) sabrContexts.push(ctxUpdate);
+			else unsentSabrContexts.push(type);
 			return {
 				sabrContexts,
 				unsentSabrContexts
 			};
 		}
-		prepareFormatSelections(formats, currentBufferedRanges) {
-			const selectedFormatIds = [];
-			const updatedBufferedRanges = [...currentBufferedRanges];
-			const formatsInitialized = this.initializedFormatsMap.size > 0;
-			for (const format of formats) {
-				const formatKey = fromFormat(format);
-				const shouldDiscard = this.formatToDiscard && formatKey === this.formatToDiscard;
-				if (shouldDiscard) updatedBufferedRanges.push({
-					formatId: format,
-					durationMs: MAX_INT32_VALUE,
-					startTimeMs: String(0),
-					startSegmentIndex: parseInt(MAX_INT32_VALUE),
-					endSegmentIndex: parseInt(MAX_INT32_VALUE),
-					timeRange: {
-						durationTicks: MAX_INT32_VALUE,
-						startTicks: "0",
-						timescale: 1e3
-					}
-				});
-				if (formatsInitialized || shouldDiscard) selectedFormatIds.push(format);
-			}
-			return {
-				selectedFormatIds,
-				updatedBufferedRanges
-			};
-		}
 		async makeStreamingRequest(body) {
-			if (!this.serverAbrStreamingUrl) throw new Error("Server ABR streaming URL not configured.");
-			const url = new URL(this.serverAbrStreamingUrl);
-			url.searchParams.set("rn", this.requestNumber.toString());
+			this.streamingURL.searchParams.set("rn", this.runtime.requestNumber.toString());
 			this.abortController = new AbortController();
-			const timeoutId = setTimeout(() => this.abortController?.abort(), 6e4);
+			this.resetRequestTimeout();
 			try {
-				return await this.fetchFunction(url, {
+				return await this.fetchFunction(this.streamingURL, {
+					body,
 					method: "POST",
 					headers: {
 						"content-type": "application/x-protobuf",
 						"accept-encoding": "identity",
 						"accept": "application/vnd.yt-ump"
 					},
-					body,
 					signal: this.abortController.signal
 				});
+			} catch (error) {
+				this.clearRequestTimeout();
+				const nextFallbackUrl = getNextFallbackUrl(this.streamingURL);
+				if (nextFallbackUrl) {
+					this.logger.warn(TAG, `Switching to fallback URL: ${nextFallbackUrl.hostname}`);
+					this.setStreamingURL(nextFallbackUrl);
+				}
+				throw error;
 			} finally {
-				clearTimeout(timeoutId);
-				this.requestNumber += 1;
+				this.runtime.requestNumber += 1;
 			}
 		}
-		async processStreamingResponse(response) {
-			if (!response.ok) throw new Error(`Server returned ${response.status} ${response.statusText}`);
-			if (response.headers.get("content-type") !== "application/vnd.yt-ump") throw new Error(`Unexpected content type from server: ${response.headers.get("content-type")}`);
-			const reader = response.body.getReader();
-			let dataReceived = false;
-			let partialPart;
-			const processedParts = [];
-			while (true) {
-				if (this.abortController?.signal?.aborted && !this._aborted) throw new Error("Stream was aborted.");
-				const { done, value } = await reader.read();
-				if (done) {
-					if (!dataReceived) throw new Error("Received empty response from server.");
-					break;
-				}
-				dataReceived = true;
-				let chunk;
-				if (partialPart) {
-					chunk = partialPart.data;
-					chunk.append(value);
-				} else chunk = new CompositeBuffer([value]);
-				partialPart = new UmpReader(chunk).read((part) => {
-					processedParts.push(part.type);
-					const handler = this.umpPartHandlers.get(part.type);
-					if (handler) handler(part);
-				});
-			}
-			return processedParts;
+		hasExpired() {
+			const expireRawValue = this.streamingURL.searchParams.get("expire");
+			if (!expireRawValue) return false;
+			return parseInt(expireRawValue, 10) * 1e3 - Date.now() <= 0;
 		}
-		async executeWithRetry(fetchFn, maxRetries) {
-			const backoffTimeMs = this.nextRequestPolicy?.backoffTimeMs || 0;
-			if (backoffTimeMs > 0) {
-				this.logger.debug(TAG, `Respecting server backoff policy: waiting ${backoffTimeMs}ms before request`);
-				await wait(backoffTimeMs);
+		async tryReloadStreamingData(reloadPlaybackContext) {
+			const onReloadPlayerResponseCb = this.callbacks.onReloadPlayerResponse;
+			if (onReloadPlayerResponseCb) try {
+				const response = await onReloadPlayerResponseCb(reloadPlaybackContext);
+				this.setStreamingURL(response.serverAbrStreamingUrl);
+				this.setUstreamerConfig(response.videoPlaybackUstreamerConfig);
+				this.sabrContextUpdates.clear();
+				this.activeSabrContextTypes.clear();
+				this.ssapPlaybackInfos.clear();
+			} catch (err) {
+				throw new Error(`An error occurred while reloading streaming data: ${err?.message}`);
 			}
-			for (let attempt = 1; attempt <= maxRetries + 1; attempt++) try {
-				await fetchFn();
-				if (this.mediaHeadersProcessed) this.cachedBufferedRanges = void 0;
-				return true;
-			} catch (e) {
-				const error = e;
-				if (this._aborted) {
-					this.logger.debug(TAG, "Download process aborted, skipping retry.");
-					return false;
-				}
-				if (attempt > maxRetries) {
-					this.logger.error(TAG, `Maximum retries (${maxRetries}) exceeded while fetching segment: ${error.message}`);
-					this.errorHandler(error, true);
-					break;
-				}
-				const retryBackoffMs = Math.min(BACKOFF_MULTIPLIER * Math.pow(2, attempt - 1), MAX_BACKOFF_MS);
-				this.logger.warn(TAG, `Segment fetch attempt ${attempt}/${maxRetries + 1} failed - retrying in ${retryBackoffMs}ms`, error);
-				await wait(retryBackoffMs);
-			} finally {
-				this.partialSegmentQueue.clear();
-			}
-			return false;
+			else throw new Error("Streaming data reload requested but no handler was found");
 		}
-		decodePart(part, decoder) {
-			if (!part.data.chunks.length) return void 0;
-			try {
-				return decoder.decode(concatenateChunks(part.data.chunks));
-			} catch {
-				return;
+		resetRequestTimeout() {
+			this.clearRequestTimeout();
+			const abortController = this.abortController;
+			this.requestTimeoutId = setTimeout(() => abortController?.abort(), REQUEST_TIMEOUT_MS);
+		}
+		clearRequestTimeout() {
+			if (this.requestTimeoutId !== void 0) {
+				clearTimeout(this.requestTimeoutId);
+				this.requestTimeoutId = void 0;
 			}
 		}
-		handleFormatInitializationMetadata(part) {
-			const formatInitMetadata = this.decodePart(part, FormatInitializationMetadata);
-			if (!formatInitMetadata) return;
-			const formatIdKey = fromFormatInitializationMetadata(formatInitMetadata);
-			const initializedFormat = {
-				formatInitializationMetadata: formatInitMetadata,
-				downloadedSegments: new Map(),
-				lastMediaHeaders: []
-			};
-			this.initializedFormatsMap.set(formatIdKey, initializedFormat);
-			this.logger.debug(TAG, `Initialized format: ${formatIdKey}`);
-			this.emit("formatInitialization", initializedFormat);
+		recordActivity(progressMs, reset = false) {
+			if (!reset && (!Number.isFinite(progressMs) || progressMs <= this.health.lastBufferedTimeMs)) return;
+			this.health.lastProgressTime = Date.now();
+			this.health.lastBufferedTimeMs = progressMs;
+			this.health.stallCount = 0;
 		}
-		handleNextRequestPolicy(part) {
-			this.nextRequestPolicy = this.decodePart(part, NextRequestPolicy);
-		}
-		handleSabrError(part) {
-			const sabrError = this.decodePart(part, SabrError);
-			if (!sabrError) return;
-			throw new Error(`SABR Error: ${sabrError.type} - ${sabrError.code}`);
-		}
-		handleSabrRedirect(part) {
-			const sabrRedirect = this.decodePart(part, SabrRedirect);
-			if (!sabrRedirect) return;
-			if (sabrRedirect.url) {
-				this.serverAbrStreamingUrl = sabrRedirect.url;
-				this.logger.debug(TAG, `Redirecting to ${this.serverAbrStreamingUrl}`);
-			}
-		}
-		handleSabrContextUpdate(part) {
-			const sabrContextUpdate = this.decodePart(part, SabrContextUpdate);
-			if (!sabrContextUpdate) return;
-			if (sabrContextUpdate.type !== void 0 && sabrContextUpdate.value?.length) {
-				if (sabrContextUpdate.writePolicy === SabrContextUpdate_SabrContextWritePolicy.KEEP_EXISTING && this.sabrContexts.has(sabrContextUpdate.type)) {
-					this.logger.debug(TAG, `Skipping SABR context update for type ${sabrContextUpdate.type}`);
-					return;
-				}
-				this.sabrContexts.set(sabrContextUpdate.type, sabrContextUpdate);
-				if (sabrContextUpdate.sendByDefault) this.activeSabrContextTypes.add(sabrContextUpdate.type);
-				this.logger.debug(TAG, `Received SABR context update (type: ${sabrContextUpdate.type}, sendByDefault: ${sabrContextUpdate.sendByDefault})`);
-			}
-		}
-		handleSabrContextSendingPolicy(part) {
-			const sabrContextSendingPolicy = this.decodePart(part, SabrContextSendingPolicy);
-			if (!sabrContextSendingPolicy) return;
-			for (const startPolicy of sabrContextSendingPolicy.startPolicy) if (!this.activeSabrContextTypes.has(startPolicy)) {
-				this.activeSabrContextTypes.add(startPolicy);
-				this.logger.debug(TAG, `Activated SABR context for type ${startPolicy}`);
-			}
-			for (const stopPolicy of sabrContextSendingPolicy.stopPolicy) if (this.activeSabrContextTypes.has(stopPolicy)) {
-				this.activeSabrContextTypes.delete(stopPolicy);
-				this.logger.debug(TAG, `Deactivated SABR context for type ${stopPolicy}`);
-			}
-			for (const discardPolicy of sabrContextSendingPolicy.discardPolicy) if (this.sabrContexts.has(discardPolicy)) {
-				this.sabrContexts.delete(discardPolicy);
-				this.logger.debug(TAG, `Discarded SABR context for type ${discardPolicy}`);
-			}
-		}
-		handleStreamProtectionStatus(part) {
-			this.streamProtectionStatus = this.decodePart(part, StreamProtectionStatus);
-			if (!this.streamProtectionStatus) return;
-			this.emit("streamProtectionStatusUpdate", this.streamProtectionStatus);
-			if (this.streamProtectionStatus.status === 3) throw new Error("Cannot proceed with stream: attestation required");
-			else if (this.streamProtectionStatus.status === 2) this.logger.warn(TAG, "Attestation pending.");
-		}
-		handleReloadPlayerResponse(part) {
-			const reloadPlaybackContext = this.decodePart(part, ReloadPlaybackContext);
-			if (!reloadPlaybackContext) return;
-			const errorMessage = "Player response reload requested by server";
-			this.logger.debug(TAG, `${errorMessage} (token: ${reloadPlaybackContext.reloadPlaybackParams?.token}`);
-			this.emit("reloadPlayerResponse", reloadPlaybackContext);
-			throw new Error(errorMessage);
-		}
-		handleMediaHeader(part) {
-			const mediaHeader = this.decodePart(part, MediaHeader);
-			if (!mediaHeader) return;
-			const headerId = mediaHeader.headerId || 0;
-			const formatIdKey = fromMediaHeader(mediaHeader);
-			const segmentNumber = mediaHeader.isInitSeg ? 0 : mediaHeader.sequenceNumber || 0;
-			const durationMs = mediaHeader.durationMs || Math.ceil(parseInt(mediaHeader.timeRange?.durationTicks || "0") / (mediaHeader.timeRange?.timescale || 0) * 1e3).toString();
-			const initializedFormat = this.initializedFormatsMap.get(formatIdKey);
-			if (!initializedFormat) {
-				this.logger.warn(TAG, `No initialized format found for key: ${formatIdKey} (segment ${segmentNumber})`);
-				return;
-			}
-			const mediaType = getMediaType(initializedFormat);
-			if (initializedFormat.downloadedSegments.has(segmentNumber)) {
-				this.logger.debug(TAG, `Segment ${formatIdKey} (segment: ${segmentNumber}) already downloaded. Ignoring.`);
-				return;
-			}
-			this.partialSegmentQueue.set(headerId, {
-				formatIdKey,
-				segmentNumber,
-				durationMs,
-				mediaHeader,
-				bufferedChunks: []
-			});
-			this.logger.debug(TAG, `Enqueued ${mediaType} segment ${segmentNumber} (Header ID: ${headerId}, key: ${formatIdKey}, duration: ${durationMs}ms)`);
-		}
-		handleMedia(part) {
-			const headerId = part.data.getUint8(0);
-			const segment = this.partialSegmentQueue.get(headerId);
-			if (!segment) {
-				this.logger.debug(TAG, `Received Media part for an unknown Header ID: ${headerId}`);
-				return;
-			}
-			if (!this.initializedFormatsMap.get(segment.formatIdKey)) {
-				this.logger.warn(TAG, `No initialized format found for key ${segment.formatIdKey} (segment ${segment.segmentNumber})`);
-				return;
-			}
-			const dataBuffer = part.data.split(1).remainingBuffer;
-			for (const chunk of dataBuffer.chunks) segment.bufferedChunks.push(chunk);
-		}
-		handleMediaEnd(part) {
-			const headerId = part.data.getUint8(0);
-			const segment = this.partialSegmentQueue.get(headerId);
-			if (!segment) {
-				this.logger.debug(TAG, `Received MediaEnd for an unknown Header ID: ${headerId}`);
-				return;
-			}
-			const loadedBytes = segment.bufferedChunks.reduce((sum, chunk) => sum + chunk.length, 0);
-			if (loadedBytes !== parseInt(segment.mediaHeader.contentLength || "0")) {
-				this.logger.warn(TAG, `Content length mismatch for segment ${segment.segmentNumber} (Header ID: ${headerId}, key: ${segment.formatIdKey}, expected: ${segment.mediaHeader.contentLength}, received: ${loadedBytes})`);
-				this.partialSegmentQueue.delete(headerId);
-				return;
-			}
-			const initializedFormat = this.initializedFormatsMap.get(segment.formatIdKey);
-			if (initializedFormat) {
-				const mediaType = getMediaType(initializedFormat);
-				if (segment.bufferedChunks.length) for (const chunk of segment.bufferedChunks) if (mediaType === "audio") this.audioController?.enqueue(chunk);
-				else this.videoController?.enqueue(chunk);
-				this.logger.debug(TAG, `Received MediaEnd for ${mediaType} segment ${segment.segmentNumber} (Header ID: ${headerId}, key: ${segment.formatIdKey})`);
-				segment.bufferedChunks.length = 0;
-				segment.bufferedChunks = [];
-				initializedFormat.lastMediaHeaders.push(segment.mediaHeader);
-				initializedFormat.downloadedSegments.set(segment.segmentNumber, segment);
-				this.partialSegmentQueue.delete(headerId);
-			}
-		}
-		validateAndCorrectDuration(formatInitializationMetadata) {
-			const durationUnits = parseInt(formatInitializationMetadata.durationUnits || "0");
-			const durationTimescale = parseInt(formatInitializationMetadata.durationTimescale || "0");
-			if (durationTimescale === 0) {
-				this.logger.warn(TAG, "Invalid timescale (0) in format initialization metadata");
-				return;
-			}
-			const expectedDuration = Math.trunc(durationUnits / (durationTimescale / 1e3));
-			if (this.durationMs !== expectedDuration) {
-				this.durationMs = expectedDuration;
-				this.logger.debug(TAG, `Corrected stream duration to ${this.durationMs}ms based on format initialization metadata`);
-			}
-		}
-		validateDownloadedSegments() {
-			for (const [formatIdKey, initializedFormat] of this.initializedFormatsMap.entries()) {
-				if (formatIdKey === this.formatToDiscard) {
-					this.logger.debug(TAG, `Skipping validation for discarded format: ${formatIdKey}`);
-					continue;
-				}
-				const totalDuration = getTotalDownloadedDuration(initializedFormat);
-				const durationUnits = parseInt(initializedFormat.formatInitializationMetadata.durationUnits || "0");
-				const durationTimescale = parseInt(initializedFormat.formatInitializationMetadata.durationTimescale || "0");
-				const expectedDuration = durationTimescale ? durationUnits / (durationTimescale / 1e3) : 0;
-				const durationMismatch = Math.abs(totalDuration - expectedDuration);
-				if (expectedDuration > 0 && durationMismatch > expectedDuration * .01) {
-					const durationCoverage = Math.round(totalDuration / expectedDuration * 100);
-					this.logger.warn(TAG, `Incomplete stream for format ${formatIdKey}: downloaded ${totalDuration}ms (${durationCoverage}%), expected ${expectedDuration}ms`);
-				}
-				const segments = Array.from(initializedFormat.downloadedSegments.entries());
-				if (segments.length === 0) continue;
-				segments.sort(([numA], [numB]) => numA - numB);
-				const expectedSegmentCount = parseInt(initializedFormat.formatInitializationMetadata.endSegmentNumber || "0");
-				const missingSegments = [];
-				for (let i = 0; i <= expectedSegmentCount; i++) if (!initializedFormat.downloadedSegments.has(i)) missingSegments.push(i);
-				const uniqueSegmentCount = new Set(segments.map(([num]) => num)).size;
-				const hasDuplicates = uniqueSegmentCount !== segments.length;
-				if (missingSegments.length > 0) {
-					const message = `Format ${formatIdKey}: Missing segments: [${missingSegments.join(", ")}]. Expected range: 0-${expectedSegmentCount}. `;
-					this.logger.warn(TAG, message);
-					this.errorHandler(new Error(message), true);
-				} else this.logger.debug(TAG, `Format ${formatIdKey}: All ${expectedSegmentCount} segments present (100% coverage)`);
-				if (hasDuplicates) {
-					const message = `Format ${formatIdKey}: Found duplicate segment numbers (${segments.length} segments but ${uniqueSegmentCount} unique numbers)`;
-					this.logger.warn(TAG, message);
-					this.errorHandler(new Error(message), true);
-				}
-			}
-		}
-		resetState() {
-			this.initializedFormatsMap.clear();
-			this.partialSegmentQueue.clear();
-			this.activeSabrContextTypes.clear();
-			this.sabrContexts.clear();
-			this.nextRequestPolicy = void 0;
-			this.mainFormat = void 0;
-			this.requestNumber = 0;
-			this.cachedBufferedRanges = void 0;
-			this.mediaHeadersProcessed = false;
-			this.streamProtectionStatus = void 0;
-			this.formatToDiscard = void 0;
-			this.abortController = void 0;
-			this.progressTracker = {
-				lastProgressTime: Date.now(),
-				lastDownloadedDuration: 0,
-				stallCount: 0
-			};
-		}
-		errorHandler(error, notifyControllers = true) {
-			this.resetState();
-			this.logger.error(TAG, `Stream error: ${error.message}`);
-			if (notifyControllers) {
-				this._errored = true;
-				this.videoController?.error(error);
-				this.audioController?.error(error);
-			}
+		seekTo(timeMs, source) {
+			this.logger.debug(TAG, `Seeking: timeMs=${timeMs}, source=${source}`);
+			this.runtime.playerTimeMs = Math.round(timeMs);
 		}
 	};
-	//#endregion
-	//#region src/audioDownloader/utils.ts
+	// src/audioDownloader/utils.ts
 	function normalizeAudioLanguageTag(value) {
 		if (typeof value !== "string") return "";
 		return value.trim().toLowerCase().replaceAll("_", "-");
@@ -17038,7 +19180,9 @@ var vot = (function(exports) {
 			let bestValue = Number.POSITIVE_INFINITY;
 			for (const candidate of candidates) {
 				const raw = candidate[key];
-				const value = raw == null ? NaN : typeof raw === "number" ? raw : Number(String(raw));
+				let value = NaN;
+				if (typeof raw === "number") value = raw;
+				else if (typeof raw === "string") value = Number(raw);
 				if (Number.isFinite(value) && value > 0 && value < bestValue) {
 					best = candidate;
 					bestValue = value;
@@ -17048,8 +19192,11 @@ var vot = (function(exports) {
 		};
 		return smallest("contentLength") ?? smallest("averageBitrate") ?? candidates[0];
 	}
-	//#endregion
-	//#region src/audioDownloader/strategies/ytPlayerSolver.js
+	function toPrimitiveString(value, fallback = "") {
+		if (typeof value === "string" || typeof value === "number" || typeof value === "boolean" || typeof value === "bigint" || typeof value === "symbol") return String(value);
+		return fallback;
+	}
+	// src/audioDownloader/strategies/ytPlayerSolver.js
 	var e = Object.defineProperty, t = (t, n) => {
 		let r = {};
 		for (var i in t) e(r, i, {
@@ -17059,10 +19206,10 @@ var vot = (function(exports) {
 		return n || e(r, Symbol.toStringTag, { value: "Module" }), r;
 	}, n = t({
 		EXPRESSIONS_PRECEDENCE: () => a,
-		GENERATOR: () => ne,
+		GENERATOR: () => te,
 		NEEDS_PARENTHESES: () => 17,
-		baseGenerator: () => ie,
-		generate: () => oe
+		baseGenerator: () => re,
+		generate: () => ae
 	}), { stringify: r } = JSON;
 	if (!String.prototype.repeat) throw Error("String.prototype.repeat is undefined, see https://github.com/davidbonnet/astring#installation");
 	if (!String.prototype.endsWith) throw Error("String.prototype.endsWith is undefined, see https://github.com/davidbonnet/astring#installation");
@@ -17180,9 +19327,9 @@ var vot = (function(exports) {
 	var m;
 	var h;
 	var g;
+	var _;
 	var ee;
-	var te;
-	var ne = {
+	var te = {
 		Program(e, t) {
 			let n = t.indent.repeat(t.indentLevel), { lineEnd: r, writeComments: i } = t;
 			i && e.comments != null && u(t, e.comments, n, r);
@@ -17193,7 +19340,7 @@ var vot = (function(exports) {
 			}
 			i && e.trailingComments != null && u(t, e.trailingComments, n, r);
 		},
-		BlockStatement: te = function(e, t) {
+		BlockStatement: ee = function(e, t) {
 			let n = t.indent.repeat(t.indentLevel++), { lineEnd: r, writeComments: i } = t, a = n + t.indent;
 			t.write("{");
 			let o = e.body;
@@ -17208,7 +19355,7 @@ var vot = (function(exports) {
 			} else i && e.comments != null && (t.write(r), u(t, e.comments, a, r), t.write(n));
 			i && e.trailingComments != null && u(t, e.trailingComments, a, r), t.write("}"), t.indentLevel--;
 		},
-		ClassBody: te,
+		ClassBody: ee,
 		StaticBlock(e, t) {
 			t.write("static "), this.BlockStatement(e, t);
 		},
@@ -17413,7 +19560,7 @@ var vot = (function(exports) {
 		TaggedTemplateExpression(e, t) {
 			c(t, e.tag, e), this[e.quasi.type](e.quasi, t);
 		},
-		ArrayExpression: ee = function(e, t) {
+		ArrayExpression: _ = function(e, t) {
 			if (t.write("["), e.elements.length > 0) {
 				let { elements: n } = e, { length: r } = n;
 				for (let e = 0;;) {
@@ -17427,7 +19574,7 @@ var vot = (function(exports) {
 			}
 			t.write("]");
 		},
-		ArrayPattern: ee,
+		ArrayPattern: _,
 		ObjectExpression(e, t) {
 			let n = t.indent.repeat(t.indentLevel++), { lineEnd: r, writeComments: i } = t, a = n + t.indent;
 			if (t.write("{"), e.properties.length > 0) {
@@ -17517,12 +19664,12 @@ var vot = (function(exports) {
 			t.write(`/${n.pattern}/${n.flags}`, e);
 		}
 	};
-	var re = {};
-	var ie = ne;
-	var ae = class {
+	var ne = {};
+	var re = te;
+	var ie = class {
 		constructor(e) {
-			let t = e ?? re;
-			this.output = "", t.output == null ? this.output = "" : (this.output = t.output, this.write = this.writeToStream), this.generator = t.generator == null ? ne : t.generator, this.expressionsPrecedence = t.expressionsPrecedence == null ? a : t.expressionsPrecedence, this.indent = t.indent == null ? "  " : t.indent, this.lineEnd = t.lineEnd == null ? "\n" : t.lineEnd, this.indentLevel = t.startingIndentLevel == null ? 0 : t.startingIndentLevel, this.writeComments = t.comments ? t.comments : !1, t.sourceMap != null && (this.write = t.output == null ? this.writeAndMap : this.writeToStreamAndMap, this.sourceMap = t.sourceMap, this.line = 1, this.column = 0, this.lineEndSize = this.lineEnd.split("\n").length - 1, this.mapping = {
+			let t = e ?? ne;
+			this.output = "", t.output == null ? this.output = "" : (this.output = t.output, this.write = this.writeToStream), this.generator = t.generator == null ? te : t.generator, this.expressionsPrecedence = t.expressionsPrecedence == null ? a : t.expressionsPrecedence, this.indent = t.indent == null ? "  " : t.indent, this.lineEnd = t.lineEnd == null ? "\n" : t.lineEnd, this.indentLevel = t.startingIndentLevel == null ? 0 : t.startingIndentLevel, this.writeComments = t.comments ? t.comments : !1, t.sourceMap != null && (this.write = t.output == null ? this.writeAndMap : this.writeToStreamAndMap, this.sourceMap = t.sourceMap, this.line = 1, this.column = 0, this.lineEndSize = this.lineEnd.split("\n").length - 1, this.mapping = {
 				original: null,
 				generated: this,
 				name: void 0,
@@ -17566,19 +19713,21 @@ var vot = (function(exports) {
 			return this.output;
 		}
 	};
-	function oe(e, t) {
-		let n = new ae(t);
+	function ae(e, t) {
+		let n = new ie(t);
 		return n.generator[e.type](e, n), n.output;
 	}
-	var se = t({
-		parse: () => Sr,
-		parseModule: () => xr,
-		parseScript: () => br,
-		version: () => yr
+	var oe = t({
+		isParseError: () => Te,
+		parse: () => Ar,
+		parseModule: () => kr,
+		parseScript: () => Or,
+		version: () => Dr
 	});
+	var se = { version: "7.4.0" };
 	var ce = ((e, t) => {
 		let n = new Uint32Array(69632), r = 0, i = 0;
-		for (; r < 2571;) {
+		for (; r < 2661;) {
 			let a = e[r++];
 			if (a < 0) i -= a;
 			else {
@@ -17590,24 +19739,24 @@ var vot = (function(exports) {
 	})([
 		-1,
 		2,
-		26,
+		23,
 		2,
-		27,
+		24,
 		2,
 		5,
 		-1,
 		0,
 		77595648,
 		3,
-		44,
+		42,
 		2,
 		3,
 		0,
 		14,
 		2,
-		63,
+		60,
 		2,
-		64,
+		61,
 		3,
 		0,
 		3,
@@ -17620,7 +19769,7 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		41,
+		39,
 		3,
 		0,
 		4,
@@ -17630,19 +19779,19 @@ var vot = (function(exports) {
 		0,
 		4,
 		2,
-		16,
+		15,
 		2,
-		65,
+		62,
 		2,
 		0,
 		0,
-		4294836735,
+		4294842879,
 		0,
 		3221225471,
 		0,
-		4294901942,
+		4294902710,
 		2,
-		66,
+		63,
 		0,
 		134152192,
 		3,
@@ -17658,7 +19807,7 @@ var vot = (function(exports) {
 		0,
 		2684354047,
 		2,
-		18,
+		16,
 		2,
 		0,
 		0,
@@ -17667,7 +19816,7 @@ var vot = (function(exports) {
 		0,
 		2,
 		2,
-		19,
+		17,
 		2,
 		0,
 		0,
@@ -17675,13 +19824,13 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		60,
+		56,
 		2,
 		7,
 		2,
 		6,
 		0,
-		4286611199,
+		4286643967,
 		3,
 		0,
 		2,
@@ -17693,7 +19842,7 @@ var vot = (function(exports) {
 		0,
 		4294901711,
 		2,
-		40,
+		38,
 		0,
 		4089839103,
 		0,
@@ -17721,7 +19870,7 @@ var vot = (function(exports) {
 		2,
 		2,
 		0,
-		2967484831,
+		2969057695,
 		0,
 		196559,
 		0,
@@ -17737,7 +19886,7 @@ var vot = (function(exports) {
 		0,
 		4093640191,
 		0,
-		660618719,
+		929054175,
 		0,
 		65487,
 		0,
@@ -17745,7 +19894,7 @@ var vot = (function(exports) {
 		0,
 		4092591615,
 		0,
-		1616920031,
+		1885355487,
 		0,
 		982991,
 		2,
@@ -17759,7 +19908,7 @@ var vot = (function(exports) {
 		0,
 		4236247022,
 		2,
-		71,
+		68,
 		0,
 		4284449919,
 		0,
@@ -17772,7 +19921,7 @@ var vot = (function(exports) {
 		67076095,
 		-1,
 		2,
-		72,
+		69,
 		0,
 		1073741743,
 		0,
@@ -17783,21 +19932,21 @@ var vot = (function(exports) {
 		0,
 		3265266687,
 		2,
-		33,
+		32,
 		0,
 		4294844415,
 		0,
 		4278190047,
 		2,
-		20,
+		18,
 		2,
-		137,
+		139,
 		-1,
 		3,
 		0,
 		2,
 		2,
-		23,
+		28,
 		2,
 		0,
 		2,
@@ -17805,12 +19954,20 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		15,
+		14,
 		2,
-		22,
+		20,
 		3,
 		0,
 		10,
+		2,
+		71,
+		2,
+		0,
+		2,
+		72,
+		2,
+		73,
 		2,
 		74,
 		2,
@@ -17818,21 +19975,13 @@ var vot = (function(exports) {
 		2,
 		75,
 		2,
-		76,
-		2,
-		77,
-		2,
-		0,
-		2,
-		78,
-		2,
 		0,
 		2,
 		11,
 		0,
 		261632,
 		2,
-		25,
+		22,
 		3,
 		0,
 		2,
@@ -17844,18 +19993,18 @@ var vot = (function(exports) {
 		0,
 		18,
 		2,
-		79,
+		76,
 		2,
 		5,
 		3,
 		0,
 		2,
 		2,
-		80,
+		77,
 		0,
 		2151677951,
 		2,
-		29,
+		26,
 		2,
 		9,
 		0,
@@ -17866,14 +20015,14 @@ var vot = (function(exports) {
 		0,
 		814743551,
 		2,
-		49,
+		64,
 		0,
 		67090432,
 		3,
 		0,
 		2,
 		2,
-		42,
+		40,
 		2,
 		0,
 		2,
@@ -17881,19 +20030,19 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		30,
+		29,
 		2,
 		8,
 		0,
 		268374015,
 		2,
-		110,
+		109,
 		2,
-		51,
+		48,
 		2,
 		0,
 		2,
-		81,
+		78,
 		0,
 		134153215,
 		-1,
@@ -17910,13 +20059,14 @@ var vot = (function(exports) {
 		0,
 		3221160064,
 		2,
-		17,
-		-1,
+		0,
+		2,
+		27,
 		3,
 		0,
 		2,
 		2,
-		53,
+		50,
 		0,
 		1046528,
 		3,
@@ -17927,7 +20077,7 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		54,
+		127,
 		0,
 		4294960127,
 		2,
@@ -17948,42 +20098,42 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		82,
+		80,
 		2,
 		10,
 		2,
 		0,
 		2,
+		81,
+		2,
+		82,
+		2,
 		83,
+		0,
+		12288,
+		2,
+		51,
+		0,
+		1048577,
 		2,
 		84,
 		2,
 		85,
-		0,
-		12288,
-		2,
-		55,
-		0,
-		1048577,
-		2,
-		86,
-		2,
-		14,
 		-1,
-		2,
-		14,
+		0,
+		536805376,
 		0,
 		131042,
+		2,
+		86,
 		2,
 		87,
 		2,
 		88,
 		2,
-		89,
-		2,
 		0,
 		2,
-		34,
+		33,
 		-83,
 		3,
 		0,
@@ -17993,21 +20143,21 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		15,
+		14,
 		2,
 		0,
 		0,
 		2147516671,
 		2,
-		21,
+		19,
 		3,
-		90,
+		89,
 		2,
 		2,
 		0,
 		-16,
 		2,
-		91,
+		90,
 		0,
 		524222462,
 		2,
@@ -18022,19 +20172,19 @@ var vot = (function(exports) {
 		0,
 		2,
 		2,
-		28,
+		25,
 		2,
-		16,
+		15,
 		3,
 		0,
 		2,
 		2,
-		17,
+		57,
 		2,
 		0,
 		-1,
 		2,
-		18,
+		16,
 		-16,
 		3,
 		0,
@@ -18044,17 +20194,17 @@ var vot = (function(exports) {
 		0,
 		692,
 		2,
-		73,
+		70,
 		-1,
 		2,
-		18,
+		16,
 		2,
 		10,
 		3,
 		0,
 		8,
 		2,
-		93,
+		92,
 		2,
 		133,
 		2,
@@ -18065,22 +20215,22 @@ var vot = (function(exports) {
 		0,
 		3,
 		2,
-		19,
+		17,
+		2,
+		93,
 		2,
 		94,
-		2,
-		95,
 		3,
 		0,
 		2,
 		2,
-		96,
+		95,
 		2,
 		0,
 		2,
-		97,
+		10,
 		2,
-		46,
+		96,
 		2,
 		0,
 		0,
@@ -18099,11 +20249,11 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		24,
+		21,
 		2,
 		9,
 		2,
-		20,
+		18,
 		3,
 		0,
 		2,
@@ -18114,7 +20264,7 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		21,
+		19,
 		0,
 		67059711,
 		0,
@@ -18127,13 +20277,13 @@ var vot = (function(exports) {
 		0,
 		8191999,
 		2,
+		100,
+		2,
 		101,
 		2,
+		20,
+		2,
 		102,
-		2,
-		22,
-		2,
-		23,
 		3,
 		0,
 		3,
@@ -18143,9 +20293,9 @@ var vot = (function(exports) {
 		0,
 		349,
 		2,
-		103,
+		47,
 		2,
-		104,
+		103,
 		2,
 		7,
 		-264,
@@ -18153,77 +20303,77 @@ var vot = (function(exports) {
 		0,
 		11,
 		2,
-		24,
+		21,
 		3,
 		0,
 		2,
 		2,
-		32,
+		31,
 		-1,
 		0,
 		3774349439,
 		2,
+		104,
+		2,
 		105,
+		3,
+		0,
+		2,
+		2,
+		17,
 		2,
 		106,
 		3,
 		0,
+		10,
 		2,
+		10,
 		2,
-		19,
+		16,
+		2,
+		0,
+		2,
+		44,
+		2,
+		0,
+		2,
+		30,
 		2,
 		107,
-		3,
-		0,
-		10,
 		2,
-		10,
-		2,
-		18,
-		2,
-		0,
-		2,
-		47,
-		2,
-		0,
-		2,
-		31,
-		2,
-		108,
-		2,
-		25,
+		22,
 		0,
 		1638399,
 		0,
 		57344,
 		2,
-		109,
+		108,
 		3,
 		0,
 		3,
 		2,
-		20,
+		18,
 		2,
-		26,
+		23,
 		2,
-		27,
+		24,
 		2,
 		5,
 		2,
-		28,
+		25,
 		2,
 		0,
 		2,
 		8,
 		2,
-		111,
+		110,
 		-1,
+		2,
+		111,
 		2,
 		112,
 		2,
 		113,
-		2,
-		114,
 		-1,
 		3,
 		0,
@@ -18234,23 +20384,23 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		29,
+		26,
 		-3,
 		0,
 		536870912,
 		-4,
 		2,
-		20,
+		18,
 		2,
 		0,
 		2,
-		36,
+		27,
 		0,
 		1,
 		2,
 		0,
 		2,
-		67,
+		55,
 		2,
 		6,
 		2,
@@ -18260,7 +20410,7 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		115,
+		114,
 		-1,
 		3,
 		0,
@@ -18268,23 +20418,23 @@ var vot = (function(exports) {
 		2,
 		10,
 		2,
-		23,
+		28,
 		2,
-		116,
+		115,
 		2,
 		7,
 		2,
 		0,
 		2,
-		117,
+		116,
 		2,
 		0,
+		2,
+		117,
 		2,
 		118,
 		2,
 		119,
-		2,
-		120,
 		2,
 		0,
 		2,
@@ -18293,38 +20443,39 @@ var vot = (function(exports) {
 		0,
 		9,
 		2,
-		21,
+		19,
+		2,
+		29,
 		2,
 		30,
 		2,
-		31,
+		120,
+		2,
+		46,
+		-2,
 		2,
 		121,
 		2,
 		122,
-		-2,
 		2,
-		123,
+		29,
 		2,
-		124,
-		2,
-		30,
-		2,
-		21,
+		19,
 		2,
 		8,
 		-2,
 		2,
-		125,
+		123,
 		2,
-		30,
+		29,
+		3,
+		31,
 		2,
-		32,
-		-2,
+		-1,
 		2,
 		0,
 		2,
-		39,
+		37,
 		-2,
 		0,
 		4277137519,
@@ -18332,77 +20483,77 @@ var vot = (function(exports) {
 		2269118463,
 		-1,
 		3,
-		20,
+		18,
 		2,
 		-1,
 		2,
-		33,
+		32,
 		2,
-		38,
+		36,
 		2,
 		0,
 		3,
-		30,
+		29,
 		2,
 		2,
-		35,
+		34,
 		2,
-		19,
+		17,
 		-3,
 		3,
 		0,
 		2,
 		2,
-		34,
+		33,
 		-1,
 		2,
 		0,
 		2,
-		35,
+		34,
 		2,
 		0,
 		2,
-		35,
+		34,
 		2,
 		0,
 		2,
-		48,
+		45,
 		2,
 		0,
 		0,
 		4294950463,
 		2,
-		37,
+		35,
 		-7,
 		2,
 		0,
 		0,
 		203775,
-		2,
-		57,
 		0,
-		4026531840,
+		4261476604,
 		2,
-		20,
-		2,
-		43,
-		2,
-		36,
+		53,
 		2,
 		18,
 		2,
-		37,
+		41,
 		2,
-		18,
+		27,
 		2,
-		126,
+		16,
 		2,
-		21,
+		35,
+		2,
+		16,
+		2,
+		124,
+		2,
+		19,
 		3,
 		0,
 		2,
 		2,
-		38,
+		36,
 		0,
 		2151677888,
 		2,
@@ -18412,13 +20563,13 @@ var vot = (function(exports) {
 		0,
 		4294901764,
 		2,
-		144,
+		149,
 		2,
 		0,
 		2,
-		58,
-		2,
-		56,
+		52,
+		0,
+		4294902e3,
 		0,
 		5242879,
 		3,
@@ -18430,7 +20581,7 @@ var vot = (function(exports) {
 		2,
 		128,
 		2,
-		39,
+		37,
 		0,
 		3,
 		-1,
@@ -18443,7 +20594,7 @@ var vot = (function(exports) {
 		0,
 		67045375,
 		2,
-		40,
+		38,
 		0,
 		4226678271,
 		0,
@@ -18453,7 +20604,7 @@ var vot = (function(exports) {
 		2,
 		132,
 		2,
-		41,
+		39,
 		0,
 		1046437,
 		0,
@@ -18487,17 +20638,17 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		42,
+		40,
 		2,
-		23,
+		28,
 		2,
-		50,
+		79,
 		2,
 		11,
 		2,
-		61,
+		58,
 		2,
-		38,
+		36,
 		-5,
 		2,
 		0,
@@ -18514,7 +20665,7 @@ var vot = (function(exports) {
 		0,
 		4190109695,
 		2,
-		52,
+		49,
 		-2,
 		2,
 		135,
@@ -18527,91 +20678,105 @@ var vot = (function(exports) {
 		2,
 		8,
 		2,
+		41,
+		2,
+		0,
+		2,
+		65,
+		2,
+		16,
+		2,
+		0,
+		2,
+		40,
+		2,
+		136,
+		-2,
+		2,
+		30,
+		-2,
+		2,
+		0,
+		2,
 		43,
 		2,
-		0,
-		2,
-		68,
-		2,
-		18,
-		2,
-		0,
+		54,
 		2,
 		42,
-		-6,
 		2,
-		0,
+		43,
 		2,
-		45,
-		2,
-		59,
+		137,
 		2,
 		44,
-		2,
-		45,
-		2,
-		46,
-		2,
-		47,
 		0,
 		8388351,
 		-2,
 		2,
-		136,
+		138,
 		0,
 		3028287487,
 		2,
-		48,
+		45,
 		2,
-		138,
+		140,
 		0,
 		33259519,
 		2,
-		49,
-		-9,
+		28,
 		2,
-		21,
-		0,
-		4294836223,
+		7,
+		2,
+		125,
+		-7,
+		2,
+		19,
+		2,
+		46,
 		0,
 		3355443199,
 		0,
 		134152199,
 		-2,
 		2,
-		69,
+		66,
 		-2,
 		3,
 		0,
 		28,
 		2,
-		32,
+		31,
 		-3,
 		3,
 		0,
 		3,
 		2,
-		17,
+		141,
 		3,
 		0,
 		6,
 		2,
-		50,
-		-81,
+		47,
+		3,
+		0,
+		9,
 		2,
-		18,
+		36,
+		-71,
+		2,
+		16,
 		3,
 		0,
 		2,
 		2,
-		36,
+		27,
 		3,
 		0,
 		33,
 		2,
-		25,
+		22,
 		2,
-		30,
+		29,
 		3,
 		0,
 		124,
@@ -18621,50 +20786,55 @@ var vot = (function(exports) {
 		0,
 		18,
 		2,
-		38,
+		36,
 		-213,
 		2,
 		0,
 		2,
-		32,
+		31,
 		-54,
 		3,
 		0,
 		17,
 		2,
-		42,
+		40,
 		2,
 		8,
 		2,
-		23,
+		28,
 		2,
 		0,
 		2,
 		8,
 		2,
-		23,
+		28,
 		2,
-		51,
+		48,
 		2,
 		0,
 		2,
-		21,
+		19,
 		2,
-		52,
+		49,
 		2,
-		139,
+		142,
 		2,
-		25,
+		22,
 		-13,
 		2,
 		0,
 		2,
-		53,
+		50,
 		-6,
 		3,
 		0,
 		2,
-		-4,
+		-1,
+		2,
+		143,
+		2,
+		9,
+		-1,
 		3,
 		0,
 		2,
@@ -18676,33 +20846,45 @@ var vot = (function(exports) {
 		4294934783,
 		-2,
 		0,
-		196635,
+		8323099,
 		3,
 		0,
-		191,
+		230,
 		2,
-		54,
+		12,
+		2,
+		51,
+		2,
+		0,
+		0,
+		1,
+		-2,
 		3,
 		0,
-		38,
-		2,
-		30,
-		2,
-		55,
+		3,
 		2,
 		34,
-		-278,
+		3,
+		0,
+		28,
 		2,
-		140,
+		17,
+		2,
+		0,
+		2,
+		34,
+		-240,
+		2,
+		144,
 		3,
 		0,
 		9,
 		2,
-		141,
+		145,
 		2,
-		142,
+		146,
 		2,
-		56,
+		147,
 		3,
 		0,
 		11,
@@ -18713,20 +20895,23 @@ var vot = (function(exports) {
 		0,
 		3,
 		2,
-		143,
+		148,
 		0,
 		1677656575,
 		-130,
 		2,
-		26,
+		23,
 		-16,
 		2,
 		0,
 		2,
-		24,
+		21,
 		2,
-		38,
-		-16,
+		36,
+		-14,
+		0,
+		384,
+		-1,
 		0,
 		4161266656,
 		0,
@@ -18734,47 +20919,50 @@ var vot = (function(exports) {
 		0,
 		15360,
 		-4,
-		2,
-		57,
-		-13,
+		0,
+		2550595612,
+		-1,
+		0,
+		3,
+		-11,
 		3,
 		0,
 		2,
 		2,
-		58,
+		52,
 		2,
 		0,
-		2,
-		145,
-		2,
-		146,
-		2,
-		62,
-		2,
-		0,
-		2,
-		147,
-		2,
-		148,
-		2,
-		149,
-		3,
-		0,
-		10,
 		2,
 		150,
 		2,
 		151,
 		2,
-		22,
-		3,
-		58,
+		59,
 		2,
-		3,
+		0,
+		2,
 		152,
 		2,
+		153,
+		2,
+		154,
 		3,
-		59,
+		0,
+		10,
+		2,
+		155,
+		2,
+		156,
+		2,
+		20,
+		3,
+		52,
+		2,
+		3,
+		53,
+		2,
+		3,
+		54,
 		2,
 		0,
 		4294954999,
@@ -18784,7 +20972,7 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		92,
+		91,
 		2,
 		0,
 		0,
@@ -18794,11 +20982,16 @@ var vot = (function(exports) {
 		0,
 		65534,
 		-34,
+		3,
+		0,
+		4,
 		2,
-		8,
+		158,
+		-1,
 		2,
-		154,
-		-6,
+		55,
+		2,
+		0,
 		0,
 		4194303871,
 		0,
@@ -18806,9 +20999,9 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		60,
+		56,
 		2,
-		100,
+		99,
 		-3,
 		2,
 		0,
@@ -18818,26 +21011,31 @@ var vot = (function(exports) {
 		17407,
 		-9,
 		2,
-		18,
+		16,
 		2,
-		17,
+		57,
 		2,
 		0,
 		2,
-		32,
+		31,
 		-14,
 		2,
-		18,
+		16,
 		2,
-		32,
+		31,
 		-6,
 		2,
-		18,
+		16,
 		2,
 		12,
-		-15,
+		-6,
 		2,
-		155,
+		8,
+		0,
+		3225419775,
+		-7,
+		2,
+		159,
 		3,
 		0,
 		6,
@@ -18848,23 +21046,23 @@ var vot = (function(exports) {
 		0,
 		2,
 		2,
-		61,
+		58,
 		-37,
 		2,
-		62,
-		2,
-		156,
-		2,
-		157,
-		2,
-		158,
-		2,
-		159,
+		59,
 		2,
 		160,
+		2,
+		161,
+		2,
+		162,
+		2,
+		163,
+		2,
+		164,
 		-105,
 		2,
-		26,
+		23,
 		-32,
 		3,
 		0,
@@ -18872,24 +21070,19 @@ var vot = (function(exports) {
 		-1,
 		3,
 		0,
-		129,
+		136,
 		2,
-		32,
-		3,
-		0,
-		6,
-		2,
-		10,
+		8,
 		3,
 		0,
 		180,
 		2,
-		161,
+		21,
 		3,
 		0,
 		233,
 		2,
-		162,
+		165,
 		3,
 		0,
 		18,
@@ -18909,15 +21102,19 @@ var vot = (function(exports) {
 		6,
 		3,
 		0,
-		130,
+		264,
 		2,
-		25,
-		-22250,
+		31,
+		-1244,
+		3,
+		0,
+		354,
+		-20518,
 		3,
 		0,
 		7,
 		2,
-		25,
+		22,
 		-6130,
 		3,
 		5,
@@ -18926,15 +21123,15 @@ var vot = (function(exports) {
 		0,
 		69207040,
 		3,
-		44,
+		42,
 		2,
 		3,
 		0,
 		14,
 		2,
-		63,
+		60,
 		2,
-		64,
+		61,
 		-3,
 		0,
 		3168731136,
@@ -18945,7 +21142,7 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		41,
+		39,
 		3,
 		0,
 		4,
@@ -18955,18 +21152,18 @@ var vot = (function(exports) {
 		0,
 		4,
 		2,
-		16,
+		15,
 		2,
-		65,
+		62,
 		2,
 		0,
-		2,
-		34,
+		0,
+		6655,
 		-1,
 		2,
-		18,
+		16,
 		2,
-		66,
+		63,
 		-1,
 		2,
 		0,
@@ -18984,16 +21181,16 @@ var vot = (function(exports) {
 		0,
 		4294770688,
 		2,
-		25,
+		22,
 		2,
-		67,
+		55,
 		3,
 		0,
 		2,
 		0,
 		131135,
 		2,
-		98,
+		97,
 		0,
 		70256639,
 		0,
@@ -19001,20 +21198,20 @@ var vot = (function(exports) {
 		0,
 		272,
 		2,
-		42,
+		40,
 		2,
 		6,
 		0,
-		32511,
+		65279,
 		2,
 		0,
 		2,
-		49,
+		64,
 		-1,
 		2,
-		99,
+		98,
 		2,
-		68,
+		65,
 		0,
 		4278255616,
 		0,
@@ -19038,15 +21235,15 @@ var vot = (function(exports) {
 		0,
 		4294688736,
 		2,
-		70,
+		67,
 		2,
-		69,
+		66,
 		0,
 		33554435,
 		2,
 		131,
 		2,
-		70,
+		67,
 		0,
 		2952790016,
 		0,
@@ -19056,14 +21253,14 @@ var vot = (function(exports) {
 		0,
 		67094296,
 		2,
-		69,
+		66,
 		-1,
 		0,
 		4294828e3,
 		0,
 		603979263,
 		0,
-		654311424,
+		922746880,
 		0,
 		3,
 		0,
@@ -19071,7 +21268,7 @@ var vot = (function(exports) {
 		0,
 		602930687,
 		0,
-		1610612736,
+		1879048192,
 		0,
 		393219,
 		0,
@@ -19085,19 +21282,19 @@ var vot = (function(exports) {
 		0,
 		4236247008,
 		2,
-		71,
+		68,
 		2,
-		38,
+		36,
 		-1,
 		2,
 		4,
 		0,
 		917503,
 		2,
-		38,
+		36,
 		-1,
 		2,
-		72,
+		69,
 		0,
 		537788335,
 		0,
@@ -19107,9 +21304,9 @@ var vot = (function(exports) {
 		1,
 		-1,
 		2,
-		33,
+		32,
 		2,
-		73,
+		70,
 		0,
 		7936,
 		-3,
@@ -19126,12 +21323,20 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		15,
+		14,
 		2,
-		22,
+		20,
 		3,
 		0,
 		10,
+		2,
+		71,
+		2,
+		0,
+		2,
+		72,
+		2,
+		73,
 		2,
 		74,
 		2,
@@ -19139,20 +21344,12 @@ var vot = (function(exports) {
 		2,
 		75,
 		2,
-		76,
-		2,
-		77,
-		2,
-		0,
-		2,
-		78,
-		2,
 		0,
 		2,
 		12,
 		-1,
 		2,
-		25,
+		22,
 		3,
 		0,
 		2,
@@ -19164,18 +21361,18 @@ var vot = (function(exports) {
 		0,
 		18,
 		2,
-		79,
+		76,
 		2,
 		5,
 		3,
 		0,
 		2,
 		2,
-		80,
+		77,
 		0,
 		2147745791,
 		3,
-		19,
+		17,
 		2,
 		0,
 		122879,
@@ -19190,7 +21387,7 @@ var vot = (function(exports) {
 		0,
 		2,
 		2,
-		42,
+		40,
 		2,
 		0,
 		0,
@@ -19198,50 +21395,50 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		30,
+		29,
 		2,
 		8,
 		-1,
 		2,
-		18,
+		16,
 		2,
-		51,
+		48,
 		2,
 		0,
 		2,
-		81,
+		78,
 		2,
-		49,
+		64,
 		-1,
 		2,
-		21,
+		19,
 		2,
 		0,
 		2,
-		29,
+		26,
 		-2,
 		0,
 		128,
 		-2,
 		2,
-		28,
+		25,
 		2,
 		9,
 		0,
 		8160,
 		-1,
 		2,
-		127,
+		126,
 		0,
 		4227907585,
 		2,
 		0,
 		2,
-		37,
+		35,
 		2,
 		0,
 		2,
-		50,
+		79,
 		0,
 		4227915776,
 		2,
@@ -19265,13 +21462,18 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		82,
+		80,
 		2,
 		10,
 		2,
 		0,
 		2,
+		81,
+		2,
+		82,
+		2,
 		83,
+		-3,
 		2,
 		84,
 		2,
@@ -19280,18 +21482,13 @@ var vot = (function(exports) {
 		2,
 		86,
 		2,
-		14,
-		-3,
-		2,
 		87,
 		2,
 		88,
 		2,
-		89,
-		2,
 		0,
 		2,
-		34,
+		33,
 		-83,
 		3,
 		0,
@@ -19301,19 +21498,19 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		15,
+		14,
 		2,
 		0,
 		0,
 		33023,
 		2,
-		21,
+		19,
 		3,
-		90,
+		89,
 		2,
 		-17,
 		2,
-		91,
+		90,
 		0,
 		524157950,
 		2,
@@ -19321,27 +21518,27 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		92,
+		91,
 		2,
 		4,
 		2,
 		0,
 		2,
-		22,
+		20,
 		2,
-		28,
+		25,
 		2,
-		16,
+		15,
 		3,
 		0,
 		2,
 		2,
-		17,
+		57,
 		2,
 		0,
 		-1,
 		2,
-		18,
+		16,
 		-16,
 		3,
 		0,
@@ -19351,17 +21548,17 @@ var vot = (function(exports) {
 		0,
 		692,
 		2,
-		73,
+		70,
 		-1,
 		2,
-		18,
+		16,
 		2,
 		10,
 		3,
 		0,
 		8,
 		2,
-		93,
+		92,
 		0,
 		3072,
 		2,
@@ -19374,22 +21571,22 @@ var vot = (function(exports) {
 		0,
 		2,
 		2,
-		25,
+		22,
+		2,
+		93,
 		2,
 		94,
-		2,
-		95,
 		3,
 		0,
 		2,
 		2,
-		96,
+		95,
 		2,
 		0,
 		2,
-		97,
+		10,
 		2,
-		46,
+		96,
 		0,
 		4294965179,
 		0,
@@ -19399,34 +21596,34 @@ var vot = (function(exports) {
 		2,
 		9,
 		2,
-		95,
+		94,
 		2,
 		9,
 		-1,
 		0,
 		1761345536,
 		2,
-		98,
+		97,
 		0,
 		4294901823,
 		2,
-		38,
+		36,
 		2,
-		20,
+		18,
+		2,
+		98,
+		2,
+		34,
 		2,
 		99,
-		2,
-		35,
-		2,
-		100,
 		0,
 		2080440287,
 		2,
 		0,
 		2,
-		34,
+		33,
 		2,
-		153,
+		157,
 		0,
 		3296722943,
 		2,
@@ -19438,13 +21635,13 @@ var vot = (function(exports) {
 		0,
 		1837055,
 		2,
+		100,
+		2,
 		101,
 		2,
+		20,
+		2,
 		102,
-		2,
-		22,
-		2,
-		23,
 		3,
 		0,
 		3,
@@ -19454,9 +21651,9 @@ var vot = (function(exports) {
 		0,
 		349,
 		2,
-		103,
+		47,
 		2,
-		104,
+		103,
 		2,
 		7,
 		-264,
@@ -19464,70 +21661,70 @@ var vot = (function(exports) {
 		0,
 		11,
 		2,
-		24,
+		21,
 		3,
 		0,
 		2,
 		2,
-		32,
+		31,
 		-1,
 		0,
 		2700607615,
 		2,
+		104,
+		2,
 		105,
+		3,
+		0,
+		2,
+		2,
+		17,
 		2,
 		106,
 		3,
 		0,
+		10,
 		2,
+		10,
 		2,
-		19,
+		16,
+		2,
+		0,
+		2,
+		44,
+		2,
+		0,
+		2,
+		30,
 		2,
 		107,
-		3,
-		0,
-		10,
-		2,
-		10,
-		2,
-		18,
-		2,
-		0,
-		2,
-		47,
-		2,
-		0,
-		2,
-		31,
-		2,
-		108,
 		-3,
 		2,
-		109,
+		108,
 		3,
 		0,
 		3,
 		2,
-		20,
+		18,
 		-1,
 		3,
 		5,
 		2,
 		2,
-		110,
+		109,
 		2,
 		0,
 		2,
 		8,
 		2,
-		111,
+		110,
 		-1,
+		2,
+		111,
 		2,
 		112,
 		2,
 		113,
-		2,
-		114,
 		-1,
 		3,
 		0,
@@ -19538,29 +21735,29 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		29,
+		26,
 		-8,
 		2,
-		20,
+		18,
 		2,
 		0,
 		2,
-		36,
+		27,
 		-1,
 		2,
 		0,
 		2,
-		67,
+		55,
 		2,
 		6,
 		2,
-		30,
+		29,
 		2,
 		10,
 		2,
 		0,
 		2,
-		115,
+		114,
 		-1,
 		3,
 		0,
@@ -19568,24 +21765,24 @@ var vot = (function(exports) {
 		2,
 		10,
 		2,
-		18,
+		16,
 		2,
-		116,
+		115,
 		2,
 		7,
 		2,
 		0,
 		2,
-		117,
+		116,
 		2,
 		0,
+		2,
+		117,
 		2,
 		118,
 		2,
 		119,
 		2,
-		120,
-		2,
 		0,
 		2,
 		9,
@@ -19593,137 +21790,139 @@ var vot = (function(exports) {
 		0,
 		9,
 		2,
-		21,
+		19,
+		2,
+		29,
 		2,
 		30,
 		2,
-		31,
+		120,
+		2,
+		46,
+		-2,
 		2,
 		121,
 		2,
 		122,
-		-2,
 		2,
-		123,
+		29,
 		2,
-		124,
-		2,
-		30,
-		2,
-		21,
+		19,
 		2,
 		8,
 		-2,
 		2,
-		125,
+		123,
 		2,
-		30,
+		29,
+		3,
+		31,
 		2,
-		32,
-		-2,
+		-1,
 		2,
 		0,
 		2,
-		39,
+		37,
 		-2,
 		0,
 		4277075969,
 		2,
-		30,
+		29,
 		-1,
 		3,
-		20,
+		18,
 		2,
 		-1,
 		2,
-		33,
+		32,
 		2,
-		126,
+		124,
 		2,
 		0,
 		3,
-		30,
+		29,
 		2,
 		2,
-		35,
+		34,
 		2,
-		19,
+		17,
 		-3,
 		3,
 		0,
 		2,
 		2,
-		34,
+		33,
 		-1,
 		2,
 		0,
 		2,
-		35,
+		34,
 		2,
 		0,
 		2,
-		35,
+		34,
 		2,
 		0,
 		2,
-		50,
+		79,
 		2,
-		98,
+		97,
 		0,
 		4294934591,
 		2,
-		37,
+		35,
 		-7,
 		2,
 		0,
+		2,
+		125,
 		0,
-		197631,
+		4261413116,
 		2,
 		57,
-		-1,
-		2,
-		20,
-		2,
-		43,
-		2,
-		37,
 		2,
 		18,
+		2,
+		41,
+		2,
+		35,
+		2,
+		16,
 		0,
 		3,
 		2,
-		18,
+		16,
+		2,
+		124,
+		2,
+		19,
 		2,
 		126,
 		2,
-		21,
-		2,
 		127,
-		2,
-		54,
 		-1,
 		0,
 		2490368,
 		2,
-		127,
+		126,
 		2,
-		25,
+		22,
 		2,
-		18,
+		16,
 		2,
-		34,
+		33,
 		2,
-		127,
+		126,
 		2,
-		38,
+		36,
 		0,
 		4294901904,
 		0,
 		4718591,
 		2,
-		127,
+		126,
 		2,
-		35,
+		34,
 		0,
 		335544350,
 		-1,
@@ -19744,7 +21943,7 @@ var vot = (function(exports) {
 		2,
 		131,
 		2,
-		70,
+		67,
 		0,
 		3758161920,
 		0,
@@ -19759,7 +21958,7 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		29,
+		26,
 		0,
 		2147485568,
 		0,
@@ -19767,21 +21966,21 @@ var vot = (function(exports) {
 		2,
 		0,
 		2,
-		25,
+		22,
 		0,
 		176,
 		-5,
 		2,
 		0,
 		2,
-		17,
+		57,
 		0,
 		251658240,
 		-1,
 		2,
 		0,
 		2,
-		25,
+		22,
 		0,
 		16,
 		-1,
@@ -19794,7 +21993,7 @@ var vot = (function(exports) {
 		12,
 		-1,
 		2,
-		38,
+		36,
 		-5,
 		2,
 		0,
@@ -19805,7 +22004,7 @@ var vot = (function(exports) {
 		0,
 		2,
 		2,
-		55,
+		51,
 		2,
 		134,
 		0,
@@ -19816,7 +22015,7 @@ var vot = (function(exports) {
 		2,
 		135,
 		2,
-		36,
+		27,
 		0,
 		10,
 		0,
@@ -19830,77 +22029,90 @@ var vot = (function(exports) {
 		0,
 		536871935,
 		2,
-		18,
+		16,
 		2,
 		0,
 		2,
-		42,
-		-6,
-		2,
-		0,
-		0,
-		1,
-		2,
-		59,
-		2,
-		17,
-		0,
-		1,
-		2,
-		46,
-		2,
-		25,
-		-3,
+		40,
 		2,
 		136,
+		-5,
 		2,
-		36,
+		0,
+		0,
+		1,
+		2,
+		54,
+		2,
+		57,
+		0,
+		1,
 		2,
 		137,
 		2,
+		22,
+		-3,
+		2,
 		138,
+		2,
+		27,
+		2,
+		139,
+		2,
+		140,
 		0,
 		16778239,
-		-10,
 		2,
-		35,
+		16,
+		2,
+		7,
+		0,
+		131072,
+		-7,
+		2,
+		34,
 		0,
 		4294836212,
 		2,
 		9,
 		-3,
 		2,
-		69,
+		66,
 		-2,
 		3,
 		0,
 		28,
 		2,
-		32,
+		31,
 		-3,
 		3,
 		0,
 		3,
 		2,
-		17,
+		141,
 		3,
 		0,
 		6,
 		2,
-		50,
-		-81,
+		47,
+		3,
+		0,
+		9,
 		2,
-		18,
+		36,
+		-71,
+		2,
+		16,
 		3,
 		0,
 		2,
 		2,
-		36,
+		27,
 		3,
 		0,
 		33,
 		2,
-		25,
+		22,
 		0,
 		126,
 		3,
@@ -19912,7 +22124,7 @@ var vot = (function(exports) {
 		0,
 		18,
 		2,
-		38,
+		36,
 		-213,
 		2,
 		10,
@@ -19921,39 +22133,44 @@ var vot = (function(exports) {
 		0,
 		17,
 		2,
-		42,
+		40,
 		2,
 		8,
 		2,
-		18,
+		16,
 		2,
 		0,
 		2,
 		8,
 		2,
-		18,
+		16,
 		2,
-		60,
+		56,
 		2,
 		0,
 		2,
-		25,
+		22,
 		2,
-		50,
+		79,
 		2,
-		139,
+		142,
 		2,
-		25,
+		22,
 		-13,
 		2,
 		0,
 		2,
-		73,
+		70,
 		-6,
 		3,
 		0,
 		2,
-		-4,
+		-1,
+		2,
+		143,
+		2,
+		9,
+		-1,
 		3,
 		0,
 		2,
@@ -19961,36 +22178,48 @@ var vot = (function(exports) {
 		67583,
 		-1,
 		2,
-		107,
+		106,
 		-2,
 		0,
-		11,
+		8126475,
 		3,
 		0,
-		191,
+		230,
 		2,
-		54,
+		12,
+		2,
+		51,
+		2,
+		0,
+		0,
+		1,
+		-2,
 		3,
 		0,
-		38,
-		2,
-		30,
-		2,
-		55,
+		3,
 		2,
 		34,
-		-278,
+		3,
+		0,
+		28,
 		2,
-		140,
+		17,
+		2,
+		0,
+		2,
+		34,
+		-240,
+		2,
+		144,
 		3,
 		0,
 		9,
 		2,
-		141,
+		145,
 		2,
-		142,
+		146,
 		2,
-		56,
+		147,
 		3,
 		0,
 		11,
@@ -20001,63 +22230,69 @@ var vot = (function(exports) {
 		0,
 		3,
 		2,
-		143,
+		148,
 		2,
-		144,
+		149,
 		-187,
 		3,
 		0,
 		2,
 		2,
-		58,
+		52,
 		2,
 		0,
-		2,
-		145,
-		2,
-		146,
-		2,
-		62,
-		2,
-		0,
-		2,
-		147,
-		2,
-		148,
-		2,
-		149,
-		3,
-		0,
-		10,
 		2,
 		150,
 		2,
 		151,
 		2,
-		22,
-		3,
-		58,
-		2,
-		3,
-		152,
-		2,
-		3,
 		59,
-		2,
-		2,
-		153,
-		-57,
-		2,
-		8,
-		2,
-		154,
-		-7,
-		2,
-		18,
 		2,
 		0,
 		2,
-		60,
+		152,
+		2,
+		153,
+		2,
+		154,
+		3,
+		0,
+		10,
+		2,
+		155,
+		2,
+		156,
+		2,
+		20,
+		3,
+		52,
+		2,
+		3,
+		53,
+		2,
+		3,
+		54,
+		2,
+		2,
+		157,
+		-57,
+		3,
+		0,
+		4,
+		2,
+		158,
+		-1,
+		2,
+		55,
+		2,
+		0,
+		-1,
+		2,
+		16,
+		2,
+		0,
+		2,
+		56,
 		-4,
 		2,
 		0,
@@ -20067,31 +22302,36 @@ var vot = (function(exports) {
 		16384,
 		-9,
 		2,
-		18,
+		16,
 		2,
-		60,
+		56,
 		2,
 		0,
 		2,
 		133,
 		-14,
 		2,
-		18,
+		16,
 		2,
 		133,
 		-6,
 		2,
-		18,
+		16,
 		0,
 		81919,
-		-15,
+		-6,
 		2,
-		155,
+		8,
+		0,
+		3223273399,
+		-7,
+		2,
+		159,
 		3,
 		0,
 		6,
 		2,
-		126,
+		124,
 		-1,
 		3,
 		0,
@@ -20100,17 +22340,17 @@ var vot = (function(exports) {
 		2063,
 		-37,
 		2,
-		62,
-		2,
-		156,
-		2,
-		157,
-		2,
-		158,
-		2,
-		159,
+		59,
 		2,
 		160,
+		2,
+		161,
+		2,
+		162,
+		2,
+		163,
+		2,
+		164,
 		-138,
 		3,
 		0,
@@ -20118,24 +22358,19 @@ var vot = (function(exports) {
 		-1,
 		3,
 		0,
-		129,
+		136,
 		2,
-		32,
-		3,
-		0,
-		6,
-		2,
-		10,
+		8,
 		3,
 		0,
 		180,
 		2,
-		161,
+		21,
 		3,
 		0,
 		233,
 		2,
-		162,
+		165,
 		3,
 		0,
 		18,
@@ -20155,10 +22390,14 @@ var vot = (function(exports) {
 		6,
 		3,
 		0,
-		130,
+		264,
 		2,
-		25,
-		-28386
+		31,
+		-1244,
+		3,
+		0,
+		354,
+		-26654
 	], [
 		4294967295,
 		4294967291,
@@ -20174,29 +22413,27 @@ var vot = (function(exports) {
 		3892314111,
 		134217727,
 		1061158911,
-		536805376,
 		4294910143,
 		4294901759,
-		32767,
 		4294901760,
 		262143,
 		536870911,
 		8388607,
 		4160749567,
-		4294902783,
 		4294918143,
 		65535,
 		67043328,
 		2281701374,
 		4294967264,
 		2097151,
+		131071,
+		4294902783,
 		4194303,
 		255,
 		67108863,
 		4294967039,
 		511,
 		524287,
-		131071,
 		63,
 		127,
 		3238002687,
@@ -20206,28 +22443,27 @@ var vot = (function(exports) {
 		4294901888,
 		4286578687,
 		67043329,
-		4294705152,
 		4294770687,
 		67043583,
-		1023,
-		15,
+		4294836223,
+		4294901775,
 		2047999,
 		67043343,
 		67051519,
-		16777215,
 		2147483648,
-		4294902e3,
-		28,
 		4292870143,
+		4294934527,
 		4294966783,
+		4294959104,
 		16383,
+		32767,
 		67047423,
 		4294967279,
 		262083,
 		20511,
-		41943039,
+		58720255,
 		493567,
-		4294959104,
+		1023,
 		603979775,
 		65536,
 		602799615,
@@ -20242,11 +22478,13 @@ var vot = (function(exports) {
 		4294942719,
 		33540095,
 		4294905855,
+		15,
 		2868854591,
 		1608515583,
 		265232348,
 		534519807,
 		2147614720,
+		4294934528,
 		1060109444,
 		4093640016,
 		17376,
@@ -20257,13 +22495,13 @@ var vot = (function(exports) {
 		4286578688,
 		4294967292,
 		4294965759,
-		535511039,
+		4294836228,
 		4294966272,
 		4294967280,
 		32768,
 		8289918,
 		4294934399,
-		4294901775,
+		4294915071,
 		4294965375,
 		1602223615,
 		4294967259,
@@ -20282,12 +22520,13 @@ var vot = (function(exports) {
 		4290246655,
 		469499899,
 		4294967231,
-		134086655,
 		4294966591,
 		2445279231,
 		3670015,
 		31,
+		197631,
 		4294967288,
+		16777215,
 		4294705151,
 		3221208447,
 		4294902271,
@@ -20296,13 +22535,18 @@ var vot = (function(exports) {
 		4095,
 		4285526655,
 		4294966527,
+		1024,
+		4294705152,
 		4294966143,
 		64,
 		4294966719,
+		4292935679,
 		3774873592,
+		4194303999,
 		1877934080,
-		262151,
+		262655,
 		2555904,
+		4294902256,
 		536807423,
 		67043839,
 		3758096383,
@@ -20310,58 +22554,21 @@ var vot = (function(exports) {
 		3755993023,
 		2080374783,
 		4294835295,
-		4294967103,
+		4294967167,
 		4160749565,
-		4294934527,
 		4087,
-		2016,
+		8323075,
 		2147446655,
 		184024726,
 		2862017156,
 		1593309078,
 		268434431,
 		268434414,
-		4294901763,
 		4294901761
 	]);
 	var le = (e) => !!(ce[(e >>> 5) + 0] >>> e & 1);
 	var ue = (e) => !!(ce[(e >>> 5) + 34816] >>> e & 1);
-	function _(e) {
-		return e.column++, e.currentChar = e.source.charCodeAt(++e.index);
-	}
-	function de(e) {
-		let t = e.currentChar;
-		if ((t & 64512) != 55296) return 0;
-		let n = e.source.charCodeAt(e.index + 1);
-		return (n & 64512) == 56320 ? 65536 + ((t & 1023) << 10) + (n & 1023) : 0;
-	}
-	function fe(e, t) {
-		e.currentChar = e.source.charCodeAt(++e.index), e.flags |= 1, t & 4 || (e.column = 0, e.line++);
-	}
-	function v(e) {
-		e.flags |= 1, e.currentChar = e.source.charCodeAt(++e.index), e.column = 0, e.line++;
-	}
-	function pe(e) {
-		return e === 160 || e === 65279 || e === 133 || e === 5760 || e >= 8192 && e <= 8203 || e === 8239 || e === 8287 || e === 12288 || e === 8201 || e === 65519;
-	}
-	function y(e) {
-		return e < 65 ? e - 48 : e - 65 + 10 & 15;
-	}
-	function me(e) {
-		switch (e) {
-			case 134283266: return "NumericLiteral";
-			case 134283267: return "StringLiteral";
-			case 86021:
-			case 86022: return "BooleanLiteral";
-			case 86023: return "NullLiteral";
-			case 65540: return "RegularExpression";
-			case 67174408:
-			case 67174409:
-			case 131: return "TemplateLiteral";
-			default: return (e & 143360) == 143360 ? "Identifier" : (e & 4096) == 4096 ? "Keyword" : "Punctuator";
-		}
-	}
-	var b = [
+	var v = [
 		0,
 		0,
 		0,
@@ -20424,7 +22631,7 @@ var vot = (function(exports) {
 		0,
 		16384,
 		0,
-		0,
+		16384,
 		0,
 		0,
 		67,
@@ -20487,11 +22694,11 @@ var vot = (function(exports) {
 		7,
 		16384,
 		0,
-		0,
+		16384,
 		0,
 		0
 	];
-	var he = [
+	var de = [
 		0,
 		0,
 		0,
@@ -20550,136 +22757,6 @@ var vot = (function(exports) {
 		0,
 		0,
 		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		0,
-		0,
-		0,
-		0,
-		1,
-		0,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		0,
-		0,
-		0,
-		0,
-		0
-	];
-	var ge = [
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		1,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		0,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
-		1,
 		0,
 		0,
 		0,
@@ -20751,11 +22828,176 @@ var vot = (function(exports) {
 		0,
 		0
 	];
+	var fe = [
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		1,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		0,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		0,
+		0,
+		0,
+		0,
+		1,
+		0,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		1,
+		0,
+		0,
+		0,
+		0,
+		0
+	];
+	function pe(e) {
+		return e <= 127 ? de[e] > 0 : ue(e);
+	}
+	function me(e) {
+		return e <= 127 ? fe[e] > 0 : le(e) || e === 8204 || e === 8205;
+	}
+	function y(e) {
+		return e.column++, e.currentChar = e.source.charCodeAt(++e.index);
+	}
+	function he(e) {
+		let t = e.currentChar;
+		if ((t & 64512) != 55296) return 0;
+		let n = e.source.charCodeAt(e.index + 1);
+		return (n & 64512) == 56320 ? 65536 + ((t & 1023) << 10) + (n & 1023) : 0;
+	}
+	function ge(e, t) {
+		e.currentChar = e.source.charCodeAt(++e.index), e.flags |= 1, t & 4 || (e.column = 0, e.line++);
+	}
+	function b(e) {
+		e.flags |= 1, e.currentChar = e.source.charCodeAt(++e.index), e.column = 0, e.line++;
+	}
 	function _e(e) {
-		return e <= 127 ? he[e] > 0 : ue(e);
+		return e === 160 || e === 65279 || e === 133 || e === 5760 || e >= 8192 && e <= 8203 || e === 8239 || e === 8287 || e === 12288 || e === 8201 || e === 65519;
+	}
+	function x(e) {
+		return e < 65 ? e - 48 : e - 65 + 10 & 15;
 	}
 	function ve(e) {
-		return e <= 127 ? ge[e] > 0 : le(e) || e === 8204 || e === 8205;
+		switch (e) {
+			case 134283266: return "NumericLiteral";
+			case 134283267: return "StringLiteral";
+			case 86021:
+			case 86022: return "BooleanLiteral";
+			case 86023: return "NullLiteral";
+			case 65540: return "RegularExpression";
+			case 67174408:
+			case 67174409:
+			case 132: return "TemplateLiteral";
+			default: return (e & 143360) == 143360 ? "Identifier" : (e & 4096) == 4096 ? "Keyword" : "Punctuator";
+		}
 	}
 	var ye = [
 		"SingleLine",
@@ -20766,7 +23008,7 @@ var vot = (function(exports) {
 	];
 	function be(e) {
 		let { source: t } = e;
-		e.currentChar === 35 && t.charCodeAt(e.index + 1) === 33 && (_(e), _(e), Se(e, t, 0, 4, e.tokenStart));
+		e.currentChar === 35 && t.charCodeAt(e.index + 1) === 33 && (y(e), y(e), Se(e, t, 0, 4, e.tokenStart));
 	}
 	function xe(e, t, n, r, i, a) {
 		return r & 2 && e.report(0), Se(e, t, n, i, a);
@@ -20774,16 +23016,16 @@ var vot = (function(exports) {
 	function Se(e, t, n, r, i) {
 		let { index: a } = e;
 		for (e.tokenIndex = e.index, e.tokenLine = e.line, e.tokenColumn = e.column; e.index < e.end;) {
-			if (b[e.currentChar] & 8) {
+			if (v[e.currentChar] & 8) {
 				let n = e.currentChar === 13;
-				v(e), n && e.index < e.end && e.currentChar === 10 && (e.currentChar = t.charCodeAt(++e.index));
+				b(e), n && e.index < e.end && e.currentChar === 10 && (e.currentChar = t.charCodeAt(++e.index));
 				break;
 			}
 			if ((e.currentChar ^ 8232) <= 1) {
-				v(e);
+				b(e);
 				break;
 			}
-			_(e), e.tokenIndex = e.index, e.tokenLine = e.line, e.tokenColumn = e.column;
+			y(e), e.tokenIndex = e.index, e.tokenLine = e.line, e.tokenColumn = e.column;
 		}
 		if (e.options.onComment) {
 			let n = {
@@ -20804,8 +23046,8 @@ var vot = (function(exports) {
 		let { index: r } = e;
 		for (; e.index < e.end;) if (e.currentChar < 43) {
 			let i = !1;
-			for (; e.currentChar === 42;) if (i ||= (n &= -5, !0), _(e) === 47) {
-				if (_(e), e.options.onComment) {
+			for (; e.currentChar === 42;) if (i ||= (n &= -5, !0), y(e) === 47) {
+				if (y(e), e.options.onComment) {
 					let n = {
 						start: {
 							line: e.tokenLine,
@@ -20821,234 +23063,11 @@ var vot = (function(exports) {
 				return e.tokenIndex = e.index, e.tokenLine = e.line, e.tokenColumn = e.column, n;
 			}
 			if (i) continue;
-			b[e.currentChar] & 8 ? e.currentChar === 13 ? (n |= 5, v(e)) : (fe(e, n), n = n & -5 | 1) : _(e);
-		} else (e.currentChar ^ 8232) <= 1 ? (n = n & -5 | 1, v(e)) : (n &= -5, _(e));
+			v[e.currentChar] & 8 ? e.currentChar === 13 ? (n |= 5, b(e)) : (ge(e, n), n = n & -5 | 1) : y(e);
+		} else (e.currentChar ^ 8232) <= 1 ? (n = n & -5 | 1, b(e)) : (n &= -5, y(e));
 		e.report(18);
 	}
-	var x;
-	(function(e) {
-		e[e.Empty = 0] = "Empty", e[e.Escape = 1] = "Escape", e[e.Class = 2] = "Class";
-	})(x ||= {});
-	var S;
-	(function(e) {
-		e[e.Empty = 0] = "Empty", e[e.IgnoreCase = 1] = "IgnoreCase", e[e.Global = 2] = "Global", e[e.Multiline = 4] = "Multiline", e[e.Unicode = 16] = "Unicode", e[e.Sticky = 8] = "Sticky", e[e.DotAll = 32] = "DotAll", e[e.Indices = 64] = "Indices", e[e.UnicodeSets = 128] = "UnicodeSets";
-	})(S ||= {});
-	function we(e) {
-		let t = e.index, n = x.Empty;
-		loop: for (;;) {
-			let t = e.currentChar;
-			if (_(e), n & x.Escape) n &= ~x.Escape;
-			else switch (t) {
-				case 47:
-					if (n) break;
-					break loop;
-				case 92:
-					n |= x.Escape;
-					break;
-				case 91:
-					n |= x.Class;
-					break;
-				case 93: n &= x.Escape;
-			}
-			if ((t === 13 || t === 10 || t === 8232 || t === 8233) && e.report(34), e.index >= e.source.length) return e.report(34);
-		}
-		let r = e.index - 1, i = S.Empty, a = e.currentChar, { index: o } = e;
-		for (; ve(a);) {
-			switch (a) {
-				case 103:
-					i & S.Global && e.report(36, "g"), i |= S.Global;
-					break;
-				case 105:
-					i & S.IgnoreCase && e.report(36, "i"), i |= S.IgnoreCase;
-					break;
-				case 109:
-					i & S.Multiline && e.report(36, "m"), i |= S.Multiline;
-					break;
-				case 117:
-					i & S.Unicode && e.report(36, "u"), i & S.UnicodeSets && e.report(36, "vu"), i |= S.Unicode;
-					break;
-				case 118:
-					i & S.Unicode && e.report(36, "uv"), i & S.UnicodeSets && e.report(36, "v"), i |= S.UnicodeSets;
-					break;
-				case 121:
-					i & S.Sticky && e.report(36, "y"), i |= S.Sticky;
-					break;
-				case 115:
-					i & S.DotAll && e.report(36, "s"), i |= S.DotAll;
-					break;
-				case 100:
-					i & S.Indices && e.report(36, "d"), i |= S.Indices;
-					break;
-				default: e.report(35);
-			}
-			a = _(e);
-		}
-		let s = e.source.slice(o, e.index), c = e.source.slice(t, r);
-		return e.tokenRegExp = {
-			pattern: c,
-			flags: s
-		}, e.options.raw && (e.tokenRaw = e.source.slice(e.tokenIndex, e.index)), e.tokenValue = Te(e, c, s), 65540;
-	}
-	function Te(e, t, n) {
-		try {
-			return new RegExp(t, n);
-		} catch {
-			try {
-				return new RegExp(t, n), null;
-			} catch {
-				e.report(34);
-			}
-		}
-	}
-	function Ee(e, t, n) {
-		let { index: r } = e, i = "", a = _(e), o = e.index;
-		for (; !(b[a] & 8);) {
-			if (a === n) return i += e.source.slice(o, e.index), _(e), e.options.raw && (e.tokenRaw = e.source.slice(r, e.index)), e.tokenValue = i, 134283267;
-			if ((a & 8) == 8 && a === 92) {
-				if (i += e.source.slice(o, e.index), a = _(e), a < 127 || a === 8232 || a === 8233) {
-					let n = De(e, t, a);
-					n >= 0 ? i += String.fromCodePoint(n) : Oe(e, n, 0);
-				} else i += String.fromCodePoint(a);
-				o = e.index + 1;
-			} else (a === 8232 || a === 8233) && (e.column = -1, e.line++);
-			e.index >= e.end && e.report(16), a = _(e);
-		}
-		e.report(16);
-	}
-	function De(e, t, n, r = 0) {
-		switch (n) {
-			case 98: return 8;
-			case 102: return 12;
-			case 114: return 13;
-			case 110: return 10;
-			case 116: return 9;
-			case 118: return 11;
-			case 13: if (e.index < e.end) {
-				let t = e.source.charCodeAt(e.index + 1);
-				t === 10 && (e.index += 1, e.currentChar = t);
-			}
-			case 10:
-			case 8232:
-			case 8233: return e.column = -1, e.line++, -1;
-			case 48:
-			case 49:
-			case 50:
-			case 51: {
-				let i = n - 48, a = e.index + 1, o = e.column + 1;
-				if (a < e.end) {
-					let n = e.source.charCodeAt(a);
-					if (!(b[n] & 32)) {
-						if (i !== 0 || b[n] & 512) {
-							if (t & 1 || r) return -2;
-							e.flags |= 64;
-						}
-					} else if (t & 1 || r) return -2;
-					else {
-						if (e.currentChar = n, i = i << 3 | n - 48, a++, o++, a < e.end) {
-							let t = e.source.charCodeAt(a);
-							b[t] & 32 && (e.currentChar = t, i = i << 3 | t - 48, a++, o++);
-						}
-						e.flags |= 64;
-					}
-					e.index = a - 1, e.column = o - 1;
-				}
-				return i;
-			}
-			case 52:
-			case 53:
-			case 54:
-			case 55: {
-				if (r || t & 1) return -2;
-				let i = n - 48, a = e.index + 1, o = e.column + 1;
-				if (a < e.end) {
-					let t = e.source.charCodeAt(a);
-					b[t] & 32 && (i = i << 3 | t - 48, e.currentChar = t, e.index = a, e.column = o);
-				}
-				return e.flags |= 64, i;
-			}
-			case 120: {
-				let t = _(e);
-				if (!(b[t] & 64)) return -4;
-				let n = y(t), r = _(e);
-				if (!(b[r] & 64)) return -4;
-				let i = y(r);
-				return n << 4 | i;
-			}
-			case 117: {
-				let t = _(e);
-				if (e.currentChar === 123) {
-					let t = 0;
-					for (; b[_(e)] & 64;) if (t = t << 4 | y(e.currentChar), t > 1114111) return -5;
-					return e.currentChar < 1 || e.currentChar !== 125 ? -4 : t;
-				}
-				{
-					if (!(b[t] & 64)) return -4;
-					let n = e.source.charCodeAt(e.index + 1);
-					if (!(b[n] & 64)) return -4;
-					let r = e.source.charCodeAt(e.index + 2);
-					if (!(b[r] & 64)) return -4;
-					let i = e.source.charCodeAt(e.index + 3);
-					return b[i] & 64 ? (e.index += 3, e.column += 3, e.currentChar = e.source.charCodeAt(e.index), y(t) << 12 | y(n) << 8 | y(r) << 4 | y(i)) : -4;
-				}
-			}
-			case 56:
-			case 57:
-				if (r || !e.options.webcompat || t & 1) return -3;
-				e.flags |= 4096;
-			default: return n;
-		}
-	}
-	function Oe(e, t, n) {
-		switch (t) {
-			case -1: return;
-			case -2: e.report(n ? 2 : 1);
-			case -3: e.report(n ? 3 : 14);
-			case -4: e.report(7);
-			case -5: e.report(104);
-		}
-	}
-	function ke(e, t) {
-		let { index: n } = e, r = 67174409, i = "", a = _(e);
-		for (; a !== 96;) {
-			if (a === 36 && e.source.charCodeAt(e.index + 1) === 123) {
-				_(e), r = 67174408;
-				break;
-			}
-			if (a === 92) {
-				if (a = _(e), a > 126) i += String.fromCodePoint(a);
-				else {
-					let { index: n, line: o, column: s } = e, c = De(e, t | 1, a, 1);
-					if (c >= 0) i += String.fromCodePoint(c);
-					else if (c !== -1 && t & 64) {
-						e.index = n, e.line = o, e.column = s, i = null, a = Ae(e, a), a < 0 && (r = 67174408);
-						break;
-					} else Oe(e, c, 1);
-				}
-			} else e.index < e.end && (a === 13 && e.source.charCodeAt(e.index) === 10 && (i += String.fromCodePoint(a), e.currentChar = e.source.charCodeAt(++e.index)), ((a & 83) < 3 && a === 10 || (a ^ 8232) <= 1) && (e.column = -1, e.line++), i += String.fromCodePoint(a));
-			e.index >= e.end && e.report(17), a = _(e);
-		}
-		return _(e), e.tokenValue = i, e.tokenRaw = e.source.slice(n + 1, e.index - (r === 67174409 ? 1 : 2)), r;
-	}
-	function Ae(e, t) {
-		for (; t !== 96;) {
-			switch (t) {
-				case 36: {
-					let n = e.index + 1;
-					if (n < e.end && e.source.charCodeAt(n) === 123) return e.index = n, e.column++, -t;
-					break;
-				}
-				case 10:
-				case 8232:
-				case 8233: e.column = -1, e.line++;
-			}
-			e.index >= e.end && e.report(17), t = _(e);
-		}
-		return t;
-	}
-	function je(e, t) {
-		return e.index >= e.end && e.report(0), e.index--, e.column--, ke(e, t);
-	}
-	var Me = {
+	var we = {
 		0: "Unexpected token",
 		30: "Unexpected token: '%0'",
 		1: "Octal escape sequences are not allowed in strict mode",
@@ -21061,7 +23080,7 @@ var vot = (function(exports) {
 		9: "Octal literals are not allowed in strict mode",
 		8: "Decimal integer literals with a leading zero are forbidden in strict mode",
 		10: "Expected number in radix %0",
-		151: "Invalid left-hand side assignment to a destructible right-hand side",
+		153: "Invalid left-hand side assignment to a destructible right-hand side",
 		11: "Non-number found after exponent indicator",
 		12: "Invalid BigIntLiteral",
 		13: "No identifiers allowed directly after numeric literal",
@@ -21085,7 +23104,7 @@ var vot = (function(exports) {
 		32: "Yield expression not allowed in formal parameter",
 		95: "Unexpected token: 'escaped keyword'",
 		33: "Unary expressions as the left operand of an exponentiation expression must be disambiguated with parentheses",
-		123: "Async functions can only be declared at the top level or inside a block",
+		125: "Async functions can only be declared at the top level or inside a block",
 		34: "Unterminated regular expression",
 		35: "Unexpected regular expression flag",
 		36: "Duplicate regular expression flag '%0'",
@@ -21097,7 +23116,7 @@ var vot = (function(exports) {
 		42: "A getter cannot be a generator",
 		43: "A setter cannot be a generator",
 		44: "A computed property name must be followed by a colon or paren",
-		134: "Object literal keys that are strings or numbers must be a method or have a colon",
+		136: "Object literal keys that are strings or numbers must be a method or have a colon",
 		46: "Found `* async x(){}` but this should be `async * x(){}`",
 		45: "Getters and setters can not be generators",
 		47: "'%0' can not be generator method",
@@ -21159,82 +23178,86 @@ var vot = (function(exports) {
 		105: "%0 source must be string",
 		106: "Only a identifier or string can be used to indicate alias",
 		107: "Only '*' or '{...}' can be imported after default",
-		108: "Trailing decorator may be followed by method",
-		109: "Decorators can't be used with a constructor",
-		110: "Can not use `await` as identifier in module or async func",
-		111: "Can not use `await` as identifier in module",
-		112: "HTML comments are only allowed with web compatibility (Annex B)",
-		113: "The identifier 'let' must not be in expression position in strict mode",
-		114: "Cannot assign to `eval` and `arguments` in strict mode",
-		115: "The left-hand side of a for-of loop may not start with 'let'",
-		116: "Block body arrows can not be immediately invoked without a group",
-		117: "Block body arrows can not be immediately accessed without a group",
-		118: "Unexpected strict mode reserved word",
-		119: "Unexpected eval or arguments in strict mode",
-		120: "Decorators must not be followed by a semicolon",
-		121: "Calling delete on expression not allowed in strict mode",
-		122: "Pattern can not have a tail",
-		124: "Can not have a `yield` expression on the left side of a ternary",
-		125: "An arrow function can not have a postfix update operator",
-		126: "Invalid object literal key character after generator star",
-		127: "Private fields can not be deleted",
-		129: "Classes may not have a field called constructor",
-		128: "Classes may not have a private element named constructor",
-		130: "A class field initializer or static block may not contain arguments",
-		131: "Generators can only be declared at the top level or inside a block",
-		132: "Async methods are a restricted production and cannot have a newline following it",
-		133: "Unexpected character after object literal property name",
-		135: "Invalid key token",
-		136: "Label '%0' has already been declared",
-		137: "continue statement must be nested within an iteration statement",
-		138: "Undefined label '%0'",
-		139: "Trailing comma is disallowed inside import(...) arguments",
-		140: "Invalid binding in JSON import",
-		141: "import() requires exactly one argument",
-		142: "Cannot use new with import(...)",
-		143: "... is not allowed in import()",
-		144: "Expected '=>'",
-		145: "Duplicate binding '%0'",
-		146: "Duplicate private identifier #%0",
-		147: "Cannot export a duplicate name '%0'",
-		150: "Duplicate %0 for-binding",
-		148: "Exported binding '%0' needs to refer to a top-level declared variable",
-		149: "Unexpected private field",
-		153: "Numeric separators are not allowed at the end of numeric literals",
-		152: "Only one underscore is allowed as numeric separator",
-		154: "JSX value should be either an expression or a quoted JSX text",
-		155: "Expected corresponding JSX closing tag for %0",
-		156: "Adjacent JSX elements must be wrapped in an enclosing tag",
-		157: "JSX attributes must only be assigned a non-empty 'expression'",
-		158: "'%0' has already been declared",
-		159: "'%0' shadowed a catch clause binding",
-		160: "Dot property must be an identifier",
-		161: "Encountered invalid input after spread/rest argument",
-		162: "Catch without try",
-		163: "Finally without try",
-		164: "Expected corresponding closing tag for JSX fragment",
-		165: "Coalescing and logical operators used together in the same expression must be disambiguated with parentheses",
-		166: "Invalid tagged template on optional chain",
-		167: "Invalid optional chain from super property",
-		168: "Invalid optional chain from new expression",
-		169: "Cannot use \"import.meta\" outside a module",
-		170: "Leading decorators must be attached to a class declaration",
-		171: "An export name cannot include a lone surrogate, found %0",
-		172: "A string literal cannot be used as an exported binding without `from`",
-		173: "Private fields can't be accessed on super",
-		174: "The only valid meta property for import is 'import.meta'",
-		175: "'import.meta' must not contain escaped characters",
-		176: "cannot use \"await\" as identifier inside an async function",
-		177: "cannot use \"await\" in static blocks"
+		108: "'import defer' must be followed by a namespace import",
+		109: "'import source' must be followed by a default import",
+		110: "Trailing decorator may be followed by method",
+		111: "Decorators can't be used with a constructor",
+		112: "Can not use `await` as identifier in module or async func",
+		113: "Can not use `await` as identifier in module",
+		114: "HTML comments are only allowed with web compatibility (Annex B)",
+		115: "The identifier 'let' must not be in expression position in strict mode",
+		116: "Cannot assign to `eval` and `arguments` in strict mode",
+		117: "The left-hand side of a for-of loop may not start with 'let'",
+		118: "Block body arrows can not be immediately invoked without a group",
+		119: "Block body arrows can not be immediately accessed without a group",
+		120: "Unexpected strict mode reserved word",
+		121: "Unexpected eval or arguments in strict mode",
+		122: "Decorators must not be followed by a semicolon",
+		123: "Calling delete on expression not allowed in strict mode",
+		124: "Pattern can not have a tail",
+		126: "Can not have a `yield` expression on the left side of a ternary",
+		127: "An arrow function can not have a postfix update operator",
+		128: "Invalid object literal key character after generator star",
+		129: "Private fields can not be deleted",
+		131: "Classes may not have a field called constructor",
+		130: "Classes may not have a private element named constructor",
+		132: "A class field initializer or static block may not contain arguments",
+		133: "Generators can only be declared at the top level or inside a block",
+		134: "Async methods are a restricted production and cannot have a newline following it",
+		135: "Unexpected character after object literal property name",
+		137: "Invalid key token",
+		138: "Label '%0' has already been declared",
+		139: "Label '%0' does not denote an iteration statement",
+		140: "Undefined label '%0'",
+		141: "Trailing comma is disallowed inside import(...) arguments",
+		142: "Invalid binding in JSON import",
+		143: "import() requires exactly one argument",
+		144: "Cannot use new with import(...)",
+		145: "... is not allowed in import()",
+		146: "Expected '=>'",
+		147: "Duplicate binding '%0'",
+		148: "Duplicate private identifier #%0",
+		149: "Cannot export a duplicate name '%0'",
+		152: "Duplicate %0 for-binding",
+		150: "Exported binding '%0' needs to refer to a top-level declared variable",
+		151: "Unexpected private field",
+		155: "Numeric separators are not allowed at the end of numeric literals",
+		154: "Only one underscore is allowed as numeric separator",
+		156: "JSX value should be either an expression or a quoted JSX text",
+		157: "Expected corresponding JSX closing tag for %0",
+		158: "Adjacent JSX elements must be wrapped in an enclosing tag",
+		159: "JSX attributes must only be assigned a non-empty 'expression'",
+		160: "'%0' has already been declared",
+		161: "'%0' shadowed a catch clause binding",
+		162: "Dot property must be an identifier",
+		163: "Encountered invalid input after spread/rest argument",
+		164: "Catch without try",
+		165: "Finally without try",
+		166: "Expected corresponding closing tag for JSX fragment",
+		167: "Coalescing and logical operators used together in the same expression must be disambiguated with parentheses",
+		168: "Invalid tagged template on optional chain",
+		169: "Invalid optional chain from super property",
+		170: "Invalid optional chain from new expression",
+		171: "Cannot use \"import.meta\" outside a module",
+		172: "Leading decorators must be attached to a class declaration",
+		173: "An export name cannot include a lone surrogate",
+		174: "A string literal cannot be used as an exported binding without `from`",
+		175: "Private fields can't be accessed on super",
+		176: "The only valid meta property for import is 'import.meta'",
+		177: "'import.meta' must not contain escaped characters",
+		178: "cannot use \"await\" as identifier inside an async function",
+		179: "cannot use \"await\" in static blocks",
+		180: "Unexpected token `}`. Did you mean `&rbrace;` or `{'}'}`?",
+		181: "Unexpected token `>`. Did you mean `&gt;` or `{'>'}`?"
 	};
-	var C = class extends SyntaxError {
+	var S = class extends SyntaxError {
 		start;
 		end;
 		range;
 		loc;
 		description;
 		constructor(e, t, n, ...r) {
-			let i = Me[n].replace(/%(\d+)/g, (e, t) => r[t]), a = "[" + e.line + ":" + e.column + "-" + t.line + ":" + t.column + "]: " + i;
+			let i = we[n].replaceAll(/%(\d+)/g, (e, t) => r[t]), a = "[" + e.line + ":" + e.column + "-" + t.line + ":" + t.column + "]: " + i;
 			super(a), this.start = e.index, this.end = t.index, this.range = [e.index, t.index], this.loc = {
 				start: {
 					line: e.line,
@@ -21247,77 +23270,8 @@ var vot = (function(exports) {
 			}, this.description = i;
 		}
 	};
-	function Ne(e, t, n) {
-		let r = e.currentChar, i = 0, a = 9, o = n & 64 ? 0 : 1, s = 0, c = 0;
-		if (n & 64) i = "." + Pe(e, r), r = e.currentChar, r === 110 && e.report(12);
-		else {
-			if (r === 48) {
-				if (r = _(e), (r | 32) == 120) {
-					for (n = 136, r = _(e); b[r] & 4160;) r === 95 ? (c || e.report(152), c = 0, r = _(e)) : (c = 1, i = i * 16 + y(r), s++, r = _(e));
-					(s === 0 || !c) && e.report(s === 0 ? 21 : 153);
-				} else if ((r | 32) == 111) {
-					for (n = 132, r = _(e); b[r] & 4128;) r === 95 ? (c || e.report(152), c = 0, r = _(e)) : (c = 1, i = i * 8 + (r - 48), s++, r = _(e));
-					(s === 0 || !c) && e.report(s === 0 ? 0 : 153);
-				} else if ((r | 32) == 98) {
-					for (n = 130, r = _(e); b[r] & 4224;) r === 95 ? (c || e.report(152), c = 0, r = _(e)) : (c = 1, i = i * 2 + (r - 48), s++, r = _(e));
-					(s === 0 || !c) && e.report(s === 0 ? 0 : 153);
-				} else if (b[r] & 32) for (t & 1 && e.report(1), n = 1; b[r] & 16;) {
-					if (b[r] & 512) {
-						n = 32, o = 0;
-						break;
-					}
-					i = i * 8 + (r - 48), r = _(e);
-				}
-				else b[r] & 512 ? (t & 1 && e.report(1), e.flags |= 64, n = 32) : r === 95 && e.report(0);
-			}
-			if (n & 48) {
-				if (o) {
-					for (; a >= 0 && b[r] & 4112;) if (r === 95) {
-						if (r = _(e), r === 95 || n & 32) throw new C(e.currentLocation, {
-							index: e.index + 1,
-							line: e.line,
-							column: e.column
-						}, 152);
-						c = 1;
-					} else c = 0, i = 10 * i + (r - 48), r = _(e), --a;
-					if (c) throw new C(e.currentLocation, {
-						index: e.index + 1,
-						line: e.line,
-						column: e.column
-					}, 153);
-					if (a >= 0 && !_e(r) && r !== 46) return e.tokenValue = i, e.options.raw && (e.tokenRaw = e.source.slice(e.tokenIndex, e.index)), 134283266;
-				}
-				i += Pe(e, r), r = e.currentChar, r === 46 && (_(e) === 95 && e.report(0), n = 64, i += "." + Pe(e, e.currentChar), r = e.currentChar);
-			}
-		}
-		let l = e.index, u = 0;
-		if (r === 110 && n & 128) u = 1, r = _(e);
-		else if ((r | 32) == 101) {
-			r = _(e), b[r] & 256 && (r = _(e));
-			let { index: t } = e;
-			b[r] & 16 || e.report(11), i += e.source.substring(l, t) + Pe(e, r), r = e.currentChar;
-		}
-		return (e.index < e.end && b[r] & 16 || _e(r)) && e.report(13), u ? (e.tokenRaw = e.source.slice(e.tokenIndex, e.index), e.tokenValue = BigInt(e.tokenRaw.slice(0, -1).replaceAll("_", "")), 134283388) : (e.tokenValue = n & 15 ? i : n & 32 ? parseFloat(e.source.substring(e.tokenIndex, e.index)) : +i, e.options.raw && (e.tokenRaw = e.source.slice(e.tokenIndex, e.index)), 134283266);
-	}
-	function Pe(e, t) {
-		let n = 0, r = e.index, i = "";
-		for (; b[t] & 4112;) if (t === 95) {
-			let { index: a } = e;
-			if (t = _(e), t === 95) throw new C(e.currentLocation, {
-				index: e.index + 1,
-				line: e.line,
-				column: e.column
-			}, 152);
-			n = 1, i += e.source.substring(r, a), r = e.index;
-		} else n = 0, t = _(e);
-		if (n) throw new C(e.currentLocation, {
-			index: e.index + 1,
-			line: e.line,
-			column: e.column
-		}, 153);
-		return i + e.source.substring(r, e.index);
-	}
-	var w = [
+	var Te = (e) => e instanceof S;
+	var C = [
 		"end of source",
 		"identifier",
 		"number",
@@ -21435,6 +23389,7 @@ var vot = (function(exports) {
 		"accessor",
 		"from",
 		"of",
+		"using",
 		"enum",
 		"eval",
 		"arguments",
@@ -21457,245 +23412,470 @@ var vot = (function(exports) {
 		"Escaped",
 		"JSXText"
 	];
-	var Fe = {
-		this: 86111,
-		function: 86104,
-		if: 20569,
-		return: 20572,
-		var: 86088,
-		else: 20563,
-		for: 20567,
-		new: 86107,
-		in: 8673330,
-		typeof: 16863275,
-		while: 20578,
-		case: 20556,
-		break: 20555,
-		try: 20577,
-		catch: 20557,
-		delete: 16863276,
-		throw: 86112,
-		switch: 86110,
-		continue: 20559,
-		default: 20561,
-		instanceof: 8411187,
-		do: 20562,
-		void: 16863277,
-		finally: 20566,
-		async: 209005,
-		await: 209006,
-		class: 86094,
-		const: 86090,
-		constructor: 12399,
-		debugger: 20560,
-		export: 20564,
-		extends: 20565,
-		false: 86021,
-		from: 209011,
-		get: 209008,
-		implements: 36964,
-		import: 86106,
-		interface: 36965,
-		let: 241737,
-		null: 86023,
-		of: 471156,
-		package: 36966,
-		private: 36967,
-		protected: 36968,
-		public: 36969,
-		set: 209009,
-		static: 36970,
-		super: 86109,
-		true: 86022,
-		with: 20579,
-		yield: 241771,
-		enum: 86133,
-		eval: 537079926,
-		as: 77932,
-		arguments: 537079927,
-		target: 209029,
-		meta: 209030,
-		accessor: 12402
-	};
-	function T(e, t) {
-		!(e.flags & 1) && (e.getToken() & 1048576) != 1048576 && e.report(30, w[e.getToken() & 255]), E(e, t, 1074790417) || e.options.onInsertedSemicolon?.(e.startIndex);
+	var Ee = new Map([
+		["this", 86111],
+		["function", 86104],
+		["if", 20569],
+		["return", 20572],
+		["var", 86088],
+		["else", 20563],
+		["for", 20567],
+		["new", 86107],
+		["in", 8673330],
+		["typeof", 16863275],
+		["while", 20578],
+		["case", 20556],
+		["break", 20555],
+		["try", 20577],
+		["catch", 20557],
+		["delete", 16863276],
+		["throw", 86112],
+		["switch", 86110],
+		["continue", 20559],
+		["default", 20561],
+		["instanceof", 8411187],
+		["do", 20562],
+		["void", 16863277],
+		["finally", 20566],
+		["async", 209005],
+		["await", 209006],
+		["class", 86094],
+		["const", 86090],
+		["constructor", 209007],
+		["debugger", 20560],
+		["export", 20564],
+		["extends", 20565],
+		["false", 86021],
+		["from", 209011],
+		["get", 209008],
+		["implements", 36964],
+		["import", 86106],
+		["interface", 36965],
+		["let", 241737],
+		["null", 86023],
+		["of", 471156],
+		["using", 209013],
+		["package", 36966],
+		["private", 36967],
+		["protected", 36968],
+		["public", 36969],
+		["set", 209009],
+		["static", 36970],
+		["super", 86109],
+		["true", 86022],
+		["with", 20579],
+		["yield", 241771],
+		["enum", 86134],
+		["eval", 537079927],
+		["as", 77932],
+		["arguments", 537079928],
+		["target", 209030],
+		["meta", 209031],
+		["accessor", 209010]
+	]);
+	var De = [...Ee.keys()].map((e) => e.length);
+	var Oe = Math.min(...De);
+	var ke = Math.max(...De);
+	function Ae(e, t, n) {
+		for (; fe[y(e)];);
+		if (e.tokenValue = e.source.slice(e.tokenIndex, e.index), e.currentChar === 92 || e.currentChar > 126) return Me(e, t, 0, n);
+		let r = e.index - e.tokenIndex;
+		return r < Oe || r > ke ? 208897 : Ee.get(e.tokenValue) ?? 208897;
 	}
-	function Ie(e, t, n, r) {
-		return t - n < 13 && r === "use strict" && ((e.getToken() & 1048576) == 1048576 || e.flags & 1) ? 1 : 0;
+	function je(e, t) {
+		let n = Pe(e);
+		return pe(n) || e.report(5), e.tokenValue = String.fromCodePoint(n), Me(e, t, 1, v[n] & 4);
 	}
-	function Le(e, t, n) {
-		return e.getToken() === n ? (A(e, t), 1) : 0;
-	}
-	function E(e, t, n) {
-		return e.getToken() === n && (A(e, t), !0);
-	}
-	function D(e, t, n) {
-		e.getToken() !== n && e.report(25, w[n & 255]), A(e, t);
-	}
-	function O(e, t) {
-		switch (t.type) {
-			case "ArrayExpression": {
-				t.type = "ArrayPattern";
-				let { elements: n } = t;
-				for (let t = 0, r = n.length; t < r; ++t) {
-					let r = n[t];
-					r && O(e, r);
-				}
-				return;
-			}
-			case "ObjectExpression": {
-				t.type = "ObjectPattern";
-				let { properties: n } = t;
-				for (let t = 0, r = n.length; t < r; ++t) O(e, n[t]);
-				return;
-			}
-			case "AssignmentExpression":
-				t.type = "AssignmentPattern", t.operator !== "=" && e.report(71), delete t.operator, O(e, t.left);
-				return;
-			case "Property":
-				O(e, t.value);
-				return;
-			case "SpreadElement": t.type = "RestElement", O(e, t.argument);
-		}
-	}
-	function Re(e, t, n, r, i) {
-		t & 1 && ((r & 36864) == 36864 && e.report(118), !i && (r & 537079808) == 537079808 && e.report(119)), ((r & 20480) == 20480 || r === -2147483528) && e.report(102), n & 24 && (r & 255) == 73 && e.report(100), t & 2050 && r === 209006 && e.report(110), t & 1025 && r === 241771 && e.report(97, "yield");
-	}
-	function ze(e, t, n) {
-		t & 1 && ((n & 36864) == 36864 && e.report(118), (n & 537079808) == 537079808 && e.report(119), n === -2147483527 && e.report(95), n === -2147483528 && e.report(95)), (n & 20480) == 20480 && e.report(102), t & 2050 && n === 209006 && e.report(110), t & 1025 && n === 241771 && e.report(97, "yield");
-	}
-	function Be(e, t, n) {
-		return n === 209006 && (t & 2050 && e.report(110), e.destructible |= 128), n === 241771 && t & 1024 && e.report(97, "yield"), (n & 20480) == 20480 || (n & 36864) == 36864 || n == -2147483527;
-	}
-	function Ve(e) {
-		return e.property ? e.property.type === "PrivateIdentifier" : !1;
-	}
-	function He(e, t, n, r) {
-		for (; t;) {
-			if (t["$" + n]) return r && e.report(137), 1;
-			r && t.loop && (r = 0), t = t.$;
-		}
-		return 0;
-	}
-	function Ue(e, t, n) {
-		let r = t;
-		for (; r;) r["$" + n] && e.report(136, n), r = r.$;
-		t["$" + n] = 1;
-	}
-	function We(e) {
-		switch (e.type) {
-			case "JSXIdentifier": return e.name;
-			case "JSXNamespacedName": return e.namespace + ":" + e.name;
-			case "JSXMemberExpression": return We(e.object) + "." + We(e.property);
-		}
-	}
-	function k(e, t) {
-		return e & 1025 ? e & 2 && t === 209006 || e & 1024 && t === 241771 ? !1 : (t & 12288) == 12288 : (t & 12288) == 12288 || (t & 36864) == 36864;
-	}
-	function Ge(e, t, n) {
-		(n & 537079808) == 537079808 && (t & 1 && e.report(119), e.flags |= 512), k(t, n) || e.report(0);
-	}
-	function Ke(e, t) {
-		return Object.hasOwn(e, t) ? e[t] : void 0;
-	}
-	function qe(e, t, n) {
-		for (; ge[_(e)];);
-		return e.tokenValue = e.source.slice(e.tokenIndex, e.index), e.currentChar !== 92 && e.currentChar <= 126 ? Ke(Fe, e.tokenValue) ?? 208897 : Ye(e, t, 0, n);
-	}
-	function Je(e, t) {
-		let n = Ze(e);
-		return _e(n) || e.report(5), e.tokenValue = String.fromCodePoint(n), Ye(e, t, 1, b[n] & 4);
-	}
-	function Ye(e, t, n, r) {
+	function Me(e, t, n, r) {
 		let i = e.index;
 		for (; e.index < e.end;) if (e.currentChar === 92) {
 			e.tokenValue += e.source.slice(i, e.index), n = 1;
-			let t = Ze(e);
-			ve(t) || e.report(5), r &&= b[t] & 4, e.tokenValue += String.fromCodePoint(t), i = e.index;
+			let t = Pe(e);
+			me(t) || e.report(5), r &&= v[t] & 4, e.tokenValue += String.fromCodePoint(t), i = e.index;
 		} else {
-			let t = de(e);
-			if (t > 0) ve(t) || e.report(20, String.fromCodePoint(t)), e.currentChar = t, e.index++, e.column++;
-			else if (!ve(e.currentChar)) break;
-			_(e);
+			let t = he(e);
+			if (t > 0) me(t) || e.report(20, String.fromCodePoint(t)), e.currentChar = t, e.index++, e.column++;
+			else if (!me(e.currentChar)) break;
+			y(e);
 		}
 		e.index <= e.end && (e.tokenValue += e.source.slice(i, e.index));
 		let { length: a } = e.tokenValue;
-		if (r && a >= 2 && a <= 11) {
-			let r = Ke(Fe, e.tokenValue);
-			return r === void 0 ? 208897 | (n ? -2147483648 : 0) : n ? r === 209006 ? t & 2050 ? -2147483528 : r | -2147483648 : t & 1 ? r === 36970 || (r & 36864) == 36864 ? -2147483527 : (r & 20480) == 20480 ? t & 262144 && !(t & 8) ? r | -2147483648 : -2147483528 : -2147274630 : t & 262144 && !(t & 8) && (r & 20480) == 20480 ? r | -2147483648 : r === 241771 ? t & 262144 ? -2147274630 : t & 1024 ? -2147483528 : r | -2147483648 : r === 209005 ? -2147274630 : (r & 36864) == 36864 ? r | -2147471360 : -2147483528 : r;
+		if (r && a >= Oe && a <= ke) {
+			let r = Ee.get(e.tokenValue);
+			return r === void 0 ? 208897 | (n ? -2147483648 : 0) : n ? r === 209006 ? t & 2050 ? -2147483527 : r | -2147483648 : t & 1 ? r === 36970 || (r & 36864) == 36864 ? -2147483526 : (r & 20480) == 20480 ? t & 262144 && !(t & 8) ? r | -2147483648 : -2147483527 : -2147274629 : t & 262144 && !(t & 8) && (r & 20480) == 20480 ? r | -2147483648 : r === 241771 ? t & 262144 ? -2147274629 : t & 1024 ? -2147483527 : r | -2147483648 : r === 209005 ? -2147274629 : (r & 36864) == 36864 ? r | -2147471360 : -2147483527 : r;
 		}
 		return 208897 | (n ? -2147483648 : 0);
 	}
-	function Xe(e) {
-		let t = _(e);
-		if (t === 92) return 130;
-		let n = de(e);
-		return n && (t = n), _e(t) || e.report(96), 130;
+	function Ne(e) {
+		let t = y(e);
+		if (t === 92) return 131;
+		let n = he(e);
+		return n && (t = n), pe(t) || e.report(96), 131;
 	}
-	function Ze(e) {
-		return e.source.charCodeAt(e.index + 1) !== 117 && e.report(5), e.currentChar = e.source.charCodeAt(e.index += 2), e.column += 2, Qe(e);
+	function Pe(e) {
+		return e.source.charCodeAt(e.index + 1) !== 117 && e.report(5), e.currentChar = e.source.charCodeAt(e.index += 2), e.column += 2, Fe(e);
 	}
-	function Qe(e) {
+	function Fe(e) {
 		let t = 0, n = e.currentChar;
 		if (n === 123) {
 			let n = e.index - 2;
-			for (; b[_(e)] & 64;) if (t = t << 4 | y(e.currentChar), t > 1114111) throw new C({
+			for (; v[y(e)] & 64;) if (t = t << 4 | x(e.currentChar), t > 1114111) throw new S({
 				index: n,
 				line: e.line,
 				column: e.column
 			}, e.currentLocation, 104);
-			if (e.currentChar !== 125) throw new C({
+			if (e.currentChar !== 125) throw new S({
 				index: n,
 				line: e.line,
 				column: e.column
 			}, e.currentLocation, 7);
-			return _(e), t;
+			return y(e), t;
 		}
-		b[n] & 64 || e.report(7);
+		v[n] & 64 || e.report(7);
 		let r = e.source.charCodeAt(e.index + 1);
-		b[r] & 64 || e.report(7);
+		v[r] & 64 || e.report(7);
 		let i = e.source.charCodeAt(e.index + 2);
-		b[i] & 64 || e.report(7);
+		v[i] & 64 || e.report(7);
 		let a = e.source.charCodeAt(e.index + 3);
-		return b[a] & 64 || e.report(7), t = y(n) << 12 | y(r) << 8 | y(i) << 4 | y(a), e.currentChar = e.source.charCodeAt(e.index += 4), e.column += 4, t;
+		return v[a] & 64 || e.report(7), t = x(n) << 12 | x(r) << 8 | x(i) << 4 | x(a), e.currentChar = e.source.charCodeAt(e.index += 4), e.column += 4, t;
 	}
-	var $e = [
-		128,
-		128,
-		128,
-		128,
-		128,
-		128,
-		128,
-		128,
-		128,
-		127,
-		135,
-		127,
-		127,
+	function Ie(e, t, n) {
+		let r = e.currentChar, i = 0, a = 9, o = n & 64 ? 0 : 1, s = 0, c = 0;
+		if (n & 64) i = "." + Le(e, r), r = e.currentChar, r === 110 && e.report(12);
+		else {
+			if (r === 48) {
+				if (r = y(e), (r | 32) == 120) {
+					for (n = 136, r = y(e); v[r] & 4160;) r === 95 ? (c || e.report(154), c = 0, r = y(e)) : (c = 1, i = i * 16 + x(r), s++, r = y(e));
+					s !== 0 && c || e.report(s === 0 ? 21 : 155);
+				} else if ((r | 32) == 111) {
+					for (n = 132, r = y(e); v[r] & 4128;) r === 95 ? (c || e.report(154), c = 0, r = y(e)) : (c = 1, i = i * 8 + (r - 48), s++, r = y(e));
+					s !== 0 && c || e.report(s === 0 ? 0 : 155);
+				} else if ((r | 32) == 98) {
+					for (n = 130, r = y(e); v[r] & 4224;) r === 95 ? (c || e.report(154), c = 0, r = y(e)) : (c = 1, i = i * 2 + (r - 48), s++, r = y(e));
+					s !== 0 && c || e.report(s === 0 ? 0 : 155);
+				} else if (v[r] & 32) for (t & 1 && e.report(1), n = 1; v[r] & 16;) {
+					if (v[r] & 512) {
+						n = 32, o = 0;
+						break;
+					}
+					i = i * 8 + (r - 48), r = y(e);
+				}
+				else v[r] & 512 ? (t & 1 && e.report(1), e.flags |= 64, n = 32) : r === 95 && e.report(0);
+			}
+			if (n & 48) {
+				if (o) {
+					for (; a >= 0 && v[r] & 4112;) if (r === 95) {
+						if (r = y(e), r === 95 || n & 32) throw new S(e.currentLocation, {
+							index: e.index + 1,
+							line: e.line,
+							column: e.column
+						}, 154);
+						c = 1;
+					} else c = 0, i = 10 * i + (r - 48), r = y(e), --a;
+					if (c) throw new S(e.currentLocation, {
+						index: e.index + 1,
+						line: e.line,
+						column: e.column
+					}, 155);
+					if (a >= 0 && !pe(r) && r !== 46) return e.tokenValue = i, e.options.raw && (e.tokenRaw = e.source.slice(e.tokenIndex, e.index)), 134283266;
+				}
+				i += Le(e, r), r = e.currentChar, r === 46 && (y(e) === 95 && e.report(0), n = 64, i += "." + Le(e, e.currentChar), r = e.currentChar);
+			}
+		}
+		let l = e.index, u = 0;
+		if (r === 110 && n & 128) u = 1, r = y(e);
+		else if ((r | 32) == 101) {
+			r = y(e), v[r] & 256 && (r = y(e));
+			let { index: t } = e;
+			v[r] & 16 || e.report(11), i += e.source.substring(l, t) + Le(e, r), r = e.currentChar;
+		}
+		return (e.index < e.end && v[r] & 16 || pe(r)) && e.report(13), u ? (e.tokenRaw = e.source.slice(e.tokenIndex, e.index), e.tokenValue = BigInt(e.tokenRaw.slice(0, -1).replaceAll("_", "")), 134283389) : (e.tokenValue = n & 15 ? i : n & 32 ? parseFloat(e.source.substring(e.tokenIndex, e.index)) : +i, e.options.raw && (e.tokenRaw = e.source.slice(e.tokenIndex, e.index)), 134283266);
+	}
+	function Le(e, t) {
+		let n = 0, r = e.index, i = "";
+		for (; v[t] & 4112;) if (t === 95) {
+			let { index: a } = e;
+			if (t = y(e), t === 95) throw new S(e.currentLocation, {
+				index: e.index + 1,
+				line: e.line,
+				column: e.column
+			}, 154);
+			n = 1, i += e.source.substring(r, a), r = e.index;
+		} else n = 0, t = y(e);
+		if (n) throw new S(e.currentLocation, {
+			index: e.index + 1,
+			line: e.line,
+			column: e.column
+		}, 155);
+		return i + e.source.substring(r, e.index);
+	}
+	var w;
+	(function(e) {
+		e[e.Empty = 0] = "Empty", e[e.Escape = 1] = "Escape", e[e.Class = 2] = "Class";
+	})(w ||= {});
+	var T;
+	(function(e) {
+		e[e.Empty = 0] = "Empty", e[e.IgnoreCase = 1] = "IgnoreCase", e[e.Global = 2] = "Global", e[e.Multiline = 4] = "Multiline", e[e.Unicode = 16] = "Unicode", e[e.Sticky = 8] = "Sticky", e[e.DotAll = 32] = "DotAll", e[e.Indices = 64] = "Indices", e[e.UnicodeSets = 128] = "UnicodeSets";
+	})(T ||= {});
+	function Re(e) {
+		let t = e.index, n = w.Empty;
+		loop: for (;;) {
+			let t = e.currentChar;
+			if (y(e), n & w.Escape) n &= ~w.Escape;
+			else switch (t) {
+				case 47:
+					if (n) break;
+					break loop;
+				case 92:
+					n |= w.Escape;
+					break;
+				case 91:
+					n |= w.Class;
+					break;
+				case 93: n &= w.Escape;
+			}
+			if ((t === 13 || t === 10 || t === 8232 || t === 8233) && e.report(34), e.index >= e.source.length) return e.report(34);
+		}
+		let r = e.index - 1, i = T.Empty, a = e.currentChar, { index: o } = e;
+		for (; me(a);) {
+			switch (a) {
+				case 103:
+					i & T.Global && e.report(36, "g"), i |= T.Global;
+					break;
+				case 105:
+					i & T.IgnoreCase && e.report(36, "i"), i |= T.IgnoreCase;
+					break;
+				case 109:
+					i & T.Multiline && e.report(36, "m"), i |= T.Multiline;
+					break;
+				case 117:
+					i & T.Unicode && e.report(36, "u"), i & T.UnicodeSets && e.report(36, "vu"), i |= T.Unicode;
+					break;
+				case 118:
+					i & T.Unicode && e.report(36, "uv"), i & T.UnicodeSets && e.report(36, "v"), i |= T.UnicodeSets;
+					break;
+				case 121:
+					i & T.Sticky && e.report(36, "y"), i |= T.Sticky;
+					break;
+				case 115:
+					i & T.DotAll && e.report(36, "s"), i |= T.DotAll;
+					break;
+				case 100:
+					i & T.Indices && e.report(36, "d"), i |= T.Indices;
+					break;
+				default: e.report(35);
+			}
+			a = y(e);
+		}
+		let s = e.source.slice(o, e.index), c = e.source.slice(t, r);
+		return e.tokenRegExp = {
+			pattern: c,
+			flags: s
+		}, e.options.raw && (e.tokenRaw = e.source.slice(e.tokenIndex, e.index)), e.tokenValue = ze(e, c, s), 65540;
+	}
+	function ze(e, t, n) {
+		try {
+			return new RegExp(t, n);
+		} catch {
+			if (!e.options.validateRegex) return null;
+			e.report(34);
+		}
+	}
+	function Be(e, t, n) {
+		let { index: r } = e, i = "", a = y(e), o = e.index;
+		for (; !(v[a] & 8);) {
+			if (a === n) return i += e.source.slice(o, e.index), y(e), e.options.raw && (e.tokenRaw = e.source.slice(r, e.index)), e.tokenValue = i, 134283267;
+			if ((a & 8) == 8 && a === 92) {
+				if (i += e.source.slice(o, e.index), a = y(e), a < 127 || a === 8232 || a === 8233) {
+					let n = Ve(e, t, a);
+					n >= 0 ? i += String.fromCodePoint(n) : He(e, n, 0);
+				} else i += String.fromCodePoint(a);
+				o = e.index + 1;
+			} else (a === 8232 || a === 8233) && (e.column = -1, e.line++);
+			e.index >= e.end && e.report(16), a = y(e);
+		}
+		e.report(16);
+	}
+	function Ve(e, t, n, r = 0) {
+		switch (n) {
+			case 98: return 8;
+			case 102: return 12;
+			case 114: return 13;
+			case 110: return 10;
+			case 116: return 9;
+			case 118: return 11;
+			case 13: if (e.index < e.end) {
+				let t = e.source.charCodeAt(e.index + 1);
+				t === 10 && (e.index += 1, e.currentChar = t);
+			}
+			case 10:
+			case 8232:
+			case 8233: return e.column = -1, e.line++, -1;
+			case 48:
+			case 49:
+			case 50:
+			case 51: {
+				let i = n - 48, a = e.index + 1, o = e.column + 1;
+				if (a < e.end) {
+					let n = e.source.charCodeAt(a);
+					if (!(v[n] & 32)) {
+						if (i !== 0 || v[n] & 512) {
+							if (t & 1 || r) return -2;
+							e.flags |= 64;
+						}
+					} else if (t & 1 || r) return -2;
+					else {
+						if (e.currentChar = n, i = i << 3 | n - 48, a++, o++, a < e.end) {
+							let t = e.source.charCodeAt(a);
+							v[t] & 32 && (e.currentChar = t, i = i << 3 | t - 48, a++, o++);
+						}
+						e.flags |= 64;
+					}
+					e.index = a - 1, e.column = o - 1;
+				}
+				return i;
+			}
+			case 52:
+			case 53:
+			case 54:
+			case 55: {
+				if (r || t & 1) return -2;
+				let i = n - 48, a = e.index + 1, o = e.column + 1;
+				if (a < e.end) {
+					let t = e.source.charCodeAt(a);
+					v[t] & 32 && (i = i << 3 | t - 48, e.currentChar = t, e.index = a, e.column = o);
+				}
+				return e.flags |= 64, i;
+			}
+			case 120: {
+				let t = y(e);
+				if (!(v[t] & 64)) return -4;
+				let n = x(t), r = y(e);
+				if (!(v[r] & 64)) return -4;
+				let i = x(r);
+				return n << 4 | i;
+			}
+			case 117: {
+				let t = y(e);
+				if (e.currentChar === 123) {
+					let t = 0, n = 0;
+					for (; v[y(e)] & 64;) {
+						if (t = t << 4 | x(e.currentChar), t > 1114111) return -5;
+						n++;
+					}
+					return n === 0 || e.currentChar < 1 || e.currentChar !== 125 ? -4 : t;
+				}
+				{
+					if (!(v[t] & 64)) return -4;
+					let n = e.source.charCodeAt(e.index + 1);
+					if (!(v[n] & 64)) return -4;
+					let r = e.source.charCodeAt(e.index + 2);
+					if (!(v[r] & 64)) return -4;
+					let i = e.source.charCodeAt(e.index + 3);
+					return v[i] & 64 ? (e.index += 3, e.column += 3, e.currentChar = e.source.charCodeAt(e.index), x(t) << 12 | x(n) << 8 | x(r) << 4 | x(i)) : -4;
+				}
+			}
+			case 56:
+			case 57:
+				if (r || t & 1) return -3;
+				e.flags |= 4096;
+			default: return n;
+		}
+	}
+	function He(e, t, n) {
+		switch (t) {
+			case -1: return;
+			case -2: e.report(n ? 2 : 1);
+			case -3: e.report(n ? 3 : 14);
+			case -4: e.report(7);
+			case -5: e.report(104);
+		}
+	}
+	function Ue(e, t) {
+		let { index: n } = e, r = 67174409, i = "", a = !1, o = y(e);
+		for (; o !== 96;) {
+			if (o === 36 && e.source.charCodeAt(e.index + 1) === 123) {
+				y(e), r = 67174408;
+				break;
+			}
+			if (o === 92) {
+				if (o = y(e), o === 13 && (a = !0), o > 126 && o !== 8232 && o !== 8233) i += String.fromCodePoint(o);
+				else {
+					let { index: n, line: s, column: c } = e, l = Ve(e, t | 1, o, 1);
+					if (l >= 0) i += String.fromCodePoint(l);
+					else if (l !== -1 && t & 64) {
+						e.index = n, e.line = s, e.column = c, i = null, o = We(e, o, () => {
+							a = !0;
+						}), o < 0 && (r = 67174408);
+						break;
+					} else He(e, l, 1);
+				}
+			} else e.index < e.end && (o === 13 && (a = !0), o === 13 && e.source.charCodeAt(e.index + 1) === 10 && (e.currentChar = e.source.charCodeAt(++e.index)), o === 13 && (o = 10), ((o & 83) < 3 && o === 10 || (o ^ 8232) <= 1) && (e.column = -1, e.line++), i += String.fromCodePoint(o));
+			e.index >= e.end && e.report(17), o = y(e);
+		}
+		y(e), e.tokenValue = i;
+		let s = e.source.slice(n + 1, e.index - (r === 67174409 ? 1 : 2));
+		return e.tokenRaw = a ? s.replaceAll(/\r\n?/g, "\n") : s, r;
+	}
+	function We(e, t, n) {
+		for (; t !== 96;) {
+			switch (t) {
+				case 13:
+					n();
+					break;
+				case 36: {
+					let n = e.index + 1;
+					if (n < e.end && e.source.charCodeAt(n) === 123) return e.index = n, e.column++, -t;
+					break;
+				}
+				case 10:
+				case 8232:
+				case 8233: e.column = -1, e.line++;
+			}
+			e.index >= e.end && e.report(17), t = y(e);
+		}
+		return t;
+	}
+	function Ge(e, t) {
+		return e.index >= e.end && e.report(0), e.index--, e.column--, Ue(e, t);
+	}
+	var Ke = [
+		129,
+		129,
+		129,
+		129,
+		129,
+		129,
+		129,
+		129,
 		129,
 		128,
+		136,
 		128,
 		128,
+		130,
+		129,
+		129,
+		129,
+		129,
+		129,
+		129,
+		129,
+		129,
+		129,
+		129,
+		129,
+		129,
+		129,
+		129,
+		129,
+		129,
+		129,
+		129,
 		128,
-		128,
-		128,
-		128,
-		128,
-		128,
-		128,
-		128,
-		128,
-		128,
-		128,
-		128,
-		128,
-		128,
-		128,
-		127,
 		16842798,
 		134283267,
-		130,
+		131,
 		208897,
 		8391477,
 		8390213,
@@ -21724,7 +23904,7 @@ var vot = (function(exports) {
 		1077936155,
 		8390721,
 		22,
-		132,
+		133,
 		208897,
 		208897,
 		208897,
@@ -21752,11 +23932,11 @@ var vot = (function(exports) {
 		208897,
 		208897,
 		69271571,
-		136,
+		137,
 		20,
 		8389959,
 		208897,
-		131,
+		132,
 		4096,
 		4096,
 		4096,
@@ -21787,19 +23967,19 @@ var vot = (function(exports) {
 		8389702,
 		1074790415,
 		16842799,
-		128
+		129
 	];
-	function A(e, t) {
-		e.flags = (e.flags | 1) ^ 1, e.startIndex = e.index, e.startColumn = e.column, e.startLine = e.line, e.setToken(et(e, t, 0));
+	function E(e, t) {
+		e.flags = (e.flags | 1) ^ 1, e.startIndex = e.index, e.startColumn = e.column, e.startLine = e.line, e.setToken(qe(e, t, 0));
 	}
-	function et(e, t, n) {
-		let r = e.index === 0, { source: i } = e, a = e.currentLocation;
+	function qe(e, t, n) {
+		let r = e.index === 0, { source: i } = e;
 		for (; e.index < e.end;) {
 			e.tokenIndex = e.index, e.tokenColumn = e.column, e.tokenLine = e.line;
-			let o = e.currentChar;
-			if (o <= 126) {
-				let s = $e[o];
-				switch (s) {
+			let a = e.currentChar;
+			if (a <= 126) {
+				let o = Ke[a];
+				switch (o) {
 					case 67174411:
 					case 16:
 					case 2162700:
@@ -21810,33 +23990,33 @@ var vot = (function(exports) {
 					case 1074790417:
 					case 18:
 					case 16842799:
-					case 132:
-					case 128: return _(e), s;
-					case 208897: return qe(e, t, 0);
-					case 4096: return qe(e, t, 1);
-					case 134283266: return Ne(e, t, 144);
-					case 134283267: return Ee(e, t, o);
-					case 131: return ke(e, t);
-					case 136: return Je(e, t);
-					case 130: return Xe(e);
-					case 127:
-						_(e);
+					case 133:
+					case 129: return y(e), o;
+					case 208897: return Ae(e, t, 0);
+					case 4096: return Ae(e, t, 1);
+					case 134283266: return Ie(e, t, 144);
+					case 134283267: return Be(e, t, a);
+					case 132: return Ue(e, t);
+					case 137: return je(e, t);
+					case 131: return Ne(e);
+					case 128:
+						y(e);
 						break;
-					case 129:
-						n |= 5, v(e);
+					case 130:
+						n |= 5, b(e);
 						break;
-					case 135:
-						fe(e, n), n = n & -5 | 1;
+					case 136:
+						ge(e, n), n = n & -5 | 1;
 						break;
 					case 8456256: {
-						let r = _(e);
+						let r = y(e);
 						if (e.index < e.end) {
-							if (r === 60) return e.index < e.end && _(e) === 61 ? (_(e), 4194332) : 8390978;
-							if (r === 61) return _(e), 8390718;
+							if (r === 60) return e.index < e.end && y(e) === 61 ? (y(e), 4194332) : 8390978;
+							if (r === 61) return y(e), 8390718;
 							if (r === 33) {
 								let r = e.index + 1;
 								if (r + 1 < e.end && i.charCodeAt(r) === 45 && i.charCodeAt(r + 1) == 45) {
-									e.column += 3, e.currentChar = i.charCodeAt(e.index += 3), n = xe(e, i, n, t, 2, e.tokenStart), a = e.tokenStart;
+									e.column += 3, e.currentChar = i.charCodeAt(e.index += 3), n = xe(e, i, n, t, 2, e.tokenStart);
 									continue;
 								}
 								return 8456256;
@@ -21845,53 +24025,53 @@ var vot = (function(exports) {
 						return 8456256;
 					}
 					case 1077936155: {
-						_(e);
+						y(e);
 						let t = e.currentChar;
-						return t === 61 ? _(e) === 61 ? (_(e), 8390458) : 8390460 : t === 62 ? (_(e), 10) : 1077936155;
+						return t === 61 ? y(e) === 61 ? (y(e), 8390458) : 8390460 : t === 62 ? (y(e), 10) : 1077936155;
 					}
-					case 16842798: return _(e) === 61 ? _(e) === 61 ? (_(e), 8390459) : 8390461 : 16842798;
-					case 8391477: return _(e) === 61 ? (_(e), 4194340) : 8391477;
+					case 16842798: return y(e) === 61 ? y(e) === 61 ? (y(e), 8390459) : 8390461 : 16842798;
+					case 8391477: return y(e) === 61 ? (y(e), 4194340) : 8391477;
 					case 8391476: {
-						if (_(e), e.index >= e.end) return 8391476;
+						if (y(e), e.index >= e.end) return 8391476;
 						let t = e.currentChar;
-						return t === 61 ? (_(e), 4194338) : t === 42 ? _(e) === 61 ? (_(e), 4194335) : 8391735 : 8391476;
+						return t === 61 ? (y(e), 4194338) : t === 42 ? y(e) === 61 ? (y(e), 4194335) : 8391735 : 8391476;
 					}
-					case 8389959: return _(e) === 61 ? (_(e), 4194341) : 8389959;
+					case 8389959: return y(e) === 61 ? (y(e), 4194341) : 8389959;
 					case 25233968: {
-						_(e);
+						y(e);
 						let t = e.currentChar;
-						return t === 43 ? (_(e), 33619993) : t === 61 ? (_(e), 4194336) : 25233968;
+						return t === 43 ? (y(e), 33619993) : t === 61 ? (y(e), 4194336) : 25233968;
 					}
 					case 25233969: {
-						_(e);
-						let o = e.currentChar;
-						if (o === 45) {
-							if (_(e), (n & 1 || r) && e.currentChar === 62) {
-								e.options.webcompat || e.report(112), _(e), n = xe(e, i, n, t, 3, a), a = e.tokenStart;
+						y(e);
+						let a = e.currentChar;
+						if (a === 45) {
+							if (y(e), (n & 1 || r) && e.currentChar === 62) {
+								e.options.webcompat || e.report(114), y(e), n = xe(e, i, n, t, 3, e.tokenStart);
 								continue;
 							}
 							return 33619994;
 						}
-						return o === 61 ? (_(e), 4194337) : 25233969;
+						return a === 61 ? (y(e), 4194337) : 25233969;
 					}
 					case 8457014:
-						if (_(e), e.index < e.end) {
+						if (y(e), e.index < e.end) {
 							let r = e.currentChar;
 							if (r === 47) {
-								_(e), n = Se(e, i, n, 0, e.tokenStart), a = e.tokenStart;
+								y(e), n = Se(e, i, n, 0, e.tokenStart);
 								continue;
 							}
 							if (r === 42) {
-								_(e), n = Ce(e, i, n), a = e.tokenStart;
+								y(e), n = Ce(e, i, n);
 								continue;
 							}
-							if (t & 32) return we(e);
-							if (r === 61) return _(e), 4259875;
+							if (t & 32) return Re(e);
+							if (r === 61) return y(e), 4259875;
 						}
 						return 8457014;
 					case 67108877: {
-						let n = _(e);
-						if (n >= 48 && n <= 57) return Ne(e, t, 80);
+						let n = y(e);
+						if (n >= 48 && n <= 57) return Ie(e, t, 80);
 						if (n === 46) {
 							let t = e.index + 1;
 							if (t < e.end && i.charCodeAt(t) === 46) return e.column += 2, e.currentChar = i.charCodeAt(e.index += 2), 14;
@@ -21899,2307 +24079,465 @@ var vot = (function(exports) {
 						return 67108877;
 					}
 					case 8389702: {
-						_(e);
+						y(e);
 						let t = e.currentChar;
-						return t === 124 ? (_(e), e.currentChar === 61 ? (_(e), 4194344) : 8913465) : t === 61 ? (_(e), 4194342) : 8389702;
+						return t === 124 ? (y(e), e.currentChar === 61 ? (y(e), 4718632) : 8913465) : t === 61 ? (y(e), 4194342) : 8389702;
 					}
 					case 8390721: {
-						_(e);
-						let t = e.currentChar;
-						if (t === 61) return _(e), 8390719;
-						if (t !== 62) return 8390721;
-						if (_(e), e.index < e.end) {
+						if (y(e), t & 1048576) return 8390721;
+						let n = e.currentChar;
+						if (n === 61) return y(e), 8390719;
+						if (n !== 62) return 8390721;
+						if (y(e), e.index < e.end) {
 							let t = e.currentChar;
-							if (t === 62) return _(e) === 61 ? (_(e), 4194334) : 8390980;
-							if (t === 61) return _(e), 4194333;
+							if (t === 62) return y(e) === 61 ? (y(e), 4194334) : 8390980;
+							if (t === 61) return y(e), 4194333;
 						}
 						return 8390979;
 					}
 					case 8390213: {
-						_(e);
+						y(e);
 						let t = e.currentChar;
-						return t === 38 ? (_(e), e.currentChar === 61 ? (_(e), 4194345) : 8913720) : t === 61 ? (_(e), 4194343) : 8390213;
+						return t === 38 ? (y(e), e.currentChar === 61 ? (y(e), 4718633) : 8913720) : t === 61 ? (y(e), 4194343) : 8390213;
 					}
 					case 22: {
-						let t = _(e);
-						if (t === 63) return _(e), e.currentChar === 61 ? (_(e), 4194346) : 276824445;
+						let t = y(e);
+						if (t === 63) return y(e), e.currentChar === 61 ? (y(e), 4718634) : 276824446;
 						if (t === 46) {
 							let n = e.index + 1;
-							if (n < e.end && (t = i.charCodeAt(n), !(t >= 48 && t <= 57))) return _(e), 67108990;
+							if (n < e.end && (t = i.charCodeAt(n), !(t >= 48 && t <= 57))) return y(e), 67108991;
 						}
 						return 22;
 					}
 				}
 			} else {
-				if ((o ^ 8232) <= 1) {
-					n = n & -5 | 1, v(e);
+				if ((a ^ 8232) <= 1) {
+					n = n & -5 | 1, b(e);
 					continue;
 				}
-				let r = de(e);
-				if (r > 0 && (o = r), ue(o)) return e.tokenValue = "", Ye(e, t, 0, 0);
-				if (pe(o)) {
-					_(e);
+				let r = he(e);
+				if (r > 0 && (a = r), ue(a)) return e.tokenValue = "", Me(e, t, 0, 0);
+				if (_e(a)) {
+					y(e);
 					continue;
 				}
-				e.report(20, String.fromCodePoint(o));
+				e.report(20, String.fromCodePoint(a));
 			}
 		}
 		return 1048576;
 	}
-	var tt = {
-		AElig: "Æ",
-		AMP: "&",
-		Aacute: "Á",
-		Abreve: "Ă",
-		Acirc: "Â",
-		Acy: "А",
-		Afr: "𝔄",
-		Agrave: "À",
-		Alpha: "Α",
-		Amacr: "Ā",
-		And: "⩓",
-		Aogon: "Ą",
-		Aopf: "𝔸",
-		ApplyFunction: "⁡",
-		Aring: "Å",
-		Ascr: "𝒜",
-		Assign: "≔",
-		Atilde: "Ã",
-		Auml: "Ä",
-		Backslash: "∖",
-		Barv: "⫧",
-		Barwed: "⌆",
-		Bcy: "Б",
-		Because: "∵",
-		Bernoullis: "ℬ",
-		Beta: "Β",
-		Bfr: "𝔅",
-		Bopf: "𝔹",
-		Breve: "˘",
-		Bscr: "ℬ",
-		Bumpeq: "≎",
-		CHcy: "Ч",
-		COPY: "©",
-		Cacute: "Ć",
-		Cap: "⋒",
-		CapitalDifferentialD: "ⅅ",
-		Cayleys: "ℭ",
-		Ccaron: "Č",
-		Ccedil: "Ç",
-		Ccirc: "Ĉ",
-		Cconint: "∰",
-		Cdot: "Ċ",
-		Cedilla: "¸",
-		CenterDot: "·",
-		Cfr: "ℭ",
-		Chi: "Χ",
-		CircleDot: "⊙",
-		CircleMinus: "⊖",
-		CirclePlus: "⊕",
-		CircleTimes: "⊗",
-		ClockwiseContourIntegral: "∲",
-		CloseCurlyDoubleQuote: "”",
-		CloseCurlyQuote: "’",
-		Colon: "∷",
-		Colone: "⩴",
-		Congruent: "≡",
-		Conint: "∯",
-		ContourIntegral: "∮",
-		Copf: "ℂ",
-		Coproduct: "∐",
-		CounterClockwiseContourIntegral: "∳",
-		Cross: "⨯",
-		Cscr: "𝒞",
-		Cup: "⋓",
-		CupCap: "≍",
-		DD: "ⅅ",
-		DDotrahd: "⤑",
-		DJcy: "Ђ",
-		DScy: "Ѕ",
-		DZcy: "Џ",
-		Dagger: "‡",
-		Darr: "↡",
-		Dashv: "⫤",
-		Dcaron: "Ď",
-		Dcy: "Д",
-		Del: "∇",
-		Delta: "Δ",
-		Dfr: "𝔇",
-		DiacriticalAcute: "´",
-		DiacriticalDot: "˙",
-		DiacriticalDoubleAcute: "˝",
-		DiacriticalGrave: "`",
-		DiacriticalTilde: "˜",
-		Diamond: "⋄",
-		DifferentialD: "ⅆ",
-		Dopf: "𝔻",
-		Dot: "¨",
-		DotDot: "⃜",
-		DotEqual: "≐",
-		DoubleContourIntegral: "∯",
-		DoubleDot: "¨",
-		DoubleDownArrow: "⇓",
-		DoubleLeftArrow: "⇐",
-		DoubleLeftRightArrow: "⇔",
-		DoubleLeftTee: "⫤",
-		DoubleLongLeftArrow: "⟸",
-		DoubleLongLeftRightArrow: "⟺",
-		DoubleLongRightArrow: "⟹",
-		DoubleRightArrow: "⇒",
-		DoubleRightTee: "⊨",
-		DoubleUpArrow: "⇑",
-		DoubleUpDownArrow: "⇕",
-		DoubleVerticalBar: "∥",
-		DownArrow: "↓",
-		DownArrowBar: "⤓",
-		DownArrowUpArrow: "⇵",
-		DownBreve: "̑",
-		DownLeftRightVector: "⥐",
-		DownLeftTeeVector: "⥞",
-		DownLeftVector: "↽",
-		DownLeftVectorBar: "⥖",
-		DownRightTeeVector: "⥟",
-		DownRightVector: "⇁",
-		DownRightVectorBar: "⥗",
-		DownTee: "⊤",
-		DownTeeArrow: "↧",
-		Downarrow: "⇓",
-		Dscr: "𝒟",
-		Dstrok: "Đ",
-		ENG: "Ŋ",
-		ETH: "Ð",
-		Eacute: "É",
-		Ecaron: "Ě",
-		Ecirc: "Ê",
-		Ecy: "Э",
-		Edot: "Ė",
-		Efr: "𝔈",
-		Egrave: "È",
-		Element: "∈",
-		Emacr: "Ē",
-		EmptySmallSquare: "◻",
-		EmptyVerySmallSquare: "▫",
-		Eogon: "Ę",
-		Eopf: "𝔼",
-		Epsilon: "Ε",
-		Equal: "⩵",
-		EqualTilde: "≂",
-		Equilibrium: "⇌",
-		Escr: "ℰ",
-		Esim: "⩳",
-		Eta: "Η",
-		Euml: "Ë",
-		Exists: "∃",
-		ExponentialE: "ⅇ",
-		Fcy: "Ф",
-		Ffr: "𝔉",
-		FilledSmallSquare: "◼",
-		FilledVerySmallSquare: "▪",
-		Fopf: "𝔽",
-		ForAll: "∀",
-		Fouriertrf: "ℱ",
-		Fscr: "ℱ",
-		GJcy: "Ѓ",
-		GT: ">",
-		Gamma: "Γ",
-		Gammad: "Ϝ",
-		Gbreve: "Ğ",
-		Gcedil: "Ģ",
-		Gcirc: "Ĝ",
-		Gcy: "Г",
-		Gdot: "Ġ",
-		Gfr: "𝔊",
-		Gg: "⋙",
-		Gopf: "𝔾",
-		GreaterEqual: "≥",
-		GreaterEqualLess: "⋛",
-		GreaterFullEqual: "≧",
-		GreaterGreater: "⪢",
-		GreaterLess: "≷",
-		GreaterSlantEqual: "⩾",
-		GreaterTilde: "≳",
-		Gscr: "𝒢",
-		Gt: "≫",
-		HARDcy: "Ъ",
-		Hacek: "ˇ",
-		Hat: "^",
-		Hcirc: "Ĥ",
-		Hfr: "ℌ",
-		HilbertSpace: "ℋ",
-		Hopf: "ℍ",
-		HorizontalLine: "─",
-		Hscr: "ℋ",
-		Hstrok: "Ħ",
-		HumpDownHump: "≎",
-		HumpEqual: "≏",
-		IEcy: "Е",
-		IJlig: "Ĳ",
-		IOcy: "Ё",
-		Iacute: "Í",
-		Icirc: "Î",
-		Icy: "И",
-		Idot: "İ",
-		Ifr: "ℑ",
-		Igrave: "Ì",
-		Im: "ℑ",
-		Imacr: "Ī",
-		ImaginaryI: "ⅈ",
-		Implies: "⇒",
-		Int: "∬",
-		Integral: "∫",
-		Intersection: "⋂",
-		InvisibleComma: "⁣",
-		InvisibleTimes: "⁢",
-		Iogon: "Į",
-		Iopf: "𝕀",
-		Iota: "Ι",
-		Iscr: "ℐ",
-		Itilde: "Ĩ",
-		Iukcy: "І",
-		Iuml: "Ï",
-		Jcirc: "Ĵ",
-		Jcy: "Й",
-		Jfr: "𝔍",
-		Jopf: "𝕁",
-		Jscr: "𝒥",
-		Jsercy: "Ј",
-		Jukcy: "Є",
-		KHcy: "Х",
-		KJcy: "Ќ",
-		Kappa: "Κ",
-		Kcedil: "Ķ",
-		Kcy: "К",
-		Kfr: "𝔎",
-		Kopf: "𝕂",
-		Kscr: "𝒦",
-		LJcy: "Љ",
-		LT: "<",
-		Lacute: "Ĺ",
-		Lambda: "Λ",
-		Lang: "⟪",
-		Laplacetrf: "ℒ",
-		Larr: "↞",
-		Lcaron: "Ľ",
-		Lcedil: "Ļ",
-		Lcy: "Л",
-		LeftAngleBracket: "⟨",
-		LeftArrow: "←",
-		LeftArrowBar: "⇤",
-		LeftArrowRightArrow: "⇆",
-		LeftCeiling: "⌈",
-		LeftDoubleBracket: "⟦",
-		LeftDownTeeVector: "⥡",
-		LeftDownVector: "⇃",
-		LeftDownVectorBar: "⥙",
-		LeftFloor: "⌊",
-		LeftRightArrow: "↔",
-		LeftRightVector: "⥎",
-		LeftTee: "⊣",
-		LeftTeeArrow: "↤",
-		LeftTeeVector: "⥚",
-		LeftTriangle: "⊲",
-		LeftTriangleBar: "⧏",
-		LeftTriangleEqual: "⊴",
-		LeftUpDownVector: "⥑",
-		LeftUpTeeVector: "⥠",
-		LeftUpVector: "↿",
-		LeftUpVectorBar: "⥘",
-		LeftVector: "↼",
-		LeftVectorBar: "⥒",
-		Leftarrow: "⇐",
-		Leftrightarrow: "⇔",
-		LessEqualGreater: "⋚",
-		LessFullEqual: "≦",
-		LessGreater: "≶",
-		LessLess: "⪡",
-		LessSlantEqual: "⩽",
-		LessTilde: "≲",
-		Lfr: "𝔏",
-		Ll: "⋘",
-		Lleftarrow: "⇚",
-		Lmidot: "Ŀ",
-		LongLeftArrow: "⟵",
-		LongLeftRightArrow: "⟷",
-		LongRightArrow: "⟶",
-		Longleftarrow: "⟸",
-		Longleftrightarrow: "⟺",
-		Longrightarrow: "⟹",
-		Lopf: "𝕃",
-		LowerLeftArrow: "↙",
-		LowerRightArrow: "↘",
-		Lscr: "ℒ",
-		Lsh: "↰",
-		Lstrok: "Ł",
-		Lt: "≪",
-		Map: "⤅",
-		Mcy: "М",
-		MediumSpace: " ",
-		Mellintrf: "ℳ",
-		Mfr: "𝔐",
-		MinusPlus: "∓",
-		Mopf: "𝕄",
-		Mscr: "ℳ",
-		Mu: "Μ",
-		NJcy: "Њ",
-		Nacute: "Ń",
-		Ncaron: "Ň",
-		Ncedil: "Ņ",
-		Ncy: "Н",
-		NegativeMediumSpace: "​",
-		NegativeThickSpace: "​",
-		NegativeThinSpace: "​",
-		NegativeVeryThinSpace: "​",
-		NestedGreaterGreater: "≫",
-		NestedLessLess: "≪",
-		NewLine: "\n",
-		Nfr: "𝔑",
-		NoBreak: "⁠",
-		NonBreakingSpace: "\xA0",
-		Nopf: "ℕ",
-		Not: "⫬",
-		NotCongruent: "≢",
-		NotCupCap: "≭",
-		NotDoubleVerticalBar: "∦",
-		NotElement: "∉",
-		NotEqual: "≠",
-		NotEqualTilde: "≂̸",
-		NotExists: "∄",
-		NotGreater: "≯",
-		NotGreaterEqual: "≱",
-		NotGreaterFullEqual: "≧̸",
-		NotGreaterGreater: "≫̸",
-		NotGreaterLess: "≹",
-		NotGreaterSlantEqual: "⩾̸",
-		NotGreaterTilde: "≵",
-		NotHumpDownHump: "≎̸",
-		NotHumpEqual: "≏̸",
-		NotLeftTriangle: "⋪",
-		NotLeftTriangleBar: "⧏̸",
-		NotLeftTriangleEqual: "⋬",
-		NotLess: "≮",
-		NotLessEqual: "≰",
-		NotLessGreater: "≸",
-		NotLessLess: "≪̸",
-		NotLessSlantEqual: "⩽̸",
-		NotLessTilde: "≴",
-		NotNestedGreaterGreater: "⪢̸",
-		NotNestedLessLess: "⪡̸",
-		NotPrecedes: "⊀",
-		NotPrecedesEqual: "⪯̸",
-		NotPrecedesSlantEqual: "⋠",
-		NotReverseElement: "∌",
-		NotRightTriangle: "⋫",
-		NotRightTriangleBar: "⧐̸",
-		NotRightTriangleEqual: "⋭",
-		NotSquareSubset: "⊏̸",
-		NotSquareSubsetEqual: "⋢",
-		NotSquareSuperset: "⊐̸",
-		NotSquareSupersetEqual: "⋣",
-		NotSubset: "⊂⃒",
-		NotSubsetEqual: "⊈",
-		NotSucceeds: "⊁",
-		NotSucceedsEqual: "⪰̸",
-		NotSucceedsSlantEqual: "⋡",
-		NotSucceedsTilde: "≿̸",
-		NotSuperset: "⊃⃒",
-		NotSupersetEqual: "⊉",
-		NotTilde: "≁",
-		NotTildeEqual: "≄",
-		NotTildeFullEqual: "≇",
-		NotTildeTilde: "≉",
-		NotVerticalBar: "∤",
-		Nscr: "𝒩",
-		Ntilde: "Ñ",
-		Nu: "Ν",
-		OElig: "Œ",
-		Oacute: "Ó",
-		Ocirc: "Ô",
-		Ocy: "О",
-		Odblac: "Ő",
-		Ofr: "𝔒",
-		Ograve: "Ò",
-		Omacr: "Ō",
-		Omega: "Ω",
-		Omicron: "Ο",
-		Oopf: "𝕆",
-		OpenCurlyDoubleQuote: "“",
-		OpenCurlyQuote: "‘",
-		Or: "⩔",
-		Oscr: "𝒪",
-		Oslash: "Ø",
-		Otilde: "Õ",
-		Otimes: "⨷",
-		Ouml: "Ö",
-		OverBar: "‾",
-		OverBrace: "⏞",
-		OverBracket: "⎴",
-		OverParenthesis: "⏜",
-		PartialD: "∂",
-		Pcy: "П",
-		Pfr: "𝔓",
-		Phi: "Φ",
-		Pi: "Π",
-		PlusMinus: "±",
-		Poincareplane: "ℌ",
-		Popf: "ℙ",
-		Pr: "⪻",
-		Precedes: "≺",
-		PrecedesEqual: "⪯",
-		PrecedesSlantEqual: "≼",
-		PrecedesTilde: "≾",
-		Prime: "″",
-		Product: "∏",
-		Proportion: "∷",
-		Proportional: "∝",
-		Pscr: "𝒫",
-		Psi: "Ψ",
-		QUOT: "\"",
-		Qfr: "𝔔",
-		Qopf: "ℚ",
-		Qscr: "𝒬",
-		RBarr: "⤐",
-		REG: "®",
-		Racute: "Ŕ",
-		Rang: "⟫",
-		Rarr: "↠",
-		Rarrtl: "⤖",
-		Rcaron: "Ř",
-		Rcedil: "Ŗ",
-		Rcy: "Р",
-		Re: "ℜ",
-		ReverseElement: "∋",
-		ReverseEquilibrium: "⇋",
-		ReverseUpEquilibrium: "⥯",
-		Rfr: "ℜ",
-		Rho: "Ρ",
-		RightAngleBracket: "⟩",
-		RightArrow: "→",
-		RightArrowBar: "⇥",
-		RightArrowLeftArrow: "⇄",
-		RightCeiling: "⌉",
-		RightDoubleBracket: "⟧",
-		RightDownTeeVector: "⥝",
-		RightDownVector: "⇂",
-		RightDownVectorBar: "⥕",
-		RightFloor: "⌋",
-		RightTee: "⊢",
-		RightTeeArrow: "↦",
-		RightTeeVector: "⥛",
-		RightTriangle: "⊳",
-		RightTriangleBar: "⧐",
-		RightTriangleEqual: "⊵",
-		RightUpDownVector: "⥏",
-		RightUpTeeVector: "⥜",
-		RightUpVector: "↾",
-		RightUpVectorBar: "⥔",
-		RightVector: "⇀",
-		RightVectorBar: "⥓",
-		Rightarrow: "⇒",
-		Ropf: "ℝ",
-		RoundImplies: "⥰",
-		Rrightarrow: "⇛",
-		Rscr: "ℛ",
-		Rsh: "↱",
-		RuleDelayed: "⧴",
-		SHCHcy: "Щ",
-		SHcy: "Ш",
-		SOFTcy: "Ь",
-		Sacute: "Ś",
-		Sc: "⪼",
-		Scaron: "Š",
-		Scedil: "Ş",
-		Scirc: "Ŝ",
-		Scy: "С",
-		Sfr: "𝔖",
-		ShortDownArrow: "↓",
-		ShortLeftArrow: "←",
-		ShortRightArrow: "→",
-		ShortUpArrow: "↑",
-		Sigma: "Σ",
-		SmallCircle: "∘",
-		Sopf: "𝕊",
-		Sqrt: "√",
-		Square: "□",
-		SquareIntersection: "⊓",
-		SquareSubset: "⊏",
-		SquareSubsetEqual: "⊑",
-		SquareSuperset: "⊐",
-		SquareSupersetEqual: "⊒",
-		SquareUnion: "⊔",
-		Sscr: "𝒮",
-		Star: "⋆",
-		Sub: "⋐",
-		Subset: "⋐",
-		SubsetEqual: "⊆",
-		Succeeds: "≻",
-		SucceedsEqual: "⪰",
-		SucceedsSlantEqual: "≽",
-		SucceedsTilde: "≿",
-		SuchThat: "∋",
-		Sum: "∑",
-		Sup: "⋑",
-		Superset: "⊃",
-		SupersetEqual: "⊇",
-		Supset: "⋑",
-		THORN: "Þ",
-		TRADE: "™",
-		TSHcy: "Ћ",
-		TScy: "Ц",
-		Tab: "	",
-		Tau: "Τ",
-		Tcaron: "Ť",
-		Tcedil: "Ţ",
-		Tcy: "Т",
-		Tfr: "𝔗",
-		Therefore: "∴",
-		Theta: "Θ",
-		ThickSpace: "  ",
-		ThinSpace: " ",
-		Tilde: "∼",
-		TildeEqual: "≃",
-		TildeFullEqual: "≅",
-		TildeTilde: "≈",
-		Topf: "𝕋",
-		TripleDot: "⃛",
-		Tscr: "𝒯",
-		Tstrok: "Ŧ",
-		Uacute: "Ú",
-		Uarr: "↟",
-		Uarrocir: "⥉",
-		Ubrcy: "Ў",
-		Ubreve: "Ŭ",
-		Ucirc: "Û",
-		Ucy: "У",
-		Udblac: "Ű",
-		Ufr: "𝔘",
-		Ugrave: "Ù",
-		Umacr: "Ū",
-		UnderBar: "_",
-		UnderBrace: "⏟",
-		UnderBracket: "⎵",
-		UnderParenthesis: "⏝",
-		Union: "⋃",
-		UnionPlus: "⊎",
-		Uogon: "Ų",
-		Uopf: "𝕌",
-		UpArrow: "↑",
-		UpArrowBar: "⤒",
-		UpArrowDownArrow: "⇅",
-		UpDownArrow: "↕",
-		UpEquilibrium: "⥮",
-		UpTee: "⊥",
-		UpTeeArrow: "↥",
-		Uparrow: "⇑",
-		Updownarrow: "⇕",
-		UpperLeftArrow: "↖",
-		UpperRightArrow: "↗",
-		Upsi: "ϒ",
-		Upsilon: "Υ",
-		Uring: "Ů",
-		Uscr: "𝒰",
-		Utilde: "Ũ",
-		Uuml: "Ü",
-		VDash: "⊫",
-		Vbar: "⫫",
-		Vcy: "В",
-		Vdash: "⊩",
-		Vdashl: "⫦",
-		Vee: "⋁",
-		Verbar: "‖",
-		Vert: "‖",
-		VerticalBar: "∣",
-		VerticalLine: "|",
-		VerticalSeparator: "❘",
-		VerticalTilde: "≀",
-		VeryThinSpace: " ",
-		Vfr: "𝔙",
-		Vopf: "𝕍",
-		Vscr: "𝒱",
-		Vvdash: "⊪",
-		Wcirc: "Ŵ",
-		Wedge: "⋀",
-		Wfr: "𝔚",
-		Wopf: "𝕎",
-		Wscr: "𝒲",
-		Xfr: "𝔛",
-		Xi: "Ξ",
-		Xopf: "𝕏",
-		Xscr: "𝒳",
-		YAcy: "Я",
-		YIcy: "Ї",
-		YUcy: "Ю",
-		Yacute: "Ý",
-		Ycirc: "Ŷ",
-		Ycy: "Ы",
-		Yfr: "𝔜",
-		Yopf: "𝕐",
-		Yscr: "𝒴",
-		Yuml: "Ÿ",
-		ZHcy: "Ж",
-		Zacute: "Ź",
-		Zcaron: "Ž",
-		Zcy: "З",
-		Zdot: "Ż",
-		ZeroWidthSpace: "​",
-		Zeta: "Ζ",
-		Zfr: "ℨ",
-		Zopf: "ℤ",
-		Zscr: "𝒵",
-		aacute: "á",
-		abreve: "ă",
-		ac: "∾",
-		acE: "∾̳",
-		acd: "∿",
-		acirc: "â",
-		acute: "´",
-		acy: "а",
-		aelig: "æ",
-		af: "⁡",
-		afr: "𝔞",
-		agrave: "à",
-		alefsym: "ℵ",
-		aleph: "ℵ",
-		alpha: "α",
-		amacr: "ā",
-		amalg: "⨿",
-		amp: "&",
-		and: "∧",
-		andand: "⩕",
-		andd: "⩜",
-		andslope: "⩘",
-		andv: "⩚",
-		ang: "∠",
-		ange: "⦤",
-		angle: "∠",
-		angmsd: "∡",
-		angmsdaa: "⦨",
-		angmsdab: "⦩",
-		angmsdac: "⦪",
-		angmsdad: "⦫",
-		angmsdae: "⦬",
-		angmsdaf: "⦭",
-		angmsdag: "⦮",
-		angmsdah: "⦯",
-		angrt: "∟",
-		angrtvb: "⊾",
-		angrtvbd: "⦝",
-		angsph: "∢",
-		angst: "Å",
-		angzarr: "⍼",
-		aogon: "ą",
-		aopf: "𝕒",
-		ap: "≈",
-		apE: "⩰",
-		apacir: "⩯",
-		ape: "≊",
-		apid: "≋",
-		apos: "'",
-		approx: "≈",
-		approxeq: "≊",
-		aring: "å",
-		ascr: "𝒶",
-		ast: "*",
-		asymp: "≈",
-		asympeq: "≍",
-		atilde: "ã",
-		auml: "ä",
-		awconint: "∳",
-		awint: "⨑",
-		bNot: "⫭",
-		backcong: "≌",
-		backepsilon: "϶",
-		backprime: "‵",
-		backsim: "∽",
-		backsimeq: "⋍",
-		barvee: "⊽",
-		barwed: "⌅",
-		barwedge: "⌅",
-		bbrk: "⎵",
-		bbrktbrk: "⎶",
-		bcong: "≌",
-		bcy: "б",
-		bdquo: "„",
-		becaus: "∵",
-		because: "∵",
-		bemptyv: "⦰",
-		bepsi: "϶",
-		bernou: "ℬ",
-		beta: "β",
-		beth: "ℶ",
-		between: "≬",
-		bfr: "𝔟",
-		bigcap: "⋂",
-		bigcirc: "◯",
-		bigcup: "⋃",
-		bigodot: "⨀",
-		bigoplus: "⨁",
-		bigotimes: "⨂",
-		bigsqcup: "⨆",
-		bigstar: "★",
-		bigtriangledown: "▽",
-		bigtriangleup: "△",
-		biguplus: "⨄",
-		bigvee: "⋁",
-		bigwedge: "⋀",
-		bkarow: "⤍",
-		blacklozenge: "⧫",
-		blacksquare: "▪",
-		blacktriangle: "▴",
-		blacktriangledown: "▾",
-		blacktriangleleft: "◂",
-		blacktriangleright: "▸",
-		blank: "␣",
-		blk12: "▒",
-		blk14: "░",
-		blk34: "▓",
-		block: "█",
-		bne: "=⃥",
-		bnequiv: "≡⃥",
-		bnot: "⌐",
-		bopf: "𝕓",
-		bot: "⊥",
-		bottom: "⊥",
-		bowtie: "⋈",
-		boxDL: "╗",
-		boxDR: "╔",
-		boxDl: "╖",
-		boxDr: "╓",
-		boxH: "═",
-		boxHD: "╦",
-		boxHU: "╩",
-		boxHd: "╤",
-		boxHu: "╧",
-		boxUL: "╝",
-		boxUR: "╚",
-		boxUl: "╜",
-		boxUr: "╙",
-		boxV: "║",
-		boxVH: "╬",
-		boxVL: "╣",
-		boxVR: "╠",
-		boxVh: "╫",
-		boxVl: "╢",
-		boxVr: "╟",
-		boxbox: "⧉",
-		boxdL: "╕",
-		boxdR: "╒",
-		boxdl: "┐",
-		boxdr: "┌",
-		boxh: "─",
-		boxhD: "╥",
-		boxhU: "╨",
-		boxhd: "┬",
-		boxhu: "┴",
-		boxminus: "⊟",
-		boxplus: "⊞",
-		boxtimes: "⊠",
-		boxuL: "╛",
-		boxuR: "╘",
-		boxul: "┘",
-		boxur: "└",
-		boxv: "│",
-		boxvH: "╪",
-		boxvL: "╡",
-		boxvR: "╞",
-		boxvh: "┼",
-		boxvl: "┤",
-		boxvr: "├",
-		bprime: "‵",
-		breve: "˘",
-		brvbar: "¦",
-		bscr: "𝒷",
-		bsemi: "⁏",
-		bsim: "∽",
-		bsime: "⋍",
-		bsol: "\\",
-		bsolb: "⧅",
-		bsolhsub: "⟈",
-		bull: "•",
-		bullet: "•",
-		bump: "≎",
-		bumpE: "⪮",
-		bumpe: "≏",
-		bumpeq: "≏",
-		cacute: "ć",
-		cap: "∩",
-		capand: "⩄",
-		capbrcup: "⩉",
-		capcap: "⩋",
-		capcup: "⩇",
-		capdot: "⩀",
-		caps: "∩︀",
-		caret: "⁁",
-		caron: "ˇ",
-		ccaps: "⩍",
-		ccaron: "č",
-		ccedil: "ç",
-		ccirc: "ĉ",
-		ccups: "⩌",
-		ccupssm: "⩐",
-		cdot: "ċ",
-		cedil: "¸",
-		cemptyv: "⦲",
-		cent: "¢",
-		centerdot: "·",
-		cfr: "𝔠",
-		chcy: "ч",
-		check: "✓",
-		checkmark: "✓",
-		chi: "χ",
-		cir: "○",
-		cirE: "⧃",
-		circ: "ˆ",
-		circeq: "≗",
-		circlearrowleft: "↺",
-		circlearrowright: "↻",
-		circledR: "®",
-		circledS: "Ⓢ",
-		circledast: "⊛",
-		circledcirc: "⊚",
-		circleddash: "⊝",
-		cire: "≗",
-		cirfnint: "⨐",
-		cirmid: "⫯",
-		cirscir: "⧂",
-		clubs: "♣",
-		clubsuit: "♣",
-		colon: ":",
-		colone: "≔",
-		coloneq: "≔",
-		comma: ",",
-		commat: "@",
-		comp: "∁",
-		compfn: "∘",
-		complement: "∁",
-		complexes: "ℂ",
-		cong: "≅",
-		congdot: "⩭",
-		conint: "∮",
-		copf: "𝕔",
-		coprod: "∐",
-		copy: "©",
-		copysr: "℗",
-		crarr: "↵",
-		cross: "✗",
-		cscr: "𝒸",
-		csub: "⫏",
-		csube: "⫑",
-		csup: "⫐",
-		csupe: "⫒",
-		ctdot: "⋯",
-		cudarrl: "⤸",
-		cudarrr: "⤵",
-		cuepr: "⋞",
-		cuesc: "⋟",
-		cularr: "↶",
-		cularrp: "⤽",
-		cup: "∪",
-		cupbrcap: "⩈",
-		cupcap: "⩆",
-		cupcup: "⩊",
-		cupdot: "⊍",
-		cupor: "⩅",
-		cups: "∪︀",
-		curarr: "↷",
-		curarrm: "⤼",
-		curlyeqprec: "⋞",
-		curlyeqsucc: "⋟",
-		curlyvee: "⋎",
-		curlywedge: "⋏",
-		curren: "¤",
-		curvearrowleft: "↶",
-		curvearrowright: "↷",
-		cuvee: "⋎",
-		cuwed: "⋏",
-		cwconint: "∲",
-		cwint: "∱",
-		cylcty: "⌭",
-		dArr: "⇓",
-		dHar: "⥥",
-		dagger: "†",
-		daleth: "ℸ",
-		darr: "↓",
-		dash: "‐",
-		dashv: "⊣",
-		dbkarow: "⤏",
-		dblac: "˝",
-		dcaron: "ď",
-		dcy: "д",
-		dd: "ⅆ",
-		ddagger: "‡",
-		ddarr: "⇊",
-		ddotseq: "⩷",
-		deg: "°",
-		delta: "δ",
-		demptyv: "⦱",
-		dfisht: "⥿",
-		dfr: "𝔡",
-		dharl: "⇃",
-		dharr: "⇂",
-		diam: "⋄",
-		diamond: "⋄",
-		diamondsuit: "♦",
-		diams: "♦",
-		die: "¨",
-		digamma: "ϝ",
-		disin: "⋲",
-		div: "÷",
-		divide: "÷",
-		divideontimes: "⋇",
-		divonx: "⋇",
-		djcy: "ђ",
-		dlcorn: "⌞",
-		dlcrop: "⌍",
-		dollar: "$",
-		dopf: "𝕕",
-		dot: "˙",
-		doteq: "≐",
-		doteqdot: "≑",
-		dotminus: "∸",
-		dotplus: "∔",
-		dotsquare: "⊡",
-		doublebarwedge: "⌆",
-		downarrow: "↓",
-		downdownarrows: "⇊",
-		downharpoonleft: "⇃",
-		downharpoonright: "⇂",
-		drbkarow: "⤐",
-		drcorn: "⌟",
-		drcrop: "⌌",
-		dscr: "𝒹",
-		dscy: "ѕ",
-		dsol: "⧶",
-		dstrok: "đ",
-		dtdot: "⋱",
-		dtri: "▿",
-		dtrif: "▾",
-		duarr: "⇵",
-		duhar: "⥯",
-		dwangle: "⦦",
-		dzcy: "џ",
-		dzigrarr: "⟿",
-		eDDot: "⩷",
-		eDot: "≑",
-		eacute: "é",
-		easter: "⩮",
-		ecaron: "ě",
-		ecir: "≖",
-		ecirc: "ê",
-		ecolon: "≕",
-		ecy: "э",
-		edot: "ė",
-		ee: "ⅇ",
-		efDot: "≒",
-		efr: "𝔢",
-		eg: "⪚",
-		egrave: "è",
-		egs: "⪖",
-		egsdot: "⪘",
-		el: "⪙",
-		elinters: "⏧",
-		ell: "ℓ",
-		els: "⪕",
-		elsdot: "⪗",
-		emacr: "ē",
-		empty: "∅",
-		emptyset: "∅",
-		emptyv: "∅",
-		emsp13: " ",
-		emsp14: " ",
-		emsp: " ",
-		eng: "ŋ",
-		ensp: " ",
-		eogon: "ę",
-		eopf: "𝕖",
-		epar: "⋕",
-		eparsl: "⧣",
-		eplus: "⩱",
-		epsi: "ε",
-		epsilon: "ε",
-		epsiv: "ϵ",
-		eqcirc: "≖",
-		eqcolon: "≕",
-		eqsim: "≂",
-		eqslantgtr: "⪖",
-		eqslantless: "⪕",
-		equals: "=",
-		equest: "≟",
-		equiv: "≡",
-		equivDD: "⩸",
-		eqvparsl: "⧥",
-		erDot: "≓",
-		erarr: "⥱",
-		escr: "ℯ",
-		esdot: "≐",
-		esim: "≂",
-		eta: "η",
-		eth: "ð",
-		euml: "ë",
-		euro: "€",
-		excl: "!",
-		exist: "∃",
-		expectation: "ℰ",
-		exponentiale: "ⅇ",
-		fallingdotseq: "≒",
-		fcy: "ф",
-		female: "♀",
-		ffilig: "ﬃ",
-		fflig: "ﬀ",
-		ffllig: "ﬄ",
-		ffr: "𝔣",
-		filig: "ﬁ",
-		fjlig: "fj",
-		flat: "♭",
-		fllig: "ﬂ",
-		fltns: "▱",
-		fnof: "ƒ",
-		fopf: "𝕗",
-		forall: "∀",
-		fork: "⋔",
-		forkv: "⫙",
-		fpartint: "⨍",
-		frac12: "½",
-		frac13: "⅓",
-		frac14: "¼",
-		frac15: "⅕",
-		frac16: "⅙",
-		frac18: "⅛",
-		frac23: "⅔",
-		frac25: "⅖",
-		frac34: "¾",
-		frac35: "⅗",
-		frac38: "⅜",
-		frac45: "⅘",
-		frac56: "⅚",
-		frac58: "⅝",
-		frac78: "⅞",
-		frasl: "⁄",
-		frown: "⌢",
-		fscr: "𝒻",
-		gE: "≧",
-		gEl: "⪌",
-		gacute: "ǵ",
-		gamma: "γ",
-		gammad: "ϝ",
-		gap: "⪆",
-		gbreve: "ğ",
-		gcirc: "ĝ",
-		gcy: "г",
-		gdot: "ġ",
-		ge: "≥",
-		gel: "⋛",
-		geq: "≥",
-		geqq: "≧",
-		geqslant: "⩾",
-		ges: "⩾",
-		gescc: "⪩",
-		gesdot: "⪀",
-		gesdoto: "⪂",
-		gesdotol: "⪄",
-		gesl: "⋛︀",
-		gesles: "⪔",
-		gfr: "𝔤",
-		gg: "≫",
-		ggg: "⋙",
-		gimel: "ℷ",
-		gjcy: "ѓ",
-		gl: "≷",
-		glE: "⪒",
-		gla: "⪥",
-		glj: "⪤",
-		gnE: "≩",
-		gnap: "⪊",
-		gnapprox: "⪊",
-		gne: "⪈",
-		gneq: "⪈",
-		gneqq: "≩",
-		gnsim: "⋧",
-		gopf: "𝕘",
-		grave: "`",
-		gscr: "ℊ",
-		gsim: "≳",
-		gsime: "⪎",
-		gsiml: "⪐",
-		gt: ">",
-		gtcc: "⪧",
-		gtcir: "⩺",
-		gtdot: "⋗",
-		gtlPar: "⦕",
-		gtquest: "⩼",
-		gtrapprox: "⪆",
-		gtrarr: "⥸",
-		gtrdot: "⋗",
-		gtreqless: "⋛",
-		gtreqqless: "⪌",
-		gtrless: "≷",
-		gtrsim: "≳",
-		gvertneqq: "≩︀",
-		gvnE: "≩︀",
-		hArr: "⇔",
-		hairsp: " ",
-		half: "½",
-		hamilt: "ℋ",
-		hardcy: "ъ",
-		harr: "↔",
-		harrcir: "⥈",
-		harrw: "↭",
-		hbar: "ℏ",
-		hcirc: "ĥ",
-		hearts: "♥",
-		heartsuit: "♥",
-		hellip: "…",
-		hercon: "⊹",
-		hfr: "𝔥",
-		hksearow: "⤥",
-		hkswarow: "⤦",
-		hoarr: "⇿",
-		homtht: "∻",
-		hookleftarrow: "↩",
-		hookrightarrow: "↪",
-		hopf: "𝕙",
-		horbar: "―",
-		hscr: "𝒽",
-		hslash: "ℏ",
-		hstrok: "ħ",
-		hybull: "⁃",
-		hyphen: "‐",
-		iacute: "í",
-		ic: "⁣",
-		icirc: "î",
-		icy: "и",
-		iecy: "е",
-		iexcl: "¡",
-		iff: "⇔",
-		ifr: "𝔦",
-		igrave: "ì",
-		ii: "ⅈ",
-		iiiint: "⨌",
-		iiint: "∭",
-		iinfin: "⧜",
-		iiota: "℩",
-		ijlig: "ĳ",
-		imacr: "ī",
-		image: "ℑ",
-		imagline: "ℐ",
-		imagpart: "ℑ",
-		imath: "ı",
-		imof: "⊷",
-		imped: "Ƶ",
-		in: "∈",
-		incare: "℅",
-		infin: "∞",
-		infintie: "⧝",
-		inodot: "ı",
-		int: "∫",
-		intcal: "⊺",
-		integers: "ℤ",
-		intercal: "⊺",
-		intlarhk: "⨗",
-		intprod: "⨼",
-		iocy: "ё",
-		iogon: "į",
-		iopf: "𝕚",
-		iota: "ι",
-		iprod: "⨼",
-		iquest: "¿",
-		iscr: "𝒾",
-		isin: "∈",
-		isinE: "⋹",
-		isindot: "⋵",
-		isins: "⋴",
-		isinsv: "⋳",
-		isinv: "∈",
-		it: "⁢",
-		itilde: "ĩ",
-		iukcy: "і",
-		iuml: "ï",
-		jcirc: "ĵ",
-		jcy: "й",
-		jfr: "𝔧",
-		jmath: "ȷ",
-		jopf: "𝕛",
-		jscr: "𝒿",
-		jsercy: "ј",
-		jukcy: "є",
-		kappa: "κ",
-		kappav: "ϰ",
-		kcedil: "ķ",
-		kcy: "к",
-		kfr: "𝔨",
-		kgreen: "ĸ",
-		khcy: "х",
-		kjcy: "ќ",
-		kopf: "𝕜",
-		kscr: "𝓀",
-		lAarr: "⇚",
-		lArr: "⇐",
-		lAtail: "⤛",
-		lBarr: "⤎",
-		lE: "≦",
-		lEg: "⪋",
-		lHar: "⥢",
-		lacute: "ĺ",
-		laemptyv: "⦴",
-		lagran: "ℒ",
-		lambda: "λ",
-		lang: "⟨",
-		langd: "⦑",
-		langle: "⟨",
-		lap: "⪅",
-		laquo: "«",
-		larr: "←",
-		larrb: "⇤",
-		larrbfs: "⤟",
-		larrfs: "⤝",
-		larrhk: "↩",
-		larrlp: "↫",
-		larrpl: "⤹",
-		larrsim: "⥳",
-		larrtl: "↢",
-		lat: "⪫",
-		latail: "⤙",
-		late: "⪭",
-		lates: "⪭︀",
-		lbarr: "⤌",
-		lbbrk: "❲",
-		lbrace: "{",
-		lbrack: "[",
-		lbrke: "⦋",
-		lbrksld: "⦏",
-		lbrkslu: "⦍",
-		lcaron: "ľ",
-		lcedil: "ļ",
-		lceil: "⌈",
-		lcub: "{",
-		lcy: "л",
-		ldca: "⤶",
-		ldquo: "“",
-		ldquor: "„",
-		ldrdhar: "⥧",
-		ldrushar: "⥋",
-		ldsh: "↲",
-		le: "≤",
-		leftarrow: "←",
-		leftarrowtail: "↢",
-		leftharpoondown: "↽",
-		leftharpoonup: "↼",
-		leftleftarrows: "⇇",
-		leftrightarrow: "↔",
-		leftrightarrows: "⇆",
-		leftrightharpoons: "⇋",
-		leftrightsquigarrow: "↭",
-		leftthreetimes: "⋋",
-		leg: "⋚",
-		leq: "≤",
-		leqq: "≦",
-		leqslant: "⩽",
-		les: "⩽",
-		lescc: "⪨",
-		lesdot: "⩿",
-		lesdoto: "⪁",
-		lesdotor: "⪃",
-		lesg: "⋚︀",
-		lesges: "⪓",
-		lessapprox: "⪅",
-		lessdot: "⋖",
-		lesseqgtr: "⋚",
-		lesseqqgtr: "⪋",
-		lessgtr: "≶",
-		lesssim: "≲",
-		lfisht: "⥼",
-		lfloor: "⌊",
-		lfr: "𝔩",
-		lg: "≶",
-		lgE: "⪑",
-		lhard: "↽",
-		lharu: "↼",
-		lharul: "⥪",
-		lhblk: "▄",
-		ljcy: "љ",
-		ll: "≪",
-		llarr: "⇇",
-		llcorner: "⌞",
-		llhard: "⥫",
-		lltri: "◺",
-		lmidot: "ŀ",
-		lmoust: "⎰",
-		lmoustache: "⎰",
-		lnE: "≨",
-		lnap: "⪉",
-		lnapprox: "⪉",
-		lne: "⪇",
-		lneq: "⪇",
-		lneqq: "≨",
-		lnsim: "⋦",
-		loang: "⟬",
-		loarr: "⇽",
-		lobrk: "⟦",
-		longleftarrow: "⟵",
-		longleftrightarrow: "⟷",
-		longmapsto: "⟼",
-		longrightarrow: "⟶",
-		looparrowleft: "↫",
-		looparrowright: "↬",
-		lopar: "⦅",
-		lopf: "𝕝",
-		loplus: "⨭",
-		lotimes: "⨴",
-		lowast: "∗",
-		lowbar: "_",
-		loz: "◊",
-		lozenge: "◊",
-		lozf: "⧫",
-		lpar: "(",
-		lparlt: "⦓",
-		lrarr: "⇆",
-		lrcorner: "⌟",
-		lrhar: "⇋",
-		lrhard: "⥭",
-		lrm: "‎",
-		lrtri: "⊿",
-		lsaquo: "‹",
-		lscr: "𝓁",
-		lsh: "↰",
-		lsim: "≲",
-		lsime: "⪍",
-		lsimg: "⪏",
-		lsqb: "[",
-		lsquo: "‘",
-		lsquor: "‚",
-		lstrok: "ł",
-		lt: "<",
-		ltcc: "⪦",
-		ltcir: "⩹",
-		ltdot: "⋖",
-		lthree: "⋋",
-		ltimes: "⋉",
-		ltlarr: "⥶",
-		ltquest: "⩻",
-		ltrPar: "⦖",
-		ltri: "◃",
-		ltrie: "⊴",
-		ltrif: "◂",
-		lurdshar: "⥊",
-		luruhar: "⥦",
-		lvertneqq: "≨︀",
-		lvnE: "≨︀",
-		mDDot: "∺",
-		macr: "¯",
-		male: "♂",
-		malt: "✠",
-		maltese: "✠",
-		map: "↦",
-		mapsto: "↦",
-		mapstodown: "↧",
-		mapstoleft: "↤",
-		mapstoup: "↥",
-		marker: "▮",
-		mcomma: "⨩",
-		mcy: "м",
-		mdash: "—",
-		measuredangle: "∡",
-		mfr: "𝔪",
-		mho: "℧",
-		micro: "µ",
-		mid: "∣",
-		midast: "*",
-		midcir: "⫰",
-		middot: "·",
-		minus: "−",
-		minusb: "⊟",
-		minusd: "∸",
-		minusdu: "⨪",
-		mlcp: "⫛",
-		mldr: "…",
-		mnplus: "∓",
-		models: "⊧",
-		mopf: "𝕞",
-		mp: "∓",
-		mscr: "𝓂",
-		mstpos: "∾",
-		mu: "μ",
-		multimap: "⊸",
-		mumap: "⊸",
-		nGg: "⋙̸",
-		nGt: "≫⃒",
-		nGtv: "≫̸",
-		nLeftarrow: "⇍",
-		nLeftrightarrow: "⇎",
-		nLl: "⋘̸",
-		nLt: "≪⃒",
-		nLtv: "≪̸",
-		nRightarrow: "⇏",
-		nVDash: "⊯",
-		nVdash: "⊮",
-		nabla: "∇",
-		nacute: "ń",
-		nang: "∠⃒",
-		nap: "≉",
-		napE: "⩰̸",
-		napid: "≋̸",
-		napos: "ŉ",
-		napprox: "≉",
-		natur: "♮",
-		natural: "♮",
-		naturals: "ℕ",
-		nbsp: "\xA0",
-		nbump: "≎̸",
-		nbumpe: "≏̸",
-		ncap: "⩃",
-		ncaron: "ň",
-		ncedil: "ņ",
-		ncong: "≇",
-		ncongdot: "⩭̸",
-		ncup: "⩂",
-		ncy: "н",
-		ndash: "–",
-		ne: "≠",
-		neArr: "⇗",
-		nearhk: "⤤",
-		nearr: "↗",
-		nearrow: "↗",
-		nedot: "≐̸",
-		nequiv: "≢",
-		nesear: "⤨",
-		nesim: "≂̸",
-		nexist: "∄",
-		nexists: "∄",
-		nfr: "𝔫",
-		ngE: "≧̸",
-		nge: "≱",
-		ngeq: "≱",
-		ngeqq: "≧̸",
-		ngeqslant: "⩾̸",
-		nges: "⩾̸",
-		ngsim: "≵",
-		ngt: "≯",
-		ngtr: "≯",
-		nhArr: "⇎",
-		nharr: "↮",
-		nhpar: "⫲",
-		ni: "∋",
-		nis: "⋼",
-		nisd: "⋺",
-		niv: "∋",
-		njcy: "њ",
-		nlArr: "⇍",
-		nlE: "≦̸",
-		nlarr: "↚",
-		nldr: "‥",
-		nle: "≰",
-		nleftarrow: "↚",
-		nleftrightarrow: "↮",
-		nleq: "≰",
-		nleqq: "≦̸",
-		nleqslant: "⩽̸",
-		nles: "⩽̸",
-		nless: "≮",
-		nlsim: "≴",
-		nlt: "≮",
-		nltri: "⋪",
-		nltrie: "⋬",
-		nmid: "∤",
-		nopf: "𝕟",
-		not: "¬",
-		notin: "∉",
-		notinE: "⋹̸",
-		notindot: "⋵̸",
-		notinva: "∉",
-		notinvb: "⋷",
-		notinvc: "⋶",
-		notni: "∌",
-		notniva: "∌",
-		notnivb: "⋾",
-		notnivc: "⋽",
-		npar: "∦",
-		nparallel: "∦",
-		nparsl: "⫽⃥",
-		npart: "∂̸",
-		npolint: "⨔",
-		npr: "⊀",
-		nprcue: "⋠",
-		npre: "⪯̸",
-		nprec: "⊀",
-		npreceq: "⪯̸",
-		nrArr: "⇏",
-		nrarr: "↛",
-		nrarrc: "⤳̸",
-		nrarrw: "↝̸",
-		nrightarrow: "↛",
-		nrtri: "⋫",
-		nrtrie: "⋭",
-		nsc: "⊁",
-		nsccue: "⋡",
-		nsce: "⪰̸",
-		nscr: "𝓃",
-		nshortmid: "∤",
-		nshortparallel: "∦",
-		nsim: "≁",
-		nsime: "≄",
-		nsimeq: "≄",
-		nsmid: "∤",
-		nspar: "∦",
-		nsqsube: "⋢",
-		nsqsupe: "⋣",
-		nsub: "⊄",
-		nsubE: "⫅̸",
-		nsube: "⊈",
-		nsubset: "⊂⃒",
-		nsubseteq: "⊈",
-		nsubseteqq: "⫅̸",
-		nsucc: "⊁",
-		nsucceq: "⪰̸",
-		nsup: "⊅",
-		nsupE: "⫆̸",
-		nsupe: "⊉",
-		nsupset: "⊃⃒",
-		nsupseteq: "⊉",
-		nsupseteqq: "⫆̸",
-		ntgl: "≹",
-		ntilde: "ñ",
-		ntlg: "≸",
-		ntriangleleft: "⋪",
-		ntrianglelefteq: "⋬",
-		ntriangleright: "⋫",
-		ntrianglerighteq: "⋭",
-		nu: "ν",
-		num: "#",
-		numero: "№",
-		numsp: " ",
-		nvDash: "⊭",
-		nvHarr: "⤄",
-		nvap: "≍⃒",
-		nvdash: "⊬",
-		nvge: "≥⃒",
-		nvgt: ">⃒",
-		nvinfin: "⧞",
-		nvlArr: "⤂",
-		nvle: "≤⃒",
-		nvlt: "<⃒",
-		nvltrie: "⊴⃒",
-		nvrArr: "⤃",
-		nvrtrie: "⊵⃒",
-		nvsim: "∼⃒",
-		nwArr: "⇖",
-		nwarhk: "⤣",
-		nwarr: "↖",
-		nwarrow: "↖",
-		nwnear: "⤧",
-		oS: "Ⓢ",
-		oacute: "ó",
-		oast: "⊛",
-		ocir: "⊚",
-		ocirc: "ô",
-		ocy: "о",
-		odash: "⊝",
-		odblac: "ő",
-		odiv: "⨸",
-		odot: "⊙",
-		odsold: "⦼",
-		oelig: "œ",
-		ofcir: "⦿",
-		ofr: "𝔬",
-		ogon: "˛",
-		ograve: "ò",
-		ogt: "⧁",
-		ohbar: "⦵",
-		ohm: "Ω",
-		oint: "∮",
-		olarr: "↺",
-		olcir: "⦾",
-		olcross: "⦻",
-		oline: "‾",
-		olt: "⧀",
-		omacr: "ō",
-		omega: "ω",
-		omicron: "ο",
-		omid: "⦶",
-		ominus: "⊖",
-		oopf: "𝕠",
-		opar: "⦷",
-		operp: "⦹",
-		oplus: "⊕",
-		or: "∨",
-		orarr: "↻",
-		ord: "⩝",
-		order: "ℴ",
-		orderof: "ℴ",
-		ordf: "ª",
-		ordm: "º",
-		origof: "⊶",
-		oror: "⩖",
-		orslope: "⩗",
-		orv: "⩛",
-		oscr: "ℴ",
-		oslash: "ø",
-		osol: "⊘",
-		otilde: "õ",
-		otimes: "⊗",
-		otimesas: "⨶",
-		ouml: "ö",
-		ovbar: "⌽",
-		par: "∥",
-		para: "¶",
-		parallel: "∥",
-		parsim: "⫳",
-		parsl: "⫽",
-		part: "∂",
-		pcy: "п",
-		percnt: "%",
-		period: ".",
-		permil: "‰",
-		perp: "⊥",
-		pertenk: "‱",
-		pfr: "𝔭",
-		phi: "φ",
-		phiv: "ϕ",
-		phmmat: "ℳ",
-		phone: "☎",
-		pi: "π",
-		pitchfork: "⋔",
-		piv: "ϖ",
-		planck: "ℏ",
-		planckh: "ℎ",
-		plankv: "ℏ",
-		plus: "+",
-		plusacir: "⨣",
-		plusb: "⊞",
-		pluscir: "⨢",
-		plusdo: "∔",
-		plusdu: "⨥",
-		pluse: "⩲",
-		plusmn: "±",
-		plussim: "⨦",
-		plustwo: "⨧",
-		pm: "±",
-		pointint: "⨕",
-		popf: "𝕡",
-		pound: "£",
-		pr: "≺",
-		prE: "⪳",
-		prap: "⪷",
-		prcue: "≼",
-		pre: "⪯",
-		prec: "≺",
-		precapprox: "⪷",
-		preccurlyeq: "≼",
-		preceq: "⪯",
-		precnapprox: "⪹",
-		precneqq: "⪵",
-		precnsim: "⋨",
-		precsim: "≾",
-		prime: "′",
-		primes: "ℙ",
-		prnE: "⪵",
-		prnap: "⪹",
-		prnsim: "⋨",
-		prod: "∏",
-		profalar: "⌮",
-		profline: "⌒",
-		profsurf: "⌓",
-		prop: "∝",
-		propto: "∝",
-		prsim: "≾",
-		prurel: "⊰",
-		pscr: "𝓅",
-		psi: "ψ",
-		puncsp: " ",
-		qfr: "𝔮",
-		qint: "⨌",
-		qopf: "𝕢",
-		qprime: "⁗",
-		qscr: "𝓆",
-		quaternions: "ℍ",
-		quatint: "⨖",
-		quest: "?",
-		questeq: "≟",
+	function D(e, t) {
+		!(e.flags & 1) && (e.getToken() & 1048576) != 1048576 && e.report(30, C[e.getToken() & 255]), O(e, t, 1074790417) || e.options.onInsertedSemicolon?.(e.startIndex);
+	}
+	function Je(e, t, n, r) {
+		return t - n < 13 && r === "use strict" && ((e.getToken() & 1048576) == 1048576 || e.flags & 1) ? 1 : 0;
+	}
+	function Ye(e, t, n) {
+		return e.getToken() === n ? (E(e, t), 1) : 0;
+	}
+	function O(e, t, n) {
+		return e.getToken() === n && (E(e, t), !0);
+	}
+	function k(e, t, n) {
+		e.getToken() !== n && e.report(25, C[n & 255]), E(e, t);
+	}
+	function A(e, t) {
+		let n = t;
+		switch (t.type) {
+			case "ArrayExpression": {
+				n.type = "ArrayPattern";
+				let { elements: r } = t;
+				for (let t = 0, n = r.length; t < n; ++t) {
+					let n = r[t];
+					n && A(e, n);
+				}
+				return;
+			}
+			case "ObjectExpression": {
+				n.type = "ObjectPattern";
+				let { properties: r } = t;
+				for (let t = 0, n = r.length; t < n; ++t) A(e, r[t]);
+				return;
+			}
+			case "AssignmentExpression":
+				n.type = "AssignmentPattern", t.operator !== "=" && e.report(71), delete n.operator, A(e, t.left);
+				return;
+			case "Property":
+				A(e, t.value);
+				return;
+			case "SpreadElement": n.type = "RestElement", A(e, t.argument);
+		}
+	}
+	function j(e, t, n, r, i) {
+		t & 1 && ((r & 36864) == 36864 && e.report(120), !i && (r & 537079808) == 537079808 && e.report(121)), ((r & 20480) == 20480 || r === -2147483527) && e.report(102), n & 24 && (r & 255) == 73 && e.report(100), t & 2050 && r === 209006 && e.report(112), t & 1025 && r === 241771 && e.report(97, "yield");
+	}
+	function Xe(e, t, n) {
+		t & 1 && ((n & 36864) == 36864 && e.report(120), (n & 537079808) == 537079808 && e.report(121), n === -2147483526 && e.report(95), n === -2147483527 && e.report(95)), (n & 20480) == 20480 && e.report(102), t & 2050 && n === 209006 && e.report(112), t & 1025 && n === 241771 && e.report(97, "yield");
+	}
+	function Ze(e, t, n) {
+		return (n & 255) == 110 && (t & 2050 && e.report(112), e.destructible & 128 || (e.firstAwaitLocation ??= {
+			start: e.tokenStart,
+			end: e.currentLocation
+		}), e.destructible |= 128), n === 241771 && t & 1024 && e.report(97, "yield"), (n & 20480) == 20480 || (n & 36864) == 36864 || n == -2147483526;
+	}
+	function Qe(e) {
+		return e.type === "MemberExpression" && e.property.type === "PrivateIdentifier";
+	}
+	function $e(e, t, n, r) {
+		let i = 0;
+		for (; t;) {
+			if (t.names?.has(n)) return r && !i && e.report(139, n), 1;
+			i = +!!t.loop, t = t.parent;
+		}
+		return 0;
+	}
+	function et(e, t, n) {
+		let r = t;
+		for (; r;) r.names?.has(n) && e.report(138, n), r = r.parent;
+		(t.names ??= new Set()).add(n);
+	}
+	function tt(e) {
+		switch (e.type) {
+			case "JSXIdentifier": return e.name;
+			case "JSXNamespacedName": return tt(e.namespace) + ":" + e.name.name;
+			case "JSXMemberExpression": return tt(e.object) + "." + tt(e.property);
+		}
+	}
+	function M(e, t) {
+		return e & 1025 ? e & 2 && t === 209006 || e & 1024 && t === 241771 ? !1 : (t & 12288) == 12288 : (t & 12288) == 12288 || (t & 36864) == 36864;
+	}
+	function nt(e, t, n) {
+		(n & 537079808) == 537079808 && (t & 1 && e.report(121), e.flags |= 512), M(t, n) || e.report(0);
+	}
+	var rt = new Map(Object.entries({
 		quot: "\"",
-		rAarr: "⇛",
-		rArr: "⇒",
-		rAtail: "⤜",
-		rBarr: "⤏",
-		rHar: "⥤",
-		race: "∽̱",
-		racute: "ŕ",
-		radic: "√",
-		raemptyv: "⦳",
-		rang: "⟩",
-		rangd: "⦒",
-		range: "⦥",
-		rangle: "⟩",
-		raquo: "»",
-		rarr: "→",
-		rarrap: "⥵",
-		rarrb: "⇥",
-		rarrbfs: "⤠",
-		rarrc: "⤳",
-		rarrfs: "⤞",
-		rarrhk: "↪",
-		rarrlp: "↬",
-		rarrpl: "⥅",
-		rarrsim: "⥴",
-		rarrtl: "↣",
-		rarrw: "↝",
-		ratail: "⤚",
-		ratio: "∶",
-		rationals: "ℚ",
-		rbarr: "⤍",
-		rbbrk: "❳",
-		rbrace: "}",
-		rbrack: "]",
-		rbrke: "⦌",
-		rbrksld: "⦎",
-		rbrkslu: "⦐",
-		rcaron: "ř",
-		rcedil: "ŗ",
-		rceil: "⌉",
-		rcub: "}",
-		rcy: "р",
-		rdca: "⤷",
-		rdldhar: "⥩",
-		rdquo: "”",
-		rdquor: "”",
-		rdsh: "↳",
-		real: "ℜ",
-		realine: "ℛ",
-		realpart: "ℜ",
-		reals: "ℝ",
-		rect: "▭",
-		reg: "®",
-		rfisht: "⥽",
-		rfloor: "⌋",
-		rfr: "𝔯",
-		rhard: "⇁",
-		rharu: "⇀",
-		rharul: "⥬",
-		rho: "ρ",
-		rhov: "ϱ",
-		rightarrow: "→",
-		rightarrowtail: "↣",
-		rightharpoondown: "⇁",
-		rightharpoonup: "⇀",
-		rightleftarrows: "⇄",
-		rightleftharpoons: "⇌",
-		rightrightarrows: "⇉",
-		rightsquigarrow: "↝",
-		rightthreetimes: "⋌",
-		ring: "˚",
-		risingdotseq: "≓",
-		rlarr: "⇄",
-		rlhar: "⇌",
-		rlm: "‏",
-		rmoust: "⎱",
-		rmoustache: "⎱",
-		rnmid: "⫮",
-		roang: "⟭",
-		roarr: "⇾",
-		robrk: "⟧",
-		ropar: "⦆",
-		ropf: "𝕣",
-		roplus: "⨮",
-		rotimes: "⨵",
-		rpar: ")",
-		rpargt: "⦔",
-		rppolint: "⨒",
-		rrarr: "⇉",
-		rsaquo: "›",
-		rscr: "𝓇",
-		rsh: "↱",
-		rsqb: "]",
-		rsquo: "’",
-		rsquor: "’",
-		rthree: "⋌",
-		rtimes: "⋊",
-		rtri: "▹",
-		rtrie: "⊵",
-		rtrif: "▸",
-		rtriltri: "⧎",
-		ruluhar: "⥨",
-		rx: "℞",
-		sacute: "ś",
-		sbquo: "‚",
-		sc: "≻",
-		scE: "⪴",
-		scap: "⪸",
-		scaron: "š",
-		sccue: "≽",
-		sce: "⪰",
-		scedil: "ş",
-		scirc: "ŝ",
-		scnE: "⪶",
-		scnap: "⪺",
-		scnsim: "⋩",
-		scpolint: "⨓",
-		scsim: "≿",
-		scy: "с",
-		sdot: "⋅",
-		sdotb: "⊡",
-		sdote: "⩦",
-		seArr: "⇘",
-		searhk: "⤥",
-		searr: "↘",
-		searrow: "↘",
+		amp: "&",
+		apos: "'",
+		lt: "<",
+		gt: ">",
+		nbsp: "\xA0",
+		iexcl: "¡",
+		cent: "¢",
+		pound: "£",
+		curren: "¤",
+		yen: "¥",
+		brvbar: "¦",
 		sect: "§",
-		semi: ";",
-		seswar: "⤩",
-		setminus: "∖",
-		setmn: "∖",
-		sext: "✶",
-		sfr: "𝔰",
-		sfrown: "⌢",
-		sharp: "♯",
-		shchcy: "щ",
-		shcy: "ш",
-		shortmid: "∣",
-		shortparallel: "∥",
+		uml: "¨",
+		copy: "©",
+		ordf: "ª",
+		laquo: "«",
+		not: "¬",
 		shy: "­",
-		sigma: "σ",
-		sigmaf: "ς",
-		sigmav: "ς",
-		sim: "∼",
-		simdot: "⩪",
-		sime: "≃",
-		simeq: "≃",
-		simg: "⪞",
-		simgE: "⪠",
-		siml: "⪝",
-		simlE: "⪟",
-		simne: "≆",
-		simplus: "⨤",
-		simrarr: "⥲",
-		slarr: "←",
-		smallsetminus: "∖",
-		smashp: "⨳",
-		smeparsl: "⧤",
-		smid: "∣",
-		smile: "⌣",
-		smt: "⪪",
-		smte: "⪬",
-		smtes: "⪬︀",
-		softcy: "ь",
-		sol: "/",
-		solb: "⧄",
-		solbar: "⌿",
-		sopf: "𝕤",
-		spades: "♠",
-		spadesuit: "♠",
-		spar: "∥",
-		sqcap: "⊓",
-		sqcaps: "⊓︀",
-		sqcup: "⊔",
-		sqcups: "⊔︀",
-		sqsub: "⊏",
-		sqsube: "⊑",
-		sqsubset: "⊏",
-		sqsubseteq: "⊑",
-		sqsup: "⊐",
-		sqsupe: "⊒",
-		sqsupset: "⊐",
-		sqsupseteq: "⊒",
-		squ: "□",
-		square: "□",
-		squarf: "▪",
-		squf: "▪",
-		srarr: "→",
-		sscr: "𝓈",
-		ssetmn: "∖",
-		ssmile: "⌣",
-		sstarf: "⋆",
-		star: "☆",
-		starf: "★",
-		straightepsilon: "ϵ",
-		straightphi: "ϕ",
-		strns: "¯",
-		sub: "⊂",
-		subE: "⫅",
-		subdot: "⪽",
-		sube: "⊆",
-		subedot: "⫃",
-		submult: "⫁",
-		subnE: "⫋",
-		subne: "⊊",
-		subplus: "⪿",
-		subrarr: "⥹",
-		subset: "⊂",
-		subseteq: "⊆",
-		subseteqq: "⫅",
-		subsetneq: "⊊",
-		subsetneqq: "⫋",
-		subsim: "⫇",
-		subsub: "⫕",
-		subsup: "⫓",
-		succ: "≻",
-		succapprox: "⪸",
-		succcurlyeq: "≽",
-		succeq: "⪰",
-		succnapprox: "⪺",
-		succneqq: "⪶",
-		succnsim: "⋩",
-		succsim: "≿",
-		sum: "∑",
-		sung: "♪",
-		sup1: "¹",
+		reg: "®",
+		macr: "¯",
+		deg: "°",
+		plusmn: "±",
 		sup2: "²",
 		sup3: "³",
-		sup: "⊃",
-		supE: "⫆",
-		supdot: "⪾",
-		supdsub: "⫘",
-		supe: "⊇",
-		supedot: "⫄",
-		suphsol: "⟉",
-		suphsub: "⫗",
-		suplarr: "⥻",
-		supmult: "⫂",
-		supnE: "⫌",
-		supne: "⊋",
-		supplus: "⫀",
-		supset: "⊃",
-		supseteq: "⊇",
-		supseteqq: "⫆",
-		supsetneq: "⊋",
-		supsetneqq: "⫌",
-		supsim: "⫈",
-		supsub: "⫔",
-		supsup: "⫖",
-		swArr: "⇙",
-		swarhk: "⤦",
-		swarr: "↙",
-		swarrow: "↙",
-		swnwar: "⤪",
-		szlig: "ß",
-		target: "⌖",
-		tau: "τ",
-		tbrk: "⎴",
-		tcaron: "ť",
-		tcedil: "ţ",
-		tcy: "т",
-		tdot: "⃛",
-		telrec: "⌕",
-		tfr: "𝔱",
-		there4: "∴",
-		therefore: "∴",
-		theta: "θ",
-		thetasym: "ϑ",
-		thetav: "ϑ",
-		thickapprox: "≈",
-		thicksim: "∼",
-		thinsp: " ",
-		thkap: "≈",
-		thksim: "∼",
-		thorn: "þ",
-		tilde: "˜",
+		acute: "´",
+		micro: "µ",
+		para: "¶",
+		middot: "·",
+		cedil: "¸",
+		sup1: "¹",
+		ordm: "º",
+		raquo: "»",
+		frac14: "¼",
+		frac12: "½",
+		frac34: "¾",
+		iquest: "¿",
+		Agrave: "À",
+		Aacute: "Á",
+		Acirc: "Â",
+		Atilde: "Ã",
+		Auml: "Ä",
+		Aring: "Å",
+		AElig: "Æ",
+		Ccedil: "Ç",
+		Egrave: "È",
+		Eacute: "É",
+		Ecirc: "Ê",
+		Euml: "Ë",
+		Igrave: "Ì",
+		Iacute: "Í",
+		Icirc: "Î",
+		Iuml: "Ï",
+		ETH: "Ð",
+		Ntilde: "Ñ",
+		Ograve: "Ò",
+		Oacute: "Ó",
+		Ocirc: "Ô",
+		Otilde: "Õ",
+		Ouml: "Ö",
 		times: "×",
-		timesb: "⊠",
-		timesbar: "⨱",
-		timesd: "⨰",
-		tint: "∭",
-		toea: "⤨",
-		top: "⊤",
-		topbot: "⌶",
-		topcir: "⫱",
-		topf: "𝕥",
-		topfork: "⫚",
-		tosa: "⤩",
-		tprime: "‴",
-		trade: "™",
-		triangle: "▵",
-		triangledown: "▿",
-		triangleleft: "◃",
-		trianglelefteq: "⊴",
-		triangleq: "≜",
-		triangleright: "▹",
-		trianglerighteq: "⊵",
-		tridot: "◬",
-		trie: "≜",
-		triminus: "⨺",
-		triplus: "⨹",
-		trisb: "⧍",
-		tritime: "⨻",
-		trpezium: "⏢",
-		tscr: "𝓉",
-		tscy: "ц",
-		tshcy: "ћ",
-		tstrok: "ŧ",
-		twixt: "≬",
-		twoheadleftarrow: "↞",
-		twoheadrightarrow: "↠",
-		uArr: "⇑",
-		uHar: "⥣",
-		uacute: "ú",
-		uarr: "↑",
-		ubrcy: "ў",
-		ubreve: "ŭ",
-		ucirc: "û",
-		ucy: "у",
-		udarr: "⇅",
-		udblac: "ű",
-		udhar: "⥮",
-		ufisht: "⥾",
-		ufr: "𝔲",
+		Oslash: "Ø",
+		Ugrave: "Ù",
+		Uacute: "Ú",
+		Ucirc: "Û",
+		Uuml: "Ü",
+		Yacute: "Ý",
+		THORN: "Þ",
+		szlig: "ß",
+		agrave: "à",
+		aacute: "á",
+		acirc: "â",
+		atilde: "ã",
+		auml: "ä",
+		aring: "å",
+		aelig: "æ",
+		ccedil: "ç",
+		egrave: "è",
+		eacute: "é",
+		ecirc: "ê",
+		euml: "ë",
+		igrave: "ì",
+		iacute: "í",
+		icirc: "î",
+		iuml: "ï",
+		eth: "ð",
+		ntilde: "ñ",
+		ograve: "ò",
+		oacute: "ó",
+		ocirc: "ô",
+		otilde: "õ",
+		ouml: "ö",
+		divide: "÷",
+		oslash: "ø",
 		ugrave: "ù",
-		uharl: "↿",
-		uharr: "↾",
-		uhblk: "▀",
-		ulcorn: "⌜",
-		ulcorner: "⌜",
-		ulcrop: "⌏",
-		ultri: "◸",
-		umacr: "ū",
-		uml: "¨",
-		uogon: "ų",
-		uopf: "𝕦",
-		uparrow: "↑",
-		updownarrow: "↕",
-		upharpoonleft: "↿",
-		upharpoonright: "↾",
-		uplus: "⊎",
-		upsi: "υ",
-		upsih: "ϒ",
-		upsilon: "υ",
-		upuparrows: "⇈",
-		urcorn: "⌝",
-		urcorner: "⌝",
-		urcrop: "⌎",
-		uring: "ů",
-		urtri: "◹",
-		uscr: "𝓊",
-		utdot: "⋰",
-		utilde: "ũ",
-		utri: "▵",
-		utrif: "▴",
-		uuarr: "⇈",
+		uacute: "ú",
+		ucirc: "û",
 		uuml: "ü",
-		uwangle: "⦧",
-		vArr: "⇕",
-		vBar: "⫨",
-		vBarv: "⫩",
-		vDash: "⊨",
-		vangrt: "⦜",
-		varepsilon: "ϵ",
-		varkappa: "ϰ",
-		varnothing: "∅",
-		varphi: "ϕ",
-		varpi: "ϖ",
-		varpropto: "∝",
-		varr: "↕",
-		varrho: "ϱ",
-		varsigma: "ς",
-		varsubsetneq: "⊊︀",
-		varsubsetneqq: "⫋︀",
-		varsupsetneq: "⊋︀",
-		varsupsetneqq: "⫌︀",
-		vartheta: "ϑ",
-		vartriangleleft: "⊲",
-		vartriangleright: "⊳",
-		vcy: "в",
-		vdash: "⊢",
-		vee: "∨",
-		veebar: "⊻",
-		veeeq: "≚",
-		vellip: "⋮",
-		verbar: "|",
-		vert: "|",
-		vfr: "𝔳",
-		vltri: "⊲",
-		vnsub: "⊂⃒",
-		vnsup: "⊃⃒",
-		vopf: "𝕧",
-		vprop: "∝",
-		vrtri: "⊳",
-		vscr: "𝓋",
-		vsubnE: "⫋︀",
-		vsubne: "⊊︀",
-		vsupnE: "⫌︀",
-		vsupne: "⊋︀",
-		vzigzag: "⦚",
-		wcirc: "ŵ",
-		wedbar: "⩟",
-		wedge: "∧",
-		wedgeq: "≙",
-		weierp: "℘",
-		wfr: "𝔴",
-		wopf: "𝕨",
-		wp: "℘",
-		wr: "≀",
-		wreath: "≀",
-		wscr: "𝓌",
-		xcap: "⋂",
-		xcirc: "◯",
-		xcup: "⋃",
-		xdtri: "▽",
-		xfr: "𝔵",
-		xhArr: "⟺",
-		xharr: "⟷",
-		xi: "ξ",
-		xlArr: "⟸",
-		xlarr: "⟵",
-		xmap: "⟼",
-		xnis: "⋻",
-		xodot: "⨀",
-		xopf: "𝕩",
-		xoplus: "⨁",
-		xotime: "⨂",
-		xrArr: "⟹",
-		xrarr: "⟶",
-		xscr: "𝓍",
-		xsqcup: "⨆",
-		xuplus: "⨄",
-		xutri: "△",
-		xvee: "⋁",
-		xwedge: "⋀",
 		yacute: "ý",
-		yacy: "я",
-		ycirc: "ŷ",
-		ycy: "ы",
-		yen: "¥",
-		yfr: "𝔶",
-		yicy: "ї",
-		yopf: "𝕪",
-		yscr: "𝓎",
-		yucy: "ю",
+		thorn: "þ",
 		yuml: "ÿ",
-		zacute: "ź",
-		zcaron: "ž",
-		zcy: "з",
-		zdot: "ż",
-		zeetrf: "ℨ",
+		OElig: "Œ",
+		oelig: "œ",
+		Scaron: "Š",
+		scaron: "š",
+		Yuml: "Ÿ",
+		fnof: "ƒ",
+		circ: "ˆ",
+		tilde: "˜",
+		Alpha: "Α",
+		Beta: "Β",
+		Gamma: "Γ",
+		Delta: "Δ",
+		Epsilon: "Ε",
+		Zeta: "Ζ",
+		Eta: "Η",
+		Theta: "Θ",
+		Iota: "Ι",
+		Kappa: "Κ",
+		Lambda: "Λ",
+		Mu: "Μ",
+		Nu: "Ν",
+		Xi: "Ξ",
+		Omicron: "Ο",
+		Pi: "Π",
+		Rho: "Ρ",
+		Sigma: "Σ",
+		Tau: "Τ",
+		Upsilon: "Υ",
+		Phi: "Φ",
+		Chi: "Χ",
+		Psi: "Ψ",
+		Omega: "Ω",
+		alpha: "α",
+		beta: "β",
+		gamma: "γ",
+		delta: "δ",
+		epsilon: "ε",
 		zeta: "ζ",
-		zfr: "𝔷",
-		zhcy: "ж",
-		zigrarr: "⇝",
-		zopf: "𝕫",
-		zscr: "𝓏",
+		eta: "η",
+		theta: "θ",
+		iota: "ι",
+		kappa: "κ",
+		lambda: "λ",
+		mu: "μ",
+		nu: "ν",
+		xi: "ξ",
+		omicron: "ο",
+		pi: "π",
+		rho: "ρ",
+		sigmaf: "ς",
+		sigma: "σ",
+		tau: "τ",
+		upsilon: "υ",
+		phi: "φ",
+		chi: "χ",
+		psi: "ψ",
+		omega: "ω",
+		thetasym: "ϑ",
+		upsih: "ϒ",
+		piv: "ϖ",
+		ensp: " ",
+		emsp: " ",
+		thinsp: " ",
+		zwnj: "‌",
 		zwj: "‍",
-		zwnj: "‌"
-	};
-	var nt = {
-		0: 65533,
-		128: 8364,
-		130: 8218,
-		131: 402,
-		132: 8222,
-		133: 8230,
-		134: 8224,
-		135: 8225,
-		136: 710,
-		137: 8240,
-		138: 352,
-		139: 8249,
-		140: 338,
-		142: 381,
-		145: 8216,
-		146: 8217,
-		147: 8220,
-		148: 8221,
-		149: 8226,
-		150: 8211,
-		151: 8212,
-		152: 732,
-		153: 8482,
-		154: 353,
-		155: 8250,
-		156: 339,
-		158: 382,
-		159: 376
-	};
-	function rt(e) {
-		return e.replace(/&(?:[a-zA-Z]+|#[xX][\da-fA-F]+|#\d+);/g, (e) => {
+		lrm: "‎",
+		rlm: "‏",
+		ndash: "–",
+		mdash: "—",
+		lsquo: "‘",
+		rsquo: "’",
+		sbquo: "‚",
+		ldquo: "“",
+		rdquo: "”",
+		bdquo: "„",
+		dagger: "†",
+		Dagger: "‡",
+		bull: "•",
+		hellip: "…",
+		permil: "‰",
+		prime: "′",
+		Prime: "″",
+		lsaquo: "‹",
+		rsaquo: "›",
+		oline: "‾",
+		frasl: "⁄",
+		euro: "€",
+		image: "ℑ",
+		weierp: "℘",
+		real: "ℜ",
+		trade: "™",
+		alefsym: "ℵ",
+		larr: "←",
+		uarr: "↑",
+		rarr: "→",
+		darr: "↓",
+		harr: "↔",
+		crarr: "↵",
+		lArr: "⇐",
+		uArr: "⇑",
+		rArr: "⇒",
+		dArr: "⇓",
+		hArr: "⇔",
+		forall: "∀",
+		part: "∂",
+		exist: "∃",
+		empty: "∅",
+		nabla: "∇",
+		isin: "∈",
+		notin: "∉",
+		ni: "∋",
+		prod: "∏",
+		sum: "∑",
+		minus: "−",
+		lowast: "∗",
+		radic: "√",
+		prop: "∝",
+		infin: "∞",
+		ang: "∠",
+		and: "∧",
+		or: "∨",
+		cap: "∩",
+		cup: "∪",
+		int: "∫",
+		there4: "∴",
+		sim: "∼",
+		cong: "≅",
+		asymp: "≈",
+		ne: "≠",
+		equiv: "≡",
+		le: "≤",
+		ge: "≥",
+		sub: "⊂",
+		sup: "⊃",
+		nsub: "⊄",
+		sube: "⊆",
+		supe: "⊇",
+		oplus: "⊕",
+		otimes: "⊗",
+		perp: "⊥",
+		sdot: "⋅",
+		lceil: "⌈",
+		rceil: "⌉",
+		lfloor: "⌊",
+		rfloor: "⌋",
+		lang: "〈",
+		rang: "〉",
+		loz: "◊",
+		spades: "♠",
+		clubs: "♣",
+		hearts: "♥",
+		diams: "♦"
+	}));
+	function it(e) {
+		return e.replaceAll(/&(?:[\da-zA-Z]+|#x[\da-fA-F]+|#\d+);/g, (e) => {
 			if (e.charAt(1) === "#") {
-				let t = e.charAt(2);
-				return it(t === "X" || t === "x" ? parseInt(e.slice(3), 16) : parseInt(e.slice(2), 10));
+				let t = e.charAt(2) === "x" ? parseInt(e.slice(3), 16) : parseInt(e.slice(2), 10);
+				return t > 1114111 ? e : String.fromCodePoint(t);
 			}
-			return Ke(tt, e.slice(1, -1)) ?? e;
+			return rt.get(e.slice(1, -1)) ?? e;
 		});
 	}
-	function it(e) {
-		return e >= 55296 && e <= 57343 || e > 1114111 ? "�" : String.fromCodePoint(Ke(nt, e) ?? e);
-	}
 	function at(e, t) {
-		return e.startIndex = e.tokenIndex = e.index, e.startColumn = e.tokenColumn = e.column, e.startLine = e.tokenLine = e.line, e.setToken(b[e.currentChar] & 8192 ? ot(e) : et(e, t, 0)), e.getToken();
+		return e.startIndex = e.tokenIndex = e.index, e.startColumn = e.tokenColumn = e.column, e.startLine = e.tokenLine = e.line, e.setToken(v[e.currentChar] & 8192 ? ot(e) : qe(e, t, 0)), e.getToken();
 	}
 	function ot(e) {
-		let t = e.currentChar, n = _(e), r = e.index;
-		for (; n !== t;) e.index >= e.end && e.report(16), n = _(e);
-		return n !== t && e.report(16), e.tokenValue = e.source.slice(r, e.index), _(e), e.options.raw && (e.tokenRaw = e.source.slice(e.tokenIndex, e.index)), 134283267;
+		let t = e.currentChar, n = y(e), r = e.index;
+		for (; n !== t;) e.index >= e.end && e.report(16), n === 13 ? (e.source.charCodeAt(e.index + 1) === 10 && y(e), e.column = -1, e.line++) : (n === 10 || n === 8232 || n === 8233) && (e.column = -1, e.line++), n = y(e);
+		return n !== t && e.report(16), e.tokenValue = it(e.source.slice(r, e.index)), y(e), e.options.raw && (e.tokenRaw = e.source.slice(e.tokenIndex, e.index)), 134283267;
 	}
-	function j(e) {
+	function N(e) {
 		if (e.startIndex = e.tokenIndex = e.index, e.startColumn = e.tokenColumn = e.column, e.startLine = e.tokenLine = e.line, e.index >= e.end) {
 			e.setToken(1048576);
 			return;
 		}
 		if (e.currentChar === 60) {
-			_(e), e.setToken(8456256);
+			y(e), e.setToken(8456256);
 			return;
 		}
 		if (e.currentChar === 123) {
-			_(e), e.setToken(2162700);
+			y(e), e.setToken(2162700);
 			return;
 		}
-		let t = 0;
+		e.currentChar === 125 && e.report(180), e.currentChar === 62 && e.report(181);
+		let t = 0, n = !1;
 		for (; e.index < e.end;) {
-			let n = b[e.source.charCodeAt(e.index)];
-			if (n & 1024 ? (t |= 5, v(e)) : n & 2048 ? (fe(e, t), t = t & -5 | 1) : _(e), b[e.currentChar] & 16384) break;
+			let r = e.source.charCodeAt(e.index);
+			if (r === 13 ? (t |= 5, n = !0, b(e)) : r === 10 ? (ge(e, t), t = t & -5 | 1) : r === 8232 || r === 8233 ? (e.flags |= 1, e.currentChar = e.source.charCodeAt(++e.index), e.column = 0, e.line++, t = t & -5 | 1) : y(e), v[e.currentChar] & 16384) break;
 		}
 		e.tokenIndex === e.index && e.report(0);
-		let n = e.source.slice(e.tokenIndex, e.index);
-		e.options.raw && (e.tokenRaw = n), e.tokenValue = rt(n), e.setToken(137);
+		let r = e.source.slice(e.tokenIndex, e.index), i = n ? r.replaceAll("\r\n", "\n") : r;
+		e.options.raw && (e.tokenRaw = i), e.tokenValue = it(i), e.setToken(138);
 	}
 	function st(e) {
-		if ((e.getToken() & 143360) == 143360) {
+		if (e.getToken() & 143360) {
 			let { index: t } = e, n = e.currentChar;
-			for (; b[n] & 32770;) n = _(e);
+			for (; v[n] & 32770;) n = y(e);
 			e.tokenValue += e.source.slice(t, e.index), e.setToken(208897, !0);
 		}
 		return e.getToken();
 	}
-	var ct = class e {
-		parser;
-		type;
-		parent;
-		scopeError;
-		variableBindings = new Map();
-		constructor(e, t = 2, n) {
-			this.parser = e, this.type = t, this.parent = n;
-		}
-		createChildScope(t) {
-			return new e(this.parser, t, this);
-		}
-		addVarOrBlock(e, t, n, r) {
-			n & 4 ? this.addVarName(e, t, n) : this.addBlockName(e, t, n, r), r & 64 && this.parser.declareUnboundVariable(t);
-		}
-		addVarName(e, t, n) {
-			let { parser: r } = this, i = this;
-			for (; i && !(i.type & 128);) {
-				let { variableBindings: a } = i, o = a.get(t);
-				o && o & 248 && (r.options.webcompat && !(e & 1) && (n & 128 && o & 68 || o & 128 && n & 68) || r.report(145, t)), i === this && o && o & 1 && n & 1 && i.recordScopeError(145, t), o && (o & 256 || o & 512 && !r.options.webcompat) && r.report(145, t), i.variableBindings.set(t, n), i = i.parent;
-			}
-		}
-		hasVariable(e) {
-			return this.variableBindings.has(e);
-		}
-		addBlockName(e, t, n, r) {
-			let { parser: i } = this, a = this.variableBindings.get(t);
-			a && !(a & 2) && (n & 1 ? this.recordScopeError(145, t) : i.options.webcompat && !(e & 1) && r & 2 && a === 64 && n === 64 || i.report(145, t)), this.type & 64 && this.parent?.hasVariable(t) && !(this.parent.variableBindings.get(t) & 2) && i.report(145, t), this.type & 512 && a && !(a & 2) && n & 1 && this.recordScopeError(145, t), this.type & 32 && this.parent.variableBindings.get(t) & 768 && i.report(159, t), this.variableBindings.set(t, n);
-		}
-		recordScopeError(e, ...t) {
-			this.scopeError = {
-				type: e,
-				params: t,
-				start: this.parser.tokenStart,
-				end: this.parser.currentLocation
-			};
-		}
-		reportScopeError() {
-			let { scopeError: e } = this;
-			if (e) throw new C(e.start, e.end, e.type, ...e.params);
-		}
-	};
-	function lt(e, t, n) {
-		let r = e.createScope().createChildScope(512);
-		return r.addBlockName(t, n, 1, 0), r;
+	var ct = 7;
+	function lt(e) {
+		if (e) return e === !0 ? {
+			start: !0,
+			end: !0,
+			range: !0
+		} : {
+			start: e.start ?? !1,
+			end: e.end ?? !1,
+			range: e.range ?? !1
+		};
 	}
-	var ut = class {
+	function ut(e) {
+		let { features: t, next: n, ranges: r, module: i, sourceType: a, globalReturn: o, ...s } = {
+			validateRegex: !0,
+			features: 0,
+			...e
+		};
+		return n && (t |= ct), r = lt(r), i && !a && (a = "module"), o && (!a || a === "script") && (a = "commonjs"), {
+			...s,
+			ranges: r,
+			features: t,
+			sourceType: a
+		};
+	}
+	var dt = class {
 		parser;
 		parent;
 		refs = Object.create(null);
@@ -24211,7 +24549,7 @@ var vot = (function(exports) {
 			let { privateIdentifiers: n } = this, r = t & 800;
 			r & 768 || (r |= 768);
 			let i = n.get(e);
-			this.hasPrivateIdentifier(e) && ((i & 32) != (r & 32) || i & r & 768) && this.parser.report(146, e), n.set(e, this.hasPrivateIdentifier(e) ? i | r : r);
+			this.hasPrivateIdentifier(e) && ((i & 32) != (r & 32) || i & r & 768) && this.parser.report(148, e), n.set(e, this.hasPrivateIdentifier(e) ? i | r : r);
 		}
 		addPrivateIdentifierRef(e) {
 			this.refs[e] ??= [], this.refs[e].push(this.parser.tokenStart);
@@ -24222,7 +24560,7 @@ var vot = (function(exports) {
 		validatePrivateIdentifierRefs() {
 			for (let e in this.refs) if (!this.isPrivateIdentifierDefined(e)) {
 				let { index: t, line: n, column: r } = this.refs[e][0];
-				throw new C({
+				throw new S({
 					index: t,
 					line: n,
 					column: r
@@ -24237,12 +24575,66 @@ var vot = (function(exports) {
 			return this.privateIdentifiers.has(e);
 		}
 	};
-	var dt = class {
+	var ft = class e {
+		parser;
+		type;
+		parent;
+		scopeError;
+		variableBindings = new Map();
+		constructor(e, t = 2, n) {
+			this.parser = e, this.type = t, this.parent = n;
+		}
+		createChildScope(t) {
+			return new e(this.parser, t, this);
+		}
+		addVarOrBlock(e, t, n, r, i, a) {
+			n & 4 ? this.addVarName(e, t, n, r, i) : this.addBlockName(e, t, n, r, i, a), a & 64 && this.parser.declareUnboundVariable(t);
+		}
+		addVarName(e, t, n, r, i) {
+			let { parser: a } = this, o = this;
+			for (; o && !(o.type & 128);) {
+				let { variableBindings: s } = o, c = s.get(t);
+				if (c && c & 248 && !(a.options.webcompat && !(e & 1) && (n & 128 && c & 68 || c & 128 && n & 68)) || (o === this && c && c & 1 && n & 1 && o.recordScopeError(147, r, i, t), c && (c & 256 || c & 512 && !a.options.webcompat))) throw new S(r, i, 147, t);
+				o.variableBindings.set(t, n), o = o.parent;
+			}
+		}
+		hasVariable(e) {
+			return this.variableBindings.has(e);
+		}
+		addBlockName(e, t, n, r, i, a = 0) {
+			let { parser: o } = this, s = this.variableBindings.get(t);
+			if (s && !(s & 2)) {
+				if (n & 1) this.recordScopeError(147, r, i, t);
+				else if (!(o.options.webcompat && !(e & 1) && a & 2 && s === 64 && n === 64)) throw new S(r, i, 147, t);
+			}
+			if (this.type & 64 && this.parent?.hasVariable(t) && !(this.parent.variableBindings.get(t) & 2)) throw new S(r, i, 147, t);
+			if (this.type & 512 && s && !(s & 2) && n & 1 && this.recordScopeError(147, r, i, t), this.type & 32 && this.parent.variableBindings.get(t) & 768) throw new S(r, i, 161, t);
+			this.variableBindings.set(t, n);
+		}
+		recordScopeError(e, t, n, ...r) {
+			this.scopeError ??= {
+				type: e,
+				params: r,
+				start: t,
+				end: n
+			};
+		}
+		reportScopeError() {
+			let { scopeError: e } = this;
+			if (e) throw new S(e.start, e.end, e.type, ...e.params);
+		}
+	};
+	function pt(e, t, n, r, i) {
+		let a = e.createScope().createChildScope(512);
+		return a.addBlockName(t, n, 1, r, i), a;
+	}
+	var mt = class {
 		source;
-		options;
 		lastOnToken = null;
+		options;
 		token = 1048576;
 		flags = 0;
+		features = 0;
 		index = 0;
 		line = 1;
 		column = 0;
@@ -24259,11 +24651,14 @@ var vot = (function(exports) {
 		currentChar = 0;
 		exportedNames = new Set();
 		exportedBindings = new Set();
-		assignable = 1;
+		assignable = 0;
 		destructible = 0;
+		strictReservedRange = null;
+		firstAwaitLocation = null;
+		firstYieldLocation = null;
 		leadingDecorators = { decorators: [] };
 		constructor(e, t = {}) {
-			this.source = e, this.options = t, this.end = e.length, this.currentChar = e.charCodeAt(0);
+			this.source = e, this.end = e.length, this.currentChar = e.charCodeAt(0), this.options = ut(t), this.features = this.options.features, Array.isArray(this.options.onComment) && (this.options.onComment = ht(this.options.onComment, this.options)), Array.isArray(this.options.onToken) && (this.options.onToken = gt(this.options.onToken, this.options));
 		}
 		getToken() {
 			return this.token;
@@ -24284,7 +24679,7 @@ var vot = (function(exports) {
 						}
 					};
 					!t && this.lastOnToken && n(...this.lastOnToken), this.lastOnToken = [
-						me(e),
+						ve(e),
 						this.tokenIndex,
 						this.index,
 						r
@@ -24300,6 +24695,13 @@ var vot = (function(exports) {
 				column: this.tokenColumn
 			};
 		}
+		get startPosition() {
+			return {
+				index: this.startIndex,
+				line: this.startLine,
+				column: this.startColumn
+			};
+		}
 		get currentLocation() {
 			return {
 				index: this.index,
@@ -24308,10 +24710,10 @@ var vot = (function(exports) {
 			};
 		}
 		finishNode(e, t, n) {
-			if (this.options.ranges) {
-				e.start = t.index;
-				let r = n ? n.index : this.startIndex;
-				e.end = r, e.range = [t.index, r];
+			let { ranges: r } = this.options;
+			if (r) {
+				let i = n ? n.index : this.startIndex;
+				r.start && (e.start = t.index), r.end && (e.end = i), r.range && (e.range = [t.index, i]);
 			}
 			return this.options.loc && (e.loc = {
 				start: {
@@ -24332,325 +24734,335 @@ var vot = (function(exports) {
 		}
 		declareUnboundVariable(e) {
 			let { exportedNames: t } = this;
-			t.has(e) && this.report(147, e), t.add(e);
+			t.has(e) && this.report(149, e), t.add(e);
 		}
 		report(e, ...t) {
-			throw new C(this.tokenStart, this.currentLocation, e, ...t);
+			throw new S(this.tokenStart, this.currentLocation, e, ...t);
 		}
 		createScopeIfLexical(e, t) {
 			if (this.options.lexical) return this.createScope(e, t);
 		}
 		createScope(e, t) {
-			return new ct(this, e, t);
+			return new ft(this, e, t);
 		}
 		createPrivateScopeIfLexical(e) {
-			if (this.options.lexical) return new ut(this, e);
+			if (this.options.lexical) return new dt(this, e);
+		}
+		cloneIdentifier(e) {
+			return structuredClone(e);
+		}
+		cloneStringLiteral(e) {
+			return structuredClone(e);
 		}
 	};
-	function ft(e, t) {
+	function ht(e, t) {
 		return function(n, r, i, a, o) {
 			let s = {
 				type: n,
 				value: r
-			};
-			t.ranges && (s.start = i, s.end = a, s.range = [i, a]), t.loc && (s.loc = o), e.push(s);
+			}, { ranges: c } = t;
+			c && (c.start && (s.start = i), c.end && (s.end = a), c.range && (s.range = [i, a])), t.loc && (s.loc = o), e.push(s);
 		};
 	}
-	function pt(e, t) {
+	function gt(e, t) {
 		return function(n, r, i, a) {
-			let o = { token: n };
-			t.ranges && (o.start = r, o.end = i, o.range = [r, i]), t.loc && (o.loc = a), e.push(o);
+			let o = { token: n }, { ranges: s } = t;
+			s && (s.start && (o.start = r), s.end && (o.end = i), s.range && (o.range = [r, i])), t.loc && (o.loc = a), e.push(o);
 		};
 	}
-	function mt(e) {
-		let t = { ...e };
-		return t.onComment &&= Array.isArray(t.onComment) ? ft(t.onComment, t) : t.onComment, t.onToken &&= Array.isArray(t.onToken) ? pt(t.onToken, t) : t.onToken, t;
-	}
-	function ht(e, t = {}, n = 0) {
-		let r = mt(t);
-		r.module && (n |= 3), r.globalReturn && (n |= 4096), r.impliedStrict && (n |= 1);
-		let i = new dt(e, r);
-		be(i);
-		let a = i.createScopeIfLexical(), o = [], s = "script";
+	function _t(e, t = {}, n = 0) {
+		let r = new mt(e, t);
+		r.options.sourceType === "module" && (n |= 3), r.options.sourceType === "commonjs" && (n |= 69632), r.options.impliedStrict && (n |= 1), be(r);
+		let i = r.createScopeIfLexical(), a, o = "script";
 		if (n & 2) {
-			if (s = "module", o = _t(i, n | 8, a), a) for (let e of i.exportedBindings) a.hasVariable(e) || i.report(148, e);
-		} else o = gt(i, n | 8, a);
-		return i.finishNode({
+			if (o = "module", a = yt$1(r, n | 8, i), i) for (let e of r.exportedBindings) i.hasVariable(e) || r.report(150, e);
+		} else a = vt(r, n | 8, i);
+		return r.finishNode({
 			type: "Program",
-			sourceType: s,
-			body: o
+			sourceType: o,
+			body: a
 		}, {
 			index: 0,
 			line: 1,
 			column: 0
-		}, i.currentLocation);
+		}, r.currentLocation);
 	}
-	function gt(e, t, n) {
-		A(e, t | 262176);
+	function vt(e, t, n) {
+		E(e, t | 262176);
 		let r = [];
 		for (; e.getToken() === 134283267;) {
 			let { index: n, tokenValue: i, tokenStart: a, tokenIndex: o } = e, s = e.getToken(), c = q(e, t);
-			if (Ie(e, n, o, i)) {
-				if (t |= 1, e.flags & 64) throw new C(e.tokenStart, e.currentLocation, 9);
-				if (e.flags & 4096) throw new C(e.tokenStart, e.currentLocation, 15);
+			if (Je(e, n, o, i)) {
+				if (t |= 1, e.flags & 64) throw new S(e.tokenStart, e.currentLocation, 9);
+				if (e.flags & 4096) throw new S(e.tokenStart, e.currentLocation, 15);
 			}
-			r.push(wt(e, t, c, s, a));
+			r.push(Ot(e, t, c, s, a));
 		}
-		for (; e.getToken() !== 1048576;) r.push(M(e, t, n, void 0, 4, {}));
+		for (; e.getToken() !== 1048576;) r.push(xt(e, t, n, void 0, {}, 4));
 		return r;
 	}
-	function _t(e, t, n) {
-		A(e, t | 32);
+	function yt$1(e, t, n) {
+		E(e, t | 32);
 		let r = [];
 		for (; e.getToken() === 134283267;) {
 			let { tokenStart: n } = e, i = e.getToken();
-			r.push(wt(e, t, q(e, t), i, n));
+			r.push(Ot(e, t, q(e, t), i, n));
 		}
-		for (; e.getToken() !== 1048576;) r.push(vt(e, t, n));
+		for (; e.getToken() !== 1048576;) r.push(bt(e, t, n));
 		return r;
 	}
-	function vt(e, t, n) {
-		e.getToken() === 132 && Object.assign(e.leadingDecorators, {
+	function bt(e, t, n) {
+		e.getToken() === 133 && Object.assign(e.leadingDecorators, {
 			start: e.tokenStart,
-			decorators: Gn(e, t, void 0)
+			decorators: $n(e, t, void 0)
 		});
 		let r;
 		switch (e.getToken()) {
 			case 20564:
-				r = Zt(e, t, n);
+				r = sn(e, t, n);
 				break;
 			case 86106:
-				r = Gt(e, t, n);
+				e.leadingDecorators.decorators.length && e.report(172), r = en(e, t, n);
 				break;
-			default: r = M(e, t, n, void 0, 4, {});
+			default: r = xt(e, t, n, void 0, {}, 4);
 		}
-		return e.leadingDecorators?.decorators.length && e.report(170), r;
+		return r;
 	}
-	function M(e, t, n, r, i, a) {
+	function xt(e, t, n, r, i, a = 2) {
 		let o = e.tokenStart;
-		switch (e.getToken()) {
-			case 86104: return J(e, t, n, r, i, 1, 0, 0, o);
-			case 132:
-			case 86094: return Un(e, t, n, r, 0);
-			case 86090: return Bt(e, t, n, r, 16, 0);
-			case 241737: return zt(e, t, n, r, i);
+		switch (e.leadingDecorators.decorators.length && e.getToken() !== 86094 && e.report(172), e.getToken()) {
+			case 86104: return J(e, t, n, r, 1, 0, 0, o, a);
+			case 133: e.features & 1 || e.report(30, "@");
+			case 86094: return Zn(e, t, n, r, 0);
+			case 86090: return Yt(e, t, n, r, 16);
+			case 241737: return Wt(e, t, n, r, a);
+			case 209013: return qt(e, t, n, r, i, a);
+			case 209006: return (t & 2048 || t & 2 && t & 8) && Gt(e) ? Jt(e, t, n, r, i, a) : P(e, t, n, r, i, 1, a);
 			case 20564: e.report(103, "export");
-			case 86106: switch (A(e, t), e.getToken()) {
-				case 67174411: return Xt(e, t, r, o);
-				case 67108877: return Yt(e, t, o);
+			case 86106: switch (E(e, t), e.getToken()) {
+				case 67174411: return on$1(e, t, r, o);
+				case 67108877: return an(e, t, o);
 				default: e.report(103, "import");
 			}
-			case 209005: return Ct(e, t, n, r, i, a, 1);
-			default: return N(e, t, n, r, i, a, 1);
+			case 209005: return Dt(e, t, n, r, i, 1, a);
+			default: return P(e, t, n, r, i, 1, a);
 		}
 	}
-	function N(e, t, n, r, i, a, o) {
+	function P(e, t, n, r, i, a, o = 0) {
 		switch (e.getToken()) {
-			case 86088: return Vt(e, t, n, r, 0);
-			case 20572: return xt(e, t, r);
-			case 20569: return Dt(e, t, n, r, a);
-			case 20567: return Ut(e, t, n, r, a);
-			case 20562: return Rt(e, t, n, r, a);
-			case 20578: return At(e, t, n, r, a);
-			case 86110: return kt(e, t, n, r, a);
-			case 1074790417: return Tt(e, t);
-			case 2162700: return bt(e, t, n?.createChildScope(), r, a, e.tokenStart);
-			case 86112: return Et(e, t, r);
-			case 20555: return Mt(e, t, a);
-			case 20559: return jt(e, t, a);
-			case 20577: return Ft(e, t, n, r, a);
-			case 20579: return Nt(e, t, n, r, a);
-			case 20560: return Pt(e, t);
-			case 209005: return Ct(e, t, n, r, i, a, 0);
-			case 20557: e.report(162);
-			case 20566: e.report(163);
+			case 86088: return Xt(e, t, n, r);
+			case 20572: return Tt(e, t, r);
+			case 20569: return jt(e, t, n, r, i);
+			case 20567: return Qt(e, t, n, r, i);
+			case 20562: return Ut(e, t, n, r, i);
+			case 20578: return Pt(e, t, n, r, i);
+			case 86110: return Nt(e, t, n, r, i);
+			case 1074790417: return kt(e, t);
+			case 2162700: return wt(e, t, n?.createChildScope(), r, i, e.tokenStart);
+			case 86112: return At(e, t, r);
+			case 20555: return Lt(e, t, i);
+			case 20559: return It(e, t, i);
+			case 20577: return Bt(e, t, n, r, i);
+			case 20579: return Rt(e, t, n, r, i);
+			case 20560: return zt(e, t);
+			case 209005: return Dt(e, t, n, r, i, 0, o);
+			case 20557: e.report(164);
+			case 20566: e.report(165);
 			case 86104: e.report(t & 1 ? 76 : e.options.webcompat ? 77 : 78);
 			case 86094: e.report(79);
-			default: return yt$1(e, t, n, r, i, a, o);
+			default: return St(e, t, n, r, i, a, o);
 		}
 	}
-	function yt$1(e, t, n, r, i, a, o) {
+	function St(e, t, n, r, i, a, o) {
 		let { tokenValue: s, tokenStart: c } = e, l = e.getToken(), u;
 		switch (l) {
 			case 241737:
 				u = K(e, t), t & 1 && e.report(85), e.getToken() === 69271571 && e.report(84);
 				break;
-			default: u = G(e, t, r, 2, 0, 1, 0, 1, e.tokenStart);
+			default: u = G(e, t, r, 2, 0, 1, 0, 1, e.tokenStart, 0, 1);
 		}
-		return l & 143360 && e.getToken() === 21 ? St(e, t, n, r, i, a, s, u, l, o, c) : (u = W(e, t, r, u, 0, 0, c), u = B(e, t, r, 0, 0, c, u), e.getToken() === 18 && (u = R(e, t, r, 0, c, u)), P(e, t, u, c));
+		return Ct(e, t, n, r, i, a, u, l, s, c, o);
 	}
-	function bt(e, t, n, r, i, a = e.tokenStart, o = "BlockStatement") {
+	function Ct(e, t, n, r, i, a, o, s, c, l, u) {
+		if (s & 143360 && e.getToken() === 21) return Et(e, t, n, r, i, c, o, s, a, l, u);
+		let d = W(e, t, r, o, 0, 0, l);
+		return d = B(e, t, r, 0, 0, l, d), e.getToken() === 18 && (d = R(e, t, r, 0, l, d)), F(e, t, d, l);
+	}
+	function wt(e, t, n, r, i, a = e.tokenStart, o = "BlockStatement") {
 		let s = [];
-		for (D(e, t | 32, 2162700); e.getToken() !== 1074790415;) s.push(M(e, t, n, r, 2, { $: i }));
-		return D(e, t | 32, 1074790415), e.finishNode({
+		for (k(e, t | 32, 2162700); e.getToken() !== 1074790415;) s.push(xt(e, t, n, r, { parent: i }));
+		return k(e, t | 32, 1074790415), e.finishNode({
 			type: o,
 			body: s
 		}, a);
 	}
-	function xt(e, t, n) {
+	function Tt(e, t, n) {
 		t & 4096 || e.report(92);
 		let r = e.tokenStart;
-		A(e, t | 32);
+		E(e, t | 32);
 		let i = e.flags & 1 || e.getToken() & 1048576 ? null : z(e, t, n, 0, 1, e.tokenStart);
-		return T(e, t | 32), e.finishNode({
+		return D(e, t | 32), e.finishNode({
 			type: "ReturnStatement",
 			argument: i
 		}, r);
 	}
-	function P(e, t, n, r) {
-		return T(e, t | 32), e.finishNode({
+	function F(e, t, n, r) {
+		return D(e, t | 32), e.finishNode({
 			type: "ExpressionStatement",
 			expression: n
 		}, r);
 	}
-	function St(e, t, n, r, i, a, o, s, c, l, u) {
-		Re(e, t, 0, c, 1), Ue(e, a, o), A(e, t | 32);
-		let d = l && !(t & 1) && e.options.webcompat && e.getToken() === 86104 ? J(e, t, n?.createChildScope(), r, i, 0, 0, 0, e.tokenStart) : N(e, t, n, r, i, a, l);
+	function Et(e, t, n, r, i, a, o, s, c, l, u) {
+		j(e, t, 0, s, 1), et(e, i, a), E(e, t | 32);
+		let d = c && !(t & 1) && e.options.webcompat && e.getToken() === 86104 ? J(e, t, n?.createChildScope(), r, 0, 0, 0, e.tokenStart, u) : P(e, t, n, r, i, c, u);
 		return e.finishNode({
 			type: "LabeledStatement",
-			label: s,
+			label: o,
 			body: d
-		}, u);
+		}, l);
 	}
-	function Ct(e, t, n, r, i, a, o) {
+	function Dt(e, t, n, r, i, a, o) {
 		let { tokenValue: s, tokenStart: c } = e, l = e.getToken(), u = K(e, t);
-		if (e.getToken() === 21) return St(e, t, n, r, i, a, s, u, l, 1, c);
+		if (e.getToken() === 21) return Et(e, t, n, r, i, s, u, l, 1, c, o);
 		let d = e.flags & 1;
 		if (!d) {
-			if (e.getToken() === 86104) return o || e.report(123), J(e, t, n, r, i, 1, 0, 1, c);
-			if (k(t, e.getToken())) return u = Bn(e, t, r, 1, c), e.getToken() === 18 && (u = R(e, t, r, 0, c, u)), P(e, t, u, c);
+			if (e.getToken() === 86104) return a || e.report(125), J(e, t, n, r, 1, 0, 1, c, o);
+			if (M(t, e.getToken())) return u = Jn(e, t, r, 1, c), e.getToken() === 18 && (u = R(e, t, r, 0, c, u)), F(e, t, u, c);
 		}
-		return e.getToken() === 67174411 ? u = Vn(e, t, r, u, 1, 1, 0, d, c) : (e.getToken() === 10 && (Ge(e, t, l), (l & 36864) == 36864 && (e.flags |= 256), u = Nn(e, t | 2048, r, e.tokenValue, u, 0, 1, 0, c)), e.assignable = 1), u = W(e, t, r, u, 0, 0, c), u = B(e, t, r, 0, 0, c, u), e.assignable = 1, e.getToken() === 18 && (u = R(e, t, r, 0, c, u)), P(e, t, u, c);
+		return e.getToken() === 67174411 ? u = Yn(e, t, r, u, 1, 1, d, c) : (e.getToken() === 10 && (nt(e, t, l), (l & 36864) == 36864 && (e.flags |= 256), u = Vn(e, t | 2048, r, e.tokenValue, u, 0, 1, 0, c)), e.assignable = 1), u = W(e, t, r, u, 0, 0, c), u = B(e, t, r, 0, 0, c, u), e.assignable = 1, e.getToken() === 18 && (u = R(e, t, r, 0, c, u)), F(e, t, u, c);
 	}
-	function wt(e, t, n, r, i) {
+	function Ot(e, t, n, r, i) {
 		let a = e.startIndex;
-		r !== 1074790417 && (e.assignable = 2, n = W(e, t, void 0, n, 0, 0, i), e.getToken() !== 1074790417 && (n = B(e, t, void 0, 0, 0, i, n), e.getToken() === 18 && (n = R(e, t, void 0, 0, i, n))), T(e, t | 32));
+		r !== 1074790417 && (e.assignable = 2, n = W(e, t, void 0, n, 0, 0, i), e.getToken() !== 1074790417 && (n = B(e, t, void 0, 0, 0, i, n), e.getToken() === 18 && (n = R(e, t, void 0, 0, i, n))), D(e, t | 32));
 		let o = {
 			type: "ExpressionStatement",
 			expression: n
 		};
 		return n.type === "Literal" && typeof n.value == "string" && (o.directive = e.source.slice(i.index + 1, a - 1)), e.finishNode(o, i);
 	}
-	function Tt(e, t) {
+	function kt(e, t) {
 		let n = e.tokenStart;
-		return A(e, t | 32), e.finishNode({ type: "EmptyStatement" }, n);
+		return E(e, t | 32), e.finishNode({ type: "EmptyStatement" }, n);
 	}
-	function Et(e, t, n) {
+	function At(e, t, n) {
 		let r = e.tokenStart;
-		A(e, t | 32), e.flags & 1 && e.report(90);
+		E(e, t | 32), e.flags & 1 && e.report(90);
 		let i = z(e, t, n, 0, 1, e.tokenStart);
-		return T(e, t | 32), e.finishNode({
+		return D(e, t | 32), e.finishNode({
 			type: "ThrowStatement",
 			argument: i
 		}, r);
 	}
-	function Dt(e, t, n, r, i) {
+	function jt(e, t, n, r, i) {
 		let a = e.tokenStart;
-		A(e, t), D(e, t | 32, 67174411), e.assignable = 1;
+		E(e, t), k(e, t | 32, 67174411), e.assignable = 1;
 		let o = z(e, t, r, 0, 1, e.tokenStart);
-		D(e, t | 32, 16);
-		let s = Ot(e, t, n, r, i), c = null;
-		return e.getToken() === 20563 && (A(e, t | 32), c = Ot(e, t, n, r, i)), e.finishNode({
+		k(e, t | 32, 16);
+		let s = Mt(e, t, n, r, i), c = null;
+		return e.getToken() === 20563 && (E(e, t | 32), c = Mt(e, t, n, r, i)), e.finishNode({
 			type: "IfStatement",
 			test: o,
 			consequent: s,
 			alternate: c
 		}, a);
 	}
-	function Ot(e, t, n, r, i) {
+	function Mt(e, t, n, r, i) {
 		let { tokenStart: a } = e;
-		return t & 1 || !e.options.webcompat || e.getToken() !== 86104 ? N(e, t, n, r, 0, { $: i }, 0) : J(e, t, n?.createChildScope(), r, 0, 0, 0, 0, a);
+		return t & 1 || !e.options.webcompat || e.getToken() !== 86104 ? P(e, t, n, r, { parent: i }, 0) : J(e, t, n?.createChildScope(), r, 0, 0, 0, a);
 	}
-	function kt(e, t, n, r, i) {
+	function Nt(e, t, n, r, i) {
 		let a = e.tokenStart;
-		A(e, t), D(e, t | 32, 67174411);
+		E(e, t), k(e, t | 32, 67174411);
 		let o = z(e, t, r, 0, 1, e.tokenStart);
-		D(e, t, 16), D(e, t, 2162700);
+		k(e, t, 16), k(e, t, 2162700);
 		let s = [], c = 0;
 		for (n = n?.createChildScope(8); e.getToken() !== 1074790415;) {
 			let { tokenStart: a } = e, o = null, l = [];
-			for (E(e, t | 32, 20556) ? o = z(e, t, r, 0, 1, e.tokenStart) : (D(e, t | 32, 20561), c && e.report(89), c = 1), D(e, t | 32, 21); e.getToken() !== 20556 && e.getToken() !== 1074790415 && e.getToken() !== 20561;) l.push(M(e, t | 4, n, r, 2, { $: i }));
+			for (O(e, t | 32, 20556) ? o = z(e, t, r, 0, 1, e.tokenStart) : (k(e, t | 32, 20561), c && e.report(89), c = 1), k(e, t | 32, 21); e.getToken() !== 20556 && e.getToken() !== 1074790415 && e.getToken() !== 20561;) {
+				let a = xt(e, t | 4, n, r, { parent: i });
+				a.type === "VariableDeclaration" && (a.kind === "using" || a.kind === "await using") && e.report(30, a.kind), l.push(a);
+			}
 			s.push(e.finishNode({
 				type: "SwitchCase",
 				test: o,
 				consequent: l
 			}, a));
 		}
-		return D(e, t | 32, 1074790415), e.finishNode({
+		return k(e, t | 32, 1074790415), e.finishNode({
 			type: "SwitchStatement",
 			discriminant: o,
 			cases: s
 		}, a);
 	}
-	function At(e, t, n, r, i) {
+	function Pt(e, t, n, r, i) {
 		let a = e.tokenStart;
-		A(e, t), D(e, t | 32, 67174411);
+		E(e, t), k(e, t | 32, 67174411);
 		let o = z(e, t, r, 0, 1, e.tokenStart);
-		D(e, t | 32, 16);
-		let s = F(e, t, n, r, i);
+		k(e, t | 32, 16);
+		let s = Ft(e, t, n, r, i);
 		return e.finishNode({
 			type: "WhileStatement",
 			test: o,
 			body: s
 		}, a);
 	}
-	function F(e, t, n, r, i) {
-		return N(e, (t | 131072) ^ 131072 | 128, n, r, 0, {
+	function Ft(e, t, n, r, i) {
+		return P(e, (t | 131072) ^ 131072 | 128, n, r, {
 			loop: 1,
-			$: i
+			parent: i
 		}, 0);
 	}
-	function jt(e, t, n) {
+	function It(e, t, n) {
 		t & 128 || e.report(68);
 		let r = e.tokenStart;
-		A(e, t);
+		E(e, t);
 		let i = null;
 		if (!(e.flags & 1) && e.getToken() & 143360) {
 			let { tokenValue: r } = e;
-			i = K(e, t | 32), He(e, n, r, 1) || e.report(138, r);
+			$e(e, n, r, 1) || e.report(140, r), i = K(e, t | 32);
 		}
-		return T(e, t | 32), e.finishNode({
+		return D(e, t | 32), e.finishNode({
 			type: "ContinueStatement",
 			label: i
 		}, r);
 	}
-	function Mt(e, t, n) {
+	function Lt(e, t, n) {
 		let r = e.tokenStart;
-		A(e, t | 32);
+		E(e, t | 32);
 		let i = null;
 		if (!(e.flags & 1) && e.getToken() & 143360) {
 			let { tokenValue: r } = e;
-			i = K(e, t | 32), He(e, n, r, 0) || e.report(138, r);
+			$e(e, n, r, 0) || e.report(140, r), i = K(e, t | 32);
 		} else t & 132 || e.report(69);
-		return T(e, t | 32), e.finishNode({
+		return D(e, t | 32), e.finishNode({
 			type: "BreakStatement",
 			label: i
 		}, r);
 	}
-	function Nt(e, t, n, r, i) {
+	function Rt(e, t, n, r, i) {
 		let a = e.tokenStart;
-		A(e, t), t & 1 && e.report(91), D(e, t | 32, 67174411);
+		E(e, t), t & 1 && e.report(91), k(e, t | 32, 67174411);
 		let o = z(e, t, r, 0, 1, e.tokenStart);
-		D(e, t | 32, 16);
-		let s = N(e, t, n, r, 2, i, 0);
+		k(e, t | 32, 16);
+		let s = P(e, t, n, r, i, 0, 2);
 		return e.finishNode({
 			type: "WithStatement",
 			object: o,
 			body: s
 		}, a);
 	}
-	function Pt(e, t) {
+	function zt(e, t) {
 		let n = e.tokenStart;
-		return A(e, t | 32), T(e, t | 32), e.finishNode({ type: "DebuggerStatement" }, n);
+		return E(e, t | 32), D(e, t | 32), e.finishNode({ type: "DebuggerStatement" }, n);
 	}
-	function Ft(e, t, n, r, i) {
+	function Bt(e, t, n, r, i) {
 		let a = e.tokenStart;
-		A(e, t | 32);
-		let o = n?.createChildScope(16), s = bt(e, t, o, r, { $: i }), { tokenStart: c } = e, l = E(e, t | 32, 20557) ? It(e, t, n, r, i, c) : null, u = null;
+		E(e, t | 32);
+		let o = n?.createChildScope(16), s = wt(e, t, o, r, { parent: i }), { tokenStart: c } = e, l = O(e, t | 32, 20557) ? Vt(e, t, n, r, i, c) : null, u = null;
 		if (e.getToken() === 20566) {
-			A(e, t | 32);
+			E(e, t | 32);
 			let a = n?.createChildScope(4);
-			u = bt(e, t, a, r, { $: i });
+			u = wt(e, t, a, r, { parent: i });
 		}
 		return !l && !u && e.report(88), e.finishNode({
 			type: "TryStatement",
@@ -24659,315 +25071,461 @@ var vot = (function(exports) {
 			finalizer: u
 		}, a);
 	}
-	function It(e, t, n, r, i, a) {
-		let o = null, s = n;
-		E(e, t, 67174411) && (n = n?.createChildScope(4), o = Zn(e, t, n, r, (e.getToken() & 2097152) == 2097152 ? 256 : 512, 0), e.getToken() === 18 ? e.report(86) : e.getToken() === 1077936155 && e.report(87), D(e, t | 32, 16)), s = n?.createChildScope(32);
-		let c = bt(e, t, s, r, { $: i });
+	function Vt(e, t, n, r, i, a) {
+		let o = null;
+		O(e, t, 67174411) && (n = n?.createChildScope(4), o = ar(e, t, n, r, (e.getToken() & 2097152) == 2097152 ? 256 : 512), e.getToken() === 18 ? e.report(86) : e.getToken() === 1077936155 && e.report(87), k(e, t | 32, 16));
+		let s = n?.createChildScope(32), c = wt(e, t, s, r, { parent: i });
 		return e.finishNode({
 			type: "CatchClause",
 			param: o,
 			body: c
 		}, a);
 	}
-	function Lt(e, t, n, r, i) {
+	function Ht(e, t, n, r, i) {
 		n = n?.createChildScope();
 		let a = 5764;
-		return t = (t | a) ^ a | 592128, bt(e, t, n, r, {}, i, "StaticBlock");
+		return t = (t | a) ^ a | 592128, wt(e, t, n, r, {}, i, "StaticBlock");
 	}
-	function Rt(e, t, n, r, i) {
+	function Ut(e, t, n, r, i) {
 		let a = e.tokenStart;
-		A(e, t | 32);
-		let o = F(e, t, n, r, i);
-		D(e, t, 20578), D(e, t | 32, 67174411);
+		E(e, t | 32);
+		let o = Ft(e, t, n, r, i);
+		k(e, t, 20578), k(e, t | 32, 67174411);
 		let s = z(e, t, r, 0, 1, e.tokenStart);
-		return D(e, t | 32, 16), E(e, t | 32, 1074790417), e.finishNode({
+		return k(e, t | 32, 16), O(e, t | 32, 1074790417), e.finishNode({
 			type: "DoWhileStatement",
 			body: o,
 			test: s
 		}, a);
 	}
-	function zt(e, t, n, r, i) {
-		let { tokenValue: a, tokenStart: o } = e, s = e.getToken(), c = K(e, t);
-		if (e.getToken() & 2240512) {
-			let i = I(e, t, n, r, 8, 0);
-			return T(e, t | 32), e.finishNode({
+	function Wt(e, t, n, r, i) {
+		let { tokenValue: a, tokenStart: o, currentLocation: s } = e, c = e.getToken(), l = K(e, t);
+		if (e.getToken() & 2240512 && (e.getToken() & 20480) != 20480) {
+			let i = I(e, t, n, r, 8);
+			return D(e, t | 32), e.finishNode({
 				type: "VariableDeclaration",
 				kind: "let",
 				declarations: i
 			}, o);
 		}
-		if (e.assignable = 1, t & 1 && e.report(85), e.getToken() === 21) return St(e, t, n, r, i, {}, a, c, s, 0, o);
+		if (e.assignable = 1, t & 1 && e.report(85), e.getToken() === 21) return Et(e, t, n, r, {}, a, l, c, 0, o, i);
 		if (e.getToken() === 10) {
 			let n;
-			e.options.lexical && (n = lt(e, t, a)), e.flags = (e.flags | 128) ^ 128, c = Fn(e, t, n, r, [c], 0, o);
-		} else c = W(e, t, r, c, 0, 0, o), c = B(e, t, r, 0, 0, o, c);
-		return e.getToken() === 18 && (c = R(e, t, r, 0, o, c)), P(e, t, c, o);
+			e.options.lexical && (n = pt(e, t, a, o, s)), e.flags = (e.flags | 128) ^ 128, l = Un(e, t, n, r, [l], 0, o);
+		} else l = W(e, t, r, l, 0, 0, o), l = B(e, t, r, 0, 0, o, l);
+		return e.getToken() === 18 && (l = R(e, t, r, 0, o, l)), F(e, t, l, o);
 	}
-	function Bt(e, t, n, r, i, a) {
+	function Gt(e) {
+		let { index: t, source: n } = e, r = t;
+		for (; r < e.end;) {
+			let t = n.charCodeAt(r);
+			if (t === 10 || t === 13 || t === 8232 || t === 8233) return !1;
+			if (/\s/u.test(n[r])) r++;
+			else if (t === 47 && n.charCodeAt(r + 1) === 42) for (r += 2; r < e.end;) {
+				let e = n.charCodeAt(r);
+				if (e === 10 || e === 13 || e === 8232 || e === 8233) return !1;
+				if (e === 42 && n.charCodeAt(r + 1) === 47) {
+					r += 2;
+					break;
+				}
+				r++;
+			}
+			else break;
+		}
+		if (n.slice(r, r + 5) !== "using") return !1;
+		let i = n.codePointAt(r + 5);
+		return i === void 0 || i !== 92 && !me(i);
+	}
+	function Kt(e) {
+		return (e & 143360) == 143360 && (e & 20480) != 20480;
+	}
+	function qt(e, t, n, r, i, a) {
+		let { tokenStart: o, tokenValue: s, currentLocation: c } = e, l = e.getToken(), u = K(e, t);
+		if (!(e.flags & 1) && Kt(e.getToken())) return a & 4 && t & 8 && !(t & 2) && !(t & 4096) && e.report(30, C[e.getToken() & 255]), Yt(e, t, n, r, 16, a, "using", o, 1);
+		if (e.assignable = 1, e.getToken() === 10) {
+			let n;
+			return e.options.lexical && (n = pt(e, t, s, o, c)), e.flags = (e.flags | 128) ^ 128, F(e, t, Un(e, t, n, r, [u], 0, o), o);
+		}
+		return Ct(e, t, n, r, i, 1, u, l, s, o, a);
+	}
+	function Jt(e, t, n, r, i, a) {
 		let o = e.tokenStart;
-		A(e, t);
-		let s = I(e, t, n, r, i, a);
-		return T(e, t | 32), e.finishNode({
-			type: "VariableDeclaration",
-			kind: i & 8 ? "let" : "const",
-			declarations: s
-		}, o);
+		t & 524288 && e.report(179), E(e, t | 32);
+		let s;
+		if (!(e.flags & 1) && e.getToken() === 209013) {
+			let i = e.tokenStart, c = K(e, t);
+			if (!(e.flags & 1) && Kt(e.getToken())) return Yt(e, t, n, r, 16, a, "await using", o, 1);
+			s = W(e, t, r, c, 0, 0, i);
+		} else s = U(e, t, r, 0, 0, 1);
+		return e.getToken() === 8391735 && e.report(33), e.assignable = 2, Ct(e, t, n, r, i, 0, e.finishNode({
+			type: "AwaitExpression",
+			argument: s
+		}, o), 1048576, "", o, a);
 	}
-	function Vt(e, t, n, r, i) {
+	function Yt(e, t, n, r, i, a = 0, o, s = e.tokenStart, c = 0) {
+		let l = s;
+		c || E(e, t);
+		let u = I(e, t, n, r, i, a, o);
+		return D(e, t | 32), e.finishNode({
+			type: "VariableDeclaration",
+			kind: o ?? (i & 8 ? "let" : "const"),
+			declarations: u
+		}, l);
+	}
+	function Xt(e, t, n, r, i = 0) {
 		let a = e.tokenStart;
-		A(e, t);
+		E(e, t);
 		let o = I(e, t, n, r, 4, i);
-		return T(e, t | 32), e.finishNode({
+		return D(e, t | 32), e.finishNode({
 			type: "VariableDeclaration",
 			kind: "var",
 			declarations: o
 		}, a);
 	}
-	function I(e, t, n, r, i, a) {
-		let o = 1, s = [Ht(e, t, n, r, i, a)];
-		for (; E(e, t, 18);) o++, s.push(Ht(e, t, n, r, i, a));
-		return o > 1 && a & 32 && e.getToken() & 262144 && e.report(61, w[e.getToken() & 255]), s;
+	function I(e, t, n, r, i, a = 0, o) {
+		let s = 1, c = Zt(e, t, n, r, i, a, o), l = [c], u = o && e.options.lexical ? new Set([c.id.name]) : void 0;
+		for (; O(e, t, 18);) {
+			s++;
+			let c = Zt(e, t, n, r, i, a, o);
+			if (u) {
+				let { name: t } = c.id;
+				u.has(t) && e.report(147, t), u.add(t);
+			}
+			l.push(c);
+		}
+		return s > 1 && a & 32 && e.getToken() & 262144 && e.report(61, C[e.getToken() & 255]), l;
 	}
-	function Ht(e, t, n, r, i, a) {
-		let { tokenStart: o } = e, s = e.getToken(), c = null, l = Zn(e, t, n, r, i, a);
+	function Zt(e, t, n, r, i, a, o) {
+		let { tokenStart: s } = e, c = e.getToken(), l = null;
+		o && (c & 2097152) == 2097152 && e.report(50);
+		let u = ar(e, t, n, r, i, a);
 		if (e.getToken() === 1077936155) {
-			if (A(e, t | 32), c = L(e, t, r, 1, 0, e.tokenStart), (a & 32 || !(s & 2097152)) && (e.getToken() === 471156 || e.getToken() === 8673330 && (s & 2097152 || !(i & 4) || t & 1))) throw new C(o, e.currentLocation, 60, e.getToken() === 471156 ? "of" : "in");
-		} else (i & 16 || (s & 2097152) > 0) && (e.getToken() & 262144) != 262144 && e.report(59, i & 16 ? "const" : "destructuring");
+			if (E(e, t | 32), l = L(e, t, r, 1, 0, e.tokenStart, a), a & 32 && (e.getToken() === 471156 || e.getToken() === 8673330 && (c & 2097152 || !(i & 4) || t & 1 || !e.options.webcompat))) throw new S(s, e.currentLocation, 60, e.getToken() === 471156 ? "of" : "in");
+		} else (i & 16 || (c & 2097152) > 0) && (e.getToken() & 262144) != 262144 && e.report(59, o ?? (i & 16 ? "const" : "destructuring"));
 		return e.finishNode({
 			type: "VariableDeclarator",
-			id: l,
-			init: c
-		}, o);
+			id: u,
+			init: l
+		}, s);
 	}
-	function Ut(e, t, n, r, i) {
+	function Qt(e, t, n, r, i) {
 		let a = e.tokenStart;
-		A(e, t);
-		let o = ((t & 2048) > 0 || (t & 2) > 0 && (t & 8) > 0) && E(e, t, 209006);
-		D(e, t | 32, 67174411), n = n?.createChildScope(1);
-		let s = null, c = null, l = 0, u = null, d = e.getToken() === 86088 || e.getToken() === 241737 || e.getToken() === 86090, f, { tokenStart: p } = e, m = e.getToken();
-		if (d) m === 241737 ? (u = K(e, t), e.getToken() & 2240512 ? (e.getToken() === 8673330 ? t & 1 && e.report(67) : u = e.finishNode({
-			type: "VariableDeclaration",
-			kind: "let",
-			declarations: I(e, t | 131072, n, r, 8, 32)
-		}, p), e.assignable = 1) : t & 1 ? e.report(67) : (d = !1, e.assignable = 1, u = W(e, t, r, u, 0, 0, p), e.getToken() === 471156 && e.report(115))) : (A(e, t), u = e.finishNode(m === 86088 ? {
-			type: "VariableDeclaration",
-			kind: "var",
-			declarations: I(e, t | 131072, n, r, 4, 32)
-		} : {
-			type: "VariableDeclaration",
-			kind: "const",
-			declarations: I(e, t | 131072, n, r, 16, 32)
-		}, p), e.assignable = 1);
-		else if (m === 1074790417) o && e.report(82);
-		else if ((m & 2097152) == 2097152) {
+		E(e, t);
+		let o = ((t & 2048) > 0 || (t & 2) > 0 && (t & 8) > 0) && O(e, t, 209006);
+		k(e, t | 32, 67174411), n = n?.createChildScope(1);
+		let s = null, c = null, l = 0, u = null, d = e.getToken() === 86088 || e.getToken() === 241737 || e.getToken() === 86090 || e.getToken() === 209013, f, p = !1, m, { tokenStart: h } = e, g = e.getToken();
+		if (d) {
+			if (g === 241737) u = K(e, t), e.getToken() & 2240512 && (e.getToken() & 20480) != 20480 ? (u = e.finishNode({
+				type: "VariableDeclaration",
+				kind: "let",
+				declarations: I(e, t | 131072, n, r, 8, 32)
+			}, h), e.assignable = 1) : t & 1 ? e.report(67) : (d = !1, e.assignable = 1, u = W(e, t, r, u, 0, 0, h), e.getToken() === 471156 && e.report(117));
+			else if (g === 209013) {
+				let i = K(e, t);
+				if (e.flags & 1 || !Kt(e.getToken())) d = !1, e.assignable = 1, u = W(e, t, r, i, 0, 0, h);
+				else if (e.getToken() === 471156) {
+					let a = e.tokenStart, o = e.currentLocation, s = e.getToken(), c = e.tokenValue, l = K(e, t);
+					if (e.getToken() !== 1077936155 && e.getToken() !== 8673330 && e.getToken() !== 1074790417 && e.getToken() !== 18) d = !1, p = !0, e.assignable = 1, u = i;
+					else {
+						f = "using", j(e, t, 16, s, 0), n?.addBlockName(t, c, 16, a, o, 32);
+						let i = null;
+						if (e.getToken() === 1077936155) {
+							if (E(e, t | 32), i = L(e, t | 131072, r, 1, 0, e.tokenStart), (e.getToken() & 262144) == 262144) throw new S(a, e.currentLocation, 60, e.getToken() === 471156 ? "of" : "in");
+						} else e.getToken() !== 8673330 && e.report(59, f);
+						let d = [e.finishNode({
+							type: "VariableDeclarator",
+							id: l,
+							init: i
+						}, a)], p = e.options.lexical ? new Set([c]) : void 0;
+						for (; O(e, t | 131072, 18);) {
+							let i = Zt(e, t | 131072, n, r, 16, 32, f);
+							if (p) {
+								let { name: t } = i.id;
+								p.has(t) && e.report(147, t), p.add(t);
+							}
+							d.push(i);
+						}
+						d.length > 1 && e.getToken() & 262144 && e.report(61, C[e.getToken() & 255]), u = e.finishNode({
+							type: "VariableDeclaration",
+							kind: f,
+							declarations: d
+						}, h), e.assignable = 1;
+					}
+				} else f = "using", u = e.finishNode({
+					type: "VariableDeclaration",
+					kind: f,
+					declarations: I(e, t | 131072, n, r, 16, 32, f)
+				}, h), e.assignable = 1;
+			} else E(e, t), u = e.finishNode(g === 86088 ? {
+				type: "VariableDeclaration",
+				kind: "var",
+				declarations: I(e, t | 131072, n, r, 4, 32)
+			} : {
+				type: "VariableDeclaration",
+				kind: "const",
+				declarations: I(e, t | 131072, n, r, 16, 32)
+			}, h), e.assignable = 1;
+		} else if (g === 209006 && (t & 2048 || t & 2 && t & 8)) {
+			t & 524288 && e.report(179), E(e, t | 32);
+			let i;
+			if (!(e.flags & 1) && e.getToken() === 209013) {
+				let a = e.tokenStart, o = K(e, t);
+				!(e.flags & 1) && Kt(e.getToken()) ? (f = "await using", d = !0, u = e.finishNode({
+					type: "VariableDeclaration",
+					kind: f,
+					declarations: I(e, t | 131072, n, r, 16, 32, f)
+				}, h), e.assignable = 1) : i = W(e, t, r, o, 0, 0, a);
+			} else i = U(e, t, r, 0, 0, 1);
+			d || (e.getToken() === 8391735 && e.report(33), e.assignable = 2, u = e.finishNode({
+				type: "AwaitExpression",
+				argument: i
+			}, h));
+		} else if (o && g === 209005) {
+			let n = K(e, t);
+			e.assignable = 1, u = W(e, t | 131072, r, n, 0, 0, h);
+		} else if (g === 1074790417) o && e.report(82);
+		else if ((g & 2097152) == 2097152) {
 			let n = e.tokenStart;
-			u = m === 2162700 ? Q(e, t, void 0, r, 1, 0, 0, 2, 32) : Y(e, t, void 0, r, 1, 0, 0, 2, 32), l = e.destructible, l & 64 && e.report(63), e.assignable = l & 16 ? 2 : 1, u = W(e, t | 131072, r, u, 0, 0, n);
+			u = g === 2162700 ? Q(e, t, void 0, r, 1, 0, 0, 2, 32) : Y(e, t, void 0, r, 1, 0, 0, 2, 32), l = e.destructible, l & 64 && e.report(63), e.assignable = l & 16 ? 2 : 1, u = W(e, t | 131072, r, u, 0, 0, n);
 		} else u = U(e, t | 131072, r, 1, 0, 1);
-		if ((e.getToken() & 262144) == 262144) {
-			if (e.getToken() === 471156) {
-				e.assignable & 2 && e.report(80, o ? "await" : "of"), O(e, u), A(e, t | 32), f = L(e, t, r, 1, 0, e.tokenStart), D(e, t | 32, 16);
-				let s = F(e, t, n, r, i);
+		if (p || (e.getToken() & 262144) == 262144) {
+			if (p || e.getToken() === 471156) {
+				e.assignable & 2 && e.report(80, o ? "await" : "of"), A(e, u), p || E(e, t | 32), m = L(e, t, r, 1, 0, e.tokenStart), k(e, t | 32, 16);
+				let s = Ft(e, t, n, r, i);
 				return e.finishNode({
 					type: "ForOfStatement",
 					left: u,
-					right: f,
+					right: m,
 					body: s,
 					await: o
 				}, a);
 			}
-			e.assignable & 2 && e.report(80, "in"), O(e, u), A(e, t | 32), o && e.report(82), f = z(e, t, r, 0, 1, e.tokenStart), D(e, t | 32, 16);
-			let s = F(e, t, n, r, i);
+			f && e.report(30, "in"), e.assignable & 2 && e.report(80, "in"), A(e, u), E(e, t | 32), o && e.report(82), m = z(e, t, r, 0, 1, e.tokenStart), k(e, t | 32, 16);
+			let s = Ft(e, t, n, r, i);
 			return e.finishNode({
 				type: "ForInStatement",
 				body: s,
 				left: u,
-				right: f
+				right: m
 			}, a);
 		}
-		o && e.report(82), d || (l & 8 && e.getToken() !== 1077936155 && e.report(80, "loop"), u = B(e, t | 131072, r, 0, 0, p, u)), e.getToken() === 18 && (u = R(e, t, r, 0, p, u)), D(e, t | 32, 1074790417), e.getToken() !== 1074790417 && (s = z(e, t, r, 0, 1, e.tokenStart)), D(e, t | 32, 1074790417), e.getToken() !== 16 && (c = z(e, t, r, 0, 1, e.tokenStart)), D(e, t | 32, 16);
-		let h = F(e, t, n, r, i);
+		o && e.report(82), d || (l & 8 && e.getToken() !== 1077936155 && e.report(80, "loop"), u = B(e, t | 131072, r, 0, 0, h, u)), e.getToken() === 18 && (u = R(e, t, r, 0, h, u)), k(e, t | 32, 1074790417), e.getToken() !== 1074790417 && (s = z(e, t, r, 0, 1, e.tokenStart)), k(e, t | 32, 1074790417), e.getToken() !== 16 && (c = z(e, t, r, 0, 1, e.tokenStart)), k(e, t | 32, 16);
+		let _ = Ft(e, t, n, r, i);
 		return e.finishNode({
 			type: "ForStatement",
 			init: u,
 			test: s,
 			update: c,
-			body: h
+			body: _
 		}, a);
 	}
-	function Wt(e, t, n) {
-		return k(t, e.getToken()) || e.report(118), (e.getToken() & 537079808) == 537079808 && e.report(119), n?.addBlockName(t, e.tokenValue, 8, 0), K(e, t);
+	function $t(e, t, n) {
+		return M(t, e.getToken()) || e.report(120), (e.getToken() & 537079808) == 537079808 && e.report(121), n?.addBlockName(t, e.tokenValue, 8, e.tokenStart, e.currentLocation), K(e, t);
 	}
-	function Gt(e, t, n) {
+	function en(e, t, n) {
 		let r = e.tokenStart;
-		A(e, t);
-		let i = null, { tokenStart: a } = e, o = [];
+		E(e, t);
+		let i, a = !1, o = null, { tokenStart: s } = e, c = [];
 		if (e.getToken() === 134283267) i = q(e, t);
 		else {
 			if (e.getToken() & 143360) {
-				let r = Wt(e, t, n);
-				if (o = [e.finishNode({
-					type: "ImportDefaultSpecifier",
-					local: r
-				}, a)], E(e, t, 18)) switch (e.getToken()) {
+				let r = e.getToken(), { tokenValue: l, tokenStart: u, currentLocation: d } = e, f = e.features & 2 && !(r & -2147483648) && l == "defer", p = e.features & 4 && !(r & -2147483648) && l == "source";
+				if (f || p) {
+					let r = K(e, t);
+					if (l === "defer") e.getToken() === 8391476 ? (o = "defer", c = [tn(e, t, n)]) : e.getToken() === 209011 || e.getToken() === 18 ? (n?.addBlockName(t, l, 8, u, d), c = [e.finishNode({
+						type: "ImportDefaultSpecifier",
+						local: r
+					}, s)]) : e.report(108);
+					else if (e.getToken() === 209011) {
+						let f = e.getToken(), p = e.tokenStart, m = e.currentLocation, h = K(e, t);
+						e.getToken() === 209011 ? (j(e, t, 16, f, 0), n?.addBlockName(t, h.name, 8, p, m), o = "source", c = [e.finishNode({
+							type: "ImportDefaultSpecifier",
+							local: h
+						}, p)]) : (n?.addBlockName(t, l, 8, u, d), c = [e.finishNode({
+							type: "ImportDefaultSpecifier",
+							local: r
+						}, s)], e.getToken() !== 134283267 && e.report(105, "Import"), i = q(e, t), a = !0);
+					} else if (e.getToken() & 143360) {
+						o = "source";
+						let r = e.tokenStart, i = $t(e, t, n);
+						c = [e.finishNode({
+							type: "ImportDefaultSpecifier",
+							local: i
+						}, r)];
+					} else e.getToken() === 18 ? (n?.addBlockName(t, l, 8, u, d), c = [e.finishNode({
+						type: "ImportDefaultSpecifier",
+						local: r
+					}, s)]) : e.report(109);
+				} else {
+					let r = $t(e, t, n);
+					c = [e.finishNode({
+						type: "ImportDefaultSpecifier",
+						local: r
+					}, s)];
+				}
+				if (o === null && !a && O(e, t, 18)) switch (e.getToken()) {
 					case 8391476:
-						o.push(Kt(e, t, n));
+						c.push(tn(e, t, n));
 						break;
 					case 2162700:
-						Jt(e, t, n, o);
+						rn(e, t, n, c);
 						break;
 					default: e.report(107);
 				}
 			} else switch (e.getToken()) {
 				case 8391476:
-					o = [Kt(e, t, n)];
+					c = [tn(e, t, n)];
 					break;
 				case 2162700:
-					Jt(e, t, n, o);
+					rn(e, t, n, c);
 					break;
-				case 67174411: return Xt(e, t, void 0, r);
-				case 67108877: return Yt(e, t, r);
-				default: e.report(30, w[e.getToken() & 255]);
+				case 67174411: return on$1(e, t, void 0, r);
+				case 67108877: return an(e, t, r);
+				default: e.report(30, C[e.getToken() & 255]);
 			}
-			i = qt(e, t);
+			a || (i = nn(e, t));
 		}
-		let s = pn(e, t), c = {
+		let l = Sn(e, t), u = {
 			type: "ImportDeclaration",
-			specifiers: o,
+			specifiers: c,
 			source: i,
-			attributes: s
+			attributes: l,
+			...e.features & 2 || e.features & 4 ? { phase: o } : null
 		};
-		return T(e, t | 32), e.finishNode(c, r);
+		return D(e, t | 32), e.finishNode(u, r);
 	}
-	function Kt(e, t, n) {
+	function tn(e, t, n) {
 		let { tokenStart: r } = e;
-		if (A(e, t), D(e, t, 77932), (e.getToken() & 134217728) == 134217728) throw new C(r, e.currentLocation, 30, w[e.getToken() & 255]);
+		if (E(e, t), k(e, t, 77932), (e.getToken() & 134217728) == 134217728) throw new S(r, e.currentLocation, 30, C[e.getToken() & 255]);
 		return e.finishNode({
 			type: "ImportNamespaceSpecifier",
-			local: Wt(e, t, n)
+			local: $t(e, t, n)
 		}, r);
 	}
-	function qt(e, t) {
-		return D(e, t, 209011), e.getToken() !== 134283267 && e.report(105, "Import"), q(e, t);
+	function nn(e, t) {
+		return k(e, t, 209011), e.getToken() !== 134283267 && e.report(105, "Import"), q(e, t);
 	}
-	function Jt(e, t, n, r) {
-		for (A(e, t); e.getToken() & 143360 || e.getToken() === 134283267;) {
-			let { tokenValue: i, tokenStart: a } = e, o = e.getToken(), s = _n(e, t), c;
-			E(e, t, 77932) ? ((e.getToken() & 134217728) == 134217728 || e.getToken() === 18 ? e.report(106) : Re(e, t, 16, e.getToken(), 0), i = e.tokenValue, c = K(e, t)) : s.type === "Identifier" ? (Re(e, t, 16, o, 0), c = s) : e.report(25, w[108]), n?.addBlockName(t, i, 8, 0), r.push(e.finishNode({
+	function rn(e, t, n, r) {
+		for (E(e, t); e.getToken() & 143360 || e.getToken() === 134283267;) {
+			let { tokenValue: i, tokenStart: a, currentLocation: o } = e, s = a, c = e.getToken(), l = Tn(e, t), u;
+			O(e, t, 77932) ? ((e.getToken() & 134217728) == 134217728 || e.getToken() === 18 ? e.report(106) : j(e, t, 16, e.getToken(), 0), i = e.tokenValue, a = e.tokenStart, o = e.currentLocation, u = K(e, t)) : l.type === "Identifier" ? (j(e, t, 16, c, 0), u = e.cloneIdentifier(l)) : e.report(25, C[108]), n?.addBlockName(t, i, 8, a, o), r.push(e.finishNode({
 				type: "ImportSpecifier",
-				local: c,
-				imported: s
-			}, a)), e.getToken() !== 1074790415 && D(e, t, 18);
+				local: u,
+				imported: l
+			}, s)), e.getToken() !== 1074790415 && k(e, t, 18);
 		}
-		return D(e, t, 1074790415), r;
+		return k(e, t, 1074790415), r;
 	}
-	function Yt(e, t, n) {
-		let r = dn(e, t, e.finishNode({
+	function an(e, t, n) {
+		let r = bn(e, t, e.finishNode({
 			type: "Identifier",
 			name: "import"
 		}, n), n);
-		return r = W(e, t, void 0, r, 0, 0, n), r = B(e, t, void 0, 0, 0, n, r), e.getToken() === 18 && (r = R(e, t, void 0, 0, n, r)), P(e, t, r, n);
+		return r = W(e, t, void 0, r, 0, 0, n), r = B(e, t, void 0, 0, 0, n, r), e.getToken() === 18 && (r = R(e, t, void 0, 0, n, r)), F(e, t, r, n);
 	}
-	function Xt(e, t, n, r) {
-		let i = fn(e, t, n, 0, r);
-		return i = W(e, t, n, i, 0, 0, r), e.getToken() === 18 && (i = R(e, t, n, 0, r, i)), P(e, t, i, r);
+	function on$1(e, t, n, r) {
+		let i = xn(e, t, n, 0, r);
+		return i = W(e, t, n, i, 0, 0, r), e.getToken() === 18 && (i = R(e, t, n, 0, r, i)), F(e, t, i, r);
 	}
-	function Zt(e, t, n) {
+	function sn(e, t, n) {
 		let r = e.leadingDecorators.decorators.length ? e.leadingDecorators.start : e.tokenStart;
-		A(e, t | 32);
-		let i = [], a = null, o = null, s = [];
-		if (E(e, t | 32, 20561)) {
+		E(e, t | 32);
+		let i = O(e, t | 32, 20561);
+		e.leadingDecorators.decorators.length && e.getToken() !== 86094 && e.report(172);
+		let a = [], o = null, s = null, c = [];
+		if (i) {
 			switch (e.getToken()) {
 				case 86104:
-					a = J(e, t, n, void 0, 4, 1, 1, 0, e.tokenStart);
+					o = J(e, t, n, void 0, 1, 1, 0, e.tokenStart, 4);
 					break;
-				case 132:
+				case 133: e.features & 1 || e.report(30, "@");
 				case 86094:
-					a = Un(e, t, n, void 0, 1);
+					o = Zn(e, t, n, void 0, 1);
 					break;
 				case 209005: {
 					let { tokenStart: r } = e;
-					a = K(e, t);
+					o = K(e, t);
 					let { flags: i } = e;
-					i & 1 || (e.getToken() === 86104 ? a = J(e, t, n, void 0, 4, 1, 1, 1, r) : e.getToken() === 67174411 ? (a = Vn(e, t, void 0, a, 1, 1, 0, i, r), a = W(e, t, void 0, a, 0, 0, r), a = B(e, t, void 0, 0, 0, r, a)) : e.getToken() & 143360 && (n &&= lt(e, t, e.tokenValue), a = K(e, t), a = Fn(e, t, n, void 0, [a], 1, r)));
+					i & 1 || (e.getToken() === 86104 ? o = J(e, t, n, void 0, 1, 1, 1, r, 4) : e.getToken() === 67174411 ? (o = Yn(e, t, void 0, o, 1, 1, i, r), o = W(e, t, void 0, o, 0, 0, r), o = B(e, t, void 0, 0, 0, r, o)) : e.getToken() & 143360 && (n &&= pt(e, t, e.tokenValue, e.tokenStart, e.currentLocation), o = K(e, t), o = Un(e, t, n, void 0, [o], 1, r)));
 					break;
 				}
-				default: a = L(e, t, void 0, 1, 0, e.tokenStart), T(e, t | 32);
+				default: o = L(e, t, void 0, 1, 0, e.tokenStart), D(e, t | 32);
 			}
 			return n && e.declareUnboundVariable("default"), e.finishNode({
 				type: "ExportDefaultDeclaration",
-				declaration: a
+				declaration: o
 			}, r);
 		}
 		switch (e.getToken()) {
 			case 8391476: {
-				A(e, t);
+				E(e, t);
 				let i = null;
-				E(e, t, 77932) && (n && e.declareUnboundVariable(e.tokenValue), i = _n(e, t)), D(e, t, 209011), e.getToken() !== 134283267 && e.report(105, "Export"), o = q(e, t);
-				let a = pn(e, t), s = {
+				O(e, t, 77932) && (n && e.declareUnboundVariable(e.tokenValue), i = Tn(e, t)), k(e, t, 209011), e.getToken() !== 134283267 && e.report(105, "Export"), s = q(e, t);
+				let a = Sn(e, t), o = {
 					type: "ExportAllDeclaration",
-					source: o,
+					source: s,
 					exported: i,
 					attributes: a
 				};
-				return T(e, t | 32), e.finishNode(s, r);
+				return D(e, t | 32), e.finishNode(o, r);
 			}
 			case 2162700: {
-				A(e, t);
-				let r = [], a = [], c = 0;
+				E(e, t);
+				let r = [], i = [], o = 0;
 				for (; e.getToken() & 143360 || e.getToken() === 134283267;) {
-					let { tokenStart: o, tokenValue: s } = e, l = _n(e, t);
-					l.type === "Literal" && (c = 1);
+					let { tokenStart: s, tokenValue: c } = e, l = Tn(e, t);
+					l.type === "Literal" && (o = 1);
 					let u;
-					e.getToken() === 77932 ? (A(e, t), !(e.getToken() & 143360) && e.getToken() !== 134283267 && e.report(106), n && (r.push(e.tokenValue), a.push(s)), u = _n(e, t)) : (n && (r.push(e.tokenValue), a.push(e.tokenValue)), u = l), i.push(e.finishNode({
+					e.getToken() === 77932 ? (E(e, t), !(e.getToken() & 143360) && e.getToken() !== 134283267 && e.report(106), n && (r.push(e.tokenValue), i.push(c)), u = Tn(e, t)) : (n && (r.push(e.tokenValue), i.push(e.tokenValue)), u = l.type === "Literal" ? e.cloneStringLiteral(l) : e.cloneIdentifier(l)), a.push(e.finishNode({
 						type: "ExportSpecifier",
 						local: l,
 						exported: u
-					}, o)), e.getToken() !== 1074790415 && D(e, t, 18);
+					}, s)), e.getToken() !== 1074790415 && k(e, t, 18);
 				}
-				D(e, t, 1074790415), E(e, t, 209011) ? (e.getToken() !== 134283267 && e.report(105, "Export"), o = q(e, t), s = pn(e, t), n && r.forEach((t) => e.declareUnboundVariable(t))) : (c && e.report(172), n && (r.forEach((t) => e.declareUnboundVariable(t)), a.forEach((t) => e.addBindingToExports(t)))), T(e, t | 32);
+				k(e, t, 1074790415), O(e, t, 209011) ? (e.getToken() !== 134283267 && e.report(105, "Export"), s = q(e, t), c = Sn(e, t), n && r.forEach((t) => e.declareUnboundVariable(t))) : (o && e.report(174), n && (r.forEach((t) => e.declareUnboundVariable(t)), i.forEach((t) => e.addBindingToExports(t)))), D(e, t | 32);
 				break;
 			}
-			case 132:
+			case 133: e.features & 1 || e.report(30, "@");
 			case 86094:
-				a = Un(e, t, n, void 0, 2);
+				o = Zn(e, t, n, void 0, 2);
 				break;
 			case 86104:
-				a = J(e, t, n, void 0, 4, 1, 2, 0, e.tokenStart);
+				o = J(e, t, n, void 0, 1, 2, 0, e.tokenStart, 4);
 				break;
 			case 241737:
-				a = Bt(e, t, n, void 0, 8, 64);
+				o = Yt(e, t, n, void 0, 8, 64);
 				break;
 			case 86090:
-				a = Bt(e, t, n, void 0, 16, 64);
+				o = Yt(e, t, n, void 0, 16, 64);
 				break;
 			case 86088:
-				a = Vt(e, t, n, void 0, 64);
+				o = Xt(e, t, n, void 0, 64);
 				break;
 			case 209005: {
 				let { tokenStart: r } = e;
-				if (A(e, t), !(e.flags & 1) && e.getToken() === 86104) {
-					a = J(e, t, n, void 0, 4, 1, 2, 1, r);
+				if (E(e, t), !(e.flags & 1) && e.getToken() === 86104) {
+					o = J(e, t, n, void 0, 1, 2, 1, r, 4);
 					break;
 				}
 			}
-			default: e.report(30, w[e.getToken() & 255]);
+			default: e.report(30, C[e.getToken() & 255]);
 		}
-		let c = {
+		let l = {
 			type: "ExportNamedDeclaration",
-			declaration: a,
-			specifiers: i,
-			source: o,
-			attributes: s
+			declaration: o,
+			specifiers: a,
+			source: s,
+			attributes: c
 		};
-		return e.finishNode(c, r);
+		return e.finishNode(l, r);
 	}
-	function L(e, t, n, r, i, a) {
-		let o = G(e, t, n, 2, 0, r, i, 1, a);
-		return o = W(e, t, n, o, i, 0, a), B(e, t, n, i, 0, a, o);
+	function L(e, t, n, r, i, a, o = 0) {
+		let s = G(e, t, n, 2, 0, r, i, 1, a, o, t & 131072 ? 0 : 1);
+		return s = W(e, t, n, s, i, 0, a), B(e, t, n, i, 0, a, s);
 	}
 	function R(e, t, n, r, i, a) {
 		let o = [a];
-		for (; E(e, t | 32, 18);) o.push(L(e, t, n, 1, r, e.tokenStart));
+		for (; O(e, t | 32, 18);) o.push(L(e, t, n, 1, r, e.tokenStart));
 		return e.finishNode({
 			type: "SequenceExpression",
 			expressions: o
@@ -24980,7 +25538,7 @@ var vot = (function(exports) {
 	function B(e, t, n, r, i, a, o) {
 		let s = e.getToken();
 		if ((s & 4194304) == 4194304) {
-			e.assignable & 2 && e.report(26), (!i && s === 1077936155 && o.type === "ArrayExpression" || o.type === "ObjectExpression") && O(e, o), A(e, t | 32);
+			e.assignable & 2 && e.report(26), (s & 524288) == 524288 && e.assignable & 4 && e.report(26), (!i && s === 1077936155 && o.type === "ArrayExpression" || o.type === "ObjectExpression") && A(e, o), E(e, t | 32);
 			let c = L(e, t, n, 1, r, e.tokenStart);
 			return e.assignable = 2, e.finishNode(i ? {
 				type: "AssignmentPattern",
@@ -24989,15 +25547,15 @@ var vot = (function(exports) {
 			} : {
 				type: "AssignmentExpression",
 				left: o,
-				operator: w[s & 255],
+				operator: C[s & 255],
 				right: c
 			}, a);
 		}
-		return (s & 8388608) == 8388608 && (o = H(e, t, n, r, a, 4, s, o)), E(e, t | 32, 22) && (o = V(e, t, n, o, a)), o;
+		return (s & 8388608) == 8388608 && (o = H(e, t, n, r, a, 4, s, o)), O(e, t | 32, 22) && (o = V(e, t, n, o, a)), o;
 	}
-	function Qt(e, t, n, r, i, a, o) {
+	function cn(e, t, n, r, i, a, o) {
 		let s = e.getToken();
-		A(e, t | 32);
+		E(e, t | 32);
 		let c = L(e, t, n, 1, r, e.tokenStart);
 		return o = e.finishNode(i ? {
 			type: "AssignmentPattern",
@@ -25006,13 +25564,13 @@ var vot = (function(exports) {
 		} : {
 			type: "AssignmentExpression",
 			left: o,
-			operator: w[s & 255],
+			operator: C[s & 255],
 			right: c
 		}, a), e.assignable = 2, o;
 	}
 	function V(e, t, n, r, i) {
 		let a = L(e, (t | 131072) ^ 131072, n, 1, 0, e.tokenStart);
-		D(e, t | 32, 21), e.assignable = 1;
+		k(e, t | 32, 21), e.assignable = 1;
 		let o = L(e, t, n, 1, 0, e.tokenStart);
 		return e.assignable = 2, e.finishNode({
 			type: "ConditionalExpression",
@@ -25023,113 +25581,103 @@ var vot = (function(exports) {
 	}
 	function H(e, t, n, r, i, a, o, s) {
 		let c = -((t & 131072) > 0) & 8673330, l, u;
-		for (e.assignable = 2; e.getToken() & 8388608 && (l = e.getToken(), u = l & 3840, (l & 524288 && o & 268435456 || o & 524288 && l & 268435456) && e.report(165), !(u + ((l === 8391735) << 8) - ((c === l) << 12) <= a));) A(e, t | 32), s = e.finishNode({
+		for (e.assignable = 2; e.getToken() & 8388608 && (l = e.getToken(), u = l & 3840, (l & 524288 && o & 268435456 || o & 524288 && l & 268435456) && e.report(167), !(u + ((l === 8391735) << 8) - ((c === l) << 12) <= a));) E(e, t | 32), s = e.finishNode({
 			type: l & 524288 || l & 268435456 ? "LogicalExpression" : "BinaryExpression",
 			left: s,
-			right: H(e, t, n, r, e.tokenStart, u, l, U(e, t, n, 0, r, 1)),
-			operator: w[l & 255]
+			right: H(e, t, n, r, e.tokenStart, u, l, U(e, t, n, 0, r, 1, +(!(t & 131072) && 2048 > u))),
+			operator: C[l & 255]
 		}, i);
 		return e.getToken() === 1077936155 && e.report(26), s;
 	}
-	function $t(e, t, n, r, i) {
+	function ln(e, t, n, r, i) {
 		r || e.report(0);
 		let { tokenStart: a } = e, o = e.getToken();
-		A(e, t | 32);
+		E(e, t | 32);
 		let s = U(e, t, n, 0, i, 1);
-		return e.getToken() === 8391735 && e.report(33), t & 1 && o === 16863276 && (s.type === "Identifier" ? e.report(121) : Ve(s) && e.report(127)), e.assignable = 2, e.finishNode({
+		return e.getToken() === 8391735 && e.report(33), t & 1 && o === 16863276 && (s.type === "Identifier" ? e.report(123) : Qe(s) && e.report(129)), e.assignable = 2, e.finishNode({
 			type: "UnaryExpression",
-			operator: w[o & 255],
+			operator: C[o & 255],
 			argument: s,
 			prefix: !0
 		}, a);
 	}
-	function en(e, t, n, r, i, a, o, s) {
+	function un(e, t, n, r, i, a, o, s) {
 		let c = e.getToken(), l = K(e, t), { flags: u } = e;
 		if (!(u & 1)) {
-			if (e.getToken() === 86104) return En(e, t, n, 1, r, s);
-			if (k(t, e.getToken())) return i || e.report(0), (e.getToken() & 36864) == 36864 && (e.flags |= 256), Bn(e, t, n, a, s);
+			if (e.getToken() === 86104) return Pn(e, t, n, 1, r, s);
+			if (M(t, e.getToken())) return i || e.report(0), (e.getToken() & 36864) == 36864 && (e.flags |= 256), Jn(e, t, n, a, s);
 		}
-		return !o && e.getToken() === 67174411 ? Vn(e, t, n, l, a, 1, 0, u, s) : e.getToken() === 10 ? (Ge(e, t, c), o && e.report(51), (c & 36864) == 36864 && (e.flags |= 256), Nn(e, t, n, e.tokenValue, l, o, a, 0, s)) : (e.assignable = 1, l);
+		return !o && e.getToken() === 67174411 ? Yn(e, t, n, l, a, 1, u, s) : e.getToken() === 10 ? (nt(e, t, c), o && e.report(51), (c & 36864) == 36864 && (e.flags |= 256), Vn(e, t, n, e.tokenValue, l, o, a, 0, s)) : (e.assignable = 1, l);
 	}
-	function tn(e, t, n, r, i, a) {
-		if (r && (e.destructible |= 256), t & 1024) {
-			A(e, t | 32), t & 8192 && e.report(32), i || e.report(26), e.getToken() === 22 && e.report(124);
+	function dn(e, t, n, r, i, a) {
+		if (r && (e.destructible & 256 || (e.firstYieldLocation ??= {
+			start: a,
+			end: e.currentLocation
+		}), e.destructible |= 256), t & 1024) {
+			if (E(e, t | 32), t & 8192) throw new S(a, e.startPosition, 32);
+			i || e.report(26), e.getToken() === 22 && e.report(126);
 			let r = null, o = !1;
-			return e.flags & 1 ? e.getToken() === 8391476 && e.report(30, w[e.getToken() & 255]) : (o = E(e, t | 32, 8391476), (e.getToken() & 77824 || o) && (r = L(e, t, n, 1, 0, e.tokenStart))), e.assignable = 2, e.finishNode({
+			return e.flags & 1 ? e.getToken() === 8391476 && e.report(30, C[e.getToken() & 255]) : (o = O(e, t | 32, 8391476), (e.getToken() & 77824 || o) && (r = L(e, t, n, 1, 0, e.tokenStart))), e.assignable = 2, e.finishNode({
 				type: "YieldExpression",
 				argument: r,
 				delegate: o
 			}, a);
 		}
-		return t & 1 && e.report(97, "yield"), Mn(e, t, n);
+		return t & 1 && e.report(97, "yield"), Bn(e, t, n);
 	}
-	function nn(e, t, n, r, i, a) {
-		i && (e.destructible |= 128), t & 524288 && e.report(177);
-		let o = Mn(e, t, n);
-		if (o.type === "ArrowFunctionExpression" || !(e.getToken() & 65536)) {
-			if (t & 2048) throw new C(a, {
-				index: e.startIndex,
-				line: e.startLine,
-				column: e.startColumn
-			}, 176);
-			if (t & 2 || t & 8192 && t & 2048) throw new C(a, {
-				index: e.startIndex,
-				line: e.startLine,
-				column: e.startColumn
-			}, 110);
-			return o;
+	function fn(e, t, n, r, i, a) {
+		i && (e.destructible & 128 || (e.firstAwaitLocation ??= {
+			start: a,
+			end: e.currentLocation
+		}), e.destructible |= 128), t & 524288 && e.report(179);
+		let o = !!(e.getToken() & -2147483648), s = Bn(e, t, n, !o && t & 2050 ? 1 : 0);
+		if (o || s.type === "ArrowFunctionExpression" || !(e.getToken() & 65536)) {
+			if (t & 2048) throw new S(a, e.startPosition, 178);
+			if (t & 2 || t & 8192 && t & 2048) throw new S(a, e.startPosition, 112);
+			return s;
 		}
-		if (t & 8192) throw new C(a, {
-			index: e.startIndex,
-			line: e.startLine,
-			column: e.startColumn
-		}, 31);
+		if (t & 8192 && (t & 2050 || e.getToken() & 143360)) throw new S(a, e.startPosition, 31);
 		if (t & 2048 || t & 2 && t & 8) {
-			if (r) throw new C(a, {
-				index: e.startIndex,
-				line: e.startLine,
-				column: e.startColumn
-			}, 0);
+			if (r) throw new S(a, e.startPosition, 0);
 			let i = U(e, t, n, 0, 0, 1);
 			return e.getToken() === 8391735 && e.report(33), e.assignable = 2, e.finishNode({
 				type: "AwaitExpression",
 				argument: i
 			}, a);
 		}
-		if (t & 2) throw new C(a, {
-			index: e.startIndex,
-			line: e.startLine,
-			column: e.startColumn
-		}, 98);
-		return o;
+		if (t & 2) throw new S(a, e.startPosition, 98);
+		return s;
 	}
-	function rn(e, t, n, r, i, a, o) {
+	function pn(e, t, n, r, i, a, o = 0) {
 		let { tokenStart: s } = e;
-		D(e, t | 32, 2162700);
+		e.flags &= -4161, k(e, t | 32, 2162700);
 		let c = [];
 		if (e.getToken() !== 1074790415) {
 			for (; e.getToken() === 134283267;) {
-				let { index: n, tokenStart: r, tokenIndex: i, tokenValue: a } = e, s = e.getToken(), l = q(e, t);
-				if (Ie(e, n, i, a)) {
-					if (t |= 1, e.flags & 128) throw new C(r, e.currentLocation, 66);
-					if (e.flags & 64) throw new C(r, e.currentLocation, 9);
-					if (e.flags & 4096) throw new C(r, e.currentLocation, 15);
-					o?.reportScopeError();
+				let { index: n, tokenStart: r, tokenIndex: i, tokenValue: o } = e, s = e.getToken(), l = q(e, t);
+				if (Je(e, n, i, o)) {
+					if (t |= 1, e.flags & 128) throw new S(r, e.currentLocation, 66);
+					if (e.flags & 64) throw new S(r, e.currentLocation, 9);
+					if (e.flags & 4096) throw new S(r, e.currentLocation, 15);
+					a?.reportScopeError();
 				}
-				c.push(wt(e, t, l, s, r));
+				c.push(Ot(e, t, l, s, r));
 			}
-			t & 1 && (a && ((a & 537079808) == 537079808 && e.report(119), (a & 36864) == 36864 && e.report(40)), e.flags & 512 && e.report(119), e.flags & 256 && e.report(118));
+			if (t & 1 && (i && ((i & 537079808) == 537079808 && e.report(121), (i & 36864) == 36864 && e.report(40)), e.flags & 512 && e.report(121), e.flags & 256)) {
+				if (e.strictReservedRange) throw new S(e.strictReservedRange[0], e.strictReservedRange[1], 120);
+				e.report(120);
+			}
 		}
-		for (e.flags = (e.flags | 4928) ^ 4928, e.destructible = (e.destructible | 256) ^ 256; e.getToken() !== 1074790415;) c.push(M(e, t, n, r, 4, {}));
-		return D(e, i & 24 ? t | 32 : t, 1074790415), e.flags &= -4289, e.getToken() === 1077936155 && e.report(26), e.finishNode({
+		for (e.flags = (e.flags | 4928) ^ 4928, e.destructible = (e.destructible | 256) ^ 256; e.getToken() !== 1074790415;) c.push(xt(e, t, n, r, {}, 4));
+		return k(e, o & 24 ? t | 32 : t, 1074790415), e.flags &= -4289, e.getToken() === 1077936155 && e.report(26), e.finishNode({
 			type: "BlockStatement",
 			body: c
 		}, s);
 	}
-	function an(e, t) {
+	function mn(e, t) {
 		let { tokenStart: n } = e;
-		switch (A(e, t), e.getToken()) {
-			case 67108990: e.report(167);
+		switch (E(e, t), e.getToken()) {
+			case 67108991: e.report(169);
 			case 67174411:
 				t & 512 || e.report(28), e.assignable = 2;
 				break;
@@ -25141,27 +25689,27 @@ var vot = (function(exports) {
 		}
 		return e.finishNode({ type: "Super" }, n);
 	}
-	function U(e, t, n, r, i, a) {
-		let o = e.tokenStart;
-		return W(e, t, n, G(e, t, n, 2, 0, r, i, a, o), i, 0, o);
+	function U(e, t, n, r, i, a, o = 0) {
+		let s = e.tokenStart;
+		return W(e, t, n, G(e, t, n, 2, 0, r, i, a, s, 0, o), i, 0, s);
 	}
-	function on$1(e, t, n, r) {
+	function hn(e, t, n, r) {
 		e.assignable & 2 && e.report(55);
 		let i = e.getToken();
-		return A(e, t), e.assignable = 2, e.finishNode({
+		return E(e, t), e.assignable = 2, e.finishNode({
 			type: "UpdateExpression",
 			argument: n,
-			operator: w[i & 255],
+			operator: C[i & 255],
 			prefix: !1
 		}, r);
 	}
 	function W(e, t, n, r, i, a, o) {
-		if ((e.getToken() & 33619968) == 33619968 && !(e.flags & 1)) r = on$1(e, t, r, o);
+		if ((e.getToken() & 33619968) == 33619968 && !(e.flags & 1)) r = hn(e, t, r, o);
 		else if ((e.getToken() & 67108864) == 67108864) {
 			switch (t = (t | 131072) ^ 131072, e.getToken()) {
 				case 67108877: {
-					A(e, (t | 262152) ^ 8), t & 16 && e.getToken() === 130 && e.tokenValue === "super" && e.report(173), e.assignable = 1;
-					let i = cn(e, t | 64, n);
+					E(e, (t | 262152) ^ 8), t & 16 && e.getToken() === 131 && e.tokenValue === "super" && e.report(175), e.assignable = (e.flags & 2048) == 2048 ? 2 : 1;
+					let i = _n(e, t | 64, n, 1);
 					r = e.finishNode({
 						type: "MemberExpression",
 						object: r,
@@ -25172,10 +25720,11 @@ var vot = (function(exports) {
 					break;
 				}
 				case 69271571: {
+					if ((e.flags & 8192) == 8192) return e.flags = (e.flags | 8192) ^ 8192, r;
 					let a = !1;
-					(e.flags & 2048) == 2048 && (a = !0, e.flags = (e.flags | 2048) ^ 2048), A(e, t | 32);
+					(e.flags & 2048) == 2048 && (a = !0, e.flags = (e.flags | 2048) ^ 2048), E(e, t | 32);
 					let { tokenStart: s } = e, c = z(e, t, n, i, 1, s);
-					D(e, t, 20), e.assignable = 1, r = e.finishNode({
+					k(e, t, 20), e.assignable = a ? 2 : 1, r = e.finishNode({
 						type: "MemberExpression",
 						object: r,
 						computed: !0,
@@ -25188,8 +25737,8 @@ var vot = (function(exports) {
 					if ((e.flags & 1024) == 1024) return e.flags = (e.flags | 1024) ^ 1024, r;
 					let a = !1;
 					(e.flags & 2048) == 2048 && (a = !0, e.flags = (e.flags | 2048) ^ 2048);
-					let s = Cn(e, t, n, i);
-					e.assignable = 2, r = e.finishNode({
+					let s = jn(e, t, n, i);
+					e.assignable = !(t & 1) && e.options.webcompat ? 4 : 2, r = e.finishNode({
 						type: "CallExpression",
 						callee: r,
 						arguments: s,
@@ -25197,13 +25746,13 @@ var vot = (function(exports) {
 					}, o), a && (e.flags |= 2048);
 					break;
 				}
-				case 67108990:
-					A(e, (t | 262152) ^ 8), e.flags |= 2048, e.assignable = 2, r = sn(e, t, n, r, o);
+				case 67108991:
+					E(e, (t | 262152) ^ 8), e.flags |= 2048, e.assignable = 2, r = gn(e, t, n, r, o);
 					break;
-				default: (e.flags & 2048) == 2048 && e.report(166), e.assignable = 2, r = e.finishNode({
+				default: (e.flags & 2048) == 2048 && e.report(168), e.assignable = 2, r = e.finishNode({
 					type: "TaggedTemplateExpression",
 					tag: r,
-					quasi: e.getToken() === 67174408 ? bn(e, t | 64, n) : yn(e, t)
+					quasi: e.getToken() === 67174408 ? On(e, t | 64, n) : Dn(e, t)
 				}, o);
 			}
 			r = W(e, t, n, r, 0, 1, o);
@@ -25213,12 +25762,12 @@ var vot = (function(exports) {
 			expression: r
 		}, o)), r;
 	}
-	function sn(e, t, n, r, i) {
+	function gn(e, t, n, r, i) {
 		let a = !1, o;
 		if ((e.getToken() === 69271571 || e.getToken() === 67174411) && (e.flags & 2048) == 2048 && (a = !0, e.flags = (e.flags | 2048) ^ 2048), e.getToken() === 69271571) {
-			A(e, t | 32);
+			E(e, t | 32);
 			let { tokenStart: a } = e, s = z(e, t, n, 0, 1, a);
-			D(e, t, 20), e.assignable = 2, o = e.finishNode({
+			k(e, t, 20), e.assignable = 2, o = e.finishNode({
 				type: "MemberExpression",
 				object: r,
 				computed: !0,
@@ -25226,15 +25775,15 @@ var vot = (function(exports) {
 				property: s
 			}, i);
 		} else if (e.getToken() === 67174411) {
-			let a = Cn(e, t, n, 0);
-			e.assignable = 2, o = e.finishNode({
+			let a = jn(e, t, n, 0);
+			e.assignable = !(t & 1) && e.options.webcompat ? 4 : 2, o = e.finishNode({
 				type: "CallExpression",
 				callee: r,
 				arguments: a,
 				optional: !0
 			}, i);
 		} else {
-			let a = cn(e, t, n);
+			let a = _n(e, t, n, 1);
 			e.assignable = 2, o = e.finishNode({
 				type: "MemberExpression",
 				object: r,
@@ -25245,130 +25794,137 @@ var vot = (function(exports) {
 		}
 		return a && (e.flags |= 2048), o;
 	}
-	function cn(e, t, n) {
-		return !(e.getToken() & 143360) && e.getToken() !== -2147483528 && e.getToken() !== -2147483527 && e.getToken() !== 130 && e.report(160), e.getToken() === 130 ? Yn(e, t, n, 0) : K(e, t);
+	function _n(e, t, n, r = 0) {
+		return e.getToken() & 143360 || e.getToken() === -2147483527 || e.getToken() === -2147483526 || e.getToken() === 131 && r || e.report(162), e.getToken() === 131 ? rr(e, t, n, 0) : K(e, t);
 	}
-	function ln(e, t, n, r, i, a) {
+	function vn(e, t, n, r, i, a) {
 		r && e.report(56), i || e.report(0);
 		let o = e.getToken();
-		A(e, t | 32);
+		E(e, t | 32);
 		let s = U(e, t, n, 0, 0, 1);
 		return e.assignable & 2 && e.report(55), e.assignable = 2, e.finishNode({
 			type: "UpdateExpression",
 			argument: s,
-			operator: w[o & 255],
+			operator: C[o & 255],
 			prefix: !0
 		}, a);
 	}
-	function G(e, t, n, r, i, a, o, s, c) {
+	function G(e, t, n, r, i, a, o, s, c, l = 0, u = 0) {
 		if ((e.getToken() & 143360) == 143360) {
 			switch (e.getToken()) {
-				case 209006: return nn(e, t, n, i, o, c);
-				case 241771: return tn(e, t, n, o, a, c);
-				case 209005: return en(e, t, n, o, s, a, i, c);
+				case 209006:
+				case -2147274642: return fn(e, t, n, i, o, c);
+				case 241771: return dn(e, t, n, o, a, c);
+				case 209005: return un(e, t, n, o, s, a, i, c);
 			}
-			let { tokenValue: l } = e, u = e.getToken(), d = K(e, t | 64);
-			return e.getToken() === 10 ? (s || e.report(0), Ge(e, t, u), (u & 36864) == 36864 && (e.flags |= 256), Nn(e, t, n, l, d, i, a, 0, c)) : (t & 16 && !(t & 32768) && !(t & 8192) && e.tokenValue === "arguments" && e.report(130), (u & 255) == 73 && (t & 1 && e.report(113), r & 24 && e.report(100)), e.assignable = t & 1 && (u & 537079808) == 537079808 ? 2 : 1, d);
+			let { tokenValue: u } = e, d = e.getToken(), f = K(e, t | 64);
+			return e.getToken() === 10 ? (s || e.report(0), nt(e, t, d), (d & 36864) == 36864 && (e.flags |= 256), Vn(e, t, n, u, f, i, a, 0, c, l)) : (t & 16 && !(t & 32768) && !(t & 8192) && e.tokenValue === "arguments" && e.report(132), (d & 255) == 73 && (t & 1 && e.report(115), r & 24 && e.report(100)), e.assignable = t & 1 && (d & 537079808) == 537079808 ? 2 : 1, f);
 		}
 		if ((e.getToken() & 134217728) == 134217728) return q(e, t);
 		switch (e.getToken()) {
 			case 33619993:
-			case 33619994: return ln(e, t, n, i, s, c);
+			case 33619994: return vn(e, t, n, i, s, c);
 			case 16863276:
 			case 16842798:
 			case 16842799:
 			case 25233968:
 			case 25233969:
 			case 16863275:
-			case 16863277: return $t(e, t, n, s, o);
-			case 86104: return En(e, t, n, 0, o, c);
-			case 2162700: return kn(e, t, n, +!a, o);
-			case 69271571: return Dn(e, t, n, +!a, o);
-			case 67174411: return jn(e, t | 64, n, a, 1, 0, c);
+			case 16863277: return ln(e, t, n, s, o);
+			case 86104: return Pn(e, t, n, 0, o, c);
+			case 2162700: return Ln(e, t, n, +!a, o);
+			case 69271571: return Fn(e, t, n, +!a, o);
+			case 67174411: return zn(e, t | 64, n, a, 1, c, l);
 			case 86021:
 			case 86022:
-			case 86023: return wn(e, t);
-			case 86111: return Tn(e, t);
-			case 65540: return Hn(e, t);
-			case 132:
-			case 86094: return Wn(e, t, n, o, c);
-			case 86109: return an(e, t);
-			case 67174409: return yn(e, t);
-			case 67174408: return bn(e, t, n);
-			case 86107: return Rn(e, t, n, o);
-			case 134283388: return vn(e, t);
-			case 130: return Yn(e, t, n, 0);
-			case 86106: return un(e, t, n, i, o, c);
-			case 8456256: if (e.options.jsx) return $n(e, t, n, 0, e.tokenStart);
+			case 86023: return Mn(e, t);
+			case 86111: return Nn(e, t);
+			case 65540: return Xn(e, t);
+			case 133: e.features & 1 || e.report(30, "@");
+			case 86094: return Qn(e, t, n, o, c);
+			case 86109: return mn(e, t);
+			case 67174409: return Dn(e, t);
+			case 67174408: return On(e, t, n);
+			case 86107: return Kn(e, t, n, o);
+			case 134283389: return En(e, t);
+			case 131: {
+				u || e.report(30, "PrivateField");
+				let { tokenStart: r } = e, i = rr(e, t, n, 0);
+				if (e.getToken() !== 8673330) throw new S(r, e.startPosition, 151);
+				return i;
+			}
+			case 86106: return yn(e, t, n, i, o, c);
+			case 8456256: if (e.options.jsx) return sr(e, t, n, 0, e.tokenStart);
 			default:
-				if (k(t, e.getToken())) return Mn(e, t, n);
-				e.report(30, w[e.getToken() & 255]);
+				if (M(t, e.getToken())) return Bn(e, t, n);
+				e.report(30, C[e.getToken() & 255]);
 		}
 	}
-	function un(e, t, n, r, i, a) {
+	function yn(e, t, n, r, i, a) {
 		let o = K(e, t);
-		return e.getToken() === 67108877 ? dn(e, t, o, a) : (r && e.report(142), o = fn(e, t, n, i, a), e.assignable = 2, W(e, t, n, o, i, 0, a));
+		return e.getToken() === 67108877 ? bn(e, t, o, a, n, i, r) : (r && e.report(144), o = xn(e, t, n, i, a), e.assignable = 2, W(e, t, n, o, i, 0, a));
 	}
-	function dn(e, t, n, r) {
-		t & 2 || e.report(169), A(e, t);
-		let i = e.getToken();
-		return i !== 209030 && e.tokenValue !== "meta" ? e.report(174) : i & -2147483648 && e.report(175), e.assignable = 2, e.finishNode({
+	function bn(e, t, n, r, i, a = 0, o = 0) {
+		let s = e.tokenStart, c = e.currentLocation;
+		E(e, t);
+		let l = e.getToken(), u = e.features & 2 && !(l & -2147483648) && e.tokenValue === "defer", d = e.features & 4 && !(l & -2147483648) && e.tokenValue === "source";
+		if (u || d) {
+			o && e.report(144), E(e, t);
+			let n = xn(e, t, i, a, r, e.tokenValue);
+			return e.assignable = 2, n;
+		}
+		if (!(t & 2)) throw new S(s, c, 171);
+		return l !== 209031 && e.tokenValue !== "meta" ? e.report(176) : l & -2147483648 && e.report(177), e.assignable = 2, e.finishNode({
 			type: "MetaProperty",
 			meta: n,
 			property: K(e, t)
 		}, r);
 	}
-	function fn(e, t, n, r, i) {
-		D(e, t | 32, 67174411), e.getToken() === 14 && e.report(143);
-		let a = L(e, t, n, 1, r, e.tokenStart), o = null;
-		e.getToken() === 18 && (D(e, t, 18), e.getToken() !== 16 && (o = L(e, (t | 131072) ^ 131072, n, 1, r, e.tokenStart)), E(e, t, 18));
-		let s = {
+	function xn(e, t, n, r, i, a = null) {
+		k(e, t | 32, 67174411), e.getToken() === 14 && e.report(145);
+		let o = L(e, t, n, 1, r, e.tokenStart), s = null;
+		e.getToken() === 18 && (k(e, t, 18), e.getToken() !== 16 && (s = L(e, (t | 131072) ^ 131072, n, 1, r, e.tokenStart)), O(e, t, 18));
+		let c = {
 			type: "ImportExpression",
-			source: a,
-			options: o
+			source: o,
+			options: s,
+			...e.features & 2 || e.features & 4 ? { phase: a } : null
 		};
-		return D(e, t, 16), e.finishNode(s, i);
+		return k(e, t, 16), e.finishNode(c, i);
 	}
-	function pn(e, t) {
-		if (!E(e, t, 20579)) return [];
-		D(e, t, 2162700);
+	function Sn(e, t) {
+		if (!O(e, t, 20579)) return [];
+		k(e, t, 2162700);
 		let n = [], r = new Set();
 		for (; e.getToken() !== 1074790415;) {
-			let i = e.tokenStart, a = hn(e, t);
-			D(e, t, 21);
-			let o = mn(e, t), s = a.type === "Literal" ? a.value : a.name;
-			r.has(s) && e.report(145, `${s}`), r.add(s), n.push(e.finishNode({
+			let i = e.tokenStart, a = wn(e, t);
+			k(e, t, 21);
+			let o = Cn(e, t), s = a.type === "Literal" ? a.value : a.name;
+			r.has(s) && e.report(147, s), r.add(s), n.push(e.finishNode({
 				type: "ImportAttribute",
 				key: a,
 				value: o
-			}, i)), e.getToken() !== 1074790415 && D(e, t, 18);
+			}, i)), e.getToken() !== 1074790415 && k(e, t, 18);
 		}
-		return D(e, t, 1074790415), n;
+		return k(e, t, 1074790415), n;
 	}
-	function mn(e, t) {
+	function Cn(e, t) {
 		if (e.getToken() === 134283267) return q(e, t);
-		e.report(30, w[e.getToken() & 255]);
+		e.report(30, C[e.getToken() & 255]);
 	}
-	function hn(e, t) {
+	function wn(e, t) {
 		if (e.getToken() === 134283267) return q(e, t);
 		if (e.getToken() & 143360) return K(e, t);
-		e.report(30, w[e.getToken() & 255]);
+		e.report(30, C[e.getToken() & 255]);
 	}
-	function gn(e, t) {
-		let n = t.length;
-		for (let r = 0; r < n; r++) {
-			let i = t.charCodeAt(r);
-			(i & 64512) == 55296 && (i > 56319 || ++r >= n || (t.charCodeAt(r) & 64512) != 56320) && e.report(171, JSON.stringify(t.charAt(r--)));
-		}
-	}
-	function _n(e, t) {
-		if (e.getToken() === 134283267) return gn(e, e.tokenValue), q(e, t);
+	function Tn(e, t) {
+		if (e.getToken() === 134283267) return e.tokenValue.isWellFormed() || e.report(173), q(e, t);
 		if (e.getToken() & 143360) return K(e, t);
-		e.report(30, w[e.getToken() & 255]);
+		e.report(30, C[e.getToken() & 255]);
 	}
-	function vn(e, t) {
+	function En(e, t) {
 		let { tokenRaw: n, tokenValue: r, tokenStart: i } = e;
-		A(e, t), e.assignable = 2;
+		E(e, t), e.assignable = 2;
 		let a = {
 			type: "Literal",
 			value: r,
@@ -25376,37 +25932,37 @@ var vot = (function(exports) {
 		};
 		return e.options.raw && (a.raw = n), e.finishNode(a, i);
 	}
-	function yn(e, t) {
+	function Dn(e, t) {
 		e.assignable = 2;
 		let { tokenValue: n, tokenRaw: r, tokenStart: i } = e;
-		D(e, t, 67174409);
-		let a = [xn(e, n, r, i, !0)];
+		k(e, t, 67174409);
+		let a = [kn(e, n, r, i, !0)];
 		return e.finishNode({
 			type: "TemplateLiteral",
 			expressions: [],
 			quasis: a
 		}, i);
 	}
-	function bn(e, t, n) {
+	function On(e, t, n) {
 		t = (t | 131072) ^ 131072;
 		let { tokenValue: r, tokenRaw: i, tokenStart: a } = e;
-		D(e, t & -65 | 32, 67174408);
-		let o = [xn(e, r, i, a, !1)], s = [z(e, t & -65, n, 0, 1, e.tokenStart)];
-		for (e.getToken() !== 1074790415 && e.report(83); e.setToken(je(e, t), !0) !== 67174409;) {
+		k(e, t & -65 | 32, 67174408);
+		let o = [kn(e, r, i, a, !1)], s = [z(e, t & -65, n, 0, 1, e.tokenStart)];
+		for (e.getToken() !== 1074790415 && e.report(83); e.setToken(Ge(e, t), !0) !== 67174409;) {
 			let { tokenValue: r, tokenRaw: i, tokenStart: a } = e;
-			D(e, t & -65 | 32, 67174408), o.push(xn(e, r, i, a, !1)), s.push(z(e, t, n, 0, 1, e.tokenStart)), e.getToken() !== 1074790415 && e.report(83);
+			k(e, t & -65 | 32, 67174408), o.push(kn(e, r, i, a, !1)), s.push(z(e, t, n, 0, 1, e.tokenStart)), e.getToken() !== 1074790415 && e.report(83);
 		}
 		{
 			let { tokenValue: n, tokenRaw: r, tokenStart: i } = e;
-			D(e, t, 67174409), o.push(xn(e, n, r, i, !0));
+			k(e, t, 67174409), o.push(kn(e, n, r, i, !0));
 		}
-		return e.finishNode({
+		return e.assignable = 2, e.finishNode({
 			type: "TemplateLiteral",
 			expressions: s,
 			quasis: o
 		}, a);
 	}
-	function xn(e, t, n, r, i) {
+	function kn(e, t, n, r, i) {
 		let a = e.finishNode({
 			type: "TemplateElement",
 			value: {
@@ -25414,86 +25970,80 @@ var vot = (function(exports) {
 				raw: n
 			},
 			tail: i
-		}, r), o = i ? 1 : 2;
-		return e.options.ranges && (a.start += 1, a.range[0] += 1, a.end -= o, a.range[1] -= o), e.options.loc && (a.loc.start.column += 1, a.loc.end.column -= o), a;
+		}, r), o = i ? 1 : 2, { ranges: s } = e.options;
+		return s && (s.start && (a.start += 1), s.end && (a.end -= o), s.range && (a.range[0] += 1, a.range[1] -= o)), e.options.loc && (a.loc.start.column += 1, a.loc.end.column -= o), a;
 	}
-	function Sn(e, t, n) {
+	function An(e, t, n) {
 		let r = e.tokenStart;
-		t = (t | 131072) ^ 131072, D(e, t | 32, 14);
+		t = (t | 131072) ^ 131072, k(e, t | 32, 14);
 		let i = L(e, t, n, 1, 0, e.tokenStart);
 		return e.assignable = 1, e.finishNode({
 			type: "SpreadElement",
 			argument: i
 		}, r);
 	}
-	function Cn(e, t, n, r) {
-		A(e, t | 32);
+	function jn(e, t, n, r) {
+		E(e, t | 32);
 		let i = [];
-		if (e.getToken() === 16) return A(e, t | 64), i;
-		for (; e.getToken() !== 16 && (e.getToken() === 14 ? i.push(Sn(e, t, n)) : i.push(L(e, t, n, 1, r, e.tokenStart)), !(e.getToken() !== 18 || (A(e, t | 32), e.getToken() === 16))););
-		return D(e, t | 64, 16), i;
+		if (e.getToken() === 16) return E(e, t | 64), i;
+		for (; e.getToken() !== 16 && (e.getToken() === 14 ? i.push(An(e, t, n)) : i.push(L(e, t, n, 1, r, e.tokenStart)), !(e.getToken() !== 18 || (E(e, t | 32), e.getToken() === 16))););
+		return k(e, t | 64, 16), i;
 	}
-	function K(e, t) {
-		let { tokenValue: n, tokenStart: r } = e;
-		return A(e, t | (n === "await" && !(e.getToken() & -2147483648) ? 32 : 0)), e.finishNode({
+	function K(e, t, n = 0) {
+		let { tokenValue: r, tokenStart: i } = e;
+		return E(e, t | (n ? 32 : 0)), e.finishNode({
 			type: "Identifier",
-			name: n
-		}, r);
+			name: r
+		}, i);
 	}
 	function q(e, t) {
 		let { tokenValue: n, tokenRaw: r, tokenStart: i } = e;
-		return e.getToken() === 134283388 ? vn(e, t) : (A(e, t), e.assignable = 2, e.finishNode(e.options.raw ? {
-			type: "Literal",
-			value: n,
-			raw: r
-		} : {
+		if (e.getToken() === 134283389) return En(e, t);
+		let a = {
 			type: "Literal",
 			value: n
-		}, i));
+		};
+		return e.options.raw && (a.raw = r), E(e, t), e.assignable = 2, e.finishNode(a, i);
 	}
-	function wn(e, t) {
-		let n = e.tokenStart, r = w[e.getToken() & 255], i = e.getToken() === 86023 ? null : r === "true";
-		return A(e, t), e.assignable = 2, e.finishNode(e.options.raw ? {
+	function Mn(e, t) {
+		let n = e.tokenStart, r = C[e.getToken() & 255], i = {
 			type: "Literal",
-			value: i,
-			raw: r
-		} : {
-			type: "Literal",
-			value: i
-		}, n);
+			value: e.getToken() === 86023 ? null : r === "true"
+		};
+		return e.options.raw && (i.raw = r), E(e, t), e.assignable = 2, e.finishNode(i, n);
 	}
-	function Tn(e, t) {
+	function Nn(e, t) {
 		let { tokenStart: n } = e;
-		return A(e, t), e.assignable = 2, e.finishNode({ type: "ThisExpression" }, n);
+		return E(e, t), e.assignable = 2, e.finishNode({ type: "ThisExpression" }, n);
 	}
-	function J(e, t, n, r, i, a, o, s, c) {
-		A(e, t | 32);
-		let l = a ? Le(e, t, 8391476) : 0, u = null, d, f = n ? e.createScope() : void 0;
-		if (e.getToken() === 67174411) o & 1 || e.report(39, "Function");
+	function J(e, t, n, r, i, a, o, s, c = 0) {
+		E(e, t | 32);
+		let l = i ? Ye(e, t, 8391476) : 0, u = null, d, f = n ? e.createScope() : void 0;
+		if (e.getToken() === 67174411) a & 1 || e.report(39, "Function");
 		else {
-			let r = i & 4 && (!(t & 8) || !(t & 2)) ? 4 : 64 | (s ? 1024 : 0) | (l ? 1024 : 0);
-			ze(e, t, e.getToken()), n && (r & 4 ? n.addVarName(t, e.tokenValue, r) : n.addBlockName(t, e.tokenValue, r, i), f = f?.createChildScope(128), o && o & 2 && e.declareUnboundVariable(e.tokenValue)), d = e.getToken(), e.getToken() & 143360 ? u = K(e, t) : e.report(30, w[e.getToken() & 255]);
+			let r = c & 4 && (!(t & 8) || !(t & 2)) ? 4 : 64 | (o ? 1024 : 0) | (l ? 1024 : 0);
+			Xe(e, t, e.getToken()), n && (n.addVarOrBlock(t, e.tokenValue, r, e.tokenStart, e.currentLocation, c), f = f?.createChildScope(128), a && a & 2 && e.declareUnboundVariable(e.tokenValue)), d = e.getToken(), e.getToken() & 143360 ? u = K(e, t) : e.report(30, C[e.getToken() & 255]);
 		}
 		{
 			let e = 28416;
-			t = (t | e) ^ e | 65536 | (s ? 2048 : 0) | (l ? 1024 : 0) | (l ? 0 : 262144);
+			t = (t | e) ^ e | 65536 | (o ? 2048 : 0) | (l ? 1024 : 0) | (l ? 0 : 262144);
 		}
 		f = f?.createChildScope(256);
-		let p = In(e, (t | 8192) & -524289, f, r, 0, 1), m = 524428, h = rn(e, (t | m) ^ m | 36864, f?.createChildScope(64), r, 8, d, f);
+		let p = Wn(e, (t | 8192) & -524289, f, r, 0, 1), m = 524428, h = pn(e, (t | m) ^ m | 36864, f?.createChildScope(64), r, d, f, 8);
 		return e.finishNode({
 			type: "FunctionDeclaration",
 			id: u,
 			params: p,
 			body: h,
-			async: s === 1,
+			async: o === 1,
 			generator: l === 1
-		}, c);
+		}, s);
 	}
-	function En(e, t, n, r, i, a) {
-		A(e, t | 32);
-		let o = Le(e, t, 8391476), s = (r ? 2048 : 0) | (o ? 1024 : 0), c = null, l, u = e.createScopeIfLexical(), d = 552704;
-		e.getToken() & 143360 && (ze(e, (t | d) ^ d | s, e.getToken()), u = u?.createChildScope(128), l = e.getToken(), c = K(e, t)), t = (t | d) ^ d | 65536 | s | (o ? 0 : 262144), u = u?.createChildScope(256);
-		let f = In(e, (t | 8192) & -524289, u, n, i, 1), p = rn(e, t & -131229 | 36864, u?.createChildScope(64), n, 0, l, u);
+	function Pn(e, t, n, r, i, a) {
+		E(e, t | 32);
+		let o = Ye(e, t, 8391476), s = (r ? 2048 : 0) | (o ? 1024 : 0), c = null, l, u = e.createScopeIfLexical(), d = 552704;
+		e.getToken() & 143360 && (Xe(e, (t | d) ^ d | s, e.getToken()), u = u?.createChildScope(128), l = e.getToken(), c = K(e, t)), t = (t | d) ^ d | 65536 | s | (o ? 0 : 262144), u = u?.createChildScope(256);
+		let f = Wn(e, (t | 8192) & -524289, u, n, i, 1), p = pn(e, t & -131229 | 36864, u?.createChildScope(64), n, l, u);
 		return e.assignable = 2, e.finishNode({
 			type: "FunctionExpression",
 			id: c,
@@ -25503,20 +26053,20 @@ var vot = (function(exports) {
 			generator: o === 1
 		}, a);
 	}
-	function Dn(e, t, n, r, i) {
-		let a = Y(e, t, void 0, n, r, i, 0, 2, 0);
+	function Fn(e, t, n, r, i) {
+		let a = Y(e, t, void 0, n, r, i, 0, 2);
 		return e.destructible & 64 && e.report(63), e.destructible & 8 && e.report(62), a;
 	}
-	function Y(e, t, n, r, i, a, o, s, c) {
+	function Y(e, t, n, r, i, a, o, s, c = 0) {
 		let { tokenStart: l } = e;
-		A(e, t | 32);
+		E(e, t | 32);
 		let u = [], d = 0;
-		for (t = (t | 131072) ^ 131072; e.getToken() !== 20;) if (E(e, t | 32, 18)) u.push(null);
+		for (t = (t | 131072) ^ 131072; e.getToken() !== 20;) if (O(e, t | 32, 18)) u.push(null);
 		else {
-			let i, { tokenStart: l, tokenValue: f } = e, p = e.getToken();
-			if (p & 143360) {
+			let i, { tokenStart: l, tokenValue: f, currentLocation: p } = e, m = e.getToken();
+			if (m & 143360) {
 				if (i = G(e, t, r, s, 0, 1, a, 1, l), e.getToken() === 1077936155) {
-					e.assignable & 2 && e.report(26), A(e, t | 32), n?.addVarOrBlock(t, f, s, c);
+					e.assignable & 2 && e.report(26), E(e, t | 32), n?.addVarOrBlock(t, f, s, l, p, c);
 					let u = L(e, t, r, 1, a, e.tokenStart);
 					i = e.finishNode(o ? {
 						type: "AssignmentPattern",
@@ -25527,22 +26077,22 @@ var vot = (function(exports) {
 						operator: "=",
 						left: i,
 						right: u
-					}, l), d |= e.destructible & 256 ? 256 : e.destructible & 128 ? 128 : 0;
-				} else e.getToken() === 18 || e.getToken() === 20 ? (e.assignable & 2 ? d |= 16 : n?.addVarOrBlock(t, f, s, c), d |= e.destructible & 256 ? 256 : e.destructible & 128 ? 128 : 0) : (d |= s & 1 ? 32 : s & 2 ? 0 : 16, i = W(e, t, r, i, a, 0, l), e.getToken() !== 18 && e.getToken() !== 20 ? (e.getToken() !== 1077936155 && (d |= 16), i = B(e, t, r, a, o, l, i)) : e.getToken() !== 1077936155 && (d |= e.assignable & 2 ? 16 : 32));
-			} else p & 2097152 ? (i = e.getToken() === 2162700 ? Q(e, t, n, r, 0, a, o, s, c) : Y(e, t, n, r, 0, a, o, s, c), d |= e.destructible, e.assignable = e.destructible & 16 ? 2 : 1, e.getToken() === 18 || e.getToken() === 20 ? e.assignable & 2 && (d |= 16) : e.destructible & 8 ? e.report(71) : (i = W(e, t, r, i, a, 0, l), d = e.assignable & 2 ? 16 : 0, e.getToken() !== 18 && e.getToken() !== 20 ? i = B(e, t, r, a, o, l, i) : e.getToken() !== 1077936155 && (d |= e.assignable & 2 ? 16 : 32))) : p === 14 ? (i = X(e, t, n, r, 20, s, c, 0, a, o), d |= e.destructible, e.getToken() !== 18 && e.getToken() !== 20 && e.report(30, w[e.getToken() & 255])) : (i = U(e, t, r, 1, 0, 1), e.getToken() !== 18 && e.getToken() !== 20 ? (i = B(e, t, r, a, o, l, i), !(s & 3) && p === 67174411 && (d |= 16)) : e.assignable & 2 ? d |= 16 : p === 67174411 && (d |= e.assignable & 1 && s & 3 ? 32 : 16));
-			if (u.push(i), E(e, t | 32, 18)) {
+					}, l), d |= (e.destructible & 256 ? 256 : 0) | (e.destructible & 128 ? 128 : 0);
+				} else e.getToken() === 18 || e.getToken() === 20 ? (e.assignable & 2 ? d |= 16 : n?.addVarOrBlock(t, f, s, l, p, c), d |= (e.destructible & 256 ? 256 : 0) | (e.destructible & 128 ? 128 : 0)) : (d |= s & 1 ? 32 : s & 2 ? 0 : 16, i = W(e, t, r, i, a, 0, l), e.getToken() !== 18 && e.getToken() !== 20 ? (e.getToken() !== 1077936155 && (d |= 16), i = B(e, t, r, a, o, l, i)) : e.getToken() !== 1077936155 && (d |= e.assignable & 1 ? 32 : 16));
+			} else m & 2097152 ? (i = e.getToken() === 2162700 ? Q(e, t, n, r, 0, a, o, s, c) : Y(e, t, n, r, 0, a, o, s, c), d |= e.destructible, e.assignable = e.destructible & 16 ? 2 : 1, e.getToken() === 18 || e.getToken() === 20 ? e.assignable & 2 && (d |= 16) : e.destructible & 8 ? e.report(71) : (i = W(e, t, r, i, a, 0, l), d = e.assignable & 2 ? 16 : 0, e.getToken() !== 18 && e.getToken() !== 20 ? i = B(e, t, r, a, o, l, i) : e.getToken() !== 1077936155 && (d |= e.assignable & 1 ? 32 : 16))) : m === 14 ? (i = X(e, t, n, r, 20, s, 0, a, o, c), d |= e.destructible, e.getToken() !== 18 && e.getToken() !== 20 && e.report(30, C[e.getToken() & 255])) : (i = U(e, t, r, 1, 0, 1), e.getToken() !== 18 && e.getToken() !== 20 ? (i = B(e, t, r, a, o, l, i), !(s & 3) && m === 67174411 && (d |= 16)) : e.assignable & 2 ? d |= 16 : m === 67174411 && (d |= e.assignable & 1 && s & 3 ? 32 : 16));
+			if (u.push(i), O(e, t | 32, 18)) {
 				if (e.getToken() === 20) break;
 			} else break;
 		}
-		D(e, t, 20);
+		k(e, t, 20);
 		let f = e.finishNode({
 			type: o ? "ArrayPattern" : "ArrayExpression",
 			elements: u
 		}, l);
-		return !i && e.getToken() & 4194304 ? On(e, t, r, d, a, o, l, f) : (e.destructible = d, f);
+		return !i && e.getToken() & 4194304 ? In(e, t, r, d, a, o, l, f) : (e.destructible = d, f);
 	}
-	function On(e, t, n, r, i, a, o, s) {
-		e.getToken() !== 1077936155 && e.report(26), A(e, t | 32), r & 16 && e.report(26), a || O(e, s);
+	function In(e, t, n, r, i, a, o, s) {
+		e.getToken() !== 1077936155 && e.report(26), E(e, t | 32), r & 16 && e.report(26), a || A(e, s);
 		let { tokenStart: c } = e, l = L(e, t, n, 1, i, c);
 		return e.destructible = (r | 72) ^ 72 | (e.destructible & 128 ? 128 : 0) | (e.destructible & 256 ? 256 : 0), e.finishNode(a ? {
 			type: "AssignmentPattern",
@@ -25555,26 +26105,26 @@ var vot = (function(exports) {
 			right: l
 		}, o);
 	}
-	function X(e, t, n, r, i, a, o, s, c, l) {
+	function X(e, t, n, r, i, a, o, s, c, l = 0) {
 		let { tokenStart: u } = e;
-		A(e, t | 32);
-		let d = null, f = 0, { tokenValue: p, tokenStart: m } = e, h = e.getToken();
-		if (h & 143360) e.assignable = 1, d = G(e, t, r, a, 0, 1, c, 1, m), h = e.getToken(), d = W(e, t, r, d, c, 0, m), e.getToken() !== 18 && e.getToken() !== i && (e.assignable & 2 && e.getToken() === 1077936155 && e.report(71), f |= 16, d = B(e, t, r, c, l, m, d)), e.assignable & 2 ? f |= 16 : h === i || h === 18 ? n?.addVarOrBlock(t, p, a, o) : f |= 32, f |= e.destructible & 128 ? 128 : 0;
-		else if (h === i) e.report(41);
-		else if (h & 2097152) d = e.getToken() === 2162700 ? Q(e, t, n, r, 1, c, l, a, o) : Y(e, t, n, r, 1, c, l, a, o), h = e.getToken(), h !== 1077936155 && h !== i && h !== 18 ? (e.destructible & 8 && e.report(71), d = W(e, t, r, d, c, 0, m), f |= e.assignable & 2 ? 16 : 0, (e.getToken() & 4194304) == 4194304 ? (e.getToken() !== 1077936155 && (f |= 16), d = B(e, t, r, c, l, m, d)) : ((e.getToken() & 8388608) == 8388608 && (d = H(e, t, r, 1, m, 4, h, d)), E(e, t | 32, 22) && (d = V(e, t, r, d, m)), f |= e.assignable & 2 ? 16 : 32)) : f |= i === 1074790415 && h !== 1077936155 ? 16 : e.destructible;
+		E(e, t | 32);
+		let d = null, f = 0, { tokenValue: p, tokenStart: m, currentLocation: h } = e, g = e.getToken();
+		if (g & 143360) e.assignable = 1, d = G(e, t, r, a, 0, 1, s, 1, m), g = e.getToken(), d = W(e, t, r, d, s, 0, m), e.getToken() !== 18 && e.getToken() !== i && (e.assignable & 2 && e.getToken() === 1077936155 && e.report(71), f |= 16, d = B(e, t, r, s, c, m, d)), e.assignable & 2 ? f |= 16 : g === i || g === 18 ? n?.addVarOrBlock(t, p, a, m, h, l) : f |= 32, f |= e.destructible & 128 ? 128 : 0;
+		else if (g === i) e.report(41);
+		else if (g & 2097152) d = e.getToken() === 2162700 ? Q(e, t, n, r, 1, s, c, a, l) : Y(e, t, n, r, 1, s, c, a, l), g = e.getToken(), g !== 1077936155 && g !== i && g !== 18 ? (e.destructible & 8 && e.report(71), d = W(e, t, r, d, s, 0, m), f |= e.assignable & 1 ? 0 : 16, (e.getToken() & 4194304) == 4194304 ? (e.getToken() !== 1077936155 && (f |= 16), d = B(e, t, r, s, c, m, d)) : ((e.getToken() & 8388608) == 8388608 && (d = H(e, t, r, 1, m, 4, g, d)), O(e, t | 32, 22) && (d = V(e, t, r, d, m)), f |= e.assignable & 1 ? 32 : 16)) : f |= i === 1074790415 && g !== 1077936155 ? 16 : e.destructible;
 		else {
-			f |= 32, d = U(e, t, r, 1, c, 1);
+			f |= 32, d = U(e, t, r, 1, s, 1);
 			let { tokenStart: n } = e, a = e.getToken();
-			return a === 1077936155 ? (e.assignable & 2 && e.report(26), d = B(e, t, r, c, l, n, d), f |= 16) : (a === 18 ? f |= 16 : a !== i && (d = B(e, t, r, c, l, n, d)), f |= e.assignable & 1 ? 32 : 16), e.destructible = f, e.getToken() !== i && e.getToken() !== 18 && e.report(161), e.finishNode({
-				type: l ? "RestElement" : "SpreadElement",
+			return a === 1077936155 ? (e.assignable & 2 && e.report(26), d = B(e, t, r, s, c, n, d), f |= 16) : (a === 18 ? f |= 16 : a !== i && (d = B(e, t, r, s, c, n, d)), f |= e.assignable & 1 ? 32 : 16), e.destructible = f, e.getToken() !== i && e.getToken() !== 18 && e.report(163), e.finishNode({
+				type: c ? "RestElement" : "SpreadElement",
 				argument: d
 			}, u);
 		}
 		if (e.getToken() !== i) {
-			if (a & 1 && (f |= s ? 16 : 32), E(e, t | 32, 1077936155)) {
-				f & 16 && e.report(26), O(e, d);
-				let n = L(e, t, r, 1, c, e.tokenStart);
-				d = e.finishNode(l ? {
+			if (a & 1 && (f |= o ? 16 : 32), O(e, t | 32, 1077936155)) {
+				f & 16 && e.report(26), A(e, d);
+				let n = L(e, t, r, 1, s, e.tokenStart);
+				d = e.finishNode(c ? {
 					type: "AssignmentPattern",
 					left: d,
 					right: n
@@ -25587,16 +26137,16 @@ var vot = (function(exports) {
 			} else f |= 16;
 		}
 		return e.destructible = f, e.finishNode({
-			type: l ? "RestElement" : "SpreadElement",
+			type: c ? "RestElement" : "SpreadElement",
 			argument: d
 		}, u);
 	}
 	function Z(e, t, n, r, i, a) {
 		let o = 11264 | (r & 64 ? 0 : 16896);
 		t = (t | o) ^ o | (r & 8 ? 1024 : 0) | (r & 16 ? 2048 : 0) | (r & 64 ? 16384 : 0) | 98560;
-		let s = e.createScopeIfLexical(256), c = An(e, (t | 8192) & -524289, s, n, r, 1, i);
+		let s = e.createScopeIfLexical(256), c = Rn(e, (t | 8192) & -524289, s, n, r, 1, i);
 		s = s?.createChildScope(64);
-		let l = rn(e, t & -655373 | 36864, s, n, 0, void 0, s?.parent);
+		let l = pn(e, t & -655373 | 36864, s, n, void 0, s?.parent);
 		return e.finishNode({
 			type: "FunctionExpression",
 			params: c,
@@ -25606,96 +26156,96 @@ var vot = (function(exports) {
 			id: null
 		}, a);
 	}
-	function kn(e, t, n, r, i) {
-		let a = Q(e, t, void 0, n, r, i, 0, 2, 0);
+	function Ln(e, t, n, r, i) {
+		let a = Q(e, t, void 0, n, r, i, 0, 2);
 		return e.destructible & 64 && e.report(63), e.destructible & 8 && e.report(62), a;
 	}
-	function Q(e, t, n, r, i, a, o, s, c) {
+	function Q(e, t, n, r, i, a, o, s, c = 0) {
 		let { tokenStart: l } = e;
-		A(e, t);
+		E(e, t);
 		let u = [], d = 0, f = 0;
 		for (t = (t | 131072) ^ 131072; e.getToken() !== 1074790415;) {
-			let { tokenValue: i, tokenStart: l } = e, p = e.getToken();
-			if (p === 14) u.push(X(e, t, n, r, 1074790415, s, c, 0, a, o));
+			let { tokenValue: i, tokenStart: l, currentLocation: p } = e, m = e.getToken();
+			if (m === 14) u.push(X(e, t, n, r, 1074790415, s, 0, a, o, c));
 			else {
-				let m = 0, h = null, g;
-				if (e.getToken() & 143360 || e.getToken() === -2147483528 || e.getToken() === -2147483527) {
-					if (e.getToken() === -2147483527 && (d |= 16), h = K(e, t), e.getToken() === 18 || e.getToken() === 1074790415 || e.getToken() === 1077936155) {
-						if (m |= 4, t & 1 && (p & 537079808) == 537079808 ? d |= 16 : Re(e, t, s, p, 0), n?.addVarOrBlock(t, i, s, c), E(e, t | 32, 1077936155)) {
+				let h = 0, g = null, _;
+				if (e.getToken() & 143360 || e.getToken() === -2147483527 || e.getToken() === -2147483526) {
+					if (e.getToken() === -2147483526 && (d |= 16), g = K(e, t), e.getToken() === 18 || e.getToken() === 1074790415 || e.getToken() === 1077936155) {
+						if (h |= 4, t & 1 && (m & 537079808) == 537079808 ? d |= 16 : j(e, t, s, m, 0), n?.addVarOrBlock(t, i, s, l, p, c), O(e, t | 32, 1077936155)) {
 							d |= 8;
 							let n = L(e, t, r, 1, a, e.tokenStart);
-							d |= e.destructible & 256 ? 256 : e.destructible & 128 ? 128 : 0, g = e.finishNode({
+							d |= (e.destructible & 256 ? 256 : 0) | (e.destructible & 128 ? 128 : 0), _ = e.finishNode({
 								type: "AssignmentPattern",
-								left: e.options.uniqueKeyInPattern ? Object.assign({}, h) : h,
+								left: e.cloneIdentifier(g),
 								right: n
 							}, l);
-						} else d |= (p === 209006 ? 128 : 0) | (p === -2147483528 ? 16 : 0), g = e.options.uniqueKeyInPattern ? Object.assign({}, h) : h;
-					} else if (E(e, t | 32, 21)) {
-						let { tokenStart: l } = e;
+						} else d |= ((m & 255) == 110 ? 128 : 0) | (m === -2147483527 ? 16 : 0), _ = e.cloneIdentifier(g);
+					} else if (O(e, t | 32, 21)) {
+						let { tokenStart: l, currentLocation: u } = e;
 						if (i === "__proto__" && f++, e.getToken() & 143360) {
-							let i = e.getToken(), u = e.tokenValue;
-							g = G(e, t, r, s, 0, 1, a, 1, l);
-							let f = e.getToken();
-							g = W(e, t, r, g, a, 0, l), e.getToken() === 18 || e.getToken() === 1074790415 ? f === 1077936155 || f === 1074790415 || f === 18 ? (d |= e.destructible & 128 ? 128 : 0, e.assignable & 2 ? d |= 16 : (i & 143360) == 143360 && n?.addVarOrBlock(t, u, s, c)) : d |= e.assignable & 1 ? 32 : 16 : (e.getToken() & 4194304) == 4194304 ? (e.assignable & 2 ? d |= 16 : f === 1077936155 ? n?.addVarOrBlock(t, u, s, c) : d |= 32, g = B(e, t, r, a, o, l, g)) : (d |= 16, (e.getToken() & 8388608) == 8388608 && (g = H(e, t, r, 1, l, 4, f, g)), E(e, t | 32, 22) && (g = V(e, t, r, g, l)));
-						} else (e.getToken() & 2097152) == 2097152 ? (g = e.getToken() === 69271571 ? Y(e, t, n, r, 0, a, o, s, c) : Q(e, t, n, r, 0, a, o, s, c), d = e.destructible, e.assignable = d & 16 ? 2 : 1, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : e.destructible & 8 ? e.report(71) : (g = W(e, t, r, g, a, 0, l), d = e.assignable & 2 ? 16 : 0, (e.getToken() & 4194304) == 4194304 ? g = Qt(e, t, r, a, o, l, g) : ((e.getToken() & 8388608) == 8388608 && (g = H(e, t, r, 1, l, 4, p, g)), E(e, t | 32, 22) && (g = V(e, t, r, g, l)), d |= e.assignable & 2 ? 16 : 32))) : (g = U(e, t, r, 1, a, 1), d |= e.assignable & 1 ? 32 : 16, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : (g = W(e, t, r, g, a, 0, l), d = e.assignable & 2 ? 16 : 0, e.getToken() !== 18 && p !== 1074790415 && (e.getToken() !== 1077936155 && (d |= 16), g = B(e, t, r, a, o, l, g))));
-					} else e.getToken() === 69271571 ? (d |= 16, p === 209005 && (m |= 16), m |= (p === 209008 ? 256 : p === 209009 ? 512 : 1) | 2, h = $(e, t, r, a), d |= e.assignable, g = Z(e, t, r, m, a, e.tokenStart)) : e.getToken() & 143360 ? (d |= 16, p === -2147483528 && e.report(95), p === 209005 ? (e.flags & 1 && e.report(132), m |= 17) : p === 209008 ? m |= 256 : p === 209009 ? m |= 512 : e.report(0), h = K(e, t), g = Z(e, t, r, m, a, e.tokenStart)) : e.getToken() === 67174411 ? (d |= 16, m |= 1, g = Z(e, t, r, m, a, e.tokenStart)) : e.getToken() === 8391476 ? (d |= 16, p === 209008 ? e.report(42) : p === 209009 ? e.report(43) : p !== 209005 && e.report(30, w[52]), A(e, t), m |= 9 | (p === 209005 ? 16 : 0), e.getToken() & 143360 ? h = K(e, t) : (e.getToken() & 134217728) == 134217728 ? h = q(e, t) : e.getToken() === 69271571 ? (m |= 2, h = $(e, t, r, a), d |= e.assignable) : e.report(30, w[e.getToken() & 255]), g = Z(e, t, r, m, a, e.tokenStart)) : (e.getToken() & 134217728) == 134217728 ? (p === 209005 && (m |= 16), m |= p === 209008 ? 256 : p === 209009 ? 512 : 1, d |= 16, h = q(e, t), g = Z(e, t, r, m, a, e.tokenStart)) : e.report(133);
+							let i = e.getToken(), f = e.tokenValue;
+							_ = G(e, t, r, s, 0, 1, a, 1, l);
+							let p = e.getToken();
+							_ = W(e, t, r, _, a, 0, l), e.getToken() === 18 || e.getToken() === 1074790415 ? p === 1077936155 || p === 1074790415 || p === 18 ? (d |= e.destructible & 128 ? 128 : 0, e.assignable & 2 ? d |= 16 : (i & 143360) == 143360 && n?.addVarOrBlock(t, f, s, l, u, c)) : d |= e.assignable & 1 ? 32 : 16 : (e.getToken() & 4194304) == 4194304 ? (e.assignable & 2 ? d |= 16 : p === 1077936155 ? n?.addVarOrBlock(t, f, s, l, u, c) : d |= 32, _ = B(e, t, r, a, o, l, _)) : (d |= 16, (e.getToken() & 8388608) == 8388608 && (_ = H(e, t, r, 1, l, 4, p, _)), O(e, t | 32, 22) && (_ = V(e, t, r, _, l)));
+						} else (e.getToken() & 2097152) == 2097152 ? (_ = e.getToken() === 69271571 ? Y(e, t, n, r, 0, a, o, s, c) : Q(e, t, n, r, 0, a, o, s, c), d = e.destructible, e.assignable = d & 16 ? 2 : 1, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : e.destructible & 8 ? e.report(71) : (_ = W(e, t, r, _, a, 0, l), d = e.assignable & 2 ? 16 : 0, (e.getToken() & 4194304) == 4194304 ? _ = cn(e, t, r, a, o, l, _) : ((e.getToken() & 8388608) == 8388608 && (_ = H(e, t, r, 1, l, 4, m, _)), O(e, t | 32, 22) && (_ = V(e, t, r, _, l)), d |= e.assignable & 1 ? 32 : 16))) : (_ = U(e, t, r, 1, a, 1), d |= e.assignable & 1 ? 32 : 16, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : (_ = W(e, t, r, _, a, 0, l), d = e.assignable & 2 ? 16 : 0, e.getToken() !== 18 && m !== 1074790415 && (e.getToken() !== 1077936155 && (d |= 16), _ = B(e, t, r, a, o, l, _))));
+					} else e.getToken() === 69271571 ? (d |= 16, m === 209005 && (h |= 16), h |= (m === 209008 ? 256 : m === 209009 ? 512 : 1) | 2, g = $(e, t, r, a), d |= e.assignable, _ = Z(e, t, r, h, a, e.tokenStart)) : e.getToken() & 143360 ? (d |= 16, m === -2147483527 && e.report(95), m === 209005 ? (e.flags & 1 && e.report(134), h |= 17) : m === 209008 ? h |= 256 : m === 209009 ? h |= 512 : e.report(0), g = K(e, t), _ = Z(e, t, r, h, a, e.tokenStart)) : e.getToken() === 67174411 ? (d |= 16, h |= 1, _ = Z(e, t, r, h, a, e.tokenStart)) : e.getToken() === 8391476 ? (d |= 16, m === 209008 ? e.report(42) : m === 209009 ? e.report(43) : m !== 209005 && e.report(30, C[52]), E(e, t), h |= 9 | (m === 209005 ? 16 : 0), e.getToken() & 143360 ? g = K(e, t) : (e.getToken() & 134217728) == 134217728 ? g = q(e, t) : e.getToken() === 69271571 ? (h |= 2, g = $(e, t, r, a), d |= e.assignable) : e.report(30, C[e.getToken() & 255]), _ = Z(e, t, r, h, a, e.tokenStart)) : (e.getToken() & 134217728) == 134217728 ? (m === 209005 && (h |= 16), h |= m === 209008 ? 256 : m === 209009 ? 512 : 1, d |= 16, g = q(e, t), _ = Z(e, t, r, h, a, e.tokenStart)) : e.report(135);
 				} else if ((e.getToken() & 134217728) == 134217728) {
-					if (h = q(e, t), e.getToken() === 21) {
-						D(e, t | 32, 21);
+					if (g = q(e, t), e.getToken() === 21) {
+						k(e, t | 32, 21);
 						let { tokenStart: l } = e;
 						if (i === "__proto__" && f++, e.getToken() & 143360) {
-							g = G(e, t, r, s, 0, 1, a, 1, l);
-							let { tokenValue: i } = e, u = e.getToken();
-							g = W(e, t, r, g, a, 0, l), e.getToken() === 18 || e.getToken() === 1074790415 ? u === 1077936155 || u === 1074790415 || u === 18 ? e.assignable & 2 ? d |= 16 : n?.addVarOrBlock(t, i, s, c) : d |= e.assignable & 1 ? 32 : 16 : e.getToken() === 1077936155 ? (e.assignable & 2 && (d |= 16), g = B(e, t, r, a, o, l, g)) : (d |= 16, g = B(e, t, r, a, o, l, g));
-						} else (e.getToken() & 2097152) == 2097152 ? (g = e.getToken() === 69271571 ? Y(e, t, n, r, 0, a, o, s, c) : Q(e, t, n, r, 0, a, o, s, c), d = e.destructible, e.assignable = d & 16 ? 2 : 1, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : (e.destructible & 8) != 8 && (g = W(e, t, r, g, a, 0, l), d = e.assignable & 2 ? 16 : 0, (e.getToken() & 4194304) == 4194304 ? g = Qt(e, t, r, a, o, l, g) : ((e.getToken() & 8388608) == 8388608 && (g = H(e, t, r, 1, l, 4, p, g)), E(e, t | 32, 22) && (g = V(e, t, r, g, l)), d |= e.assignable & 2 ? 16 : 32))) : (g = U(e, t, r, 1, 0, 1), d |= e.assignable & 1 ? 32 : 16, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : (g = W(e, t, r, g, a, 0, l), d = e.assignable & 1 ? 0 : 16, e.getToken() !== 18 && e.getToken() !== 1074790415 && (e.getToken() !== 1077936155 && (d |= 16), g = B(e, t, r, a, o, l, g))));
-					} else e.getToken() === 67174411 ? (m |= 1, g = Z(e, t, r, m, a, e.tokenStart), d = e.assignable | 16) : e.report(134);
+							_ = G(e, t, r, s, 0, 1, a, 1, l);
+							let { tokenValue: i, tokenStart: u, currentLocation: f } = e, p = e.getToken();
+							_ = W(e, t, r, _, a, 0, l), e.getToken() === 18 || e.getToken() === 1074790415 ? p === 1077936155 || p === 1074790415 || p === 18 ? e.assignable & 2 ? d |= 16 : n?.addVarOrBlock(t, i, s, u, f, c) : d |= e.assignable & 1 ? 32 : 16 : e.getToken() === 1077936155 ? (e.assignable & 2 && (d |= 16), _ = B(e, t, r, a, o, l, _)) : (d |= 16, _ = B(e, t, r, a, o, l, _));
+						} else (e.getToken() & 2097152) == 2097152 ? (_ = e.getToken() === 69271571 ? Y(e, t, n, r, 0, a, o, s, c) : Q(e, t, n, r, 0, a, o, s, c), d = e.destructible, e.assignable = d & 16 ? 2 : 1, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : (e.destructible & 8) != 8 && (_ = W(e, t, r, _, a, 0, l), d = e.assignable & 2 ? 16 : 0, (e.getToken() & 4194304) == 4194304 ? _ = cn(e, t, r, a, o, l, _) : ((e.getToken() & 8388608) == 8388608 && (_ = H(e, t, r, 1, l, 4, m, _)), O(e, t | 32, 22) && (_ = V(e, t, r, _, l)), d |= e.assignable & 1 ? 32 : 16))) : (_ = U(e, t, r, 1, 0, 1), d |= e.assignable & 1 ? 32 : 16, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : (_ = W(e, t, r, _, a, 0, l), d = e.assignable & 1 ? 0 : 16, e.getToken() !== 18 && e.getToken() !== 1074790415 && (e.getToken() !== 1077936155 && (d |= 16), _ = B(e, t, r, a, o, l, _))));
+					} else e.getToken() === 67174411 ? (h |= 1, _ = Z(e, t, r, h, a, e.tokenStart), d = 16) : e.report(136);
 				} else if (e.getToken() === 69271571) {
-					if (h = $(e, t, r, a), d |= e.destructible & 256 ? 256 : 0, m |= 2, e.getToken() === 21) {
-						A(e, t | 32);
-						let { tokenStart: i, tokenValue: l } = e, u = e.getToken();
+					if (g = $(e, t, r, a), d |= e.destructible & 256 ? 256 : 0, h |= 2, e.getToken() === 21) {
+						E(e, t | 32);
+						let { tokenStart: i, tokenValue: l, currentLocation: u } = e, f = e.getToken();
 						if (e.getToken() & 143360) {
-							g = G(e, t, r, s, 0, 1, a, 1, i);
-							let f = e.getToken();
-							g = W(e, t, r, g, a, 0, i), (e.getToken() & 4194304) == 4194304 ? (d |= e.assignable & 2 ? 16 : f === 1077936155 ? 0 : 32, g = Qt(e, t, r, a, o, i, g)) : e.getToken() === 18 || e.getToken() === 1074790415 ? f === 1077936155 || f === 1074790415 || f === 18 ? e.assignable & 2 ? d |= 16 : (u & 143360) == 143360 && n?.addVarOrBlock(t, l, s, c) : d |= e.assignable & 1 ? 32 : 16 : (d |= 16, g = B(e, t, r, a, o, i, g));
-						} else (e.getToken() & 2097152) == 2097152 ? (g = e.getToken() === 69271571 ? Y(e, t, n, r, 0, a, o, s, c) : Q(e, t, n, r, 0, a, o, s, c), d = e.destructible, e.assignable = d & 16 ? 2 : 1, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : d & 8 ? e.report(62) : (g = W(e, t, r, g, a, 0, i), d = e.assignable & 2 ? d | 16 : 0, (e.getToken() & 4194304) == 4194304 ? (e.getToken() !== 1077936155 && (d |= 16), g = Qt(e, t, r, a, o, i, g)) : ((e.getToken() & 8388608) == 8388608 && (g = H(e, t, r, 1, i, 4, p, g)), E(e, t | 32, 22) && (g = V(e, t, r, g, i)), d |= e.assignable & 2 ? 16 : 32))) : (g = U(e, t, r, 1, 0, 1), d |= e.assignable & 1 ? 32 : 16, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : (g = W(e, t, r, g, a, 0, i), d = e.assignable & 1 ? 0 : 16, e.getToken() !== 18 && e.getToken() !== 1074790415 && (e.getToken() !== 1077936155 && (d |= 16), g = B(e, t, r, a, o, i, g))));
-					} else e.getToken() === 67174411 ? (m |= 1, g = Z(e, t, r, m, a, e.tokenStart), d = 16) : e.report(44);
-				} else if (p === 8391476) {
-					if (D(e, t | 32, 8391476), m |= 8, e.getToken() & 143360) {
+							_ = G(e, t, r, s, 0, 1, a, 1, i);
+							let p = e.getToken();
+							_ = W(e, t, r, _, a, 0, i), (e.getToken() & 4194304) == 4194304 ? (d |= e.assignable & 1 ? p === 1077936155 ? 0 : 32 : 16, _ = cn(e, t, r, a, o, i, _)) : e.getToken() === 18 || e.getToken() === 1074790415 ? p === 1077936155 || p === 1074790415 || p === 18 ? e.assignable & 2 ? d |= 16 : (f & 143360) == 143360 && n?.addVarOrBlock(t, l, s, i, u, c) : d |= e.assignable & 1 ? 32 : 16 : (d |= 16, _ = B(e, t, r, a, o, i, _));
+						} else (e.getToken() & 2097152) == 2097152 ? (_ = e.getToken() === 69271571 ? Y(e, t, n, r, 0, a, o, s, c) : Q(e, t, n, r, 0, a, o, s, c), d = e.destructible, e.assignable = d & 16 ? 2 : 1, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : d & 8 ? e.report(62) : (_ = W(e, t, r, _, a, 0, i), d = e.assignable & 2 ? d | 16 : 0, (e.getToken() & 4194304) == 4194304 ? (e.getToken() !== 1077936155 && (d |= 16), _ = cn(e, t, r, a, o, i, _)) : ((e.getToken() & 8388608) == 8388608 && (_ = H(e, t, r, 1, i, 4, m, _)), O(e, t | 32, 22) && (_ = V(e, t, r, _, i)), d |= e.assignable & 1 ? 32 : 16))) : (_ = U(e, t, r, 1, 0, 1), d |= e.assignable & 1 ? 32 : 16, e.getToken() === 18 || e.getToken() === 1074790415 ? e.assignable & 2 && (d |= 16) : (_ = W(e, t, r, _, a, 0, i), d = e.assignable & 1 ? 0 : 16, e.getToken() !== 18 && e.getToken() !== 1074790415 && (e.getToken() !== 1077936155 && (d |= 16), _ = B(e, t, r, a, o, i, _))));
+					} else e.getToken() === 67174411 ? (h |= 1, _ = Z(e, t, r, h, a, e.tokenStart), d = 16) : e.report(44);
+				} else if (m === 8391476) {
+					if (k(e, t | 32, 8391476), h |= 8, e.getToken() & 143360) {
 						let n = e.getToken();
-						if (h = K(e, t), m |= 1, e.getToken() === 67174411) d |= 16, g = Z(e, t, r, m, a, e.tokenStart);
-						else throw new C(e.tokenStart, e.currentLocation, n === 209005 ? 46 : n === 209008 || e.getToken() === 209009 ? 45 : 47, w[n & 255]);
-					} else (e.getToken() & 134217728) == 134217728 ? (d |= 16, h = q(e, t), m |= 1, g = Z(e, t, r, m, a, e.tokenStart)) : e.getToken() === 69271571 ? (d |= 16, m |= 3, h = $(e, t, r, a), g = Z(e, t, r, m, a, e.tokenStart)) : e.report(126);
-				} else e.report(30, w[p & 255]);
+						if (g = K(e, t), h |= 1, e.getToken() === 67174411) d |= 16, _ = Z(e, t, r, h, a, e.tokenStart);
+						else throw new S(e.tokenStart, e.currentLocation, n === 209005 ? 46 : n === 209008 || e.getToken() === 209009 ? 45 : 47, C[n & 255]);
+					} else (e.getToken() & 134217728) == 134217728 ? (d |= 16, g = q(e, t), h |= 1, _ = Z(e, t, r, h, a, e.tokenStart)) : e.getToken() === 69271571 ? (d |= 16, h |= 3, g = $(e, t, r, a), _ = Z(e, t, r, h, a, e.tokenStart)) : e.report(128);
+				} else e.report(30, C[m & 255]);
 				d |= e.destructible & 128 ? 128 : 0, e.destructible = d, u.push(e.finishNode({
 					type: "Property",
-					key: h,
-					value: g,
-					kind: m & 768 ? m & 512 ? "set" : "get" : "init",
-					computed: (m & 2) > 0,
-					method: (m & 1) > 0,
-					shorthand: (m & 4) > 0
+					key: g,
+					value: _,
+					kind: h & 768 ? h & 512 ? "set" : "get" : "init",
+					computed: (h & 2) > 0,
+					method: (h & 1) > 0,
+					shorthand: (h & 4) > 0
 				}, l));
 			}
 			if (d |= e.destructible, e.getToken() !== 18) break;
-			A(e, t);
+			E(e, t);
 		}
-		D(e, t, 1074790415), f > 1 && (d |= 64);
+		k(e, t, 1074790415), f > 1 && (d |= 64);
 		let p = e.finishNode({
 			type: o ? "ObjectPattern" : "ObjectExpression",
 			properties: u
 		}, l);
-		return !i && e.getToken() & 4194304 ? On(e, t, r, d, a, o, l, p) : (e.destructible = d, p);
+		return !i && e.getToken() & 4194304 ? In(e, t, r, d, a, o, l, p) : (e.destructible = d, p);
 	}
-	function An(e, t, n, r, i, a, o) {
-		D(e, t, 67174411);
+	function Rn(e, t, n, r, i, a, o) {
+		k(e, t, 67174411);
 		let s = [];
-		if (e.flags = (e.flags | 128) ^ 128, e.getToken() === 16) return i & 512 && e.report(37, "Setter", "one", ""), A(e, t), s;
+		if (e.flags = (e.flags | 128) ^ 128, e.strictReservedRange = null, e.firstAwaitLocation = null, e.firstYieldLocation = null, e.getToken() === 16) return i & 512 && e.report(37, "Setter", "one", ""), E(e, t), s;
 		i & 256 && e.report(37, "Getter", "no", "s"), i & 512 && e.getToken() === 14 && e.report(38), t = (t | 131072) ^ 131072;
 		let c = 0, l = 0;
 		for (; e.getToken() !== 18;) {
 			let u = null, { tokenStart: d } = e;
-			if (e.getToken() & 143360 ? (t & 1 || ((e.getToken() & 36864) == 36864 && (e.flags |= 256), (e.getToken() & 537079808) == 537079808 && (e.flags |= 512)), u = Qn(e, t, n, i | 1, 0)) : (e.getToken() === 2162700 ? u = Q(e, t, n, r, 1, o, 1, a, 0) : e.getToken() === 69271571 ? u = Y(e, t, n, r, 1, o, 1, a, 0) : e.getToken() === 14 && (u = X(e, t, n, r, 16, a, 0, 0, o, 1)), l = 1, e.destructible & 48 && e.report(50)), e.getToken() === 1077936155) {
-				A(e, t | 32), l = 1;
+			if (e.getToken() & 143360 ? (t & 1 || ((e.getToken() & 36864) == 36864 && (e.flags |= 256, e.strictReservedRange ??= [d, e.currentLocation]), (e.getToken() & 537079808) == 537079808 && (e.flags |= 512)), u = or(e, t, n, i | 1)) : (e.getToken() === 2162700 ? u = Q(e, t, n, r, 1, o, 1, a) : e.getToken() === 69271571 ? u = Y(e, t, n, r, 1, o, 1, a) : e.getToken() === 14 && (u = X(e, t, n, r, 16, a, 0, o, 1)), l = 1, e.destructible & 48 && e.report(50)), e.getToken() === 1077936155) {
+				E(e, t | 32), l = 1;
 				let n = L(e, t, r, 1, 0, e.tokenStart);
 				u = e.finishNode({
 					type: "AssignmentPattern",
@@ -25703,115 +26253,132 @@ var vot = (function(exports) {
 					right: n
 				}, d);
 			}
-			if (c++, s.push(u), !E(e, t, 18) || e.getToken() === 16) break;
+			if (c++, s.push(u), !O(e, t, 18) || e.getToken() === 16) break;
 		}
-		return i & 512 && c !== 1 && e.report(37, "Setter", "one", ""), n?.reportScopeError(), l && (e.flags |= 128), D(e, t, 16), s;
+		return i & 512 && c !== 1 && e.report(37, "Setter", "one", ""), n?.reportScopeError(), l && (e.flags |= 128), k(e, t, 16), s;
 	}
 	function $(e, t, n, r) {
-		A(e, t | 32);
+		E(e, t | 32);
 		let i = L(e, (t | 131072) ^ 131072, n, 1, r, e.tokenStart);
-		return D(e, t, 20), i;
+		return k(e, t, 20), i;
 	}
-	function jn(e, t, n, r, i, a, o) {
+	function zn(e, t, n, r, i, a, o) {
 		e.flags = (e.flags | 128) ^ 128;
 		let s = e.tokenStart;
-		A(e, t | 262176);
+		E(e, t | 262176);
 		let c = e.createScopeIfLexical()?.createChildScope(512);
-		if (t = (t | 131072) ^ 131072, E(e, t, 16)) return Pn(e, t, c, n, [], r, 0, o);
-		let l = 0;
+		if (t = (t | 131072) ^ 131072, O(e, t, 16)) return Hn(e, t, c, n, [], r, 0, a, o);
+		let l = 0, u = e.destructible & 384;
 		e.destructible &= -385;
-		let u, d = [], f = 0, p = 0, m = 0, h = e.tokenStart;
+		let d = e.firstAwaitLocation;
+		e.firstAwaitLocation = null;
+		let f = e.firstYieldLocation;
+		e.firstYieldLocation = null;
+		let p, m = [], h = 0, g = 0, _ = 0, ee = e.tokenStart;
 		for (e.assignable = 1; e.getToken() !== 16;) {
-			let { tokenStart: r } = e, o = e.getToken();
-			if (o & 143360) c?.addBlockName(t, e.tokenValue, 1, 0), (o & 537079808) == 537079808 ? p = 1 : (o & 36864) == 36864 && (m = 1), u = G(e, t, n, i, 0, 1, 1, 1, r), e.getToken() === 16 || e.getToken() === 18 ? e.assignable & 2 && (l |= 16, p = 1) : (e.getToken() === 1077936155 ? p = 1 : l |= 16, u = W(e, t, n, u, 1, 0, r), e.getToken() !== 16 && e.getToken() !== 18 && (u = B(e, t, n, 1, 0, r, u)));
-			else if ((o & 2097152) == 2097152) u = o === 2162700 ? Q(e, t | 262144, c, n, 0, 1, 0, i, a) : Y(e, t | 262144, c, n, 0, 1, 0, i, a), l |= e.destructible, p = 1, e.assignable = 2, e.getToken() !== 16 && e.getToken() !== 18 && (l & 8 && e.report(122), u = W(e, t, n, u, 0, 0, r), l |= 16, e.getToken() !== 16 && e.getToken() !== 18 && (u = B(e, t, n, 0, 0, r, u)));
+			let { tokenStart: r, currentLocation: a } = e, o = e.getToken();
+			if (o & 143360) c?.addBlockName(t, e.tokenValue, 1, r, a), (o & 537079808) == 537079808 ? g = 1 : (o & 36864) == 36864 && (_ = 1), p = G(e, t, n, i, 0, 1, 1, 1, r, 0), e.getToken() === 16 || e.getToken() === 18 ? e.assignable & 2 && (l |= 16, g = 1) : (e.getToken() === 1077936155 ? g = 1 : l |= 16, p = W(e, t, n, p, 1, 0, r), e.getToken() !== 16 && e.getToken() !== 18 && (p = B(e, t, n, 1, 0, r, p)));
+			else if ((o & 2097152) == 2097152) p = o === 2162700 ? Q(e, t | 262144, c, n, 0, 1, 0, i) : Y(e, t | 262144, c, n, 0, 1, 0, i), l |= e.destructible, g = 1, e.assignable = 2, e.getToken() !== 16 && e.getToken() !== 18 && (l & 8 && e.report(124), p = W(e, t, n, p, 0, 0, r), l |= 16, e.getToken() !== 16 && e.getToken() !== 18 && (p = B(e, t, n, 0, 0, r, p)));
 			else if (o === 14) {
-				u = X(e, t, c, n, 16, i, a, 0, 1, 0), e.destructible & 16 && e.report(74), p = 1, f && (e.getToken() === 16 || e.getToken() === 18) && d.push(u), l |= 8;
+				p = X(e, t, c, n, 16, i, 0, 1, 0), e.destructible & 16 && e.report(74), g = 1, h && (e.getToken() === 16 || e.getToken() === 18) && m.push(p), l |= 8;
 				break;
 			} else {
-				if (l |= 16, u = L(e, t, n, 1, 1, r), f && (e.getToken() === 16 || e.getToken() === 18) && d.push(u), e.getToken() === 18 && (f || (f = 1, d = [u])), f) {
-					for (; E(e, t | 32, 18);) d.push(L(e, t, n, 1, 1, e.tokenStart));
-					e.assignable = 2, u = e.finishNode({
+				if (l |= 16, p = L(e, t, n, 1, 1, r), h && (e.getToken() === 16 || e.getToken() === 18) && m.push(p), e.getToken() === 18 && (h || (h = 1, m = [p])), h) {
+					for (; O(e, t | 32, 18);) m.push(L(e, t, n, 1, 1, e.tokenStart));
+					e.assignable = 2, p = e.finishNode({
 						type: "SequenceExpression",
-						expressions: d
-					}, h);
+						expressions: m
+					}, ee);
 				}
-				return D(e, t, 16), e.destructible = l, e.options.preserveParens ? e.finishNode({
+				return k(e, t, 16), e.destructible = l | u, d && (e.firstAwaitLocation = d), f && (e.firstYieldLocation = f), e.options.preserveParens ? e.finishNode({
 					type: "ParenthesizedExpression",
-					expression: u
-				}, s) : u;
+					expression: p
+				}, s) : p;
 			}
-			if (f && (e.getToken() === 16 || e.getToken() === 18) && d.push(u), !E(e, t | 32, 18)) break;
-			if (f || (f = 1, d = [u]), e.getToken() === 16) {
+			if (h && (e.getToken() === 16 || e.getToken() === 18) && m.push(p), !O(e, t | 32, 18)) break;
+			if (h || (h = 1, m = [p]), e.getToken() === 16) {
 				l |= 8;
 				break;
 			}
 		}
-		return f && (e.assignable = 2, u = e.finishNode({
+		if (h && (e.assignable = 2, p = e.finishNode({
 			type: "SequenceExpression",
-			expressions: d
-		}, h)), D(e, t, 16), l & 16 && l & 8 && e.report(151), l |= e.destructible & 256 ? 256 : e.destructible & 128 ? 128 : 0, e.getToken() === 10 ? (l & 48 && e.report(49), t & 2050 && l & 128 && e.report(31), t & 1025 && l & 256 && e.report(32), p && (e.flags |= 128), m && (e.flags |= 256), Pn(e, t, c, n, f ? d : [u], r, 0, o)) : (l & 64 && e.report(63), l & 8 && e.report(144), e.destructible = (e.destructible | 256) ^ 256 | l, e.options.preserveParens ? e.finishNode({
-			type: "ParenthesizedExpression",
-			expression: u
-		}, s) : u);
-	}
-	function Mn(e, t, n) {
-		let { tokenStart: r } = e, { tokenValue: i } = e, a = 0, o = 0;
-		(e.getToken() & 537079808) == 537079808 ? a = 1 : (e.getToken() & 36864) == 36864 && (o = 1);
-		let s = K(e, t);
-		if (e.assignable = 1, e.getToken() === 10) {
-			let c = e.options.lexical ? lt(e, t, i) : void 0;
-			return a && (e.flags |= 128), o && (e.flags |= 256), Fn(e, t, c, n, [s], 0, r);
+			expressions: m
+		}, ee)), k(e, t, 16), l & 16 && l & 8 && e.report(153), l |= (e.destructible & 256 ? 256 : 0) | (e.destructible & 128 ? 128 : 0), e.getToken() === 10) {
+			if (l & 48 && e.report(49), t & 2050 && l & 128) {
+				let t = e.firstAwaitLocation;
+				if (t) throw new S(t.start, t.end, 31);
+				e.report(31);
+			}
+			if (t & 1025 && l & 256) {
+				let t = e.firstYieldLocation;
+				if (t) throw new S(t.start, t.end, 32);
+				e.report(32);
+			}
+			return g && (e.flags |= 128), _ && (e.flags |= 256), e.destructible |= u, d && (e.firstAwaitLocation = d), f && (e.firstYieldLocation = f), Hn(e, t, c, n, h ? m : [p], r, 0, a, o);
 		}
-		return s;
+		return l & 64 && e.report(63), l & 8 && e.report(146), e.destructible = (e.destructible | 256) ^ 256 | l | u, d && (e.firstAwaitLocation = d), f && (e.firstYieldLocation = f), e.options.preserveParens ? e.finishNode({
+			type: "ParenthesizedExpression",
+			expression: p
+		}, s) : p;
 	}
-	function Nn(e, t, n, r, i, a, o, s, c) {
-		return o || e.report(57), a && e.report(51), e.flags &= -129, Fn(e, t, e.options.lexical ? lt(e, t, r) : void 0, n, [i], s, c);
+	function Bn(e, t, n, r = 0) {
+		let { tokenValue: i, tokenStart: a, currentLocation: o } = e, s = 0, c = 0;
+		(e.getToken() & 537079808) == 537079808 ? s = 1 : (e.getToken() & 36864) == 36864 && (c = 1);
+		let l = K(e, t, r);
+		if (e.assignable = 1, e.getToken() === 10) {
+			let r = e.options.lexical ? pt(e, t, i, a, o) : void 0;
+			return s && (e.flags |= 128), c && (e.flags |= 256), Un(e, t, r, n, [l], 0, a);
+		}
+		return l;
 	}
-	function Pn(e, t, n, r, i, a, o, s) {
+	function Vn(e, t, n, r, i, a, o, s, c, l = 0) {
+		return o || e.report(57), a && e.report(51), e.flags &= -129, Un(e, t, e.options.lexical ? pt(e, t, r, c, e.currentLocation) : void 0, n, [i], s, c, l);
+	}
+	function Hn(e, t, n, r, i, a, o, s, c = 0) {
 		a || e.report(57);
-		for (let t = 0; t < i.length; ++t) O(e, i[t]);
-		return Fn(e, t, n, r, i, o, s);
+		for (let t = 0; t < i.length; ++t) A(e, i[t]);
+		return Un(e, t, n, r, i, o, s, c);
 	}
-	function Fn(e, t, n, r, i, a, o) {
-		e.flags & 1 && e.report(48), D(e, t | 32, 10);
-		let s = 535552;
-		t = (t | s) ^ s | (a ? 2048 : 0);
-		let c = e.getToken() !== 2162700, l;
-		if (n?.reportScopeError(), c) e.flags = (e.flags | 4928) ^ 4928, l = L(e, t, r, 1, 0, e.tokenStart);
+	function Un(e, t, n, r, i, a, o, s = 0) {
+		e.flags & 1 && e.report(48), k(e, t | 32, 10);
+		let c = 535552;
+		t = (t | c) ^ c | (a ? 2048 : 0);
+		let l = e.getToken() !== 2162700, u;
+		if (n?.reportScopeError(), l) e.flags = (e.flags | 4928) ^ 4928, u = L(e, t, r, 1, 0, e.tokenStart);
 		else {
 			n = n?.createChildScope(64);
 			let i = 131084;
-			switch (l = rn(e, (t | i) ^ i | 4096, n, r, 16, void 0, void 0), e.getToken()) {
+			switch (u = pn(e, (t | i) ^ i | 4096, n, r, void 0, void 0, 16), e.getToken()) {
 				case 69271571:
-					e.flags & 1 || e.report(116);
+					e.flags & 1 || e.report(118), e.flags |= 8192;
 					break;
 				case 67108877:
 				case 67174409:
-				case 22: e.report(117);
-				case 67174411: e.flags & 1 || e.report(116), e.flags |= 1024;
+				case 22: e.report(119);
+				case 67174411: e.flags & 1 || e.report(118), e.flags |= 1024;
 			}
-			(e.getToken() & 8388608) == 8388608 && !(e.flags & 1) && e.report(30, w[e.getToken() & 255]), (e.getToken() & 33619968) == 33619968 && e.report(125);
+			(e.getToken() & 8388608) != 8388608 || e.flags & 1 || e.getToken() === 8673330 && s === 32 || e.report(30, C[e.getToken() & 255]), (e.getToken() & 33619968) == 33619968 && e.report(127);
 		}
 		return e.assignable = 2, e.finishNode({
 			type: "ArrowFunctionExpression",
 			params: i,
-			body: l,
+			body: u,
 			async: a === 1,
-			expression: c,
+			expression: l,
 			generator: !1
 		}, o);
 	}
-	function In(e, t, n, r, i, a) {
-		D(e, t, 67174411), e.flags = (e.flags | 128) ^ 128;
+	function Wn(e, t, n, r, i, a) {
+		k(e, t, 67174411), e.flags = (e.flags | 128) ^ 128, e.strictReservedRange = null, e.firstAwaitLocation = null, e.firstYieldLocation = null;
 		let o = [];
-		if (E(e, t, 16)) return o;
+		if (O(e, t, 16)) return o;
 		t = (t | 131072) ^ 131072;
 		let s = 0;
 		for (; e.getToken() !== 18;) {
 			let c, { tokenStart: l } = e, u = e.getToken();
-			if (u & 143360 ? (t & 1 || ((u & 36864) == 36864 && (e.flags |= 256), (u & 537079808) == 537079808 && (e.flags |= 512)), c = Qn(e, t, n, a | 1, 0)) : (u === 2162700 ? c = Q(e, t, n, r, 1, i, 1, a, 0) : u === 69271571 ? c = Y(e, t, n, r, 1, i, 1, a, 0) : u === 14 ? c = X(e, t, n, r, 16, a, 0, 0, i, 1) : e.report(30, w[u & 255]), s = 1, e.destructible & 48 && e.report(50)), e.getToken() === 1077936155) {
-				A(e, t | 32), s = 1;
+			if (u & 143360 ? (t & 1 || ((u & 36864) == 36864 && (e.flags |= 256, e.strictReservedRange ??= [l, e.currentLocation]), (u & 537079808) == 537079808 && (e.flags |= 512)), c = or(e, t, n, a | 1)) : (u === 2162700 ? c = Q(e, t, n, r, 1, i, 1, a) : u === 69271571 ? c = Y(e, t, n, r, 1, i, 1, a) : u === 14 ? c = X(e, t, n, r, 16, a, 0, i, 1) : e.report(30, C[u & 255]), s = 1, e.destructible & 48 && e.report(50)), e.getToken() === 1077936155) {
+				E(e, t | 32), s = 1;
 				let n = L(e, t, r, 1, i, e.tokenStart);
 				c = e.finishNode({
 					type: "AssignmentPattern",
@@ -25819,17 +26386,17 @@ var vot = (function(exports) {
 					right: n
 				}, l);
 			}
-			if (o.push(c), !E(e, t, 18) || e.getToken() === 16) break;
+			if (o.push(c), !O(e, t, 18) || e.getToken() === 16) break;
 		}
-		return s && (e.flags |= 128), (s || t & 1) && n?.reportScopeError(), D(e, t, 16), o;
+		return s && (e.flags |= 128), (s || t & 1) && n?.reportScopeError(), k(e, t, 16), o;
 	}
-	function Ln(e, t, n, r, i, a) {
+	function Gn(e, t, n, r, i, a) {
 		let o = e.getToken();
 		if (o & 67108864) {
 			if (o === 67108877) {
-				A(e, t | 262144), e.assignable = 1;
-				let i = cn(e, t, n);
-				return Ln(e, t, n, e.finishNode({
+				E(e, t | 262144), e.assignable = 1;
+				let i = _n(e, t, n, 1);
+				return Gn(e, t, n, e.finishNode({
 					type: "MemberExpression",
 					object: r,
 					computed: !1,
@@ -25838,9 +26405,9 @@ var vot = (function(exports) {
 				}, a), 0, a);
 			}
 			if (o === 69271571) {
-				A(e, t | 32);
+				E(e, t | 32);
 				let { tokenStart: o } = e, s = z(e, t, n, i, 1, o);
-				return D(e, t, 20), e.assignable = 1, Ln(e, t, n, e.finishNode({
+				return k(e, t, 20), e.assignable = 1, Gn(e, t, n, e.finishNode({
 					type: "MemberExpression",
 					object: r,
 					computed: !0,
@@ -25848,31 +26415,31 @@ var vot = (function(exports) {
 					optional: !1
 				}, a), 0, a);
 			}
-			if (o === 67174408 || o === 67174409) return e.assignable = 2, Ln(e, t, n, e.finishNode({
+			if (o === 67174408 || o === 67174409) return e.assignable = 2, Gn(e, t, n, e.finishNode({
 				type: "TaggedTemplateExpression",
 				tag: r,
-				quasi: e.getToken() === 67174408 ? bn(e, t | 64, n) : yn(e, t | 64)
+				quasi: e.getToken() === 67174408 ? On(e, t | 64, n) : Dn(e, t | 64)
 			}, a), 0, a);
 		}
 		return r;
 	}
-	function Rn(e, t, n, r) {
+	function Kn(e, t, n, r) {
 		let { tokenStart: i } = e, a = K(e, t | 32), { tokenStart: o } = e;
-		if (E(e, t, 67108877)) {
-			if (t & 65536 && e.getToken() === 209029) return e.assignable = 2, zn(e, t, a, i);
+		if (O(e, t, 67108877)) {
+			if (t & 65536 && e.getToken() === 209030) return e.assignable = 2, qn(e, t, a, i);
 			e.report(94);
 		}
-		e.assignable = 2, (e.getToken() & 16842752) == 16842752 && e.report(65, w[e.getToken() & 255]);
+		e.assignable = 2, (e.getToken() & 16842752) == 16842752 && e.report(65, C[e.getToken() & 255]);
 		let s = G(e, t, n, 2, 1, 0, r, 1, o);
-		t = (t | 131072) ^ 131072, e.getToken() === 67108990 && e.report(168);
-		let c = Ln(e, t, n, s, r, o);
+		t = (t | 131072) ^ 131072, e.getToken() === 67108991 && e.report(170);
+		let c = Gn(e, t, n, s, r, o);
 		return e.assignable = 2, e.finishNode({
 			type: "NewExpression",
 			callee: c,
-			arguments: e.getToken() === 67174411 ? Cn(e, t, n, r) : []
+			arguments: e.getToken() === 67174411 ? jn(e, t, n, r) : []
 		}, i);
 	}
-	function zn(e, t, n, r) {
+	function qn(e, t, n, r) {
 		let i = K(e, t);
 		return e.finishNode({
 			type: "MetaProperty",
@@ -25880,47 +26447,62 @@ var vot = (function(exports) {
 			property: i
 		}, r);
 	}
-	function Bn(e, t, n, r, i) {
-		return e.getToken() === 209006 && e.report(31), t & 1025 && e.getToken() === 241771 && e.report(32), Ge(e, t, e.getToken()), (e.getToken() & 36864) == 36864 && (e.flags |= 256), Nn(e, t & -524289 | 2048, n, e.tokenValue, K(e, t), 0, r, 1, i);
+	function Jn(e, t, n, r, i) {
+		return (e.getToken() & 255) == 110 && e.report(31), t & 1025 && e.getToken() === 241771 && e.report(32), nt(e, t, e.getToken()), (e.getToken() & 36864) == 36864 && (e.flags |= 256), Vn(e, t & -524289 | 2048, n, e.tokenValue, K(e, t), 0, r, 1, i);
 	}
-	function Vn(e, t, n, r, i, a, o, s, c) {
-		A(e, t | 32);
-		let l = e.createScopeIfLexical()?.createChildScope(512);
-		if (t = (t | 131072) ^ 131072, E(e, t, 16)) return e.getToken() === 10 ? (s & 1 && e.report(48), Pn(e, t, l, n, [], i, 1, c)) : e.finishNode({
+	function Yn(e, t, n, r, i, a, o, s) {
+		E(e, t | 32);
+		let c = e.createScopeIfLexical()?.createChildScope(512), l = e.firstAwaitLocation;
+		e.firstAwaitLocation = null;
+		let u = e.firstYieldLocation;
+		if (e.firstYieldLocation = null, t = (t | 131072) ^ 131072, O(e, t, 16)) return e.getToken() === 10 ? (o & 1 && e.report(48), Hn(e, t, c, n, [], i, 1, s)) : (e.assignable = !(t & 1) && e.options.webcompat ? 4 : 2, l && (e.firstAwaitLocation = l), u && (e.firstYieldLocation = u), e.finishNode({
 			type: "CallExpression",
 			callee: r,
 			arguments: [],
 			optional: !1
-		}, c);
-		let u = 0, d = null, f = 0;
+		}, s));
+		let d = 0, f, p = 0;
 		e.destructible = (e.destructible | 384) ^ 384;
-		let p = [];
+		let m = [];
 		for (; e.getToken() !== 16;) {
-			let { tokenStart: i } = e, s = e.getToken();
-			if (s & 143360) l?.addBlockName(t, e.tokenValue, a, 0), (s & 537079808) == 537079808 ? e.flags |= 512 : (s & 36864) == 36864 && (e.flags |= 256), d = G(e, t, n, a, 0, 1, 1, 1, i), e.getToken() === 16 || e.getToken() === 18 ? e.assignable & 2 && (u |= 16, f = 1) : (e.getToken() === 1077936155 ? f = 1 : u |= 16, d = W(e, t, n, d, 1, 0, i), e.getToken() !== 16 && e.getToken() !== 18 && (d = B(e, t, n, 1, 0, i, d)));
-			else if (s & 2097152) d = s === 2162700 ? Q(e, t, l, n, 0, 1, 0, a, o) : Y(e, t, l, n, 0, 1, 0, a, o), u |= e.destructible, f = 1, e.getToken() !== 16 && e.getToken() !== 18 && (u & 8 && e.report(122), d = W(e, t, n, d, 0, 0, i), u |= 16, (e.getToken() & 8388608) == 8388608 && (d = H(e, t, n, 1, c, 4, s, d)), E(e, t | 32, 22) && (d = V(e, t, n, d, c)));
-			else if (s === 14) d = X(e, t, l, n, 16, a, o, 1, 1, 0), u |= (e.getToken() === 16 ? 0 : 16) | e.destructible, f = 1;
+			let { tokenStart: i, currentLocation: o } = e, h = e.getToken();
+			if (h & 143360) c?.addBlockName(t, e.tokenValue, a, i, o), (h & 537079808) == 537079808 ? e.flags |= 512 : (h & 36864) == 36864 && (e.flags |= 256), f = G(e, t, n, a, 0, 1, 1, 1, i), e.getToken() === 16 || e.getToken() === 18 ? e.assignable & 2 && (d |= 16, p = 1) : (e.getToken() === 1077936155 ? p = 1 : d |= 16, f = W(e, t, n, f, 1, 0, i), e.getToken() !== 16 && e.getToken() !== 18 && (f = B(e, t, n, 1, 0, i, f)));
+			else if (h & 2097152) f = h === 2162700 ? Q(e, t, c, n, 0, 1, 0, a) : Y(e, t, c, n, 0, 1, 0, a), d |= e.destructible, p = 1, e.getToken() !== 16 && e.getToken() !== 18 && (d & 8 && e.report(124), f = W(e, t, n, f, 0, 0, i), d |= 16, (e.getToken() & 8388608) == 8388608 && (f = H(e, t, n, 1, s, 4, h, f)), O(e, t | 32, 22) && (f = V(e, t, n, f, s)));
+			else if (h === 14) f = X(e, t, c, n, 16, a, 1, 1, 0), d |= (e.getToken() === 16 ? 0 : 16) | e.destructible, p = 1;
 			else {
-				for (d = L(e, t, n, 1, 0, i), u = e.assignable, p.push(d); E(e, t | 32, 18);) p.push(L(e, t, n, 1, 0, i));
-				return u |= e.assignable, D(e, t, 16), e.destructible = u | 16, e.assignable = 2, e.finishNode({
+				for (f = L(e, t, n, 1, 0, i), d = 0, m.push(f); O(e, t | 32, 18);) m.push(L(e, t, n, 1, 0, i));
+				return d |= e.assignable, k(e, t, 16), e.destructible = d | 16, e.assignable = !(t & 1) && e.options.webcompat ? 4 : 2, l && (e.firstAwaitLocation = l), u && (e.firstYieldLocation = u), e.finishNode({
 					type: "CallExpression",
 					callee: r,
-					arguments: p,
+					arguments: m,
 					optional: !1
-				}, c);
+				}, s);
 			}
-			if (p.push(d), !E(e, t | 32, 18)) break;
+			if (m.push(f), !O(e, t | 32, 18)) break;
 		}
-		return D(e, t, 16), u |= e.destructible & 256 ? 256 : e.destructible & 128 ? 128 : 0, e.getToken() === 10 ? (u & 48 && e.report(27), (e.flags & 1 || s & 1) && e.report(48), u & 128 && e.report(31), t & 1025 && u & 256 && e.report(32), f && (e.flags |= 128), Pn(e, t | 2048, l, n, p, i, 1, c)) : (u & 64 && e.report(63), u & 8 && e.report(62), e.assignable = 2, e.finishNode({
+		if (k(e, t, 16), d |= (e.destructible & 256 ? 256 : 0) | (e.destructible & 128 ? 128 : 0), e.getToken() === 10) {
+			if (d & 48 && e.report(27), (e.flags & 1 || o & 1) && e.report(48), d & 128) {
+				let t = e.firstAwaitLocation;
+				if (t) throw new S(t.start, t.end, 31);
+				e.report(31);
+			}
+			if (t & 1025 && d & 256) {
+				let t = e.firstYieldLocation;
+				if (t) throw new S(t.start, t.end, 32);
+				e.report(32);
+			}
+			return p && (e.flags |= 128), Hn(e, t | 2048, c, n, m, i, 1, s);
+		}
+		return d & 64 && e.report(63), d & 8 && e.report(62), e.assignable = !(t & 1) && e.options.webcompat ? 4 : 2, l && (e.firstAwaitLocation = l), u && (e.firstYieldLocation = u), e.finishNode({
 			type: "CallExpression",
 			callee: r,
-			arguments: p,
+			arguments: m,
 			optional: !1
-		}, c));
+		}, s);
 	}
-	function Hn(e, t) {
+	function Xn(e, t) {
 		let { tokenRaw: n, tokenRegExp: r, tokenValue: i, tokenStart: a } = e;
-		A(e, t), e.assignable = 2;
+		E(e, t), e.assignable = 2;
 		let o = {
 			type: "Literal",
 			value: i,
@@ -25928,104 +26510,130 @@ var vot = (function(exports) {
 		};
 		return e.options.raw && (o.raw = n), e.finishNode(o, a);
 	}
-	function Un(e, t, n, r, i) {
+	function Zn(e, t, n, r, i) {
 		let a, o;
-		e.leadingDecorators.decorators.length ? (e.getToken() === 132 && e.report(30, "@"), a = e.leadingDecorators.start, o = [...e.leadingDecorators.decorators], e.leadingDecorators.decorators.length = 0) : (a = e.tokenStart, o = Gn(e, t, r)), t = (t | 16385) ^ 16384, A(e, t);
-		let s = null, c = null, { tokenValue: l } = e;
-		e.getToken() & 4096 && e.getToken() !== 20565 ? (Be(e, t, e.getToken()) && e.report(118), (e.getToken() & 537079808) == 537079808 && e.report(119), n && (n.addBlockName(t, l, 32, 0), i && i & 2 && e.declareUnboundVariable(l)), s = K(e, t)) : i & 1 || e.report(39, "Class");
-		let u = t;
-		E(e, t | 32, 20565) ? (c = U(e, t, r, 0, 0, 0), u |= 512) : u = (u | 512) ^ 512;
-		let d = qn(e, u, t, n, r, 2, 8, 0);
+		e.leadingDecorators.decorators.length ? (a = e.leadingDecorators.start, o = [...e.leadingDecorators.decorators], e.leadingDecorators.decorators.length = 0) : (a = e.tokenStart, o = $n(e, t, r)), t = (t | 16385) ^ 16384, k(e, t, 86094);
+		let s = null, c = null, { tokenValue: l, tokenStart: u, currentLocation: d } = e;
+		e.getToken() & 4096 && e.getToken() !== 20565 ? (Ze(e, t, e.getToken()) && e.report(120), (e.getToken() & 537079808) == 537079808 && e.report(121), n && (n.addBlockName(t, l, 32, u, d), i && i & 2 && e.declareUnboundVariable(l)), s = K(e, t)) : i & 1 || e.report(39, "Class");
+		let f = t;
+		O(e, t | 32, 20565) ? (c = U(e, t, r, 0, 0, 0), f |= 512) : f = (f | 512) ^ 512;
+		let p = tr(e, f, t, n, r, 2, 0, 8);
 		return e.finishNode({
 			type: "ClassDeclaration",
 			id: s,
 			superClass: c,
-			body: d,
-			...e.options.next ? { decorators: o } : null
+			body: p,
+			...e.features & 1 ? { decorators: o } : null
 		}, a);
 	}
-	function Wn(e, t, n, r, i) {
-		let a = null, o = null, s = Gn(e, t, n);
-		t = (t | 16385) ^ 16384, A(e, t), e.getToken() & 4096 && e.getToken() !== 20565 && (Be(e, t, e.getToken()) && e.report(118), (e.getToken() & 537079808) == 537079808 && e.report(119), a = K(e, t));
+	function Qn(e, t, n, r, i) {
+		let a = null, o = null, s = $n(e, t, n);
+		t = (t | 16385) ^ 16384, k(e, t, 86094), e.getToken() & 4096 && e.getToken() !== 20565 && (Ze(e, t, e.getToken()) && e.report(120), (e.getToken() & 537079808) == 537079808 && e.report(121), a = K(e, t));
 		let c = t;
-		E(e, t | 32, 20565) ? (o = U(e, t, n, 0, r, 0), c |= 512) : c = (c | 512) ^ 512;
-		let l = qn(e, c, t, void 0, n, 2, 0, r);
+		O(e, t | 32, 20565) ? (o = U(e, t, n, 0, r, 0), c |= 512) : c = (c | 512) ^ 512;
+		let l = tr(e, c, t, void 0, n, 2, r);
 		return e.assignable = 2, e.finishNode({
 			type: "ClassExpression",
 			id: a,
 			superClass: o,
 			body: l,
-			...e.options.next ? { decorators: s } : null
+			...e.features & 1 ? { decorators: s } : null
 		}, i);
 	}
-	function Gn(e, t, n) {
+	function $n(e, t, n) {
 		let r = [];
-		if (e.options.next) for (; e.getToken() === 132;) r.push(Kn(e, t, n));
+		if (e.features & 1) for (; e.getToken() === 133;) r.push(er(e, t, n));
 		return r;
 	}
-	function Kn(e, t, n) {
+	function er(e, t, n) {
 		let r = e.tokenStart;
-		A(e, t | 32);
-		let i = G(e, t, n, 2, 0, 1, 0, 1, r);
-		return i = W(e, t, n, i, 0, 0, e.tokenStart), e.finishNode({
+		E(e, t | 32);
+		let i = e.tokenStart, a;
+		if (e.getToken() === 67174411) a = G(e, t, n, 2, 0, 1, 0, 1, r);
+		else {
+			let r = e.getToken();
+			((r & 143360) != 143360 && !M(t, r) || t & 1 && (r & 36864) == 36864) && e.report(30, C[r & 255]), r === 209006 && t & 2050 && e.report(112), r === 241771 && t & 1024 && e.report(97, "yield");
+			let o = K(e, t | 64);
+			for (; e.getToken() === 67108877;) {
+				E(e, (t | 262152) ^ 8);
+				let r = _n(e, t | 64, n, 1);
+				o = e.finishNode({
+					type: "MemberExpression",
+					object: o,
+					computed: !1,
+					property: r,
+					optional: !1
+				}, i);
+			}
+			if (a = o, e.getToken() === 67174411) {
+				let r = jn(e, t, n, 0);
+				a = e.finishNode({
+					type: "CallExpression",
+					callee: o,
+					arguments: r,
+					optional: !1
+				}, i);
+			}
+		}
+		return e.finishNode({
 			type: "Decorator",
-			expression: i
+			expression: a
 		}, r);
 	}
-	function qn(e, t, n, r, i, a, o, s) {
+	function tr(e, t, n, r, i, a, o, s = 0) {
 		let { tokenStart: c } = e, l = e.createPrivateScopeIfLexical(i);
-		D(e, t | 32, 2162700);
+		k(e, t | 32, 2162700);
 		let u = 655360;
 		t = (t | u) ^ u;
 		let d = e.flags & 32;
 		e.flags = (e.flags | 32) ^ 32;
 		let f = [];
 		for (; e.getToken() !== 1074790415;) {
-			let i = e.tokenStart, o = Gn(e, t, l);
-			o.length > 0 && e.tokenValue === "constructor" && e.report(109), e.getToken() === 1074790415 && e.report(108), E(e, t, 1074790417) ? o.length > 0 && e.report(120) : f.push(Jn(e, t, r, l, n, a, o, 0, s, o.length > 0 ? i : e.tokenStart));
+			let i = e.tokenStart, s = $n(e, t, l);
+			s.length > 0 && e.tokenValue === "constructor" && e.report(111), e.getToken() === 1074790415 && e.report(110), O(e, t, 1074790417) ? s.length > 0 && e.report(122) : f.push(nr(e, t, r, l, n, a, s, 0, o, s.length > 0 ? i : e.tokenStart));
 		}
-		return D(e, o & 8 ? t | 32 : t, 1074790415), l?.validatePrivateIdentifierRefs(), e.flags = e.flags & -33 | d, e.finishNode({
+		return k(e, s & 8 ? t | 32 : t, 1074790415), l?.validatePrivateIdentifierRefs(), e.flags = e.flags & -33 | d, e.finishNode({
 			type: "ClassBody",
 			body: f
 		}, c);
 	}
-	function Jn(e, t, n, r, i, a, o, s, c, l) {
+	function nr(e, t, n, r, i, a, o, s, c, l) {
 		let u = s ? 32 : 0, d = null, f = e.getToken();
-		if (f & 176128 || f === -2147483528) switch (d = K(e, t), f) {
+		if (f & 176128 || f === -2147483527) switch (d = K(e, t), f) {
 			case 36970:
-				if (!s && e.getToken() !== 67174411 && (e.getToken() & 1048576) != 1048576 && e.getToken() !== 1077936155) return Jn(e, t, n, r, i, a, o, 1, c, l);
+				if (!s && e.getToken() !== 67174411 && (e.getToken() & 1048576) != 1048576 && e.getToken() !== 1077936155) return nr(e, t, n, r, i, a, o, 1, c, l);
 				break;
 			case 209005:
 				if (e.getToken() !== 67174411 && !(e.flags & 1)) {
-					if ((e.getToken() & 1073741824) == 1073741824) return Xn(e, t, r, d, u, o, l);
-					u |= 16 | (Le(e, t, 8391476) ? 8 : 0);
+					if ((e.getToken() & 1073741824) == 1073741824) return ir(e, t, r, d, u, o, l);
+					u |= 16 | (Ye(e, t, 8391476) ? 8 : 0);
 				}
 				break;
 			case 209008:
 				if (e.getToken() !== 67174411) {
-					if ((e.getToken() & 1073741824) == 1073741824) return Xn(e, t, r, d, u, o, l);
+					if (e.getToken() === 8391476 && e.flags & 1 || (e.getToken() & 1073741824) == 1073741824) return ir(e, t, r, d, u, o, l);
 					u |= 256;
 				}
 				break;
 			case 209009:
 				if (e.getToken() !== 67174411) {
-					if ((e.getToken() & 1073741824) == 1073741824) return Xn(e, t, r, d, u, o, l);
+					if (e.getToken() === 8391476 && e.flags & 1 || (e.getToken() & 1073741824) == 1073741824) return ir(e, t, r, d, u, o, l);
 					u |= 512;
 				}
 				break;
-			case 12402: if (e.getToken() !== 67174411 && !(e.flags & 1)) {
-				if ((e.getToken() & 1073741824) == 1073741824) return Xn(e, t, r, d, u, o, l);
-				e.options.next && (u |= 1024);
+			case 209010: if (e.getToken() !== 67174411 && !(e.flags & 1)) {
+				if ((e.getToken() & 1073741824) == 1073741824) return ir(e, t, r, d, u, o, l);
+				e.features & 1 && (u |= 1024);
 			}
 		}
 		else if (f === 69271571) u |= 2, d = $(e, i, r, c);
 		else if ((f & 134217728) == 134217728) d = q(e, t);
-		else if (f === 8391476) u |= 8, A(e, t);
-		else if (e.getToken() === 130) u |= 8192, d = Yn(e, t | 16, r, 768);
+		else if (f === 8391476) u |= 8, E(e, t);
+		else if (e.getToken() === 131) u |= 8192, d = rr(e, t | 16, r, 768);
 		else if ((e.getToken() & 1073741824) == 1073741824) u |= 128;
-		else if (s && f === 2162700) return Lt(e, t | 16, n, r, l);
-		else f === -2147483527 ? (d = K(e, t), e.getToken() !== 67174411 && e.report(30, w[e.getToken() & 255])) : e.report(30, w[e.getToken() & 255]);
-		if (u & 1816 && (e.getToken() & 143360 || e.getToken() === -2147483528 || e.getToken() === -2147483527 ? d = K(e, t) : (e.getToken() & 134217728) == 134217728 ? d = q(e, t) : e.getToken() === 69271571 ? (u |= 2, d = $(e, t, r, 0)) : e.getToken() === 130 ? (u |= 8192, d = Yn(e, t, r, u)) : e.report(135)), u & 2 || (e.tokenValue === "constructor" ? ((e.getToken() & 1073741824) == 1073741824 ? e.report(129) : !(u & 32) && e.getToken() === 67174411 && (u & 920 ? e.report(53, "accessor") : t & 512 || (e.flags & 32 ? e.report(54) : e.flags |= 32)), u |= 64) : !(u & 8192) && u & 32 && e.tokenValue === "prototype" && e.report(52)), u & 1024 || e.getToken() !== 67174411 && !(u & 768)) return Xn(e, t, r, d, u, o, l);
+		else if (s && f === 2162700) return Ht(e, t | 16, n, r, l);
+		else f === -2147483526 ? (d = K(e, t), e.getToken() !== 67174411 && e.report(30, C[e.getToken() & 255])) : e.report(30, C[e.getToken() & 255]);
+		if (u & 1816 && (e.getToken() & 143360 || e.getToken() === -2147483527 || e.getToken() === -2147483526 ? d = K(e, t) : (e.getToken() & 134217728) == 134217728 ? d = q(e, t) : e.getToken() === 69271571 ? (u |= 2, d = $(e, t, r, 0)) : e.getToken() === 131 ? (u |= 8192, d = rr(e, t, r, u)) : e.report(137)), u & 2 || (e.tokenValue === "constructor" ? ((e.getToken() & 1073741824) == 1073741824 ? e.report(131) : !(u & 32) && e.getToken() === 67174411 && (u & 920 ? e.report(53, "accessor") : t & 512 || (e.flags & 32 ? e.report(54) : e.flags |= 32)), u |= 64) : !(u & 8192) && u & 32 && e.tokenValue === "prototype" && e.report(52)), u & 1024 || e.getToken() !== 67174411 && !(u & 768)) return ir(e, t, r, d, u, o, l);
 		let p = Z(e, t | 16, r, u, c, e.tokenStart);
 		return e.finishNode({
 			type: "MethodDefinition",
@@ -26034,54 +26642,54 @@ var vot = (function(exports) {
 			computed: (u & 2) > 0,
 			key: d,
 			value: p,
-			...e.options.next ? { decorators: o } : null
+			...e.features & 1 ? { decorators: o } : null
 		}, l);
 	}
-	function Yn(e, t, n, r) {
+	function rr(e, t, n, r) {
 		let { tokenStart: i } = e;
-		A(e, t);
+		E(e, t);
 		let { tokenValue: a } = e;
-		return a === "constructor" && e.report(128), e.options.lexical && (n || e.report(4, a), r ? n.addPrivateIdentifier(a, r) : n.addPrivateIdentifierRef(a)), A(e, t), e.finishNode({
+		return a === "constructor" && e.report(130), e.options.lexical && (n || e.report(4, a), r ? n.addPrivateIdentifier(a, r) : n.addPrivateIdentifierRef(a)), E(e, t), e.finishNode({
 			type: "PrivateIdentifier",
 			name: a
 		}, i);
 	}
-	function Xn(e, t, n, r, i, a, o) {
+	function ir(e, t, n, r, i, a, o) {
 		let s = null;
 		if (i & 8 && e.report(0), e.getToken() === 1077936155) {
-			A(e, t | 32);
+			E(e, t | 32);
 			let { tokenStart: r } = e;
-			e.getToken() === 537079927 && e.report(119);
-			let a = 11264 | (i & 64 ? 0 : 16896);
-			t = (t | a) ^ a | (i & 8 ? 1024 : 0) | (i & 16 ? 2048 : 0) | (i & 64 ? 16384 : 0) | 65792, s = G(e, t | 16, n, 2, 0, 1, 0, 1, r), ((e.getToken() & 1073741824) != 1073741824 || (e.getToken() & 4194304) == 4194304) && (s = W(e, t | 16, n, s, 0, 0, r), s = B(e, t | 16, n, 0, 0, r, s));
+			e.getToken() === 537079928 && e.report(121);
+			let a = 11272 | (i & 64 ? 0 : 16896);
+			t = (t | a) ^ a | (i & 8 ? 1024 : 0) | (i & 16 ? 2048 : 0) | (i & 64 ? 16384 : 0) | 65792, s = G(e, t | 16, n, 2, 0, 1, 0, 1, r, 0, 1), ((e.getToken() & 1073741824) != 1073741824 || (e.getToken() & 4194304) == 4194304) && (s = W(e, t | 16, n, s, 0, 0, r), s = B(e, t | 16, n, 0, 0, r, s));
 		}
-		return T(e, t), e.finishNode({
+		return D(e, t), e.finishNode({
 			type: i & 1024 ? "AccessorProperty" : "PropertyDefinition",
 			key: r,
 			value: s,
 			static: (i & 32) > 0,
 			computed: (i & 2) > 0,
-			...e.options.next ? { decorators: a } : null
+			...e.features & 1 ? { decorators: a } : null
 		}, o);
 	}
-	function Zn(e, t, n, r, i, a) {
-		if (e.getToken() & 143360 || !(t & 1) && e.getToken() === -2147483527) return Qn(e, t, n, i, a);
-		(e.getToken() & 2097152) != 2097152 && e.report(30, w[e.getToken() & 255]);
+	function ar(e, t, n, r, i, a = 0) {
+		if (e.getToken() & 143360 || !(t & 1) && e.getToken() === -2147483526) return or(e, t, n, i, a);
+		(e.getToken() & 2097152) != 2097152 && e.report(30, C[e.getToken() & 255]);
 		let o = e.getToken() === 69271571 ? Y(e, t, n, r, 1, 0, 1, i, a) : Q(e, t, n, r, 1, 0, 1, i, a);
 		return e.destructible & 16 && e.report(50), e.destructible & 32 && e.report(50), o;
 	}
-	function Qn(e, t, n, r, i) {
+	function or(e, t, n, r, i = 0) {
 		let a = e.getToken();
-		t & 1 && ((a & 537079808) == 537079808 ? e.report(119) : ((a & 36864) == 36864 || a === -2147483527) && e.report(118)), (a & 20480) == 20480 && e.report(102), a === 241771 && (t & 1024 && e.report(32), t & 2 && e.report(111)), (a & 255) == 73 && r & 24 && e.report(100), a === 209006 && (t & 2048 && e.report(176), t & 2 && e.report(110));
-		let { tokenValue: o, tokenStart: s } = e;
-		return A(e, t), n?.addVarOrBlock(t, o, r, i), e.finishNode({
+		t & 1 && ((a & 537079808) == 537079808 ? e.report(121) : ((a & 36864) == 36864 || a === -2147483526) && e.report(120)), (a & 20480) == 20480 && e.report(102), a === 241771 && (t & 1024 && e.report(32), t & 2 && e.report(113)), (a & 255) == 73 && r & 24 && e.report(100), a === 209006 && (t & 2048 && e.report(178), t & 2 && e.report(112));
+		let { tokenValue: o, tokenStart: s, currentLocation: c } = e;
+		return E(e, t), n?.addVarOrBlock(t, o, r, s, c, i), e.finishNode({
 			type: "Identifier",
 			name: o
 		}, s);
 	}
-	function $n(e, t, n, r, i) {
-		if (r || D(e, t, 8456256), e.getToken() === 8390721) {
-			let a = er(e, i), [o, s] = ir(e, t, n, r);
+	function sr(e, t, n, r, i) {
+		if (r || k(e, t, 8456256), e.getToken() === 8390721) {
+			let a = cr(e, i), [o, s] = fr(e, t, n, r);
 			return e.finishNode({
 				type: "JSXFragment",
 				openingFragment: a,
@@ -26089,12 +26697,12 @@ var vot = (function(exports) {
 				closingFragment: s
 			}, i);
 		}
-		e.getToken() === 8457014 && e.report(30, w[e.getToken() & 255]);
-		let a = null, o = [], s = cr(e, t, n, r, i);
+		e.getToken() === 8457014 && e.report(30, C[e.getToken() & 255]);
+		let a = null, o = [], s = gr(e, t, n, r, i);
 		if (!s.selfClosing) {
-			[o, a] = rr(e, t, n, r);
-			let i = We(a.name);
-			We(s.name) !== i && e.report(155, i);
+			[o, a] = dr(e, t, n, r);
+			let i = tt(a.name);
+			tt(s.name) !== i && e.report(157, i);
 		}
 		return e.finishNode({
 			type: "JSXElement",
@@ -26103,119 +26711,119 @@ var vot = (function(exports) {
 			closingElement: a
 		}, i);
 	}
-	function er(e, t) {
-		return j(e), e.finishNode({ type: "JSXOpeningFragment" }, t);
+	function cr(e, t) {
+		return N(e), e.finishNode({ type: "JSXOpeningFragment" }, t);
 	}
-	function tr(e, t, n, r) {
-		D(e, t, 8457014);
-		let i = lr(e, t);
-		return e.getToken() !== 8390721 && e.report(25, w[65]), n ? j(e) : A(e, t), e.finishNode({
+	function lr(e, t, n, r) {
+		k(e, t, 8457014);
+		let i = _r(e, t);
+		return e.getToken() !== 8390721 && e.report(25, C[65]), n ? N(e) : E(e, t), e.finishNode({
 			type: "JSXClosingElement",
 			name: i
 		}, r);
 	}
-	function nr(e, t, n, r) {
-		return D(e, t, 8457014), e.getToken() !== 8390721 && e.report(25, w[65]), n ? j(e) : A(e, t), e.finishNode({ type: "JSXClosingFragment" }, r);
+	function ur(e, t, n, r) {
+		return k(e, t, 8457014), e.getToken() !== 8390721 && e.report(25, C[65]), n ? N(e) : E(e, t), e.finishNode({ type: "JSXClosingFragment" }, r);
 	}
-	function rr(e, t, n, r) {
+	function dr(e, t, n, r) {
 		let i = [];
 		for (;;) {
-			let a = ar(e, t, n, r);
+			let a = pr(e, t, n, r);
 			if (a.type === "JSXClosingElement") return [i, a];
 			i.push(a);
 		}
 	}
-	function ir(e, t, n, r) {
+	function fr(e, t, n, r) {
 		let i = [];
 		for (;;) {
-			let a = or(e, t, n, r);
+			let a = mr(e, t, n, r);
 			if (a.type === "JSXClosingFragment") return [i, a];
 			i.push(a);
 		}
 	}
-	function ar(e, t, n, r) {
-		if (e.getToken() === 137) return sr(e, t);
-		if (e.getToken() === 2162700) return hr(e, t, n, 1, 0);
+	function pr(e, t, n, r) {
+		if (e.getToken() === 138) return hr(e);
+		if (e.getToken() === 2162700) return Cr(e, t, n, 1, 0);
 		if (e.getToken() === 8456256) {
 			let { tokenStart: i } = e;
-			return A(e, t), e.getToken() === 8457014 ? tr(e, t, r, i) : $n(e, t, n, 1, i);
+			return E(e, t), e.getToken() === 8457014 ? lr(e, t, r, i) : sr(e, t, n, 1, i);
 		}
 		e.report(0);
 	}
-	function or(e, t, n, r) {
-		if (e.getToken() === 137) return sr(e, t);
-		if (e.getToken() === 2162700) return hr(e, t, n, 1, 0);
+	function mr(e, t, n, r) {
+		if (e.getToken() === 138) return hr(e);
+		if (e.getToken() === 2162700) return Cr(e, t, n, 1, 0);
 		if (e.getToken() === 8456256) {
 			let { tokenStart: i } = e;
-			return A(e, t), e.getToken() === 8457014 ? nr(e, t, r, i) : $n(e, t, n, 1, i);
+			return E(e, t), e.getToken() === 8457014 ? ur(e, t, r, i) : sr(e, t, n, 1, i);
 		}
 		e.report(0);
 	}
-	function sr(e, t) {
-		let n = e.tokenStart;
-		A(e, t);
-		let r = {
+	function hr(e) {
+		let t = e.tokenStart;
+		N(e);
+		let n = {
 			type: "JSXText",
 			value: e.tokenValue
 		};
-		return e.options.raw && (r.raw = e.tokenRaw), e.finishNode(r, n);
+		return e.options.raw && (n.raw = e.tokenRaw), e.finishNode(n, t);
 	}
-	function cr(e, t, n, r, i) {
+	function gr(e, t, n, r, i) {
 		(e.getToken() & 143360) != 143360 && (e.getToken() & 4096) != 4096 && e.report(0);
-		let a = lr(e, t), o = dr(e, t, n), s = e.getToken() === 8457014;
-		return s && D(e, t, 8457014), e.getToken() !== 8390721 && e.report(25, w[65]), r || !s ? j(e) : A(e, t), e.finishNode({
+		let a = _r(e, t), o = yr(e, t, n), s = e.getToken() === 8457014;
+		return s && k(e, t | 1048576, 8457014), e.getToken() !== 8390721 && e.report(25, C[65]), r || !s ? N(e) : E(e, t), e.finishNode({
 			type: "JSXOpeningElement",
 			name: a,
 			attributes: o,
 			selfClosing: s
 		}, i);
 	}
-	function lr(e, t) {
+	function _r(e, t) {
 		let { tokenStart: n } = e;
 		st(e);
-		let r = vr(e, t);
-		if (e.getToken() === 21) return mr(e, t, r, n);
-		for (; E(e, t, 67108877);) st(e), r = ur(e, t, r, n);
+		let r = Er(e, t);
+		if (e.getToken() === 21) return Sr(e, t, r, n);
+		for (; O(e, t, 67108877);) st(e), r = vr(e, t, r, n);
 		return r;
 	}
-	function ur(e, t, n, r) {
-		let i = vr(e, t);
+	function vr(e, t, n, r) {
+		let i = Er(e, t);
 		return e.finishNode({
 			type: "JSXMemberExpression",
 			object: n,
 			property: i
 		}, r);
 	}
-	function dr(e, t, n) {
+	function yr(e, t, n) {
 		let r = [];
-		for (; e.getToken() !== 8457014 && e.getToken() !== 8390721 && e.getToken() !== 1048576;) r.push(pr(e, t, n));
+		for (; e.getToken() !== 8457014 && e.getToken() !== 8390721 && e.getToken() !== 1048576;) r.push(xr(e, t, n));
 		return r;
 	}
-	function fr(e, t, n) {
+	function br(e, t, n) {
 		let r = e.tokenStart;
-		A(e, t), D(e, t, 14);
+		E(e, t), k(e, t, 14);
 		let i = L(e, t, n, 1, 0, e.tokenStart);
-		return D(e, t, 1074790415), e.finishNode({
+		return k(e, t, 1074790415), e.finishNode({
 			type: "JSXSpreadAttribute",
 			argument: i
 		}, r);
 	}
-	function pr(e, t, n) {
+	function xr(e, t, n) {
 		let { tokenStart: r } = e;
-		if (e.getToken() === 2162700) return fr(e, t, n);
+		if (e.getToken() === 2162700) return br(e, t, n);
 		st(e);
-		let i = null, a = vr(e, t);
-		if (e.getToken() === 21 && (a = mr(e, t, a, r)), e.getToken() === 1077936155) switch (at(e, t)) {
+		let i = null, a = Er(e, t);
+		if (e.getToken() === 21 && (a = Sr(e, t, a, r)), e.getToken() === 1077936155) switch (at(e, t)) {
 			case 134283267:
 				i = q(e, t);
 				break;
 			case 8456256:
-				i = $n(e, t, n, 0, e.tokenStart);
+				i = sr(e, t, n, 0, e.tokenStart);
 				break;
 			case 2162700:
-				i = hr(e, t, n, 0, 1);
+				i = Cr(e, t, n, 0, 1);
 				break;
-			default: e.report(154);
+			default: e.report(156);
 		}
 		return e.finishNode({
 			type: "JSXAttribute",
@@ -26223,61 +26831,67 @@ var vot = (function(exports) {
 			name: a
 		}, r);
 	}
-	function mr(e, t, n, r) {
-		D(e, t, 21);
-		let i = vr(e, t);
+	function Sr(e, t, n, r) {
+		k(e, t, 21);
+		let i = Er(e, t);
 		return e.finishNode({
 			type: "JSXNamespacedName",
 			namespace: n,
 			name: i
 		}, r);
 	}
-	function hr(e, t, n, r, i) {
+	function Cr(e, t, n, r, i) {
 		let { tokenStart: a } = e;
-		A(e, t | 32);
+		E(e, t | 32);
 		let { tokenStart: o } = e;
-		if (e.getToken() === 14) return gr(e, t, n, a);
-		let s = null;
-		return e.getToken() === 1074790415 ? (i && e.report(157), s = _r(e, {
+		if (e.getToken() === 14) return wr(e, t, n, a);
+		let s;
+		return e.getToken() === 1074790415 ? (i && e.report(159), s = Tr(e, {
 			index: e.startIndex,
 			line: e.startLine,
 			column: e.startColumn
-		})) : s = L(e, t, n, 1, 0, o), e.getToken() !== 1074790415 && e.report(25, w[15]), r ? j(e) : A(e, t), e.finishNode({
+		})) : s = L(e, t, n, 1, 0, o), e.getToken() !== 1074790415 && e.report(25, C[15]), r ? N(e) : E(e, t), e.finishNode({
 			type: "JSXExpressionContainer",
 			expression: s
 		}, a);
 	}
-	function gr(e, t, n, r) {
-		D(e, t, 14);
+	function wr(e, t, n, r) {
+		k(e, t, 14);
 		let i = L(e, t, n, 1, 0, e.tokenStart);
-		return D(e, t, 1074790415), e.finishNode({
+		return k(e, t, 1074790415), e.finishNode({
 			type: "JSXSpreadChild",
 			expression: i
 		}, r);
 	}
-	function _r(e, t) {
+	function Tr(e, t) {
 		return e.finishNode({ type: "JSXEmptyExpression" }, t, e.tokenStart);
 	}
-	function vr(e, t) {
+	function Er(e, t) {
 		let n = e.tokenStart;
-		e.getToken() & 143360 || e.report(30, w[e.getToken() & 255]);
+		e.getToken() & 143360 || e.report(30, C[e.getToken() & 255]);
 		let { tokenValue: r } = e;
-		return A(e, t), e.finishNode({
+		return E(e, t | 1048576), e.finishNode({
 			type: "JSXIdentifier",
 			name: r
 		}, n);
 	}
-	var yr = "6.1.4";
-	function br(e, t) {
-		return ht(e, t);
+	var { version: Dr } = se;
+	function Or(e, t) {
+		return _t(e, {
+			...t,
+			sourceType: "script"
+		});
 	}
-	function xr(e, t) {
-		return ht(e, t, 3);
+	function kr(e, t) {
+		return _t(e, {
+			...t,
+			sourceType: "module"
+		});
 	}
-	function Sr(e, t) {
-		return ht(e, t);
+	function Ar(e, t) {
+		return _t(e, t);
 	}
-	var Cr = (function(e, t) {
+	var jr = (function(e, t) {
 		function n(e, t) {
 			if (Array.isArray(t)) return Array.isArray(e) ? t.length === e.length && t.every((t, r) => n(e[r], t)) : !1;
 			if (typeof t == "object") {
@@ -26511,9 +27125,8 @@ var vot = (function(exports) {
 `);
 		}
 		return c;
-	})(se, n);
-	//#endregion
-	//#region src/audioDownloader/strategies/safariPageBridge.ts
+	})(oe, n);
+	// src/audioDownloader/strategies/safariPageBridge.ts
 	var REQUEST_EVENT = "vot:safari-page-po-token:request";
 	var RESPONSE_EVENT = "vot:safari-page-po-token:response";
 	var BRIDGE_MARKER = "data-vot-safari-po-token-bridge";
@@ -26602,6 +27215,25 @@ var vot = (function(exports) {
 		script.remove();
 		return document.documentElement.hasAttribute(BRIDGE_MARKER);
 	}
+	function createTokenSettlement(signal, cleanup, resolve, reject) {
+		let settled = false;
+		const finish = (value) => {
+			if (settled) return;
+			settled = true;
+			cleanup();
+			resolve(value);
+		};
+		const onAbort = () => {
+			if (settled) return;
+			settled = true;
+			cleanup();
+			reject(signal.reason);
+		};
+		return {
+			finish,
+			onAbort
+		};
+	}
 	async function requestSafariPagePoTokenLocal(binding, signal) {
 		if (!isSafariBrowser()) return void 0;
 		signal.throwIfAborted();
@@ -26612,25 +27244,13 @@ var vot = (function(exports) {
 		const requestId = crypto.randomUUID();
 		debug.log("[PO_TOKEN] trying Safari page-realm bridge", { bindingLength: binding.length });
 		return await new Promise((resolve, reject) => {
-			let settled = false;
 			const timeout = setTimeout(() => finish(void 0), 8e3);
 			const cleanup = () => {
 				clearTimeout(timeout);
 				removeEventListener(RESPONSE_EVENT, onResponse);
 				signal.removeEventListener("abort", onAbort);
 			};
-			const finish = (value) => {
-				if (settled) return;
-				settled = true;
-				cleanup();
-				resolve(value);
-			};
-			const onAbort = () => {
-				if (settled) return;
-				settled = true;
-				cleanup();
-				reject(signal.reason);
-			};
+			const { finish, onAbort } = createTokenSettlement(signal, cleanup, resolve, reject);
 			const onResponse = (event) => {
 				const detail = event.detail;
 				if (detail?.requestId !== requestId) return;
@@ -26653,25 +27273,13 @@ var vot = (function(exports) {
 		const requestId = crypto.randomUUID();
 		debug.log("[PO_TOKEN] requesting token from top YouTube player", { bindingLength: binding.length });
 		return await new Promise((resolve, reject) => {
-			let settled = false;
 			const timeout = setTimeout(() => finish(void 0), 8e3);
 			const cleanup = () => {
 				clearTimeout(timeout);
 				removeEventListener("message", onMessage);
 				signal.removeEventListener("abort", onAbort);
 			};
-			const finish = (value) => {
-				if (settled) return;
-				settled = true;
-				cleanup();
-				resolve(value);
-			};
-			const onAbort = () => {
-				if (settled) return;
-				settled = true;
-				cleanup();
-				reject(signal.reason);
-			};
+			const { finish, onAbort } = createTokenSettlement(signal, cleanup, resolve, reject);
 			const onMessage = (event) => {
 				if (event.source !== window.top || event.origin !== location.origin) return;
 				const data = event.data;
@@ -26699,8 +27307,7 @@ var vot = (function(exports) {
 		if (window !== window.top) return requestTopSafariPagePoToken(binding, signal);
 		return requestSafariPagePoTokenLocal(binding, signal);
 	}
-	//#endregion
-	//#region src/audioDownloader/strategies/youtubePage.ts
+	// src/audioDownloader/strategies/youtubePage.ts
 	function getMainWorldWindow(targetWindow) {
 		try {
 			if (typeof unsafeWindow !== "undefined" && unsafeWindow) {
@@ -26730,8 +27337,7 @@ var vot = (function(exports) {
 		} catch {}
 		return pageWindow;
 	}
-	//#endregion
-	//#region src/audioDownloader/strategies/youtubePoToken.ts
+	// src/audioDownloader/strategies/youtubePoToken.ts
 	async function mintPagePoToken(pageWindow, binding, signal) {
 		const mainWindow = getTopPageWindow(pageWindow);
 		const realms = new Set([mainWindow]);
@@ -26844,8 +27450,7 @@ var vot = (function(exports) {
 			hasVisitorData: typeof options.visitorData === "string" && Boolean(options.visitorData)
 		});
 	}
-	//#endregion
-	//#region src/audioDownloader/strategies/webAbr.ts
+	// src/audioDownloader/strategies/webAbr.ts
 	var MEDIA_RANGE_SIZES = [
 		6e4,
 		8e4,
@@ -26927,25 +27532,28 @@ var vot = (function(exports) {
 		if (Number.isFinite(timestamp) && timestamp > 0) context.signatureTimestamp = timestamp;
 		return context;
 	}
+	function findJsonStringEnd(source, start) {
+		let escaped = false;
+		for (let index = start + 1; index < source.length; index++) {
+			const char = source[index];
+			if (escaped) escaped = false;
+			else if (char === "\\") escaped = true;
+			else if (char === "\"") return index + 1;
+		}
+		return -1;
+	}
 	function findJsonValueEnd(source, start) {
 		const first = source[start];
-		if (first !== "{" && first !== "[" && first !== "\"") return -1;
+		if (first === "\"") return findJsonStringEnd(source, start);
+		if (first !== "{" && first !== "[") return -1;
 		let depth = 0;
-		let inString = false;
-		let escaped = false;
 		for (let index = start; index < source.length; index++) {
 			const char = source[index];
-			if (inString) {
-				if (escaped) escaped = false;
-				else if (char === "\\") escaped = true;
-				else if (char === "\"") {
-					inString = false;
-					if (depth === 0) return index + 1;
-				}
-				continue;
-			}
-			if (char === "\"") inString = true;
-			else if (char === "{" || char === "[") depth++;
+			if (char === "\"") {
+				const end = findJsonStringEnd(source, index);
+				if (end < 0) return -1;
+				index = end - 1;
+			} else if (char === "{" || char === "[") depth++;
 			else if ((char === "}" || char === "]") && --depth === 0) return index + 1;
 		}
 		return -1;
@@ -27019,7 +27627,7 @@ var vot = (function(exports) {
 			signal.throwIfAborted();
 			debug.log("Audio downloader. web ABR config request failed", { error: toErrorMessage(error) });
 		}
-		if (typeof data.INNERTUBE_API_KEY !== "string") throw new Error("Audio downloader. web ABR config is unavailable");
+		if (typeof data.INNERTUBE_API_KEY !== "string") throw new TypeError("Audio downloader. web ABR config is unavailable");
 		debug.log("Audio downloader. web ABR config recovered", {
 			source,
 			hasContext: Boolean(data.INNERTUBE_CONTEXT),
@@ -27065,10 +27673,12 @@ var vot = (function(exports) {
 	function selectWebEmbeddedAudioFormat(formats, requestedLanguage) {
 		const audioOnly = formats.filter(({ url, signatureCipher }) => typeof url === "string" || typeof signatureCipher === "string").filter(({ mimeType }) => mimeType?.includes("audio/") && !mimeType?.includes("video/"));
 		const normalizedRequestedLanguage = normalizeAudioLanguageTag(requestedLanguage);
-		const exactLanguageCandidates = normalizedRequestedLanguage && normalizedRequestedLanguage !== "auto" ? audioOnly.filter((format) => getYoutubeAudioFormatLanguage(format) === normalizedRequestedLanguage) : [];
-		const requestedLanguageCandidates = exactLanguageCandidates.length > 0 ? exactLanguageCandidates : normalizedRequestedLanguage && normalizedRequestedLanguage !== "auto" ? audioOnly.filter((format) => audioLanguageMatches(getYoutubeAudioFormatLanguage(format), normalizedRequestedLanguage)) : [];
+		let requestedLanguageCandidates = normalizedRequestedLanguage && normalizedRequestedLanguage !== "auto" ? audioOnly.filter((format) => getYoutubeAudioFormatLanguage(format) === normalizedRequestedLanguage) : [];
+		if (requestedLanguageCandidates.length === 0 && normalizedRequestedLanguage && normalizedRequestedLanguage !== "auto") requestedLanguageCandidates = audioOnly.filter((format) => audioLanguageMatches(getYoutubeAudioFormatLanguage(format), normalizedRequestedLanguage));
 		const defaultAudioOnly = audioOnly.filter(({ audioTrack }) => audioTrack?.audioIsDefault === true);
-		const trackCandidates = requestedLanguageCandidates.length > 0 ? requestedLanguageCandidates : defaultAudioOnly.length > 0 ? defaultAudioOnly : audioOnly;
+		let trackCandidates = audioOnly;
+		if (requestedLanguageCandidates.length > 0) trackCandidates = requestedLanguageCandidates;
+		else if (defaultAudioOnly.length > 0) trackCandidates = defaultAudioOnly;
 		const nonDrcCandidates = trackCandidates.filter((format) => !isDrcAudioFormat(format));
 		const selected = selectSmallestAudioFormat(nonDrcCandidates.length > 0 ? nonDrcCandidates : trackCandidates);
 		if (!selected) throw new Error("Audio downloader. web ABR returned no direct audio-only formats");
@@ -27269,7 +27879,7 @@ var vot = (function(exports) {
 		return [...merged.values()];
 	}
 	function solveYouTubeChallenges(targetWindow, playerCode, signature, n) {
-		const preparedPlayer = Cr(playerCode);
+		const preparedPlayer = jr(playerCode);
 		const errors = [];
 		try {
 			return runChallengeSolver(targetWindow, preparedPlayer, signature, n);
@@ -27464,7 +28074,7 @@ var vot = (function(exports) {
 		const response = await targetWindow.fetch(url, { signal });
 		if (!response.ok) throw new Error(`Audio downloader. web ABR media probe failed (${response.status})`);
 		const total = Number(/\/(\d+)\s*$/.exec(response.headers.get("content-range") ?? "")?.[1]);
-		if (!(total > 0)) throw new Error("Audio downloader. web ABR content length unknown");
+		if (Number.isNaN(total) || total <= 0) throw new Error("Audio downloader. web ABR content length unknown");
 		return total;
 	}
 	var WEB_ABR_TRANSPORTS = [
@@ -27531,7 +28141,7 @@ var vot = (function(exports) {
 		let refreshedFatal = false;
 		for (let attempt = 0; attempt < WEB_ABR_RANGE_MAX_ATTEMPTS; attempt++) {
 			signal.throwIfAborted();
-			if (attempt > 0 && urlState.refreshPromise) await urlState.refreshPromise;
+			if (attempt > 0 && urlState.refreshPromise !== void 0) await urlState.refreshPromise;
 			try {
 				const urlVersion = urlState.version ?? 0;
 				const url = new URL(urlState.value);
@@ -27554,7 +28164,7 @@ var vot = (function(exports) {
 					});
 					return bytes;
 				}
-				const redirect = new TextDecoder("ascii").decode(bytes).match(/^\s*(https:\/\/\S+)\s*$/)?.[1];
+				const redirect = /^\s*(https:\/\/\S+)\s*$/.exec(new TextDecoder("ascii").decode(bytes))?.[1];
 				if (redirect) {
 					const next = new URL(redirect);
 					if (!/(?:^|\.)googlevideo\.com$/.test(next.hostname)) throw new Error("Audio downloader. Invalid media redirect");
@@ -27605,7 +28215,7 @@ var vot = (function(exports) {
 		}
 		throw lastError instanceof Error ? lastError : new Error("Audio downloader. Media range failed");
 	}
-	async function* emitOrderedBuffers(buffers, isLastBatch, pendingState) {
+	function* emitOrderedBuffers(buffers, isLastBatch, pendingState) {
 		for (let bufferIndex = 0; bufferIndex < buffers.length; bufferIndex++) {
 			const buffer = buffers[bufferIndex];
 			pendingState.buffers.push(buffer);
@@ -27816,7 +28426,7 @@ var vot = (function(exports) {
 	async function* getWebAbrAudioChunks$1(targetWindow, videoId, signal, sourceLanguage) {
 		const config = await resolveYtcfg(targetWindow, signal);
 		const apiKey = getConfigValue(config, "INNERTUBE_API_KEY");
-		if (typeof apiKey !== "string") throw new Error("Audio downloader. web ABR config is unavailable");
+		if (typeof apiKey !== "string") throw new TypeError("Audio downloader. web ABR config is unavailable");
 		const playerCodes = new Map();
 		const fetchPlayerCode = (url = getPlayerUrl(config)) => {
 			if (!url) return Promise.resolve(void 0);
@@ -27831,16 +28441,16 @@ var vot = (function(exports) {
 			return code;
 		};
 		let sts = Number(getConfigValue(config, "STS"));
-		if (!(sts > 0)) sts = Number((await fetchPlayerCode())?.match(/(?:signatureTimestamp|sts)\s*:\s*([0-9]{5})/)?.[1]);
+		if (Number.isNaN(sts) || sts <= 0) sts = Number((await fetchPlayerCode())?.match(/(?:signatureTimestamp|sts)\s*:\s*(\d{5})/)?.[1]);
 		const body = buildWebEmbeddedPlayerRequest(config, videoId, sts);
 		const context = body.context;
-		const clientVersion = String(context.client.clientVersion ?? "");
+		const clientVersion = toPrimitiveString(context.client.clientVersion);
 		const visitorData = context.client.visitorData ?? getConfigValue(config, "VISITOR_DATA");
 		if (typeof visitorData === "string") context.client.visitorData = visitorData;
 		const dataSyncId = getConfigValue(config, "DATASYNC_ID");
 		const [firstSyncId, secondSyncId] = typeof dataSyncId === "string" ? dataSyncId.split("||") : [];
 		const delegatedSessionId = getConfigValue(config, "DELEGATED_SESSION_ID") ?? (secondSyncId ? firstSyncId : void 0);
-		const authorization = await getYouTubeAuthorization(targetWindow, String(getConfigValue(config, "USER_SESSION_ID") ?? (secondSyncId || firstSyncId) ?? "") || void 0);
+		const authorization = await getYouTubeAuthorization(targetWindow, toPrimitiveString(getConfigValue(config, "USER_SESSION_ID") ?? (secondSyncId || firstSyncId)) || void 0);
 		const loggedIn = getConfigValue(config, "LOGGED_IN") === true;
 		const sessionIndex = getConfigValue(config, "SESSION_INDEX");
 		const authenticatedAuth = {
@@ -27879,10 +28489,27 @@ var vot = (function(exports) {
 				signatureTimestamp: fetchedConfig?.signatureTimestamp ?? sts,
 				clientVersion: fetchedConfig?.clientVersion
 			};
-			const candidateBody = name === "web_embedded" ? body : name === "tv_downgraded" ? buildTvDowngradedPlayerRequest(videoId, options) : name === "web" ? buildWebPlayerRequest(config, videoId, sts) : buildWebCreatorPlayerRequest(videoId, options);
+			let candidateBody;
+			switch (name) {
+				case "web_embedded":
+					candidateBody = body;
+					break;
+				case "tv_downgraded":
+					candidateBody = buildTvDowngradedPlayerRequest(videoId, options);
+					break;
+				case "web":
+					candidateBody = buildWebPlayerRequest(config, videoId, sts);
+					break;
+				default: candidateBody = buildWebCreatorPlayerRequest(videoId, options);
+			}
 			const candidateContext = candidateBody.context;
 			if (typeof options.visitorData === "string") candidateContext.client.visitorData = options.visitorData;
-			const postPlayer = (authenticated) => postInnertubePlayer(targetWindow, signal, fetchedConfig?.apiKey ?? apiKey, candidateBody, name === "web_embedded" ? "56" : name === "tv_downgraded" ? "7" : name === "web" ? "1" : "62", String(candidateContext.client.clientVersion ?? clientVersion), authenticated ? authenticatedAuth : {});
+			const postPlayer = (authenticated) => postInnertubePlayer(targetWindow, signal, fetchedConfig?.apiKey ?? apiKey, candidateBody, {
+				web_embedded: "56",
+				tv_downgraded: "7",
+				web: "1",
+				web_creator: "62"
+			}[name] ?? "62", toPrimitiveString(candidateContext.client.clientVersion, clientVersion), authenticated ? authenticatedAuth : {});
 			const requestPlayer = async (authenticated = false) => {
 				const response = await postPlayer(authenticated);
 				const status = response.playabilityStatus?.status ?? "";
@@ -27938,7 +28565,13 @@ var vot = (function(exports) {
 						const response = (await requestPlayer(requestAuthenticated)).response;
 						const refreshed = [...response.streamingData?.adaptiveFormats ?? [], ...response.streamingData?.formats ?? []].find((entry) => entry.itag === format.itag && entry.mimeType === format.mimeType && Number(entry.contentLength) === contentLength && entry.lastModified === format.lastModified);
 						if (!refreshed) throw new Error("Audio downloader. Refreshed audio format changed");
-						for await (const url of resolveWebEmbeddedFormatUrl(targetWindow, refreshed, getCode, signal)) return await authorizeUrl(url);
+						const urls = resolveWebEmbeddedFormatUrl(targetWindow, refreshed, getCode, signal);
+						try {
+							const next = await urls.next();
+							if (!next.done) return await authorizeUrl(next.value);
+						} finally {
+							await urls.return(void 0);
+						}
 						throw new Error("Audio downloader. Refreshed audio URL unavailable");
 					};
 					for await (const chunk of downloadMediaRanges(targetWindow, streamUrl, contentLength, signal, refreshUrl)) {
@@ -27968,8 +28601,7 @@ var vot = (function(exports) {
 		if (/LOGIN_REQUIRED|UNPLAYABLE/.test(fallbackError.message)) throw new Error(`${fallbackError.message}. Anonymous playback and the available signed-in YouTube session were both unable to provide a playable audio stream`, { cause: fallbackError });
 		throw fallbackError;
 	}
-	//#endregion
-	//#region src/audioDownloader/strategies/youtubeSabrPlayer.ts
+	// src/audioDownloader/strategies/youtubeSabrPlayer.ts
 	function readInitialPlayerResponseFromDocument(targetWindow) {
 		let scripts = [];
 		try {
@@ -27987,26 +28619,34 @@ var vot = (function(exports) {
 			const source = script.textContent ?? "";
 			if (!source.includes("ytInitialPlayerResponse")) continue;
 			for (const marker of markers) {
-				let cursor = 0;
-				while (cursor < source.length) {
-					const markerIndex = source.indexOf(marker, cursor);
-					if (markerIndex < 0) break;
-					let start = markerIndex + marker.length;
-					while (start < source.length && /\s/.test(source[start] ?? "")) start++;
-					if (source[start] !== "{") {
-						cursor = start + 1;
-						continue;
-					}
-					const end = findJsonValueEnd(source, start);
-					if (end < 0) break;
-					try {
-						const value = JSON.parse(source.slice(start, end));
-						if (value && typeof value === "object") return value;
-					} catch {}
-					cursor = end;
-				}
+				const response = readPlayerResponseMarker(source, marker);
+				if (response) return response;
 			}
 		}
+	}
+	function readPlayerResponseMarker(source, marker) {
+		let cursor = 0;
+		while (cursor < source.length) {
+			const markerIndex = source.indexOf(marker, cursor);
+			if (markerIndex < 0) break;
+			const afterMarker = markerIndex + marker.length;
+			const rest = source.slice(afterMarker);
+			const start = afterMarker + rest.length - rest.trimStart().length;
+			if (source[start] !== "{") {
+				cursor = start + 1;
+				continue;
+			}
+			const end = findJsonValueEnd(source, start);
+			if (end < 0) break;
+			try {
+				const value = JSON.parse(source.slice(start, end));
+				if (value && typeof value === "object") return value;
+			} catch {}
+			cursor = end;
+		}
+	}
+	function hasNativeStreamingData(value) {
+		return Boolean(value.streamingData?.serverAbrStreamingUrl && value.playerConfig?.mediaCommonConfig?.mediaUstreamerRequestConfig?.videoPlaybackUstreamerConfig && value.streamingData?.adaptiveFormats?.length);
 	}
 	function getNativePlayerResponse(targetWindow, videoId) {
 		const candidates = [];
@@ -28025,7 +28665,7 @@ var vot = (function(exports) {
 		for (const value of candidates) {
 			const responseVideoId = value.videoDetails?.videoId;
 			if (responseVideoId && responseVideoId !== videoId) continue;
-			if (value.streamingData?.serverAbrStreamingUrl && value.playerConfig?.mediaCommonConfig?.mediaUstreamerRequestConfig?.videoPlaybackUstreamerConfig && value.streamingData?.adaptiveFormats?.length) return value;
+			if (hasNativeStreamingData(value)) return value;
 		}
 	}
 	function selectEconomyAudioFormat(formats) {
@@ -28089,14 +28729,13 @@ var vot = (function(exports) {
 			racyCheckOk: true
 		};
 	}
-	//#endregion
-	//#region src/audioDownloader/strategies/youtubeSabrSupport.ts
+	// src/audioDownloader/strategies/youtubeSabrSupport.ts
 	function toSabrFormat(format) {
 		const itag = Number(format.itag);
 		const bitrate = Number(format.bitrate ?? format.averageBitrate);
 		const approxDurationMs = Number(format.approxDurationMs);
 		const lastModified = String(format.lastModified ?? "");
-		if (!(itag > 0) || !(bitrate > 0) || !(approxDurationMs > 0) || !lastModified) return;
+		if (Number.isNaN(itag) || itag <= 0 || Number.isNaN(bitrate) || bitrate <= 0 || Number.isNaN(approxDurationMs) || approxDurationMs <= 0 || !lastModified) return;
 		const language = getYoutubeAudioFormatLanguage(format) || void 0;
 		return {
 			itag,
@@ -28115,7 +28754,12 @@ var vot = (function(exports) {
 			audioQuality: format.audioQuality,
 			approxDurationMs,
 			language,
-			isOriginal: format.audioTrack?.audioIsDefault === true
+			isOriginal: format.audioTrack?.audioIsDefault === true,
+			isHdr: false,
+			hasAudio: true,
+			hasVideo: false,
+			hasText: false,
+			codecCode: CODEC_CODES[itag] ?? ""
 		};
 	}
 	function encodeProtoVarint(value) {
@@ -28417,69 +29061,7 @@ var vot = (function(exports) {
 		throw new Error(`Audio downloader. SABR could not resolve requested audio language ${requestedLanguage} to a YouTube trackId within ${timeoutMs}ms (available: ${lastAvailable.join(", ")})`);
 	}
 	var VOT_SABR_INSTANCE_CONTEXT = new WeakMap();
-	//#endregion
-	//#region src/audioDownloader/strategies/youtubeSabr.ts
-	function readProtoVarint(bytes, start) {
-		let value = 0;
-		let shift = 0;
-		let offset = start;
-		while (offset < bytes.length && shift <= 35) {
-			const byte = bytes[offset++];
-			value += (byte & 127) * 2 ** shift;
-			if ((byte & 128) === 0) return {
-				value,
-				next: offset
-			};
-			shift += 7;
-		}
-		throw new Error("invalid protobuf varint");
-	}
-	function getGeneratedSabrAudioTrackId(bytes) {
-		try {
-			let offset = 0;
-			while (offset < bytes.length) {
-				const tag = readProtoVarint(bytes, offset);
-				offset = tag.next;
-				const field = Math.floor(tag.value / 8);
-				const wire = tag.value & 7;
-				if (wire !== 2) {
-					if (wire === 0) offset = readProtoVarint(bytes, offset).next;
-					else if (wire === 1) offset += 8;
-					else if (wire === 5) offset += 4;
-					else return void 0;
-					continue;
-				}
-				const length = readProtoVarint(bytes, offset);
-				const start = length.next;
-				const end = start + length.value;
-				if (end > bytes.length) return void 0;
-				if (field === 1) {
-					let inner = start;
-					while (inner < end) {
-						const innerTag = readProtoVarint(bytes, inner);
-						inner = innerTag.next;
-						const innerField = Math.floor(innerTag.value / 8);
-						const innerWire = innerTag.value & 7;
-						if (innerWire === 2) {
-							const innerLength = readProtoVarint(bytes, inner);
-							const valueStart = innerLength.next;
-							const valueEnd = valueStart + innerLength.value;
-							if (valueEnd > end) return void 0;
-							if (innerField === 69) {
-								const trackId = new TextDecoder().decode(bytes.slice(valueStart, valueEnd));
-								return /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})?\.\d{1,3}$/.test(trackId) ? trackId : void 0;
-							}
-							inner = valueEnd;
-						} else if (innerWire === 0) inner = readProtoVarint(bytes, inner).next;
-						else if (innerWire === 1) inner += 8;
-						else if (innerWire === 5) inner += 4;
-						else return void 0;
-					}
-				}
-				offset = end;
-			}
-		} catch {}
-	}
+	// src/audioDownloader/strategies/youtubeSabr.ts
 	async function* trySabrAudioChunks(targetWindow, videoId, signal, sourceLanguage) {
 		debug.log("[SABR][PRIMARY] entered trySabrAudioChunks", { videoId });
 		WEB_ABR_RESOLVED_AUDIO_LANGUAGES.delete(videoId);
@@ -28488,12 +29070,12 @@ var vot = (function(exports) {
 		if (typeof apiKey !== "string") throw new Error("Audio downloader. SABR config is unavailable");
 		const body = buildSabrPlayerRequest(config, videoId, Number(getConfigValue(config, "STS")));
 		const context = body.context;
-		const clientVersion = String(context.client.clientVersion ?? "");
+		const clientVersion = toPrimitiveString(context.client.clientVersion);
 		const visitorData = context.client.visitorData ?? getConfigValue(config, "VISITOR_DATA");
 		if (typeof visitorData === "string") context.client.visitorData = visitorData;
 		const dataSyncId = getConfigValue(config, "DATASYNC_ID");
 		const [firstSyncId, secondSyncId] = typeof dataSyncId === "string" ? dataSyncId.split("||") : [];
-		const authorization = await getYouTubeAuthorization(targetWindow, String(getConfigValue(config, "USER_SESSION_ID") ?? (secondSyncId || firstSyncId) ?? "") || void 0);
+		const authorization = await getYouTubeAuthorization(targetWindow, toPrimitiveString(getConfigValue(config, "USER_SESSION_ID") ?? (secondSyncId || firstSyncId)) || void 0);
 		const auth = authorization ? {
 			authorization,
 			sessionIndex: getConfigValue(config, "SESSION_INDEX"),
@@ -28539,7 +29121,11 @@ var vot = (function(exports) {
 		const languageTrackAudioCandidates = exactTrackAudioCandidates.length === 0 && requestedTrackLanguage ? audioCandidates.filter((format) => audioLanguageMatches(getYoutubeAudioFormatLanguage(format), requestedTrackLanguage)) : [];
 		audioCandidates.some((format) => Boolean(formatTrackId(format) || normalizeAudioLanguageTag(getYoutubeAudioFormatLanguage(format))));
 		const nativeBoundUnscopedAudioCandidates = (exactTrackAudioCandidates.length === 0 && languageTrackAudioCandidates.length, []);
-		const selectedTrackAudioCandidates = exactTrackAudioCandidates.length > 0 ? exactTrackAudioCandidates : languageTrackAudioCandidates.length > 0 ? languageTrackAudioCandidates : nativeBoundUnscopedAudioCandidates.length > 0 ? nativeBoundUnscopedAudioCandidates : sabrAvailableTrackIds.length <= 1 ? audioCandidates : [];
+		let selectedTrackAudioCandidates = audioCandidates;
+		if (exactTrackAudioCandidates.length > 0) selectedTrackAudioCandidates = exactTrackAudioCandidates;
+		else if (languageTrackAudioCandidates.length > 0) selectedTrackAudioCandidates = languageTrackAudioCandidates;
+		else if (nativeBoundUnscopedAudioCandidates.length > 0) selectedTrackAudioCandidates = nativeBoundUnscopedAudioCandidates;
+		else if (sabrAvailableTrackIds.length > 1) selectedTrackAudioCandidates = [];
 		if (selectedTrackAudioCandidates.length === 0) throw new Error(`Audio downloader. SABR has no concrete formats for selected track ${sabrAudioTrackId ?? "native/default"}; refusing array[0] fallback`);
 		const selected = selectEconomyAudioFormat(selectedTrackAudioCandidates);
 		if (!selected?.itag) throw new Error("Audio downloader. SABR audio format is unavailable");
@@ -28694,9 +29280,12 @@ var vot = (function(exports) {
 		const sabrDiagnosticFetch = async (input, init) => {
 			const index = ++sabrRequestIndex;
 			const RequestCtor = fetchRealm.Request;
-			const inputIsRequest = typeof RequestCtor !== "undefined" && input instanceof RequestCtor;
+			const inputIsRequest = RequestCtor !== void 0 && input instanceof RequestCtor;
 			const requestInput = inputIsRequest ? input : void 0;
-			const requestUrl = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+			let requestUrl;
+			if (typeof input === "string") requestUrl = input;
+			else if (input instanceof URL) requestUrl = input.toString();
+			else requestUrl = input.url;
 			const url = new URL(requestUrl, targetWindow.location.href);
 			const isSabrRequest = url.hostname.endsWith("googlevideo.com") && url.pathname === "/videoplayback" && url.searchParams.get("sabr") === "1";
 			if (isSabrRequest) {}
@@ -28709,18 +29298,15 @@ var vot = (function(exports) {
 			}
 			let transportBody = body;
 			const BlobCtor = fetchRealm.Blob;
-			if (isSabrRequest && typeof BlobCtor !== "undefined" && body instanceof BlobCtor) transportBody = await body.arrayBuffer();
+			if (isSabrRequest && BlobCtor !== void 0 && body instanceof BlobCtor) transportBody = await body.arrayBuffer();
 			const headerEntries = Object.fromEntries(headers.entries());
 			if (body !== null) {
 				let bytes = null;
 				if (typeof body === "string") bytes = new TextEncoder().encode(body);
 				else if (body instanceof ArrayBuffer) bytes = new Uint8Array(body);
 				else if (ArrayBuffer.isView(body)) bytes = new Uint8Array(body.buffer, body.byteOffset, body.byteLength);
-				else if (typeof BlobCtor !== "undefined" && body instanceof BlobCtor) {}
 				if (bytes) {
 					const protobuf = inspectSabrProto(bytes);
-					const encodedAudioTrackId = getGeneratedSabrAudioTrackId(bytes);
-					if (index <= 3 || encodedAudioTrackId !== sabrAudioTrackId) {}
 					if (index > 1) {
 						consecutivePostBootstrapRequestsWithoutBufferedRanges = (protobuf.targetFields?.["3"]?.count ?? 0) > 0 ? 0 : consecutivePostBootstrapRequestsWithoutBufferedRanges + 1;
 						if (consecutivePostBootstrapRequestsWithoutBufferedRanges >= 8) throw new Error("SABR state did not produce buffered ranges after bootstrap");
@@ -28730,7 +29316,7 @@ var vot = (function(exports) {
 			const fetchWithGmFallback = async () => {
 				try {
 					const nativeInit = {
-						...init ?? {},
+						...init,
 						headers,
 						body: transportBody,
 						credentials: "include",
@@ -28755,13 +29341,14 @@ var vot = (function(exports) {
 					const gmGlobal = globalThis;
 					const callbackGm = gmGlobal.GM_xmlhttpRequest;
 					const promiseGm = gmGlobal.GM?.xmlHttpRequest ?? gmGlobal.GM?.xmlhttpRequest;
-					const gm = typeof callbackGm === "function" ? callbackGm : typeof promiseGm === "function" ? promiseGm.bind(gmGlobal.GM) : void 0;
+					let gm = callbackGm;
+					if (typeof gm !== "function" && typeof promiseGm === "function") gm = promiseGm.bind(gmGlobal.GM);
 					if (typeof gm !== "function") throw nativeError;
 					let gmBody;
 					if (typeof transportBody === "string") gmBody = transportBody;
 					else if (transportBody instanceof ArrayBuffer) gmBody = transportBody.slice(0);
 					else if (ArrayBuffer.isView(transportBody)) gmBody = transportBody.buffer.slice(transportBody.byteOffset, transportBody.byteOffset + transportBody.byteLength);
-					else if (typeof BlobCtor !== "undefined" && transportBody instanceof BlobCtor) gmBody = await transportBody.arrayBuffer();
+					else if (BlobCtor !== void 0 && transportBody instanceof BlobCtor) gmBody = await transportBody.arrayBuffer();
 					else if (transportBody !== null || requestInput?.body) throw nativeError;
 					return await new Promise((resolve, reject) => {
 						let settled = false;
@@ -28877,9 +29464,9 @@ var vot = (function(exports) {
 			};
 			sabrPrototype.__votNativeAbrStatePatched = true;
 		}
-		let stream;
-		stream = new SabrStream({
-			fetch: sabrDiagnosticFetch,
+		const stream = new SabrStream({
+			videoId,
+			fetchFunction: sabrDiagnosticFetch,
 			poToken: sabrPoToken,
 			serverAbrStreamingUrl,
 			videoPlaybackUstreamerConfig,
@@ -28912,7 +29499,8 @@ var vot = (function(exports) {
 				videoFormat: (formats) => formats.filter((format) => format.mimeType?.includes("video/")).sort((a, b) => a.bitrate - b.bitrate)[0],
 				enabledTrackTypes: 1,
 				maxRetries: 3,
-				stallDetectionMs: 2e4
+				stallDetectionMs: 2e4,
+				isPostLiveDvr: false
 			});
 			debug.log("[SABR][PURE_ONLY] SabrStream started", {
 				videoId,
@@ -28923,13 +29511,7 @@ var vot = (function(exports) {
 			let pendingSize = 0;
 			let readyChunk = null;
 			let total = 0;
-			const configuredMinChunkSize = Number(config_default$1.minChunkSize);
-			const minChunkSize = Number.isFinite(configuredMinChunkSize) && configuredMinChunkSize > 0 ? Math.floor(configuredMinChunkSize) : 5295308;
-			debug.log("[SABR] chunk config", {
-				configuredMinChunkSize: config_default$1.minChunkSize,
-				minChunkSize,
-				usedFallback: minChunkSize !== configuredMinChunkSize
-			});
+			const { minChunkSize } = config_default$1;
 			try {
 				while (true) {
 					signal.throwIfAborted();
@@ -29053,13 +29635,12 @@ var vot = (function(exports) {
 			stream.abort();
 		}
 	}
-	//#endregion
-	//#region src/audioDownloader/strategies/youtubeSabrStrategy.ts
+	// src/audioDownloader/strategies/youtubeSabrStrategy.ts
 	var SABR_MAX_ATTEMPTS = 2;
 	var SABR_RETRY_DELAY_MS = 750;
 	var SABR_DOWNLOAD_QUEUE = new Map();
 	function isDeterministicSabrError(error) {
-		const message = error instanceof Error ? error.message : String(error);
+		const message = toErrorMessage(error);
 		return message.includes("SABR could not resolve requested audio language") || message.includes("SABR found no VOT-supported audio track") || message.includes("SABR audio language") && message.includes("is ambiguous") || message.includes("refusing array[0] fallback");
 	}
 	async function* getSabrAudioChunksImpl(targetWindow, videoId, signal, sourceLanguage) {
@@ -29093,7 +29674,7 @@ var vot = (function(exports) {
 					attempt,
 					bufferedChunks: chunks.length,
 					bufferedBytes: bytes,
-					error: error instanceof Error ? error.message : String(error)
+					error: toErrorMessage(error)
 				});
 				if (attempt < SABR_MAX_ATTEMPTS && !isDeterministicSabrError(error)) {
 					await createAbortableDelay(SABR_RETRY_DELAY_MS, signal);
@@ -29102,59 +29683,17 @@ var vot = (function(exports) {
 				break;
 			}
 		}
-		throw lastError instanceof Error ? lastError : new Error(String(lastError ?? "Audio downloader. SABR failed"));
+		throw lastError instanceof Error ? lastError : new Error(toErrorMessage(lastError, "Audio downloader. SABR failed"));
 	}
 	async function* getSabrAudioChunks(targetWindow, videoId, signal, sourceLanguage) {
-		const queueKey = String(videoId);
-		const previous = SABR_DOWNLOAD_QUEUE.get(queueKey) ?? Promise.resolve();
-		const hadPrevious = SABR_DOWNLOAD_QUEUE.has(queueKey);
-		let releaseCurrent;
-		const current = new Promise((resolve) => {
-			releaseCurrent = resolve;
-		});
-		SABR_DOWNLOAD_QUEUE.set(queueKey, current);
-		debug.log("Audio downloader. SABR queued", {
-			videoId,
-			hasPrevious: hadPrevious
-		});
-		try {
-			await previous;
-			signal.throwIfAborted();
-			yield* getSabrAudioChunksImpl(targetWindow, videoId, signal, sourceLanguage);
-		} finally {
-			releaseCurrent?.();
-			if (SABR_DOWNLOAD_QUEUE.get(queueKey) === current) SABR_DOWNLOAD_QUEUE.delete(queueKey);
-			debug.log("Audio downloader. SABR queue released", { videoId });
-		}
+		yield* getQueuedAudioChunks(SABR_DOWNLOAD_QUEUE, "SABR", videoId, signal, () => getSabrAudioChunksImpl(targetWindow, videoId, signal, sourceLanguage));
 	}
-	//#endregion
-	//#region src/audioDownloader/strategies/youtubeWebAbr.ts
+	// src/audioDownloader/strategies/youtubeWebAbr.ts
 	var WEB_ABR_DOWNLOAD_QUEUE = new Map();
 	async function* getWebAbrAudioChunks(targetWindow, videoId, signal, sourceLanguage) {
-		const queueKey = String(videoId);
-		const previous = WEB_ABR_DOWNLOAD_QUEUE.get(queueKey) ?? Promise.resolve();
-		const hadPrevious = WEB_ABR_DOWNLOAD_QUEUE.has(queueKey);
-		let releaseCurrent;
-		const current = new Promise((resolve) => {
-			releaseCurrent = resolve;
-		});
-		WEB_ABR_DOWNLOAD_QUEUE.set(queueKey, current);
-		debug.log("Audio downloader. WebABR queued", {
-			videoId,
-			hasPrevious: hadPrevious
-		});
-		try {
-			await previous;
-			signal.throwIfAborted();
-			yield* getWebAbrAudioChunks$1(targetWindow, videoId, signal, sourceLanguage);
-		} finally {
-			releaseCurrent?.();
-			if (WEB_ABR_DOWNLOAD_QUEUE.get(queueKey) === current) WEB_ABR_DOWNLOAD_QUEUE.delete(queueKey);
-			debug.log("Audio downloader. WebABR queue released", { videoId });
-		}
+		yield* getQueuedAudioChunks(WEB_ABR_DOWNLOAD_QUEUE, "WebABR", videoId, signal, () => getWebAbrAudioChunks$1(targetWindow, videoId, signal, sourceLanguage));
 	}
-	//#endregion
-	//#region src/audioDownloader/strategies/mseProxyHandler.ts
+	// src/audioDownloader/strategies/mseProxyHandler.ts
 	var MESSAGE_TYPE = "get-audio-chunks-by-mse-in-main-world";
 	var READY_MESSAGE_TYPE = "vot-mse-proxy-ready";
 	var IFRAME_HASH = "ya_iframe";
@@ -29183,20 +29722,19 @@ var vot = (function(exports) {
 		bytes[1] = videoId.length;
 		for (let index = 0; index < videoId.length; index++) bytes[index + 2] = videoId.charCodeAt(index);
 		try {
-			const match = (await (await targetWindow.fetch("https://www.youtube.com/youtubei/v1/share/get_share_panel", {
+			const response = await targetWindow.fetch("https://www.youtube.com/youtubei/v1/share/get_share_panel", {
 				method: "POST",
 				body: JSON.stringify({
 					context: { client: {
 						clientName: "WEB",
 						clientVersion: "2.20251006.01.00"
 					} },
-					serializedSharedEntity: encodeURIComponent(targetWindow.btoa(String.fromCharCode(...bytes)))
+					serializedSharedEntity: encodeURIComponent(targetWindow.btoa(String.fromCodePoint(...bytes)))
 				})
-			})).text()).match(/"encryptedEmbedConfig"\s*:\s*("[^"]+")/);
+			});
+			const match = /"encryptedEmbedConfig"\s*:\s*("[^"]+")/.exec(await response.text());
 			return match ? `{"enc":${match[1]}}` : void 0;
-		} catch {
-			return;
-		}
+		} catch {}
 	}
 	function waitFor(getValue, timeoutMs, label, signal) {
 		return new Promise((resolve, reject) => {
@@ -29389,12 +29927,11 @@ var vot = (function(exports) {
 								const element = videos[0];
 								try {
 									element.muted = true;
-									const attempt = element.play();
-									if (attempt && typeof attempt.catch === "function") attempt.catch((playError) => {
-										playReject ??= playError instanceof Error ? playError.name : String(playError);
+									element.play().catch((playError) => {
+										playReject ??= playError instanceof Error ? playError.name : toErrorMessage(playError);
 									});
 								} catch (playError) {
-									playReject ??= playError instanceof Error ? playError.name : String(playError);
+									playReject ??= playError instanceof Error ? playError.name : toErrorMessage(playError);
 								}
 							}
 							return videos.find((video) => video.readyState >= 3) ?? (state === 1 && videos.length > 0 ? videos[0] : null);
@@ -29560,15 +30097,18 @@ var vot = (function(exports) {
 	function postResponse(target, targetOrigin, message) {
 		target.postMessage(message, targetOrigin || "*");
 	}
+	function createRequestAbortListener(event, source, controller) {
+		return (abortEvent) => {
+			const data = abortEvent.data;
+			if (abortEvent.source === source && abortEvent.origin === event.origin && data.messageId === event.data.messageId && data.messageType === MESSAGE_TYPE && data.messageDirection === "request" && data.isAborted) controller.abort(data.payload);
+		};
+	}
 	async function handleIframeRequest(event, targetWindow) {
 		const message = event.data;
 		const source = event.source;
 		if (!source) return;
 		const controller = new AbortController();
-		const abort = (abortEvent) => {
-			const data = abortEvent.data;
-			if (abortEvent.source === source && abortEvent.origin === event.origin && data.messageId === message.messageId && data.messageType === MESSAGE_TYPE && data.messageDirection === "request" && data.isAborted) controller.abort(data.payload);
-		};
+		const abort = createRequestAbortListener(event, source, controller);
 		targetWindow.addEventListener("message", abort);
 		let settled = false;
 		let heartbeat;
@@ -29591,7 +30131,10 @@ var vot = (function(exports) {
 					isProgress: true
 				});
 			};
-			const chunks = audioDownloadType === SABR_STRATEGY ? getSabrAudioChunks(targetWindow, videoId, controller.signal, getSourceLanguage(message)) : audioDownloadType === AudioDownloadType.WEB_ABR ? getWebAbrAudioChunks(targetWindow, videoId, controller.signal, getSourceLanguage(message)) : createAudioChunkStream(targetWindow, videoId, controller.signal, postProgress);
+			let chunks;
+			if (audioDownloadType === SABR_STRATEGY) chunks = getSabrAudioChunks(targetWindow, videoId, controller.signal, getSourceLanguage(message));
+			else if (audioDownloadType === AudioDownloadType.WEB_ABR) chunks = getWebAbrAudioChunks(targetWindow, videoId, controller.signal, getSourceLanguage(message));
+			else chunks = createAudioChunkStream(targetWindow, videoId, controller.signal, postProgress);
 			if (audioDownloadType === SABR_STRATEGY || audioDownloadType === AudioDownloadType.WEB_ABR) {
 				postProgress();
 				heartbeat = setInterval(postProgress, 3e4);
@@ -29640,6 +30183,96 @@ var vot = (function(exports) {
 			targetWindow.removeEventListener("message", abort);
 		}
 	}
+	async function handleDirectRequest(event, targetWindow, source, videoId, audioDownloadType) {
+		const message = event.data;
+		const controller = new AbortController();
+		let settled = false;
+		const abort = createRequestAbortListener(event, source, controller);
+		targetWindow.addEventListener("message", abort);
+		const postProgress = () => {
+			if (settled) return;
+			postResponse(source, event.origin, {
+				...message,
+				messageDirection: "response",
+				payload: void 0,
+				isProgress: true
+			});
+		};
+		const heartbeat = setInterval(postProgress, 3e4);
+		postProgress();
+		debug.log("Audio downloader. direct strategy request started", {
+			strategy: audioDownloadType,
+			videoId,
+			messageId: message.messageId,
+			host: targetWindow.location.hostname
+		});
+		try {
+			const chunks = audioDownloadType === SABR_STRATEGY ? getSabrAudioChunks(targetWindow, videoId, controller.signal, getSourceLanguage(message)) : getWebAbrAudioChunks(targetWindow, videoId, controller.signal, getSourceLanguage(message));
+			for await (const chunk of chunks) {
+				const buffer = new Uint8Array(chunk.buffer.buffer, chunk.buffer.byteOffset, chunk.buffer.byteLength).slice();
+				const payload = {
+					...chunk,
+					buffer
+				};
+				debug.log("Audio downloader. direct chunk received", {
+					videoId,
+					messageId: message.messageId,
+					size: buffer.byteLength,
+					isLastChunk: chunk.isLastChunk
+				});
+				try {
+					postResponse(source, event.origin, {
+						...message,
+						messageDirection: "response",
+						payload
+					});
+					debug.log("Audio downloader. direct chunk posted", {
+						videoId,
+						messageId: message.messageId,
+						size: buffer.byteLength,
+						isLastChunk: chunk.isLastChunk
+					});
+				} catch (error) {
+					debug.error("Audio downloader. direct chunk post failed", {
+						videoId,
+						messageId: message.messageId,
+						size: buffer.byteLength,
+						error: error instanceof Error ? error.message : String(error)
+					});
+					throw error;
+				}
+			}
+			settled = true;
+			debug.log("Audio downloader. direct strategy stream finished", {
+				strategy: audioDownloadType,
+				videoId,
+				messageId: message.messageId
+			});
+			postResponse(source, event.origin, {
+				...message,
+				messageDirection: "response",
+				payload: void 0,
+				isStreamFinished: true
+			});
+		} catch (error) {
+			settled = true;
+			debug.error("Audio downloader. direct WebABR/SABR request failed", {
+				videoId,
+				messageId: message.messageId,
+				error: error instanceof Error ? error.message : String(error)
+			});
+			postResponse(source, event.origin, {
+				...message,
+				messageDirection: "response",
+				payload: void 0,
+				error: error instanceof Error ? error.message : String(error),
+				isAborted: controller.signal.aborted || isAbortError(error)
+			});
+		} finally {
+			clearInterval(heartbeat);
+			targetWindow.removeEventListener("message", abort);
+		}
+	}
 	async function handleTopRequest(event, targetWindow) {
 		const message = event.data;
 		const source = event.source;
@@ -29669,96 +30302,7 @@ var vot = (function(exports) {
 			host: targetWindow.location.hostname
 		});
 		if (audioDownloadType === SABR_STRATEGY || audioDownloadType === AudioDownloadType.WEB_ABR) {
-			const controller = new AbortController();
-			let settled = false;
-			const abort = (abortEvent) => {
-				const data = abortEvent.data;
-				if (abortEvent.source === source && abortEvent.origin === event.origin && data.messageId === message.messageId && data.messageType === MESSAGE_TYPE && data.messageDirection === "request" && data.isAborted) controller.abort(data.payload);
-			};
-			targetWindow.addEventListener("message", abort);
-			const postProgress = () => {
-				if (settled) return;
-				postResponse(source, event.origin, {
-					...message,
-					messageDirection: "response",
-					payload: void 0,
-					isProgress: true
-				});
-			};
-			const heartbeat = setInterval(postProgress, 3e4);
-			postProgress();
-			debug.log("Audio downloader. direct strategy request started", {
-				strategy: audioDownloadType,
-				videoId,
-				messageId: message.messageId,
-				host: targetWindow.location.hostname
-			});
-			try {
-				const chunks = audioDownloadType === SABR_STRATEGY ? getSabrAudioChunks(targetWindow, videoId, controller.signal, getSourceLanguage(message)) : getWebAbrAudioChunks(targetWindow, videoId, controller.signal, getSourceLanguage(message));
-				for await (const chunk of chunks) {
-					const buffer = new Uint8Array(chunk.buffer.buffer, chunk.buffer.byteOffset, chunk.buffer.byteLength).slice();
-					const payload = {
-						...chunk,
-						buffer
-					};
-					debug.log("Audio downloader. direct chunk received", {
-						videoId,
-						messageId: message.messageId,
-						size: buffer.byteLength,
-						isLastChunk: chunk.isLastChunk
-					});
-					try {
-						postResponse(source, event.origin, {
-							...message,
-							messageDirection: "response",
-							payload
-						});
-						debug.log("Audio downloader. direct chunk posted", {
-							videoId,
-							messageId: message.messageId,
-							size: buffer.byteLength,
-							isLastChunk: chunk.isLastChunk
-						});
-					} catch (error) {
-						debug.error("Audio downloader. direct chunk post failed", {
-							videoId,
-							messageId: message.messageId,
-							size: buffer.byteLength,
-							error: error instanceof Error ? error.message : String(error)
-						});
-						throw error;
-					}
-				}
-				settled = true;
-				debug.log("Audio downloader. direct strategy stream finished", {
-					strategy: audioDownloadType,
-					videoId,
-					messageId: message.messageId
-				});
-				postResponse(source, event.origin, {
-					...message,
-					messageDirection: "response",
-					payload: void 0,
-					isStreamFinished: true
-				});
-			} catch (error) {
-				settled = true;
-				debug.error("Audio downloader. direct WebABR/SABR request failed", {
-					videoId,
-					messageId: message.messageId,
-					error: error instanceof Error ? error.message : String(error)
-				});
-				postResponse(source, event.origin, {
-					...message,
-					messageDirection: "response",
-					payload: void 0,
-					error: error instanceof Error ? error.message : String(error),
-					isAborted: controller.signal.aborted || isAbortError(error)
-				});
-			} finally {
-				clearInterval(heartbeat);
-				targetWindow.removeEventListener("message", abort);
-			}
+			await handleDirectRequest(event, targetWindow, source, videoId, audioDownloadType);
 			return;
 		}
 		const iframe = targetWindow.document.createElement("iframe");
@@ -29848,15 +30392,13 @@ var vot = (function(exports) {
 		}, "*");
 	}
 	initMseProxyHandler();
-	//#endregion
-	//#region src/audioDownloader/strategies/index.ts
+	// src/audioDownloader/strategies/index.ts
 	var strategies = {
 		[SABR_STRATEGY]: (options) => getAudioFromBridge(options, SABR_STRATEGY),
 		[WEB_ABR_STRATEGY]: (options) => getAudioFromBridge(options, WEB_ABR_STRATEGY),
 		[WEB_MSE_PROXY_STRATEGY]: (options) => getAudioFromBridge(options, WEB_MSE_PROXY_STRATEGY)
 	};
-	//#endregion
-	//#region src/audioDownloader/index.ts
+	// src/audioDownloader/index.ts
 	function reportStrategyFailures(failures, downloadSucceeded) {
 		for (const { strategy, error, recovered } of selectStrategyFailuresToReport(failures, downloadSucceeded)) captureException(error, {
 			source: "audio",
@@ -30110,8 +30652,7 @@ var vot = (function(exports) {
 			return this;
 		}
 	};
-	//#endregion
-	//#region node_modules/solid-js/dist/solid.js
+	// node_modules/solid-js/dist/solid.js
 	var sharedConfig = {
 		context: void 0,
 		registry: void 0,
@@ -31054,8 +31595,7 @@ var vot = (function(exports) {
 	function Match(props) {
 		return props;
 	}
-	//#endregion
-	//#region node_modules/solid-js/store/dist/store.js
+	// node_modules/solid-js/store/dist/store.js
 	var $RAW = Symbol("store-raw");
 	var $NODE = Symbol("store-node");
 	var $HAS = Symbol("store-has");
@@ -31289,8 +31829,7 @@ var vot = (function(exports) {
 			return state;
 		};
 	}
-	//#endregion
-	//#region src/utils/account.ts
+	// src/utils/account.ts
 	function hasAccountToken(account) {
 		return typeof account?.token === "string" && account.token.length > 0;
 	}
@@ -31300,9 +31839,8 @@ var vot = (function(exports) {
 	function hasValidAccountToken(account, now = Date.now()) {
 		return hasAccountToken(account) && !isAccountExpired(account, now);
 	}
-	//#endregion
-	//#region src/stores/account.ts
-	function createInitialState$1() {
+	// src/stores/account.ts
+	function createInitialState() {
 		return {
 			isRefreshing: false,
 			isLoggedIn: false,
@@ -31312,9 +31850,9 @@ var vot = (function(exports) {
 			token: void 0
 		};
 	}
-	var [account, setAccount] = createStore(createInitialState$1());
+	var [account, setAccount] = createStore(createInitialState());
 	function resetAccount() {
-		setAccount(createInitialState$1());
+		setAccount(createInitialState());
 	}
 	function updateAccount(data) {
 		if (hasValidAccountToken(data)) return setAccount({
@@ -31326,12 +31864,9 @@ var vot = (function(exports) {
 	async function updateAccountFromStorage() {
 		updateAccount(await votStorage.get("account", {}));
 	}
-	function clearAccountState(owner) {
+	async function deleteAccount(owner) {
 		if (owner?.data) owner.data.account = {};
 		if (owner?.votClient) owner.votClient.provider.apiToken = void 0;
-	}
-	async function deleteAccount(owner) {
-		clearAccountState(owner);
 		await votStorage.delete("account");
 		resetAccount();
 	}
@@ -31340,8 +31875,7 @@ var vot = (function(exports) {
 		await deleteAccount(owner);
 		return true;
 	}
-	//#endregion
-	//#region src/modules/auth/yandex.ts
+	// src/modules/auth/yandex.ts
 	function createCodeVerifier() {
 		return base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)));
 	}
@@ -31482,8 +32016,7 @@ var vot = (function(exports) {
 			code_challenge_method: "S256"
 		}).toString()}`;
 	};
-	//#endregion
-	//#region src/modules/auth/window.ts
+	// src/modules/auth/window.ts
 	var AUTH_WINDOW_NAME = "votAuthWindow";
 	var AUTH_WINDOW_WIDTH = 520;
 	var AUTH_WINDOW_HEIGHT = 720;
@@ -31523,8 +32056,7 @@ var vot = (function(exports) {
 		}
 		globalThis.open(authLink, AUTH_WINDOW_NAME, getAuthWindowFeatures())?.focus?.();
 	}
-	//#endregion
-	//#region src/VOTLocalizedError.ts
+	// src/VOTLocalizedError.ts
 	var VOTLocalizedError = class extends Error {
 		name = "VOTLocalizedError";
 		unlocalizedMessage;
@@ -31535,8 +32067,7 @@ var vot = (function(exports) {
 			this.localizedMessage = t$1(message);
 		}
 	};
-	//#endregion
-	//#region src/core/translationAuthError.ts
+	// src/core/translationAuthError.ts
 	function isSessionRequired(value) {
 		return safeNestedGet(value, ["status"]) === VideoTranslationStatus.SESSION_REQUIRED || safeNestedGet(value, ["data", "status"]) === VideoTranslationStatus.SESSION_REQUIRED;
 	}
@@ -31551,8 +32082,7 @@ var vot = (function(exports) {
 	function isTranslationAuthError(value, context = {}) {
 		return getTranslationAuthErrorKind(value, context) !== null;
 	}
-	//#endregion
-	//#region src/core/translationErrors.ts
+	// src/core/translationErrors.ts
 	function notifyTranslationFailureIfNeeded(options) {
 		if (options.aborted) return false;
 		if (!options.translateApiErrorsEnabled || !options.hadAsyncWait) return options.hadAsyncWait;
@@ -31562,8 +32092,7 @@ var vot = (function(exports) {
 		});
 		return false;
 	}
-	//#endregion
-	//#region src/utils/timeFormatting.ts
+	// src/utils/timeFormatting.ts
 	var MAX_SECS_FRACTION = .66;
 	function formatTranslationEta(secs, getMessage) {
 		let minutes = Math.floor(secs / 60);
@@ -31583,8 +32112,7 @@ var vot = (function(exports) {
 		].includes(minutes % 10)) return getMessage("translationTakeApproximatelyMinute").replace("{0}", minutesStr);
 		return getMessage("translationTakeApproximatelyMinutes").replace("{0}", minutesStr);
 	}
-	//#endregion
-	//#region src/core/translationEtaCountdown.ts
+	// src/core/translationEtaCountdown.ts
 	var COUNTDOWN_TICK_MS = 1e3;
 	function normalizeRemainingTime(remainingTimeSeconds) {
 		if (!Number.isFinite(remainingTimeSeconds)) return 0;
@@ -31650,8 +32178,7 @@ var vot = (function(exports) {
 			}, COUNTDOWN_TICK_MS);
 		}
 	};
-	//#endregion
-	//#region src/core/translationHandler.ts
+	// src/core/translationHandler.ts
 	function mapVotClientErrorForUi(error, hasProvidedAccountToken = false) {
 		const authErrorKind = getTranslationAuthErrorKind(error, { hasAccountToken: hasProvidedAccountToken });
 		if (authErrorKind) return new VOTLocalizedError(authErrorKind === "session-expired" ? "VOTYandexTokenExpired" : "VOTAccountRequired");
@@ -31962,7 +32489,7 @@ var vot = (function(exports) {
 			const { disableLivelyVoice = false, retryAttempt = 0 } = options;
 			clearTimeout(this.videoHandler.autoRetry);
 			this.finishDownloadSuccess();
-			const requestLangForApi = this.videoHandler.getRequestLangForTranslation(requestLang, responseLang);
+			const requestLangForApi = requestLang;
 			debug.log("[Translation] translateVideoImpl start", {
 				videoId: videoData.videoId,
 				duration: videoData.duration,
@@ -32003,7 +32530,7 @@ var vot = (function(exports) {
 					...summarizeTranslationResponse(res)
 				});
 				throwIfAborted(signal);
-				if (res.translated && res.remainingTime < 1) {
+				if (res.translated && (res.status === VideoTranslationStatus.FINISHED || res.remainingTime < 1)) {
 					this.etaCountdown.stop();
 					logger_default.log("[Translation] translation finished", {
 						videoId: videoData.videoId,
@@ -32143,7 +32670,7 @@ var vot = (function(exports) {
 						},
 						shouldSendFailedAudio
 					});
-					if (!useLivelyVoice || !this.isLivelyVoiceUnavailableError(response)) {
+					if (!useLivelyVoice || response.translated || !this.isLivelyVoiceUnavailableError(response)) {
 						debug.log("[Translation] votClient.translateVideo resolved", {
 							videoId: videoData.videoId,
 							useLivelyVoice,
@@ -32193,8 +32720,7 @@ var vot = (function(exports) {
 			else settle.resolve();
 		}
 	};
-	//#endregion
-	//#region src/core/translationOrchestrator.ts
+	// src/core/translationOrchestrator.ts
 	var TranslationOrchestrator = class {
 		state = { status: "idle" };
 		deps;
@@ -32244,13 +32770,15 @@ var vot = (function(exports) {
 			}
 		}
 	};
-	//#endregion
-	//#region src/core/lifecycleShared.ts
+	// src/core/lifecycleShared.ts
 	function resetLifecycleTranslation(host, options = {}) {
 		const { requireVideoData = false, clearVideoData = false } = options;
 		if (requireVideoData && !host.videoData) return;
 		if (clearVideoData) host.videoData = void 0;
-		host.stopTranslation();
+		const stopping = host.stopTranslation();
+		if (stopping) stopping.catch((exception) => {
+			logger_default.error(exception);
+		});
 		host.resetSubtitlesWidget();
 	}
 	function hideLifecycleOverlay(overlayViewControls, options = {}) {
@@ -32266,8 +32794,7 @@ var vot = (function(exports) {
 		});
 		hideLifecycleOverlay(overlayViewControls, { hideMenu });
 	}
-	//#endregion
-	//#region src/core/videoLifecycleController.ts
+	// src/core/videoLifecycleController.ts
 	var YOUTUBE_TIMESTAMP_PARAMS = [
 		"t",
 		"start",
@@ -32452,76 +32979,73 @@ var vot = (function(exports) {
 			debug.log(`[VideoLifecycle][session:${sessionId}] src handling finished`);
 		}
 	};
-	//#endregion
-	//#region src/core/videoLifecycleHost.ts
+	// src/core/videoLifecycleHost.ts
 	function createVideoLifecycleHost(handler, resolveOverlayMount) {
-		const self = () => handler;
 		return {
 			get video() {
-				return self().video;
+				return handler.video;
 			},
 			get site() {
-				return self().site;
+				return handler.site;
 			},
 			get container() {
-				return self().container;
+				return handler.container;
 			},
 			set container(value) {
-				if (self().container === value) return;
-				self().container = value;
-				self().uiManager.updateMount(resolveOverlayMount(value));
+				if (handler.container === value) return;
+				handler.container = value;
+				handler.uiManager.updateMount(resolveOverlayMount(value));
 			},
 			get firstPlay() {
-				return self().firstPlay;
+				return handler.firstPlay;
 			},
 			set firstPlay(value) {
-				self().firstPlay = value;
+				handler.firstPlay = value;
 			},
 			stopTranslation: () => handler.stopTranslation(),
 			get uiManager() {
-				return self().uiManager;
+				return handler.uiManager;
 			},
 			getVideoData: () => handler.getVideoData(),
-			cacheManager: { getSubtitles: (key) => self().cacheManager.getSubtitles(key) },
+			cacheManager: { getSubtitles: (key) => handler.cacheManager.getSubtitles(key) },
 			getSubtitlesCacheKey: (videoId, detectedLanguage, subtitleLanguage) => handler.getSubtitlesCacheKey(videoId, detectedLanguage, subtitleLanguage),
 			getPreferredSubtitlesLanguage: (detectedLanguage, responseLanguage) => handler.getPreferredSubtitlesLanguage(detectedLanguage, responseLanguage),
 			updateSubtitlesLangSelect: () => handler.updateSubtitlesLangSelect(),
 			enableSubtitlesForCurrentLangPair: () => handler.enableSubtitlesForCurrentLangPair(),
 			setSelectMenuValues: (from, to) => handler.setSelectMenuValues(from, to),
 			get translateToLang() {
-				return self().translateToLang;
+				return handler.translateToLang;
 			},
 			set translateToLang(value) {
-				self().translateToLang = value;
+				handler.translateToLang = value;
 			},
 			get data() {
-				return self().data ?? {};
+				return handler.data ?? {};
 			},
 			get subtitles() {
-				return self().subtitles;
+				return handler.subtitles;
 			},
 			set subtitles(value) {
-				self().subtitles = value;
+				handler.subtitles = value;
 			},
 			get subtitlesCacheKey() {
-				return self().subtitlesCacheKey;
+				return handler.subtitlesCacheKey;
 			},
 			set subtitlesCacheKey(value) {
-				self().subtitlesCacheKey = value;
+				handler.subtitlesCacheKey = value;
 			},
 			get videoData() {
-				return self().videoData;
+				return handler.videoData;
 			},
 			set videoData(value) {
-				const handler = self();
 				if (handler.videoData?.videoId !== value?.videoId) handler.downloadTranslation = null;
 				handler.videoData = value;
 			},
 			get actionsAbortController() {
-				return self().actionsAbortController;
+				return handler.actionsAbortController;
 			},
 			set actionsAbortController(value) {
-				self().actionsAbortController = value;
+				handler.actionsAbortController = value;
 			},
 			resetActionsAbortController: (reason) => handler.resetActionsAbortController(reason),
 			translationOrchestrator: handler.translationOrchestrator,
@@ -32529,8 +33053,7 @@ var vot = (function(exports) {
 			queueOverlayAutoHide: () => handler.overlayVisibility?.queueAutoHide()
 		};
 	}
-	//#endregion
-	//#region src/modules/detectMusic/service.ts
+	// src/modules/detectMusic/service.ts
 	async function detectMusicYT(videoId, signal) {
 		try {
 			const musicVideoType = (await (await GM_fetch("https://music.youtube.com/youtubei/v1/player", {
@@ -32557,8 +33080,7 @@ var vot = (function(exports) {
 		}
 		return false;
 	}
-	//#endregion
-	//#region src/utils/text.ts
+	// src/utils/text.ts
 	var MAX_TEXT_LENGTH = 450;
 	var REMOVABLE_TOKEN_FILTER = new RegExp([
 		String.raw`(?:https?:\/\/|www\.)\S+`,
@@ -32586,14 +33108,12 @@ var vot = (function(exports) {
 		if (!LETTER_FILTER.test(cleaned)) return "";
 		return trimToMaxLength(cleaned, MAX_TEXT_LENGTH);
 	}
-	//#endregion
-	//#region src/utils/number.ts
+	// src/utils/number.ts
 	function clamp(value, min = 0, max = 100) {
 		if (Number.isNaN(value) || max < min) return min;
 		return Math.min(Math.max(value, min), max);
 	}
-	//#endregion
-	//#region src/utils/volume.ts
+	// src/utils/volume.ts
 	var VIDEO_VOLUME_MIN_PERCENT = 0;
 	var VIDEO_VOLUME_MAX_PERCENT = 100;
 	var VIDEO_VOLUME_STEP_01 = .01;
@@ -32638,8 +33158,7 @@ var vot = (function(exports) {
 		}
 		return snapVolume01(next, "nearest", step);
 	}
-	//#endregion
-	//#region src/videoHandler/modules/proxyShared.ts
+	// src/videoHandler/modules/proxyShared.ts
 	var AUDIO_SOURCE_PREFIX = "https://vtrans.s3-private.mds.yandex.net/tts/prod/";
 	var AUDIO_PROXY_PATH_PREFIX = "/video-translation/audio-proxy/";
 	var SUBTITLE_SOURCE_PREFIX = "https://brosubs.s3-private.mds.yandex.net/vtrans/";
@@ -32703,8 +33222,7 @@ var vot = (function(exports) {
 	function proxifyYandexSubtitlesUrl(subtitlesUrl, config) {
 		return proxifyUrl(subtitlesUrl, config, SUBTITLE_SOURCE_PREFIX, SUBTITLE_PROXY_PATH_PREFIX);
 	}
-	//#endregion
-	//#region src/core/hostPolicies.ts
+	// src/core/hostPolicies.ts
 	var EXTERNAL_VOLUME_HOSTS = new Set(["youtube", "googledrive"]);
 	var YOUTUBE_LIKE_HOSTS = EXTERNAL_VOLUME_HOSTS;
 	var MUTE_SYNC_DISABLED_HOSTS = new Set(["rutube", "ok"]);
@@ -32728,8 +33246,7 @@ var vot = (function(exports) {
 	function isTranslationDownloadHost(host) {
 		return TRANSLATION_DOWNLOAD_HOSTS.has(host);
 	}
-	//#endregion
-	//#region src/core/videoManager.ts
+	// src/core/videoManager.ts
 	var FORCED_DETECTED_LANGUAGE_BY_HOST = {
 		rutube: "ru",
 		"ok.ru": "ru",
@@ -33091,8 +33608,7 @@ var vot = (function(exports) {
 			return this;
 		}
 	};
-	//#endregion
-	//#region src/modules/hotkeys/utils.ts
+	// src/modules/hotkeys/utils.ts
 	function normalizeHotkeyPart(key) {
 		return key.replace("Key", "").replace("Digit", "");
 	}
@@ -33136,8 +33652,7 @@ var vot = (function(exports) {
 		};
 		return parts.slice().sort((a, b) => priority(a) - priority(b)).map(mapKey).join("+");
 	}
-	//#endregion
-	//#region src/modules/hotkeys/controller.ts
+	// src/modules/hotkeys/controller.ts
 	var HotkeyController = class {
 		userPressedKeys = new Set();
 		hotkeyCache = new Map();
@@ -33196,8 +33711,7 @@ var vot = (function(exports) {
 			if (isDocumentHidden()) this.clearUserPressedKeys();
 		}
 	};
-	//#endregion
-	//#region src/notify.ts
+	// src/notify.ts
 	function canSend(lastSentAt, key, cooldownMs) {
 		if (!cooldownMs) return true;
 		const prev = lastSentAt.get(key) ?? 0;
@@ -33227,14 +33741,7 @@ var vot = (function(exports) {
 			}
 			const gmApi = globalThis.GM;
 			if (gmApi !== void 0 && typeof gmApi.notification === "function") {
-				const gmDetails = {
-					text: details.text,
-					title: details.title,
-					image: details.image,
-					onclick: details.onclick,
-					ondone: details.ondone
-				};
-				gmApi.notification(gmDetails);
+				gmApi.notification(details);
 				return true;
 			}
 		} catch (err) {
@@ -33285,7 +33792,7 @@ var vot = (function(exports) {
 				text: msg,
 				timeout: 8e3,
 				silent: true,
-				tag: `VOTtranslationFailed_${videoId || "unknown"}`,
+				tag: `VOTTranslationFailed_${videoId || "unknown"}`,
 				onclick: () => focusWindowSafely()
 			}, {
 				key: `translation_failed_${videoId || "unknown"}`,
@@ -33293,8 +33800,7 @@ var vot = (function(exports) {
 			});
 		}
 	};
-	//#endregion
-	//#region src/stores/settings.ts
+	// src/stores/settings.ts
 	function createDefaultSettings(audioContextSupported = false, sendErrorReports = true) {
 		return {
 			defaultVolume: 100,
@@ -33346,8 +33852,7 @@ var vot = (function(exports) {
 		return Object.fromEntries(SETTINGS_KEYS.map((key) => [key, source[key]]));
 	}
 	var [settings, setSettings] = createStore(createDefaultSettings());
-	//#endregion
-	//#region node_modules/solid-js/universal/dist/universal.js
+	// node_modules/solid-js/universal/dist/universal.js
 	var memo$1 = (fn) => createMemo(() => fn());
 	function createRenderer$1({ createElement, createTextNode, isTextNode, replaceText, insertNode, removeNode, setProperty, getParentNode, getFirstChild, getNextSibling }) {
 		function insert(parent, accessor, marker, initial) {
@@ -33548,8 +34053,7 @@ var vot = (function(exports) {
 		renderer.mergeProps = mergeProps$1;
 		return renderer;
 	}
-	//#endregion
-	//#region src/ui/solid/renderer.ts
+	// src/ui/solid/renderer.ts
 	var SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 	var SVG_ELEMENT_NAMES = new Set([
 		"altGlyph",
@@ -33689,25 +34193,33 @@ var vot = (function(exports) {
 		listeners.set(key, listener);
 		element.addEventListener(eventName, listener, capture);
 	}
-	function setProperty(node, name, value, previous) {
-		if (!(node instanceof Element)) return;
-		if (name === "innerHTML") throw new TypeError("[VOT] innerHTML is not supported by the CSP-safe renderer");
+	function setAttributeValue(node, name, value) {
+		if (value == null || value === false && booleanAttributes.has(name)) node.removeAttribute(name);
+		else if (value === true && booleanAttributes.has(name)) node.setAttribute(name, "");
+		else node.setAttribute(name, String(value));
+	}
+	function setSpecialProperty(node, name, value, previous) {
 		if (name === "style" && (node instanceof HTMLElement || node instanceof SVGElement)) {
 			setStyle(node, value, previous);
-			return;
+			return true;
 		}
 		if (name === "classList") {
 			setClassList(node, value, previous);
-			return;
+			return true;
 		}
 		if (name.startsWith("on")) {
 			setEvent(node, name, value);
-			return;
+			return true;
 		}
+		return false;
+	}
+	function setProperty(node, name, value, previous) {
+		if (!(node instanceof Element)) return;
+		if (name === "innerHTML") throw new TypeError("[VOT] innerHTML is not supported by the CSP-safe renderer");
+		if (setSpecialProperty(node, name, value, previous)) return;
 		if (name.startsWith("attr:")) name = name.slice(5);
 		if (name === "class" || name === "className") {
-			if (value == null) node.removeAttribute("class");
-			else node.setAttribute("class", String(value));
+			setAttributeValue(node, "class", value);
 			return;
 		}
 		if (name === "textContent") {
@@ -33724,9 +34236,7 @@ var vot = (function(exports) {
 			Reflect.set(node, propertyName, value);
 			return;
 		}
-		if (value == null || value === false && booleanAttributes.has(name)) node.removeAttribute(name);
-		else if (value === true && booleanAttributes.has(name)) node.setAttribute(name, "");
-		else node.setAttribute(name, String(value));
+		setAttributeValue(node, name, value);
 	}
 	var { render, effect, memo, createComponent, createElement, createTextNode, insertNode, insert, spread, setProp, mergeProps, use } = createRenderer({
 		createElement(tag) {
@@ -33745,8 +34255,8 @@ var vot = (function(exports) {
 		insertNode(parent, node, anchor) {
 			parent.insertBefore(node, anchor ?? null);
 		},
-		removeNode(parent, node) {
-			parent.removeChild(node);
+		removeNode(_parent, node) {
+			node.remove();
 		},
 		getParentNode(node) {
 			return node.parentNode ?? void 0;
@@ -33758,8 +34268,7 @@ var vot = (function(exports) {
 			return node.nextSibling ?? void 0;
 		}
 	});
-	//#endregion
-	//#region src/subtitles/inlineStyle.ts
+	// src/subtitles/inlineStyle.ts
 	var SAFE_CSS_COLOR_NAME_RE = /^[a-z]+$/iu;
 	var SAFE_HEX_COLOR_RE = /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/iu;
 	var SAFE_CSS_FUNCTION_COLOR_RE = /^(?:rgba?|hsla?)\([\d.,%\s/+_-]+\)$/iu;
@@ -33836,31 +34345,28 @@ var vot = (function(exports) {
 		cssTextCache.set(style, cssText);
 		return cssText;
 	};
-	//#endregion
-	//#region src/components/Utils/Overlay.tsx
+	// src/components/Utils/Overlay.tsx
 	function Overlay(props) {
-		const finalProps = mergeProps$1({ hidden: false }, props);
 		return (() => {
 			var _el$ = createElement("vot-block");
-			var _ref$ = finalProps.ref;
-			typeof _ref$ === "function" ? use(_ref$, _el$) : finalProps.ref = _el$;
+			var _ref$ = props.ref;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : props.ref = _el$;
 			spread(_el$, mergeProps({
 				get classList() {
 					return {
 						"vot-overlay": true,
-						...finalProps.classList
+						...props.classList
 					};
 				},
 				get ["aria-hidden"]() {
-					return finalProps.hidden ? "true" : void 0;
+					return props.hidden ? "true" : void 0;
 				}
-			}, () => finalProps.blockProps), true);
-			insert(_el$, () => finalProps.children);
+			}, () => props.blockProps), true);
+			insert(_el$, () => props.children);
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/SubtitlesWidget/SubtitlesWidget.tsx
+	// src/components/SubtitlesWidget/SubtitlesWidget.tsx
 	function isSpanPart(part) {
 		if (part.kind === "break") return false;
 		return part.kind === "word" || Boolean(part.style) || part.highlightIndex !== void 0;
@@ -34035,8 +34541,7 @@ var vot = (function(exports) {
 			}
 		};
 	}
-	//#endregion
-	//#region src/subtitles/activeCues.ts
+	// src/subtitles/activeCues.ts
 	var createFallbackTokens = (line) => {
 		if (line.tokens.length) return line.tokens;
 		const text = line.text.trim();
@@ -34162,8 +34667,7 @@ var vot = (function(exports) {
 			lineKey: lineKeyParts.join(",")
 		};
 	};
-	//#endregion
-	//#region src/subtitles/fullscreenLayerController.ts
+	// src/subtitles/fullscreenLayerController.ts
 	var FullscreenLayerController = class {
 		container;
 		constructor({ container }) {
@@ -34182,8 +34686,7 @@ var vot = (function(exports) {
 		}
 		release() {}
 	};
-	//#endregion
-	//#region src/subtitles/highlightState.ts
+	// src/subtitles/highlightState.ts
 	var NO_HIGHLIGHT_INDEX = -1;
 	var PASSED_CLASS = "passed";
 	function createHighlightState() {
@@ -34226,10 +34729,9 @@ var vot = (function(exports) {
 	}
 	function clearPassedState(state, elements) {
 		state.applied.fill(0);
-		for (let i = 0; i < elements.length; i += 1) elements[i].classList.remove(PASSED_CLASS);
+		for (const element of Array.from(elements)) element.classList.remove(PASSED_CLASS);
 	}
-	//#endregion
-	//#region src/subtitles/positionController.ts
+	// src/subtitles/positionController.ts
 	function hasDragThresholdBeenExceeded(startClientX, startClientY, nextClientX, nextClientY, thresholdPx) {
 		const dx = nextClientX - startClientX;
 		const dy = nextClientY - startClientY;
@@ -34305,8 +34807,7 @@ var vot = (function(exports) {
 			value: closestValue
 		};
 	}
-	//#endregion
-	//#region src/subtitles/renderPlan.ts
+	// src/subtitles/renderPlan.ts
 	var LEADING_PUNCTUATION_RE = /^[\p{P}\p{S}]+/u;
 	var TRAILING_PUNCTUATION_RE = /[\p{P}\p{S}]+$/u;
 	var TEXT_TOKEN_SLICE_RE = /\s+|[\p{P}\p{S}]+|[^\s\p{P}\p{S}]+/gu;
@@ -34438,8 +34939,7 @@ var vot = (function(exports) {
 		}
 		return plan;
 	}
-	//#endregion
-	//#region src/subtitles/smartLayout.ts
+	// src/subtitles/smartLayout.ts
 	var resolveAspectBand = (aspect) => {
 		if (aspect < .8) return {
 			widthRatio: .9,
@@ -34510,8 +35010,7 @@ var vot = (function(exports) {
 			maxWidthPx: Math.round(resolvedMaxWidthPx)
 		};
 	}
-	//#endregion
-	//#region src/subtitles/lineBreakRules.ts
+	// src/subtitles/lineBreakRules.ts
 	var set = (...words) => new Set(words);
 	var EN = {
 		bindsForward: set("a", "an", "the", "my", "your", "his", "her", "its", "our", "their", "this", "that", "these", "those", "of", "in", "on", "at", "to", "for", "with", "from", "by", "into", "onto", "over", "under", "about", "between", "through", "during", "without", "within", "across", "against", "toward", "towards", "upon", "is", "are", "was", "were", "be", "been", "being", "am", "has", "have", "had", "will", "would", "can", "could", "should", "shall", "may", "might", "must", "do", "does", "did", "not", "no", "very", "more", "most", "less"),
@@ -34562,7 +35061,7 @@ var vot = (function(exports) {
 		return normalizeLexiconWord(text).split(" ").filter(Boolean).at(-1) ?? "";
 	};
 	var firstWordOf = (text) => {
-		return normalizeLexiconWord(text).split(" ").filter(Boolean)[0] ?? "";
+		return normalizeLexiconWord(text).split(" ").find(Boolean) ?? "";
 	};
 	var LINE_BREAK_PENALTY = {
 		bindsForward: 240,
@@ -34579,8 +35078,7 @@ var vot = (function(exports) {
 		if (lexicon.prefersLineStart.has(after)) penalty += LINE_BREAK_PENALTY.prefersLineStart;
 		return penalty;
 	}
-	//#endregion
-	//#region src/subtitles/smartWrap.ts
+	// src/subtitles/smartWrap.ts
 	var STRONG_BREAK_RE = /[.!?…:;][)"'\]»”]*\s*$/u;
 	var SOFT_BREAK_RE = /[,،、][)"'\]»”]*\s*$/u;
 	var WHITESPACE_CHAR_RE = /\s/u;
@@ -34607,7 +35105,7 @@ var vot = (function(exports) {
 	var getPreviousChar = (text, index) => {
 		if (index <= 0) return null;
 		let start = index - 1;
-		const lastCodeUnit = text.charCodeAt(start);
+		const lastCodeUnit = text.codePointAt(start) ?? -1;
 		if (lastCodeUnit >= 56320 && lastCodeUnit <= 57343 && start > 0) start -= 1;
 		return {
 			char: text.slice(start, index),
@@ -34930,8 +35428,7 @@ var vot = (function(exports) {
 		if (bestBreakAfterTokenIndex !== null) return singleBreakTokenWrapPlan(bestBreakAfterTokenIndex);
 		return emptyTokenWrapPlan();
 	}
-	//#endregion
-	//#region src/types/subtitles.ts
+	// src/types/subtitles.ts
 	var subtitleFormats = [...subtitlesFormats, "ass"];
 	var subtitleFontFamilies = [
 		"default-sans",
@@ -34958,16 +35455,14 @@ var vot = (function(exports) {
 		montserrat: `"Montserrat", ${subtitleBaseFontFamilyCSS}`,
 		barlow: `"Barlow", ${subtitleBaseFontFamilyCSS}`
 	};
-	//#endregion
-	//#region src/utils/guards.ts
+	// src/utils/guards.ts
 	function isObjectLike(value) {
 		return value !== null && typeof value === "object";
 	}
 	function isRecord(value) {
 		return isObjectLike(value) && !Array.isArray(value);
 	}
-	//#endregion
-	//#region src/subtitles/types.ts
+	// src/subtitles/types.ts
 	var subtitleFormatsSet = new Set(subtitleFormats);
 	function isSubtitleFormat(value) {
 		return typeof value === "string" && subtitleFormatsSet.has(value);
@@ -34988,8 +35483,7 @@ var vot = (function(exports) {
 	function isBuiltInSubtitleFontFamily(fontFamily) {
 		return subtitleFontFamilies.includes(fontFamily);
 	}
-	//#endregion
-	//#region src/subtitles/fonts.ts
+	// src/subtitles/fonts.ts
 	var GOOGLE_SUBTITLE_FONT_PREFIX = "google:";
 	var GOOGLE_FONTS_CSS_API_URL = "https://fonts.googleapis.com/css2";
 	var GOOGLE_FONTS_METADATA_URL = "https://fonts.google.com/metadata/fonts";
@@ -35092,8 +35586,7 @@ var vot = (function(exports) {
 		});
 		return await googleFontsCatalogPromise;
 	}
-	//#endregion
-	//#region src/subtitles/subtitleStyleController.ts
+	// src/subtitles/subtitleStyleController.ts
 	var SubtitleStyleController = class {
 		options;
 		container = null;
@@ -35209,8 +35702,7 @@ var vot = (function(exports) {
 			});
 		}
 	};
-	//#endregion
-	//#region src/subtitles/tokenLayoutProcessor.ts
+	// src/subtitles/tokenLayoutProcessor.ts
 	var TokenLayoutProcessor = class {
 		tokenProcessingMemo = null;
 		tokenPrecomputeMemo = null;
@@ -35332,13 +35824,13 @@ var vot = (function(exports) {
 				return index;
 			}
 			const found = segmentRanges.findIndex((segment) => time >= segment.startMs && time < segment.endMs);
-			const resolved = found >= 0 ? found : time < segmentRanges[0].startMs ? 0 : length - 1;
+			const fallbackIndex = time < segmentRanges[0].startMs ? 0 : length - 1;
+			const resolved = found >= 0 ? found : fallbackIndex;
 			this.lastSegmentIndex = resolved;
 			return resolved;
 		}
 	};
-	//#endregion
-	//#region src/types/components/tooltip.ts
+	// src/types/components/tooltip.ts
 	var positions$1 = [
 		"left",
 		"top",
@@ -35347,8 +35839,7 @@ var vot = (function(exports) {
 	];
 	var triggers = ["hover", "click"];
 	var tooltipModes = ["default", "follow"];
-	//#endregion
-	//#region src/components/Utils/createFloatingPosition.ts
+	// src/components/Utils/createFloatingPosition.ts
 	var DEFAULT_GAP = 8;
 	var DEFAULT_VIEWPORT_MARGIN = 8;
 	var AVAILABLE_HEIGHT_PROPERTY = "--vot-floating-available-height";
@@ -35482,8 +35973,7 @@ var vot = (function(exports) {
 		});
 		return { update: schedulePositionUpdate };
 	}
-	//#endregion
-	//#region src/components/Utils/Tooltip.tsx
+	// src/components/Utils/Tooltip.tsx
 	var DEFAULT_TOOLTIP_POS = "top";
 	var DEFAULT_TOOLTIP_TRIGGER = "hover";
 	var DEFAULT_TOOLTIP_MODE = "default";
@@ -35763,10 +36253,7 @@ var vot = (function(exports) {
 				else show();
 			};
 			const handlePointerEnter = () => show();
-			const handlePointerLeave = (event) => {
-				if (!isInTooltipContext(event.relatedTarget)) hide();
-			};
-			const handleFocusOut = (event) => {
+			const handleContextLeave = (event) => {
 				if (!isInTooltipContext(event.relatedTarget)) hide();
 			};
 			const handleTouchPointerDown = (event) => {
@@ -35779,21 +36266,21 @@ var vot = (function(exports) {
 			if (currentTrigger === "click") currentTarget.addEventListener("pointerdown", handleClick);
 			else {
 				currentTarget.addEventListener("pointerenter", handlePointerEnter);
-				currentTarget.addEventListener("pointerleave", handlePointerLeave);
+				currentTarget.addEventListener("pointerleave", handleContextLeave);
 				currentTarget.addEventListener("pointerdown", handleTouchPointerDown);
 				currentTarget.addEventListener("pointerup", handleTouchPointerUp);
 				currentTarget.addEventListener("focusin", handlePointerEnter);
-				currentTarget.addEventListener("focusout", handleFocusOut);
+				currentTarget.addEventListener("focusout", handleContextLeave);
 			}
 			onCleanup(() => {
 				currentTarget.removeEventListener("keydown", handleKeyDown);
 				currentTarget.removeEventListener("pointerdown", handleClick);
 				currentTarget.removeEventListener("pointerenter", handlePointerEnter);
-				currentTarget.removeEventListener("pointerleave", handlePointerLeave);
+				currentTarget.removeEventListener("pointerleave", handleContextLeave);
 				currentTarget.removeEventListener("pointerdown", handleTouchPointerDown);
 				currentTarget.removeEventListener("pointerup", handleTouchPointerUp);
 				currentTarget.removeEventListener("focusin", handlePointerEnter);
-				currentTarget.removeEventListener("focusout", handleFocusOut);
+				currentTarget.removeEventListener("focusout", handleContextLeave);
 			});
 		});
 		createEffect(() => {
@@ -35820,18 +36307,20 @@ var vot = (function(exports) {
 				document.removeEventListener("pointerdown", handleDocumentPointerDown, { capture: true });
 			});
 		});
-		createEffect(() => {
-			normalizePosition(finalProps.position);
-			finalProps.content;
-			finalProps.maxWidth;
-			finalProps.autoLayout;
-			finalProps.offset;
-			finalProps.parentElement;
-			finalProps.anchor;
-			finalProps.edgeAnchor;
-			finalProps.mode;
+		createEffect(on(() => [
+			normalizePosition(finalProps.position),
+			finalProps.content,
+			finalProps.maxWidth,
+			finalProps.autoLayout,
+			finalProps.offset,
+			finalProps.parentElement,
+			finalProps.anchor,
+			finalProps.edgeAnchor,
+			finalProps.mode,
+			isMounted()
+		], () => {
 			if (isMounted()) floatingPosition.update();
-		});
+		}));
 		createEffect(() => {
 			if (isMounted()) syncAriaDescribedBy(true);
 		});
@@ -35911,8 +36400,7 @@ var vot = (function(exports) {
 		});
 		return document.createTextNode("");
 	}
-	//#endregion
-	//#region src/components/SubtitlesWidget/SubtitleTokenTooltip.tsx
+	// src/components/SubtitlesWidget/SubtitleTokenTooltip.tsx
 	function SubtitleTokenInfo(props) {
 		return (() => {
 			var _el$ = createElement("vot-block"), _el$2 = createElement("vot-block"), _el$3 = createElement("vot-block"), _el$4 = createElement("vot-block"), _el$5 = createElement("vot-block"), _el$7 = createElement("vot-block"), _el$8 = createElement("vot-block");
@@ -36001,9 +36489,8 @@ var vot = (function(exports) {
 			}
 		};
 	}
-	//#endregion
-	//#region src/ui/shadowMount.ts
-	var shadowScopedCssText = scopeCssForShadowRoots(":root{--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif;--vot-primary-rgb:139, 180, 245;--vot-onprimary-rgb:32, 33, 36;--vot-surface-rgb:32, 33, 36;--vot-secondary-rgb:43, 44, 48;--vot-onsurface-rgb:227, 227, 227;--vot-danger-rgb:255, 99, 99;--vot-error-rgb:242, 139, 130;--vot-subtitles-color:rgb(var(--vot-onsurface-rgb,227, 227, 227));--vot-subtitles-passed-color:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-space-1:4px;--vot-space-2:8px;--vot-space-3:12px;--vot-space-4:16px;--vot-space-5:20px;--vot-space-6:24px;--vot-radius-xs:6px;--vot-radius-s:10px;--vot-radius-m:14px;--vot-radius-l:18px;--vot-border-color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .14);--vot-border-color-hover:rgba(var(--vot-onsurface-rgb,227, 227, 227), .22);--vot-shadow-1:0 1px 2px #0000002e, 0 8px 24px #00000024;--vot-shadow-2:0 2px 4px #00000038, 0 12px 32px #00000038;--vot-duration-fast:.12s;--vot-duration-medium:.2s;--vot-duration-slow:.32s;--vot-easing-standard:cubic-bezier(.2, 0, 0, 1);--vot-focus-ring-color:rgba(var(--vot-primary-rgb,139, 180, 245), .9);--vot-focus-ring:0 0 0 2px var(--vot-focus-ring-color);--vot-focus-ring-offset:0 0 0 4px rgba(var(--vot-surface-rgb,32, 33, 36), .9)}vot-block,vot-block *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}vot-block[hidden]:not(.vot-menu),vot-block [hidden]:not(.vot-menu){display:none!important}vot-block{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizelegibility;-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:100%;display:block;--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;visibility:visible!important;font-weight:400!important}vot-block *{font-weight:inherit!important}.vot-portal-local,.vot-subtitles-widget{isolation:isolate}vot-block:focus,vot-block :focus{box-shadow:none!important;outline:none!important}html.vot-keyboard-nav vot-block:focus-visible,html.vot-keyboard-nav vot-block :focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav vot-block:focus,html.vot-keyboard-nav vot-block :focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}@media (prefers-reduced-motion:reduce){.vot-portal-local *,.vot-portal *,.vot-subtitles-widget *{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}.vot-portal{display:contents}.vot-portal-local{z-index:2147483647;position:fixed;top:0;left:0}.vot-segmented-button,.vot-menu{pointer-events:auto}.vot-about-item{justify-content:space-between;align-items:center;gap:.5em;font-size:.8em;display:flex}.vot-about-item__label{text-transform:lowercase;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-item__value{text-align:end;color:rgba(var(--vot-primary-rgb,33, 150, 243), .9)}.vot-about-item__value_detail{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-section{--vot-about-sep-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);flex-direction:column;gap:.5em;display:flex}.vot-about-section>.vot-about-item:not(:last-child){border-bottom:1px solid var(--vot-about-sep-color);padding-bottom:1em}.vot-account-info{--vot-account-label-color:rgba(var(--vot-onsurface-rgb,13, 1, 31), .68);--vot-account-username-color:rgb(var(--vot-primary-rgb,139, 180, 245));flex-direction:column;gap:1em;font-weight:600;display:flex}.vot-account-info__block{align-items:center;gap:.5em;display:flex}.vot-account-info__avatar{border-radius:50%;min-width:36px;max-width:36px;min-height:36px;max-height:36px;overflow:hidden}.vot-account-info__avatar--failed{background:var(--vot-account-label-color)}.vot-account-info__avatar--failed>.vot-account-info__avatar-img{display:none}.vot-account-info__avatar-img{object-fit:cover;width:36px;height:36px}.vot-account-info__content{flex-direction:column;line-height:1.125em;display:flex}.vot-account-info__label{color:var(--vot-account-label-color);font-size:.75em}.vot-account-info__username{color:var(--vot-account-username-color);font-weight:600}.vot-account-info__refresh{margin-left:auto}.vot-account-login{flex-direction:column;gap:1em;display:flex}.vot-account-login__btn{cursor:pointer;color:#0d011f;border-radius:var(--vot-space-5);background:#fff;align-items:center;gap:1em;min-width:194px;height:56px;padding:14px 16px;font-size:1em;line-height:1.25em;transition:background .25s;display:flex}.vot-account-login__btn:hover{background:#f1eeeb}.vot-account-login__btn-icon{background-image:url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='44' height='44' fill='%23FC3F1D'/%3E%3Cpath d='M22.9515 24.2897C24.2907 27.223 24.737 28.2433 24.737 31.7665V36.4375H19.9544V28.5621L10.9313 8.9375H15.9211L22.9515 24.2897ZM28.8501 8.9375L22.9994 22.2332H27.8617L33.7284 8.9375H28.8501Z' fill='white'/%3E%3C/svg%3E%0A\");background-position:50%;background-repeat:no-repeat;background-size:contain;border-radius:50%;flex-shrink:0;width:26px;height:26px;position:relative}.vot-account-login__btn-text{font-weight:600}.vot-account-login__btn[aria-disabled=true]{cursor:not-allowed;-webkit-user-select:none;user-select:none;opacity:.5}.vot-account-login__token{align-items:center;gap:1em;width:100%;display:flex}.vot-account-login__token .vot-textfield{width:100%}.vot-account-logout{--vot-theme-rgb:var(--vot-danger-rgb,244, 67, 54);width:100%;display:flex}.vot-account-logout .vot-text-button{width:100%;font-weight:600!important}.vot-account-logout__content{align-items:center;gap:.5em;width:100%;font-size:1.125em;display:flex}.vot-account-logout__content svg{width:1.25em;height:1.25em}.vot-account-menu{flex-direction:column;gap:.5em;display:flex}.vot-icon-button{--vot-helper-onsurface:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:36px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:50%!important;margin:0!important;padding:0!important;font-weight:500!important}.vot-icon-button[hidden]{display:none!important}.vot-icon-button{width:36px;fill:var(--vot-helper-onsurface);color:var(--vot-helper-onsurface);background-color:#0000;border:none!important}.vot-icon-button:before,.vot-icon-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-icon-button:before{background-color:var(--vot-helper-onsurface);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-icon-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-icon-button:hover:before{opacity:.04}.vot-icon-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-icon-button[disabled=true],.vot-icon-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);fill:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-icon-button[disabled=true]:before,.vot-icon-button[disabled=true]:after,.vot-icon-button[aria-disabled=true]:before,.vot-icon-button[aria-disabled=true]:after{opacity:0}.vot-icon-button svg{fill:inherit;stroke:inherit;width:24px;height:36px}.vot-text-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-text-button[hidden]{display:none!important}.vot-text-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:none!important}.vot-text-button:before,.vot-text-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-text-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-text-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-text-button:hover:before{opacity:.04}.vot-text-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-text-button[disabled=true],.vot-text-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-text-button[disabled=true]:before,.vot-text-button[disabled=true]:after,.vot-text-button[aria-disabled=true]:before,.vot-text-button[aria-disabled=true]:after{opacity:0}.vot-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;font-weight:500!important}.vot-button[hidden]{display:none!important}.vot-button{color:rgb(var(--vot-helper-ontheme));background-color:rgb(var(--vot-helper-theme));box-shadow:var(--vot-shadow-1);transition:box-shadow var(--vot-duration-medium) var(--vot-easing-standard);border:none!important}.vot-button:before,.vot-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-button:before{background-color:rgb(var(--vot-helper-ontheme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-button:hover:before{opacity:.08}.vot-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-button:hover,.vot-button:active{box-shadow:var(--vot-shadow-2)}.vot-button[disabled=true]{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);box-shadow:none;cursor:initial}.vot-button[disabled=true]:before,.vot-button[disabled=true]:after{opacity:0}.vot-outlined-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:34px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-outlined-button[hidden]{display:none!important}.vot-outlined-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:solid 1px var(--vot-border-color)!important}.vot-outlined-button:before,.vot-outlined-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-outlined-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-outlined-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-outlined-button:hover:before{opacity:.04}.vot-outlined-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-outlined-button[disabled=true],.vot-outlined-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-outlined-button[disabled=true]:before,.vot-outlined-button[disabled=true]:after,.vot-outlined-button[aria-disabled=true]:before,.vot-outlined-button[aria-disabled=true]:after{opacity:0}.vot-details{color:rgba(var(--vot-onsurface-rgb), .87);text-align:start;cursor:pointer;-webkit-user-select:none;user-select:none;transition:background var(--vot-duration-medium) var(--vot-easing-standard);justify-content:space-between;align-items:center;font-size:16px;line-height:1.5;display:flex;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:.5em!important;margin:-.5em!important;padding:.5em!important}.vot-details-arrow-icon{width:20px;height:32px;fill:rgba(var(--vot-onsurface-rgb), .87);justify-content:center;align-items:center;font-size:24px;display:flex;transform:scale(1.25)rotate(-90deg)}.vot-details:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .06)}.vot-details[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-hotkey{justify-content:flex-start;align-items:center;gap:var(--vot-space-3,12px);flex-wrap:wrap;display:flex}.vot-hotkey-label{overflow-wrap:anywhere;flex:1}.vot-hotkey-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:32px;height:fit-content;font-size:15px;line-height:1.5;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:400!important}.vot-hotkey-button[hidden]{display:none!important}.vot-hotkey-button{background-color:#0000;width:fit-content;border:solid 1px var(--vot-border-color)!important}.vot-hotkey-button:before,.vot-hotkey-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-hotkey-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-hotkey-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-hotkey-button:hover:before{opacity:.04}.vot-hotkey-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-hotkey-button[data-status=active]{color:rgb(var(--vot-helper-theme))}.vot-hotkey-button[data-status=active]:before{opacity:.04}.vot-hotkey-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-hotkey-button[disabled=true]:before,.vot-hotkey-button[disabled=true]:after{opacity:0}.vot-progress-icon{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));fill:none;stroke:rgb(var(--vot-helper-theme));stroke-width:2px;stroke-linecap:round;transform-origin:50%;transform:rotate(-90deg)}.vot-progress-icon_base{--vot-helper-theme:var(--vot-secondary-rgb,43, 44, 48)}.vot-select{-webkit-user-select:none;user-select:none;justify-content:end;align-items:center;display:flex;position:relative}.vot-select-label{flex:1}.vot-select-label__description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-select-outer{cursor:pointer;border:1px solid var(--vot-border-color);width:120px;max-width:120px;color:rgba(var(--vot-onsurface-rgb), .87);transition:border-color var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.75em;align-items:center;padding:.5em;display:flex}.vot-select-outer__title{text-overflow:ellipsis;white-space:nowrap;flex:1;align-content:center;height:24px;margin-top:-2px;font-size:.8em;overflow:hidden}.vot-select-outer__arrow{fill:currentColor;transition:transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:1.5em;display:flex}.vot-select-outer[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-outer:not([aria-disabled=true]):hover{border-color:var(--vot-border-color-hover)}.vot-select-outer[aria-expanded=true] .vot-select-outer__arrow{transform:rotate(180deg)}.vot-select-inner{--vot-select-inner-primary-rgb:var(--vot-primary-rgb,33, 150, 243);z-index:2147483647;-webkit-user-select:none;user-select:none;background:rgb(var(--vot-secondary-rgb,43, 44, 48));color:rgba(var(--vot-onsurface-rgb), .87);max-width:min(300px,100%);max-height:min(85vh, 350px, var(--vot-floating-available-height,100vh));pointer-events:auto;border-radius:.75em;flex-direction:column;padding:.5em;font-size:16px;display:flex;position:fixed;overflow:hidden}.vot-select-inner.vot-select-inner__static-width{width:100%}.vot-select-inner .vot-textfield{margin-bottom:.5em}.vot-select-inner__no-options{color:rgba(var(--vot-onsurface-rgb), .38);text-align:center;padding:.5em .75em}.vot-select-inner__no-options[data-searching=true]{color:rgba(var(--vot-onsurface-rgb), .68);padding:0;font-size:1.75em}.vot-select-inner__options{overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(var(--vot-onsurface-rgb), .38) transparent;min-height:0;margin-right:-8px;padding-right:8px;overflow-y:auto}.vot-select-inner__option{cursor:pointer;transition:background var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.5em;padding:.5em .75em}.vot-select-inner__option[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-inner__option:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb), .14)}.vot-select-inner__option[aria-selected=true]{color:rgb(var(--vot-select-inner-primary-rgb));background:rgba(var(--vot-select-inner-primary-rgb), .2)}.vot-select-inner__option[aria-selected=true]:not([aria-disabled=true]):hover{background:rgba(var(--vot-select-inner-primary-rgb), .1)}.vot-switch{--vot-switch-outline:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-switch-primary:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-switch-onprimary:rgb(var(--vot-onprimary-rgb,32, 33, 36));--vot-switch-track:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);--vot-switch-duration:var(--vot-duration-medium,.2s);--vot-switch-label-offset:24px;box-sizing:border-box;color:rgb(var(--vot-onsurface-rgb,0, 0, 0));cursor:pointer;align-items:center;gap:var(--vot-space-4,16px);width:100%;padding-block:var(--vot-space-2,8px);touch-action:manipulation;vertical-align:middle;display:inline-flex;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-switch[data-disabled=true]{cursor:not-allowed;-webkit-user-select:none;user-select:none}.vot-switch_sub{padding-left:var(--vot-switch-label-offset)!important}.vot-switch-control{cursor:inherit;opacity:0;z-index:2;width:100%;height:100%;margin:0;position:absolute;inset:0}.vot-switch-control:focus-visible~.vot-switch-track{outline:2px solid var(--vot-focus-ring-color,rgba(var(--vot-primary-rgb,33, 150, 243), .9));outline-offset:2px}.vot-switch-control:hover:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:hover:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .12)}.vot-switch-control:disabled{cursor:not-allowed}.vot-switch-control:disabled~.vot-switch-track{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:disabled~.vot-switch-track .vot-switch-handle{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-control:disabled~.vot-switch-track[data-checked=true] .vot-switch-handle{background:rgb(var(--vot-surface-rgb,32, 33, 36))}.vot-switch-text{flex-direction:column;flex:auto;min-width:0;display:flex}.vot-switch-heading{letter-spacing:.5px;font-size:16px;font-weight:400;line-height:24px}.vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-switch[data-disabled=true] .vot-switch-heading,.vot-switch[data-disabled=true] .vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-track{background:var(--vot-switch-track);border:2px solid var(--vot-switch-outline);box-sizing:border-box;pointer-events:none;height:32px;transition-duration:var(--vot-switch-duration);transition-property:background-color,border-color;transition-timing-function:var(--vot-easing-standard);border-radius:16px;flex:none;align-items:center;width:52px;display:flex;position:relative}.vot-switch-track[data-checked=true]{background:var(--vot-switch-primary);border-color:var(--vot-switch-primary)}.vot-switch-track[data-checked=true] .vot-switch-handle{background:var(--vot-switch-onprimary);width:24px;height:24px;transform:translate(16px,-50%)}.vot-switch-handle{background:var(--vot-switch-outline);height:16px;transition-duration:var(--vot-switch-duration);transition-property:background-color,box-shadow,height,transform,width;transition-timing-function:var(--vot-easing-standard);inset-inline-start:6px;border-radius:50%;width:16px;position:absolute;top:50%;transform:translateY(-50%);box-shadow:0 0 #0000}@media (prefers-reduced-motion:reduce){.vot-switch-track,.vot-switch-handle{transition-duration:.01ms}}.vot-slider{--vot-slider-track-bg:rgba(var(--vot-onsurface-rgb,227, 227, 227), .15);--vot-slider-track-progress-bg:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-slider-size:1em;--vot-slider-border-radius:.5em;--vot-slider-handle-bg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-slider-handle-size:44px;--vot-slider-transition:var(--vot-duration-medium) var(--vot-easing-standard);height:var(--vot-slider-handle-size);align-items:center;display:flex;position:relative}.vot-slider[aria-disabled=true]{-webkit-user-select:none;user-select:none;opacity:.5}.vot-slider[aria-disabled=true] .vot-slider__control{cursor:not-allowed}.vot-slider__control{opacity:0;appearance:none;cursor:pointer;width:100%;height:100%;position:absolute}.vot-slider__track{background:var(--vot-slider-track-bg);width:100%;height:var(--vot-slider-size);border-radius:var(--vot-slider-border-radius);pointer-events:none}.vot-slider__track-progress{background:var(--vot-slider-track-progress-bg);width:calc(100% * var(--vot-progress,0));transition:width var(--vot-slider-transition);border-top-right-radius:0;border-bottom-right-radius:0;position:absolute}.vot-slider__handle{left:calc(100% * var(--vot-progress,0));width:4px;height:var(--vot-slider-handle-size);background:var(--vot-slider-handle-bg);outline:4px solid var(--vot-slider-track-bg);pointer-events:none;will-change:transform;transition:transform var(--vot-slider-transition), left var(--vot-slider-transition);transform:translateX(calc(-100% * var(--vot-progress,0)));border-radius:4px;position:absolute}.vot-slider[data-dragging] .vot-slider__track-progress,.vot-slider[data-dragging] .vot-slider__handle{transition:none}.vot-slider-label{flex-wrap:nowrap;align-items:baseline;gap:.75em;display:flex}.vot-slider-label__text{text-align:left;flex:auto}.vot-slider-label__text-desc{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-slider-label__value{text-align:right;font-variant-numeric:tabular-nums;flex:none;font-weight:600!important}.vot-slider-label[aria-disabled=true]{opacity:.5;-webkit-user-select:none;user-select:none;color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .5)}.vot-slider-wrapper{flex-direction:column;gap:.25em;display:flex}.vot-dialog{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-dialog-viewport-margin:16px;--vot-dialog-max-height:75vh;max-width:initial;max-height:initial;width:min(var(--vot-dialog-width,512px), 100%);border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);background-color:var(--vot-helper-surface);height:fit-content;color:var(--vot-helper-onsurface);box-shadow:var(--vot-shadow-2);-webkit-user-select:none;user-select:none;visibility:visible;opacity:1;transform-origin:50%;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;display:block;position:fixed;inset-block:0;inset-inline:0;overflow:auto hidden;transform:scale(1);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:auto!important;padding:0!important}.vot-dialog[data-vertical-align=top]{inset-block-start:var(--vot-dialog-viewport-margin);inset-block-end:auto;margin:0 auto!important}.vot-dialog-container{visibility:visible;z-index:2147483647;position:absolute}.vot-dialog-container *{box-sizing:border-box!important}.vot-dialog-backdrop{opacity:1;background-color:#0009;transition:opacity .3s;position:fixed;inset:0}.vot-dialog-content-wrapper{max-height:var(--vot-dialog-max-height,75vh);flex-direction:column;display:flex;overflow:auto}.vot-dialog-header-container{flex-shrink:0;align-items:flex-start;min-height:31px;display:flex}.vot-dialog-header-container:empty{padding:0 0 20px}.vot-dialog-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-dialog-title-container{font-size:inherit;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-dialog-title{flex:1;font-size:115.385%;line-height:1;padding:var(--vot-space-5) var(--vot-space-5) var(--vot-space-4)!important;font-weight:700!important}.vot-dialog-body-container{box-sizing:border-box;gap:var(--vot-space-4);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-5)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-dialog-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-dialog-body-container:last-child{padding-block-end:var(--vot-space-5)!important}.vot-dialog-footer-container{justify-content:flex-end;gap:var(--vot-space-2);flex-wrap:wrap;flex-shrink:0;display:flex;padding:var(--vot-space-4)!important}@media (width<=480px){.vot-dialog-footer-container{flex-direction:column;align-items:stretch}.vot-dialog-footer-container>:is(.vot-button,.vot-outlined-button,.vot-text-button){white-space:normal;text-overflow:clip;text-align:center;justify-content:center;align-items:center;width:100%;height:auto;min-height:36px;padding:8px 16px;line-height:1.2;display:flex;overflow:visible}}.vot-settings-section{border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);padding:var(--vot-space-2);background:rgba(var(--vot-helper-onsurface-rgb), .03);flex-direction:column;display:flex}.vot-settings-section>*{margin:0!important}.vot-settings-section>*+*{margin-top:var(--vot-space-2)!important}.vot-settings-section__header{border-radius:var(--vot-radius-m);margin:0!important;padding:.45em .5em!important}.vot-settings-section__header .vot-details-arrow-icon{transition:transform var(--vot-duration-medium) var(--vot-easing-standard)}.vot-settings-section__header[data-open=true] .vot-details-arrow-icon{transform:scale(1.25)rotate(0)}.vot-settings-section__content{--vot-settings-control-width:200px;--vot-settings-row-gap:var(--vot-space-2);gap:var(--vot-settings-row-gap);padding:0 var(--vot-space-1) var(--vot-space-1);flex-direction:column;display:flex}.vot-settings-section__content>*{margin:0!important}.vot-settings-section__content>.vot-switch,.vot-settings-section__content>.vot-hotkey,.vot-settings-section__content>.vot-select,.vot-settings-section__content>.vot-slider-wrapper{padding:var(--vot-space-1);box-sizing:border-box;width:100%!important}.vot-settings-footer{gap:var(--vot-space-2);display:flex}.vot-textfield{display:inline-block;--vot-helper-theme:rgb(var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243)))!important;--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;--vot-helper-safari3:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:start!important;padding-top:6px!important;font-size:16px!important;line-height:1.5!important;position:relative!important}.vot-textfield>:is(input,textarea){box-sizing:border-box!important;border-style:solid!important;border-width:1px!important;border-color:transparent var(--vot-helper-safari2) var(--vot-helper-safari2)!important;width:100%!important;height:inherit!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;-webkit-text-fill-color:currentColor!important;font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;caret-color:var(--vot-helper-theme)!important;background-color:#0000!important;border-radius:4px!important;margin:0!important;padding:15px 13px!important;transition:border .2s,box-shadow .2s!important;box-shadow:inset 1px 0 #0000,inset -1px 0 #0000,inset 0 -1px #0000!important}.vot-textfield>:is(input,textarea):not(:focus):not(:is(.vot-show-placeholder,.vot-show-placeholer))::placeholder{color:#0000!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown{border-top-color:var(--vot-helper-safari2)!important}.vot-textfield>:is(input,textarea)+.vot-textfield__label{font-family:inherit;width:100%!important;max-height:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;cursor:text!important;pointer-events:none!important;font-size:75%!important;line-height:15px!important;transition:color .2s,font-size .2s,line-height .2s!important;display:flex!important;position:absolute!important;top:0!important;left:0!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown+.vot-textfield__label{font-size:inherit!important;line-height:68px!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{content:\"\"!important;box-sizing:border-box!important;border-top:solid 1px var(--vot-helper-safari2)!important;pointer-events:none!important;min-width:10px!important;height:8px!important;margin-top:6px!important;transition:border .2s,box-shadow .2s!important;display:block!important;box-shadow:inset 0 1px #0000!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:before{border-left:1px solid #0000!important;border-radius:4px 0!important;margin-right:4px!important}.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:after{border-right:1px solid #0000!important;border-radius:0 4px!important;flex-grow:1!important;margin-left:4px!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before{margin-right:0!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after{margin-left:0!important}.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}.vot-textfield>textarea{resize:none!important}.vot-textfield:hover>input:not(:disabled),.vot-textfield:hover>textarea:not(:disabled){border-color:transparent var(--vot-helper-safari3) var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:after,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:after{border-top-color:var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled):not(:focus):placeholder-shown,.vot-textfield:hover>textarea:not(:disabled):not(:focus):placeholder-shown{border-color:var(--vot-helper-safari3)!important}.vot-textfield>input:focus,.vot-textfield>textarea:focus{border-color:transparent var(--vot-helper-theme) var(--vot-helper-theme)!important;box-shadow:inset 1px 0 var(--vot-helper-theme), inset -1px 0 var(--vot-helper-theme), inset 0 -1px var(--vot-helper-theme)!important;outline:none!important}.vot-textfield>input:focus+.vot-textfield__label,.vot-textfield>textarea:focus+.vot-textfield__label{color:var(--vot-helper-theme)!important}.vot-textfield>input:focus+.vot-textfield__label:before,.vot-textfield>input:focus+.vot-textfield__label:after,.vot-textfield>textarea:focus+.vot-textfield__label:before,.vot-textfield>textarea:focus+.vot-textfield__label:after{border-top-color:var(--vot-helper-theme)!important;box-shadow:inset 0 1px var(--vot-helper-theme)!important}.vot-textfield>input:disabled,.vot-textfield>input:disabled+.vot-textfield__label,.vot-textfield>textarea:disabled,.vot-textfield>textarea:disabled+.vot-textfield__label{border-color:transparent var(--vot-helper-safari1) var(--vot-helper-safari1)!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;pointer-events:none!important}.vot-textfield>input:disabled+.vot-textfield__label:before,.vot-textfield>input:disabled+.vot-textfield__label:after,.vot-textfield>textarea:disabled+.vot-textfield__label:before,.vot-textfield>textarea:disabled+.vot-textfield__label:after,.vot-textfield>input:disabled:placeholder-shown,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label,.vot-textfield>textarea:disabled:placeholder-shown,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label{border-top-color:var(--vot-helper-safari1)!important}.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}@media not all and (resolution>=.001dpcm){@supports ((-webkit-appearance:none)){.vot-textfield>input,.vot-textfield>input+.vot-textfield__label,.vot-textfield>textarea,.vot-textfield>textarea+.vot-textfield__label,.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{transition-duration:.1s!important}}}.vot-segmented-button{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);cursor:default;-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));max-width:100%;height:36px;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);align-items:center;font-size:16px;display:flex;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;box-shadow:var(--vot-shadow-1)!important}.vot-segmented-button[data-direction=column]{flex-direction:column;height:fit-content}.vot-segmented-button[data-direction=column] .vot-segment,.vot-segmented-button[data-direction=column] .vot-segment-only-icon{padding:var(--vot-space-2)!important}.vot-segmented-button[data-direction=column] .vot-separator{width:50%;height:1px}.vot-segmented-button[data-status=error] .vot-translate-button{color:rgb(var(--vot-error-rgb,242, 139, 130))}.vot-segmented-button[data-status=success] .vot-translate-button{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment,.vot-segmented-button .vot-segment-only-icon{min-width:0;height:100%;color:inherit;transition:background-color var(--vot-duration-fast) var(--vot-easing-standard);-webkit-tap-highlight-color:transparent;background-color:#0000;outline:none;flex:auto;justify-content:center;align-items:center;display:flex;position:relative;overflow:hidden;gap:var(--vot-space-2)!important;padding:0 var(--vot-space-2)!important;border:none!important}.vot-segmented-button .vot-segment:focus,.vot-segmented-button .vot-segment-only-icon:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color);outline:none}.vot-segmented-button .vot-segment:focus:not(:focus-visible),.vot-segmented-button .vot-segment-only-icon:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before{background-color:rgb(var(--vot-helper-theme-rgb));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-segmented-button .vot-segment:hover:before,.vot-segmented-button .vot-segment-only-icon:hover:before{opacity:.04}.vot-segmented-button .vot-segment:active:after,.vot-segmented-button .vot-segment-only-icon:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{pointer-events:none}.vot-segmented-button .vot-segment svg,.vot-segmented-button .vot-segment-only-icon svg{font-size:24px}.vot-segmented-button .vot-segment>svg,.vot-segmented-button .vot-segment-only-icon>svg,.vot-segmented-button .vot-segment-label,.vot-segmented-button .vot-segment .vot-dropdown-arrow,.vot-segmented-button .vot-segment-only-icon .vot-dropdown-arrow{z-index:1;position:relative}.vot-segmented-button .vot-segment-only-icon{min-width:36px;padding:0!important}.vot-segmented-button .vot-segment-only-icon[data-active=true]{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment-label{text-overflow:ellipsis;white-space:nowrap;min-width:0;color:inherit;flex:auto;line-height:1;overflow:hidden;font-weight:400!important}.vot-segmented-button .vot-dropdown-arrow{width:30px;min-width:30px;height:100%;color:inherit;fill:inherit;opacity:.95;cursor:default;-webkit-tap-highlight-color:transparent;outline:none;flex:none;justify-content:center;align-items:center;display:inline-flex;position:relative;border-radius:var(--vot-radius-s)!important;margin-inline-end:-4px!important;margin-top:2px!important}.vot-segmented-button .vot-dropdown-arrow:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color)}.vot-segmented-button .vot-dropdown-arrow:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-dropdown-arrow:hover{background:rgba(var(--vot-helper-theme-rgb), .04)}.vot-segmented-button .vot-dropdown-arrow:before,.vot-segmented-button .vot-dropdown-arrow:after{display:none}.vot-segmented-button .vot-dropdown-arrow svg{transform-origin:50%;transition:transform var(--vot-duration-fast) var(--vot-easing-standard);font-size:28px;transform:scale(1.08)}.vot-segmented-button .vot-dropdown-arrow[aria-expanded=true] svg{transform:rotate(180deg)scale(1.08)}.vot-segmented-button .vot-separator{background:rgba(var(--vot-helper-theme-rgb), .1);width:1px;height:50%}.vot-overlay.vot-overlay__segmented-button{--vot-overlay-default-top:5rem;--vot-overlay-top-offset:max(16px, env(safe-area-inset-top,0px));--vot-overlay-side-offset:max(16px, env(safe-area-inset-left,0px));--vot-overlay-side-offset-right:max(16px, env(safe-area-inset-right,0px));--vot-overlay-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px));transition:opacity var(--vot-duration-slow) var(--vot-easing-standard);pointer-events:auto;touch-action:none;max-width:100%;left:50%;transform:translate(-50%)}.vot-overlay.vot-overlay__segmented-button[data-dragging=true]{cursor:grabbing;will-change:transform;transform:translate3d(var(--vot-button-drag-left,0px), var(--vot-button-drag-top,0px), 0)!important;opacity:.96!important;transition:none!important;top:0!important;left:0!important;right:auto!important}.vot-overlay.vot-overlay__segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segment,.vot-overlay.vot-overlay__segmented-button .vot-segment-only-icon,.vot-overlay.vot-overlay__segmented-button .vot-dropdown-arrow{touch-action:none}.vot-overlay.vot-overlay__segmented-button[data-position=left]{left:var(--vot-overlay-side-offset);right:auto;top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=right]{left:auto;right:var(--vot-overlay-side-offset-right);top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=leftCenter]{left:var(--vot-overlay-side-offset);top:50%;right:auto;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button[data-position=rightCenter]{left:auto;right:var(--vot-overlay-side-offset-right);top:50%;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button.vot-segmented-button--dock-preview{z-index:2147483646;transition:left var(--vot-duration-medium) var(--vot-easing-standard), right var(--vot-duration-medium) var(--vot-easing-standard), top var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard), opacity var(--vot-duration-fast) var(--vot-easing-standard);opacity:.72!important;pointer-events:none!important}.vot-voice-icon{display:block;overflow:visible}.vot-voice-icon .vot-eq-bar{transform-origin:50% 100%;transform-box:fill-box;transform:scaleY(1)}.vot-voice-icon--standard .vot-eq-bar{fill:rgba(var(--vot-onsurface-rgb,227, 227, 227), .4)}.vot-voice-icon--live .vot-eq-bar{fill:#e040a0}.vot-voice-popover{--vot-helper-surface-rgb:var(--vot-surface-rgb,32, 33, 36);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,227, 227, 227);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-helper-onsurface-secondary:rgba(var(--vot-helper-onsurface-rgb), .55);--vot-voice-active-standard-bg:rgba(var(--vot-primary-rgb,139, 180, 245), .1);--vot-voice-active-standard-fg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-voice-active-live-bg:#e040a01a;--vot-voice-active-live-fg:#e040a0;z-index:2147483647;background:var(--vot-helper-surface);min-width:230px;max-width:var(--vot-voice-popover-max-width,310px);max-height:var(--vot-voice-popover-max-height,calc(100vh - 16px));cursor:default;-webkit-user-select:none;user-select:none;overscroll-behavior:contain;transform-origin:0 0;width:max-content;display:block;position:absolute;top:0;left:0;overflow:hidden auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:left!important}.vot-voice-popover,.vot-voice-popover *{box-sizing:border-box!important}.vot-voice-popover{opacity:0;visibility:hidden;pointer-events:none;transition:none;transform:none}.vot-voice-popover[hidden]{display:none!important}.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{opacity:1;visibility:visible;pointer-events:auto;transform:none}.vot-voice-popover[data-placement=top]{transform-origin:bottom}.vot-voice-popover[data-placement=bottom]{transform-origin:top}.vot-voice-popover[data-placement=left]{transform-origin:100%}.vot-voice-popover[data-placement=right]{transform-origin:0}.vot-voice-popover.is-closing{opacity:0;visibility:visible;pointer-events:none;transform:none}.vot-voice-popover__item{cursor:pointer;min-height:62px;color:var(--vot-helper-onsurface);outline:none;gap:12px;transition:none;display:flex;position:relative;overflow:hidden;padding:14px 44px 14px 16px!important}.vot-voice-popover__item:before{content:\"\";opacity:0;pointer-events:none;background:linear-gradient(180deg, rgba(var(--vot-helper-onsurface-rgb), .045), rgba(var(--vot-helper-onsurface-rgb), .06));transition:none;position:absolute;inset:0}.vot-voice-popover__item:hover,.vot-voice-popover__item:focus-visible{box-shadow:inset 0 1px #ffffff08,inset 0 -1px #0000000a}.vot-voice-popover__item:hover:before,.vot-voice-popover__item:focus-visible:before{opacity:1}.vot-voice-popover__item:focus-visible{box-shadow:inset 0 0 0 1px rgba(var(--vot-primary-rgb,139, 180, 245), .18)}.vot-voice-popover__item:after{content:\"\";opacity:0;background-color:currentColor;width:18px;height:18px;transition:none;position:absolute;top:50%;right:14px;transform:translateY(-50%)scale(.88);-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat;mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat}.vot-voice-popover__item--active{font-weight:500!important}.vot-voice-popover__item--active:after{opacity:1;transform:translateY(-50%)scale(1)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active{background-color:var(--vot-voice-active-standard-bg);color:var(--vot-voice-active-standard-fg)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-icon--standard .vot-eq-bar{fill:currentColor}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active{background-color:var(--vot-voice-active-live-bg);color:var(--vot-voice-active-live-fg)}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item-icon{font-size:20px}.vot-voice-popover__item-text{flex-direction:column;gap:2px;min-width:0;display:flex}.vot-voice-popover__item-title{color:inherit;white-space:nowrap;font-size:15px;line-height:1.3;transition:none;font-weight:400!important}.vot-voice-popover__item-subtitle{color:var(--vot-helper-onsurface-secondary);white-space:normal;font-size:12px;line-height:1.4}.vot-voice-popover__divider{background:var(--vot-border-color);height:1px;margin:0!important}@media (prefers-reduced-motion:reduce){.vot-voice-icon .vot-eq-bar{animation:none!important;transform:scaleY(1)!important}.vot-voice-popover,.vot-voice-popover *,.vot-voice-popover:before,.vot-voice-popover:after{transition:none!important;animation:none!important}.vot-voice-popover,.vot-voice-popover.is-closing,.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{transform:none!important}}.vot-segmented-button__menu-header{align-items:center;gap:var(--vot-space-2);margin-left:auto;display:flex}.vot-langpair-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);color:var(--vot-helper-theme);justify-content:space-between;align-items:center;display:flex}.vot-langpair-select__icon{justify-content:center;align-items:center;font-size:24px;display:flex}.vot-overlay.vot-overlay__segmented-button-menu{--vot-overlay-default-top:calc(5rem + 48px);--vot-menu-side-offset:max(76px, calc(env(safe-area-inset-left,0px) + 64px));--vot-menu-side-offset-right:max(76px, calc(env(safe-area-inset-right,0px) + 64px));--vot-menu-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px))}@media (pointer:coarse){.vot-overlay.vot-overlay__segmented-button-menu{--vot-menu-default-top:calc(3rem + 48px);--vot-menu-side-offset:max(64px, calc(env(safe-area-inset-left,0px) + 54px));--vot-menu-side-offset-right:max(64px, calc(env(safe-area-inset-right,0px) + 54px))}}.vot-overlay.vot-overlay__segmented-button-menu{transform-origin:top;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);left:50%;right:auto;transform:translate(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[aria-hidden=true]{transform:translate(-50%,-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left] .vot-menu,.vot-overlay.vot-overlay__segmented-button-menu[data-position=right] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - var(--vot-menu-side-top-offset,48px) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter] .vot-menu,.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left]{left:var(--vot-menu-side-offset);right:auto;top:var(--vot-menu-side-top-offset);transform-origin:0 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=right]{left:auto;right:var(--vot-menu-side-offset-right);top:var(--vot-menu-side-top-offset);transform-origin:100% 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter]{left:var(--vot-menu-side-offset);transform-origin:0;top:50%;right:auto;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter]{left:auto;right:var(--vot-menu-side-offset-right);transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left]{transform-origin:0;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right]{transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=right][aria-hidden=true]{transform:translateY(-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right][aria-hidden=true]{transform:translateY(calc(-50% - 4px))scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-menu__header{flex-wrap:wrap}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-menu__header .vot-segmented-button__menu-header:has(>:nth-child(2)){margin-left:inherit}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-menu__body{max-height:275px}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-langpair-select{gap:var(--vot-space-1);flex-direction:column}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-langpair-select__icon{transform:rotate(90deg)}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-select{justify-content:start;gap:var(--vot-space-1);flex-direction:column;align-items:start;width:100%}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-select-outer{justify-content:space-around;width:100%;max-width:100%}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-select-outer__title{min-width:0;max-width:120px}@property --vot-subtitles-opacity{syntax:\"<number>\";inherits:true;initial-value:.8}@property --vot-subtitles-scale-compensation{syntax:\"<number>\";inherits:true;initial-value:1}.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), var(--vot-subtitles-opacity,.8));--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);background:var(--vot-subtitles-background,#2e2f34cc);width:max-content;inline-size:max-content;color:var(--vot-subtitles-color,#e3e3e3);pointer-events:all;touch-action:none;font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2.2vw), 50px)) * var(--vot-subtitles-scale-compensation,1));-webkit-text-stroke:var(--vot-subtitles-text-stroke-width,clamp(1px, .08em, 2px)) var(--vot-subtitles-text-stroke-color,#000000eb);paint-order:stroke fill;text-shadow:var(--vot-subtitles-text-shadow,0 1px 2px #00000073, 0 2px 8px #00000040);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis:none;position:relative;--vot-subtitles-font-family:var(--vot-subtitles-font-family-custom,var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif))!important;font-family:var(--vot-subtitles-font-family)!important;font-style:normal!important;font-weight:var(--vot-subtitles-font-weight,500)!important;text-transform:none!important;letter-spacing:normal!important;border-radius:.5em!important;padding:.5em .75em!important;line-height:1.25!important}.vot-subtitles,.vot-subtitles *{-webkit-text-stroke:inherit;paint-order:inherit;font-family:var(--vot-subtitles-font-family)!important}.vot-subtitles{box-sizing:border-box;-webkit-user-select:none;user-select:none;contain:layout paint;isolation:isolate;text-align:center;text-wrap:balance;white-space:normal;overflow-wrap:anywhere;unicode-bidi:plaintext;margin:0 auto;display:block}.vot-subtitles-widget{--vot-subtitles-anchor-width:100vw;--vot-subtitles-anchor-height:100vh;--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));--vot-subtitles-smart-target-width:48ch;--vot-subtitles-smart-min-width-ratio:.62;--vot-subtitles-smart-max-width-ratio:.78;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333);--vot-subtitles-smart-max-width:clamp(calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-min-width-ratio)), var(--vot-subtitles-smart-target-width), calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-max-width-ratio)));box-sizing:border-box;z-index:2147483647;--vot-subtitles-fallback-bottom-inset:calc(env(safe-area-inset-bottom,0px) + clamp(56px, 10vh, 220px) + 10px);left:50%;top:calc(100% - var(--vot-subtitles-fallback-bottom-inset));width:max-content;inline-size:max-content;max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);pointer-events:none;will-change:left, top, transform;max-height:100%;display:block;position:absolute;transform:translate(-50%,-100%)}.vot-subtitles-info{color:#f5f7fa;-webkit-backdrop-filter:blur(18px);text-align:start;background:#1f2023f5;border:1px solid #ffffff14;flex-direction:column;gap:10px;min-width:min(360px,100vw - 32px);max-width:min(720px,100vw - 32px);display:flex;box-shadow:0 18px 48px #00000057,0 4px 16px #00000038;border-radius:18px!important;padding:18px 22px 20px!important}.vot-subtitles-info-service{display:none!important}.vot-subtitles-info-title{letter-spacing:-.01em;align-items:baseline;gap:8px;min-width:0;max-width:100%;display:flex;font-size:clamp(18px,2.4vw,26px)!important;line-height:1.18!important}.vot-subtitles-info-source,.vot-subtitles-info-divider,.vot-subtitles-info-header,.vot-subtitles-info-context{overflow-wrap:anywhere;white-space:normal!important}.vot-subtitles-info-source{color:#f5f7faad;flex:0 auto;font-weight:650!important}.vot-subtitles-info-divider{color:#f5f7fa61;flex:none;font-weight:500!important}.vot-subtitles-info-header{color:#fff;flex:auto;min-width:0;font-weight:750!important}.vot-subtitles-info-context{color:#dee4ecb8;max-width:100%;font-size:clamp(14px,1.45vw,17px)!important;line-height:1.42!important}.vot-subtitles span[data-vot-highlight-index].passed{color:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"]{cursor:pointer;white-space:normal;overflow-wrap:inherit;word-break:normal;position:relative;font-size:inherit!important;font-family:inherit!important;font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-transform:inherit!important;text-decoration:none!important}.vot-subtitles span[data-vot-token=\"1\"]:before{content:\"\";z-index:-1;position:absolute;inset:2px -2px;border-radius:4px!important}.vot-subtitles span[data-vot-token=\"1\"]:hover:before,.vot-subtitles span[data-vot-token=\"1\"]:focus-visible:before{background:var(--vot-subtitles-hover-color,#ffffff8c)}.vot-subtitles span[data-vot-token=\"1\"].selected:before{background:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"].passed.selected:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .4)}.vot-subtitles span[data-vot-token=\"1\"].passed:hover:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .3)}.vot-subtitles span[data-vot-style-italic=\"1\"]{font-style:italic!important}.vot-subtitles span[data-vot-style-bold=\"1\"]{font-weight:700!important}.vot-subtitles span[data-vot-style-underline=\"1\"]{text-decoration:underline!important}.vot-subtitles span[data-vot-style-color=\"1\"]{color:var(--vot-subtitles-inline-color)!important}.vot-subtitles-layer{pointer-events:none;z-index:2147483647;contain:layout paint;width:100vw!important;height:100vh!important;position:fixed!important;inset:0!important}.vot-subtitles-guides{pointer-events:none;z-index:2147483646;position:absolute;inset:0}.vot-subtitles-guide{background:rgba(var(--vot-primary-rgb,33, 150, 243), .7);box-shadow:0 0 0 1px rgba(var(--vot-primary-rgb,33, 150, 243), .12);opacity:0;transition:opacity .12s linear;position:absolute}.vot-subtitles-guide[data-visible=true]{opacity:1}.vot-subtitles-guide--vertical{width:2px;transform:translate(-50%)}.vot-subtitles-guide--horizontal{height:2px;transform:translateY(-50%)}@media (aspect-ratio<=1){.vot-subtitles-widget{--vot-subtitles-smart-target-width:28ch;--vot-subtitles-smart-min-width-ratio:.8;--vot-subtitles-smart-max-width-ratio:.92;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0296)}}@media (aspect-ratio>=1) and (aspect-ratio<=7/5){.vot-subtitles-widget{--vot-subtitles-smart-target-width:32ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.9;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333)}}@media (width<=900px) and (pointer:coarse){.vot-subtitles-widget{--vot-subtitles-fallback-bottom-inset:env(safe-area-inset-bottom,0px)}}@media (prefers-contrast:more){.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), .92);--vot-subtitles-text-stroke-width:max(2px, .1em);--vot-subtitles-text-shadow:0 2px 10px #0000008c}}:is(:fullscreen .vot-subtitles-widget,:fullscreen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:is(:fullscreen .vot-subtitles,:fullscreen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}#vot-subtitles-info.vot-subtitles-info *{-webkit-user-select:text!important;user-select:text!important}.vot-or-block{--vot-or-block-line:rgba(var(--vot-primary-rgb,139, 180, 245), .5);color:rgb(var(--vot-primary-rgb));align-items:center;gap:12px;font-size:.75em;font-weight:600;display:flex}.vot-or-block:before,.vot-or-block:after{background:var(--vot-or-block-line);content:\"\";flex:1;height:1px}.vot-menu{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);background:var(--vot-helper-surface);color:var(--vot-helper-onsurface);width:fit-content;min-width:min(320px, 100% - var(--vot-menu-side-offset,0px));max-width:min(90vw,560px);min-height:100px;max-height:calc(var(--vot-container-height,75vh) - var(--vot-overlay-default-top,0px) - 16px);flex-direction:column;font-size:16px;line-height:1.5;display:flex;overflow:auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-menu__header{align-items:center;gap:var(--vot-space-2);flex-shrink:0;min-height:32px;display:flex;padding:var(--vot-space-2) var(--vot-space-4)!important}.vot-menu__body{box-sizing:border-box;gap:var(--vot-space-2);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-4)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-menu__body::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-menu__footer{flex-shrink:0;justify-content:flex-end;display:flex;padding:var(--vot-space-4)!important}.vot-menu__footer:empty{padding:var(--vot-space-4) 0 0 0!important}.vot-tooltip{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-border:rgb(var(--vot-tooltip-border,69, 69, 69));-webkit-user-select:none;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));color:var(--vot-helper-theme);fill:var(--vot-helper-theme);font-family:var(--vot-font-family);cursor:default;z-index:2147483647;overflow-wrap:anywhere;white-space:normal;opacity:0;align-items:center;width:max-content;max-width:calc(100vw - 10px);height:max-content;font-size:14px;line-height:1.5;transition:opacity .5s;display:flex;position:absolute;inset:0;overflow:hidden;box-shadow:0 1px 3px #0000001f;border-radius:4px!important;padding:4px 8px!important}.vot-tooltip[data-trigger=click]{-webkit-user-select:text;user-select:text}.vot-tooltip[data-mode=follow]{pointer-events:auto;-webkit-user-select:text;user-select:text;align-items:stretch}.vot-tooltip[data-mode=follow],.vot-tooltip[data-mode=follow] *{-webkit-user-select:text!important;user-select:text!important}.vot-tooltip.vot-tooltip-bordered{border:1px solid var(--vot-helper-border)}.vot-tooltip *{box-sizing:border-box!important;font-family:inherit!important}.vot-tooltip.vot-tooltip--subtitles-info{overflow:visible;box-shadow:none!important;background:0 0!important;border-radius:18px!important;padding:0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info{flex-direction:column;gap:8px;width:max-content;max-width:min(420px,100vw - 24px);display:flex;color:#ffffffeb!important;letter-spacing:0!important;background:#1f2024f5!important;border:1px solid #ffffff14!important;border-radius:16px!important;padding:14px 16px!important;font-size:13px!important;line-height:1.35!important;box-shadow:0 12px 30px #00000047,0 2px 6px #00000038!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-title{flex-wrap:wrap;align-items:center;gap:6px;min-width:0;display:flex;font-size:15px!important;font-weight:600!important;line-height:1.35!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-source{overflow-wrap:anywhere;color:#fffffff0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-divider{color:#ffffff6b!important;font-weight:500!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-header{overflow-wrap:anywhere;color:rgb(var(--vot-primary-rgb,255, 83, 151))!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-context{overflow-wrap:anywhere;max-width:100%;color:#ffffffad!important;font-size:13px!important;font-weight:400!important;line-height:1.45!important}.vot-overlay{--vot-overlay-default-top:0;-webkit-user-select:none;user-select:none;width:fit-content;max-width:100vw;right:auto;top:var(--vot-overlay-default-top);z-index:2147483646;font-size:16px;line-height:1.5;position:absolute;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-overlay[aria-hidden=true]{pointer-events:none;opacity:0;display:none;visibility:hidden!important}");
+	// src/ui/shadowMount.ts
+	var shadowScopedCssText = scopeCssForShadowRoots(":root{--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif;--vot-primary-rgb:139, 180, 245;--vot-onprimary-rgb:32, 33, 36;--vot-surface-rgb:32, 33, 36;--vot-secondary-rgb:43, 44, 48;--vot-onsurface-rgb:227, 227, 227;--vot-danger-rgb:255, 99, 99;--vot-error-rgb:242, 139, 130;--vot-subtitles-color:rgb(var(--vot-onsurface-rgb,227, 227, 227));--vot-subtitles-passed-color:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-space-1:4px;--vot-space-2:8px;--vot-space-3:12px;--vot-space-4:16px;--vot-space-5:20px;--vot-space-6:24px;--vot-radius-xs:6px;--vot-radius-s:10px;--vot-radius-m:14px;--vot-radius-l:18px;--vot-border-color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .14);--vot-border-color-hover:rgba(var(--vot-onsurface-rgb,227, 227, 227), .22);--vot-shadow-1:0 1px 2px #0000002e, 0 8px 24px #00000024;--vot-shadow-2:0 2px 4px #00000038, 0 12px 32px #00000038;--vot-duration-fast:.12s;--vot-duration-medium:.2s;--vot-duration-slow:.32s;--vot-easing-standard:cubic-bezier(.2, 0, 0, 1);--vot-focus-ring-color:rgba(var(--vot-primary-rgb,139, 180, 245), .9);--vot-focus-ring:0 0 0 2px var(--vot-focus-ring-color);--vot-focus-ring-offset:0 0 0 4px rgba(var(--vot-surface-rgb,32, 33, 36), .9)}vot-block,vot-block *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}vot-block[hidden]:not(.vot-menu),vot-block [hidden]:not(.vot-menu){display:none!important}vot-block{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizelegibility;-moz-text-size-adjust:100%;text-size-adjust:100%;display:block;--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;visibility:visible!important;font-weight:400!important}vot-block *{font-weight:inherit!important}.vot-portal-local,.vot-subtitles-widget{isolation:isolate}vot-block:focus,vot-block :focus{box-shadow:none!important;outline:none!important}html.vot-keyboard-nav vot-block:focus-visible,html.vot-keyboard-nav vot-block :focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav vot-block:focus,html.vot-keyboard-nav vot-block :focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}@media (prefers-reduced-motion:reduce){.vot-portal-local *,.vot-portal *,.vot-subtitles-widget *{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}.vot-portal{display:contents}.vot-portal-local{z-index:2147483647;position:fixed;top:0;left:0}.vot-segmented-button,.vot-menu{pointer-events:auto}.vot-about-item{justify-content:space-between;align-items:center;gap:.5em;font-size:.8em;display:flex}.vot-about-item__label{text-transform:lowercase;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-item__value{text-align:end;color:rgba(var(--vot-primary-rgb,33, 150, 243), .9)}.vot-about-item__value_detail{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-section{--vot-about-sep-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);flex-direction:column;gap:.5em;display:flex}.vot-about-section>.vot-about-item:not(:last-child){border-bottom:1px solid var(--vot-about-sep-color);padding-bottom:1em}.vot-account-info{--vot-account-label-color:rgba(var(--vot-onsurface-rgb,13, 1, 31), .68);--vot-account-username-color:rgb(var(--vot-primary-rgb,139, 180, 245));flex-direction:column;gap:1em;font-weight:600;display:flex}.vot-account-info__block{align-items:center;gap:.5em;display:flex}.vot-account-info__avatar{border-radius:50%;min-width:36px;max-width:36px;min-height:36px;max-height:36px;overflow:hidden}.vot-account-info__avatar--failed{background:var(--vot-account-label-color)}.vot-account-info__avatar--failed>.vot-account-info__avatar-img{display:none}.vot-account-info__avatar-img{object-fit:cover;width:36px;height:36px}.vot-account-info__content{flex-direction:column;line-height:1.125em;display:flex}.vot-account-info__label{color:var(--vot-account-label-color);font-size:.75em}.vot-account-info__username{color:var(--vot-account-username-color);font-weight:600}.vot-account-info__refresh{margin-left:auto}.vot-account-login{flex-direction:column;gap:1em;display:flex}.vot-account-login__btn{cursor:pointer;color:#0d011f;border-radius:var(--vot-space-5);background:#fff;align-items:center;gap:1em;min-width:194px;height:56px;padding:14px 16px;font-size:1em;line-height:1.25em;transition:background .25s;display:flex}.vot-account-login__btn:hover{background:#f1eeeb}.vot-account-login__btn-icon{background-image:url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='44' height='44' fill='%23FC3F1D'/%3E%3Cpath d='M22.9515 24.2897C24.2907 27.223 24.737 28.2433 24.737 31.7665V36.4375H19.9544V28.5621L10.9313 8.9375H15.9211L22.9515 24.2897ZM28.8501 8.9375L22.9994 22.2332H27.8617L33.7284 8.9375H28.8501Z' fill='white'/%3E%3C/svg%3E%0A\");background-position:50%;background-repeat:no-repeat;background-size:contain;border-radius:50%;flex-shrink:0;width:26px;height:26px;position:relative}.vot-account-login__btn-text{font-weight:600}.vot-account-login__btn[aria-disabled=true]{cursor:not-allowed;user-select:none;opacity:.5}.vot-account-login__token{align-items:center;gap:1em;width:100%;display:flex}.vot-account-login__token .vot-textfield{width:100%}.vot-account-logout{--vot-theme-rgb:var(--vot-danger-rgb,244, 67, 54);width:100%;display:flex}.vot-account-logout .vot-text-button{width:100%;font-weight:600!important}.vot-account-logout__content{align-items:center;gap:.5em;width:100%;font-size:1.125em;display:flex}.vot-account-logout__content svg{width:1.25em;height:1.25em}.vot-account-menu{flex-direction:column;gap:.5em;display:flex}.vot-icon-button{--vot-helper-onsurface:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:36px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:50%!important;margin:0!important;padding:0!important;font-weight:500!important}.vot-icon-button[hidden]{display:none!important}.vot-icon-button{width:36px;fill:var(--vot-helper-onsurface);color:var(--vot-helper-onsurface);background-color:#0000;border:none!important}.vot-icon-button:before,.vot-icon-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-icon-button:before{background-color:var(--vot-helper-onsurface);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-icon-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-icon-button:hover:before{opacity:.04}.vot-icon-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-icon-button[disabled=true],.vot-icon-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);fill:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-icon-button[disabled=true]:before,.vot-icon-button[disabled=true]:after,.vot-icon-button[aria-disabled=true]:before,.vot-icon-button[aria-disabled=true]:after{opacity:0}.vot-icon-button svg{fill:inherit;stroke:inherit;width:24px;height:36px}.vot-text-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-text-button[hidden]{display:none!important}.vot-text-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:none!important}.vot-text-button:before,.vot-text-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-text-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-text-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-text-button:hover:before{opacity:.04}.vot-text-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-text-button[disabled=true],.vot-text-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-text-button[disabled=true]:before,.vot-text-button[disabled=true]:after,.vot-text-button[aria-disabled=true]:before,.vot-text-button[aria-disabled=true]:after{opacity:0}.vot-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;font-weight:500!important}.vot-button[hidden]{display:none!important}.vot-button{color:rgb(var(--vot-helper-ontheme));background-color:rgb(var(--vot-helper-theme));box-shadow:var(--vot-shadow-1);transition:box-shadow var(--vot-duration-medium) var(--vot-easing-standard);border:none!important}.vot-button:before,.vot-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-button:before{background-color:rgb(var(--vot-helper-ontheme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-button:hover:before{opacity:.08}.vot-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-button:hover,.vot-button:active{box-shadow:var(--vot-shadow-2)}.vot-button[disabled=true]{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);box-shadow:none;cursor:initial}.vot-button[disabled=true]:before,.vot-button[disabled=true]:after{opacity:0}.vot-outlined-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:34px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-outlined-button[hidden]{display:none!important}.vot-outlined-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:solid 1px var(--vot-border-color)!important}.vot-outlined-button:before,.vot-outlined-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-outlined-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-outlined-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-outlined-button:hover:before{opacity:.04}.vot-outlined-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-outlined-button[disabled=true],.vot-outlined-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-outlined-button[disabled=true]:before,.vot-outlined-button[disabled=true]:after,.vot-outlined-button[aria-disabled=true]:before,.vot-outlined-button[aria-disabled=true]:after{opacity:0}.vot-details{color:rgba(var(--vot-onsurface-rgb), .87);text-align:start;cursor:pointer;user-select:none;transition:background var(--vot-duration-medium) var(--vot-easing-standard);justify-content:space-between;align-items:center;font-size:16px;line-height:1.5;display:flex;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:.5em!important;margin:-.5em!important;padding:.5em!important}.vot-details-arrow-icon{width:20px;height:32px;fill:rgba(var(--vot-onsurface-rgb), .87);justify-content:center;align-items:center;font-size:24px;display:flex;transform:scale(1.25)rotate(-90deg)}.vot-details:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .06)}.vot-details[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-hotkey{justify-content:flex-start;align-items:center;gap:var(--vot-space-3,12px);flex-wrap:wrap;display:flex}.vot-hotkey-label{overflow-wrap:anywhere;flex:1}.vot-hotkey-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:32px;height:fit-content;font-size:15px;line-height:1.5;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:400!important}.vot-hotkey-button[hidden]{display:none!important}.vot-hotkey-button{background-color:#0000;width:fit-content;border:solid 1px var(--vot-border-color)!important}.vot-hotkey-button:before,.vot-hotkey-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-hotkey-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-hotkey-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-hotkey-button:hover:before{opacity:.04}.vot-hotkey-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-hotkey-button[data-status=active]{color:rgb(var(--vot-helper-theme))}.vot-hotkey-button[data-status=active]:before{opacity:.04}.vot-hotkey-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-hotkey-button[disabled=true]:before,.vot-hotkey-button[disabled=true]:after{opacity:0}.vot-progress-icon{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));fill:none;stroke:rgb(var(--vot-helper-theme));stroke-width:2px;stroke-linecap:round;transform-origin:50%;transform:rotate(-90deg)}.vot-progress-icon_base{--vot-helper-theme:var(--vot-secondary-rgb,43, 44, 48)}.vot-select{user-select:none;justify-content:end;align-items:center;display:flex;position:relative}.vot-select-label{flex:1}.vot-select-label__description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-select-outer{cursor:pointer;border:1px solid var(--vot-border-color);width:120px;max-width:120px;color:rgba(var(--vot-onsurface-rgb), .87);transition:border-color var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.75em;align-items:center;padding:.5em;display:flex}.vot-select-outer__title{text-overflow:ellipsis;white-space:nowrap;flex:1;align-content:center;height:24px;margin-top:-2px;font-size:.8em;overflow:hidden}.vot-select-outer__arrow{fill:currentColor;transition:transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:1.5em;display:flex}.vot-select-outer[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-outer:not([aria-disabled=true]):hover{border-color:var(--vot-border-color-hover)}.vot-select-outer[aria-expanded=true] .vot-select-outer__arrow{transform:rotate(180deg)}.vot-select-inner{--vot-select-inner-primary-rgb:var(--vot-primary-rgb,33, 150, 243);z-index:2147483647;user-select:none;background:rgb(var(--vot-secondary-rgb,43, 44, 48));color:rgba(var(--vot-onsurface-rgb), .87);max-width:min(300px,100%);max-height:min(85vh, 350px, var(--vot-floating-available-height,100vh));pointer-events:auto;border-radius:.75em;flex-direction:column;padding:.5em;font-size:16px;display:flex;position:fixed;overflow:hidden}.vot-select-inner.vot-select-inner__static-width{width:100%}.vot-select-inner .vot-textfield{margin-bottom:.5em}.vot-select-inner__no-options{color:rgba(var(--vot-onsurface-rgb), .38);text-align:center;padding:.5em .75em}.vot-select-inner__no-options[data-searching=true]{color:rgba(var(--vot-onsurface-rgb), .68);padding:0;font-size:1.75em}.vot-select-inner__options{overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(var(--vot-onsurface-rgb), .38) transparent;min-height:0;margin-right:-8px;padding-right:8px;overflow-y:auto}.vot-select-inner__option{cursor:pointer;transition:background var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.5em;padding:.5em .75em}.vot-select-inner__option[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-inner__option:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb), .14)}.vot-select-inner__option[aria-selected=true]{color:rgb(var(--vot-select-inner-primary-rgb));background:rgba(var(--vot-select-inner-primary-rgb), .2)}.vot-select-inner__option[aria-selected=true]:not([aria-disabled=true]):hover{background:rgba(var(--vot-select-inner-primary-rgb), .1)}.vot-switch{--vot-switch-outline:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-switch-primary:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-switch-onprimary:rgb(var(--vot-onprimary-rgb,32, 33, 36));--vot-switch-track:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);--vot-switch-duration:var(--vot-duration-medium,.2s);--vot-switch-label-offset:24px;box-sizing:border-box;color:rgb(var(--vot-onsurface-rgb,0, 0, 0));cursor:pointer;align-items:center;gap:var(--vot-space-4,16px);width:100%;padding-block:var(--vot-space-2,8px);touch-action:manipulation;vertical-align:middle;display:inline-flex;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-switch[data-disabled=true]{cursor:not-allowed;user-select:none}.vot-switch_sub{padding-left:var(--vot-switch-label-offset)!important}.vot-switch-control{cursor:inherit;opacity:0;z-index:2;width:100%;height:100%;margin:0;position:absolute;inset:0}.vot-switch-control:focus-visible~.vot-switch-track{outline:2px solid var(--vot-focus-ring-color,rgba(var(--vot-primary-rgb,33, 150, 243), .9));outline-offset:2px}.vot-switch-control:hover:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:hover:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .12)}.vot-switch-control:disabled{cursor:not-allowed}.vot-switch-control:disabled~.vot-switch-track{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:disabled~.vot-switch-track .vot-switch-handle{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-control:disabled~.vot-switch-track[data-checked=true] .vot-switch-handle{background:rgb(var(--vot-surface-rgb,32, 33, 36))}.vot-switch-text{flex-direction:column;flex:auto;min-width:0;display:flex}.vot-switch-heading{letter-spacing:.5px;font-size:16px;font-weight:400;line-height:24px}.vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-switch[data-disabled=true] .vot-switch-heading,.vot-switch[data-disabled=true] .vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-track{background:var(--vot-switch-track);border:2px solid var(--vot-switch-outline);box-sizing:border-box;pointer-events:none;height:32px;transition-duration:var(--vot-switch-duration);transition-property:background-color,border-color;transition-timing-function:var(--vot-easing-standard);border-radius:16px;flex:none;align-items:center;width:52px;display:flex;position:relative}.vot-switch-track[data-checked=true]{background:var(--vot-switch-primary);border-color:var(--vot-switch-primary)}.vot-switch-track[data-checked=true] .vot-switch-handle{background:var(--vot-switch-onprimary);width:24px;height:24px;transform:translate(16px,-50%)}.vot-switch-handle{background:var(--vot-switch-outline);height:16px;transition-duration:var(--vot-switch-duration);transition-property:background-color,box-shadow,height,transform,width;transition-timing-function:var(--vot-easing-standard);inset-inline-start:6px;border-radius:50%;width:16px;position:absolute;top:50%;transform:translateY(-50%);box-shadow:0 0 #0000}@media (prefers-reduced-motion:reduce){.vot-switch-track,.vot-switch-handle{transition-duration:.01ms}}.vot-slider{--vot-slider-track-bg:rgba(var(--vot-onsurface-rgb,227, 227, 227), .15);--vot-slider-track-progress-bg:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-slider-size:1em;--vot-slider-border-radius:.5em;--vot-slider-handle-bg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-slider-handle-size:44px;--vot-slider-transition:var(--vot-duration-medium) var(--vot-easing-standard);height:var(--vot-slider-handle-size);align-items:center;display:flex;position:relative}.vot-slider[aria-disabled=true]{user-select:none;opacity:.5}.vot-slider[aria-disabled=true] .vot-slider__control{cursor:not-allowed}.vot-slider__control{opacity:0;appearance:none;cursor:pointer;width:100%;height:100%;position:absolute}.vot-slider__track{background:var(--vot-slider-track-bg);width:100%;height:var(--vot-slider-size);border-radius:var(--vot-slider-border-radius);pointer-events:none}.vot-slider__track-progress{background:var(--vot-slider-track-progress-bg);width:calc(100% * var(--vot-progress,0));transition:width var(--vot-slider-transition);border-top-right-radius:0;border-bottom-right-radius:0;position:absolute}.vot-slider__handle{left:calc(100% * var(--vot-progress,0));width:4px;height:var(--vot-slider-handle-size);background:var(--vot-slider-handle-bg);outline:4px solid var(--vot-slider-track-bg);pointer-events:none;will-change:transform;transition:transform var(--vot-slider-transition), left var(--vot-slider-transition);transform:translateX(calc(-100% * var(--vot-progress,0)));border-radius:4px;position:absolute}.vot-slider[data-dragging] .vot-slider__track-progress,.vot-slider[data-dragging] .vot-slider__handle{transition:none}.vot-slider-label{flex-wrap:nowrap;align-items:baseline;gap:.75em;display:flex}.vot-slider-label__text{text-align:left;flex:auto}.vot-slider-label__text-desc{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-slider-label__value{text-align:right;font-variant-numeric:tabular-nums;flex:none;font-weight:600!important}.vot-slider-label[aria-disabled=true]{opacity:.5;user-select:none;color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .5)}.vot-slider-wrapper{flex-direction:column;gap:.25em;display:flex}.vot-dialog{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-dialog-viewport-margin:16px;--vot-dialog-max-height:75vh;max-width:initial;max-height:initial;width:min(var(--vot-dialog-width,512px), 100%);border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);background-color:var(--vot-helper-surface);height:fit-content;color:var(--vot-helper-onsurface);box-shadow:var(--vot-shadow-2);user-select:none;visibility:visible;opacity:1;transform-origin:50%;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;display:block;position:fixed;inset-block:0;inset-inline:0;overflow:auto hidden;transform:scale(1);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:auto!important;padding:0!important}.vot-dialog[data-vertical-align=top]{inset-block-start:var(--vot-dialog-viewport-margin);inset-block-end:auto;margin:0 auto!important}.vot-dialog-container{visibility:visible;z-index:2147483647;position:absolute}.vot-dialog-container *{box-sizing:border-box!important}.vot-dialog-backdrop{opacity:1;background-color:#0009;transition:opacity .3s;position:fixed;inset:0}.vot-dialog-content-wrapper{max-height:var(--vot-dialog-max-height,75vh);flex-direction:column;display:flex;overflow:auto}.vot-dialog-header-container{flex-shrink:0;align-items:flex-start;min-height:31px;display:flex}.vot-dialog-header-container:empty{padding:0 0 20px}.vot-dialog-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-dialog-title-container{font-size:inherit;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-dialog-title{flex:1;font-size:115.385%;line-height:1;padding:var(--vot-space-5) var(--vot-space-5) var(--vot-space-4)!important;font-weight:700!important}.vot-dialog-body-container{box-sizing:border-box;gap:var(--vot-space-4);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-5)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-dialog-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-dialog-body-container:last-child{padding-block-end:var(--vot-space-5)!important}.vot-dialog-footer-container{justify-content:flex-end;gap:var(--vot-space-2);flex-wrap:wrap;flex-shrink:0;display:flex;padding:var(--vot-space-4)!important}@media (width<=480px){.vot-dialog-footer-container{flex-direction:column;align-items:stretch}.vot-dialog-footer-container>:is(.vot-button,.vot-outlined-button,.vot-text-button){white-space:normal;text-overflow:clip;text-align:center;justify-content:center;align-items:center;width:100%;height:auto;min-height:36px;padding:8px 16px;line-height:1.2;display:flex;overflow:visible}}.vot-settings-section{border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);padding:var(--vot-space-2);background:rgba(var(--vot-helper-onsurface-rgb), .03);flex-direction:column;display:flex}.vot-settings-section>*{margin:0!important}.vot-settings-section>*+*{margin-top:var(--vot-space-2)!important}.vot-settings-section__header{border-radius:var(--vot-radius-m);margin:0!important;padding:.45em .5em!important}.vot-settings-section__header .vot-details-arrow-icon{transition:transform var(--vot-duration-medium) var(--vot-easing-standard)}.vot-settings-section__header[data-open=true] .vot-details-arrow-icon{transform:scale(1.25)rotate(0)}.vot-settings-section__content{--vot-settings-control-width:200px;--vot-settings-row-gap:var(--vot-space-2);gap:var(--vot-settings-row-gap);padding:0 var(--vot-space-1) var(--vot-space-1);flex-direction:column;display:flex}.vot-settings-section__content>*{margin:0!important}.vot-settings-section__content>.vot-switch,.vot-settings-section__content>.vot-hotkey,.vot-settings-section__content>.vot-select,.vot-settings-section__content>.vot-slider-wrapper{padding:var(--vot-space-1);box-sizing:border-box;width:100%!important}.vot-settings-footer{gap:var(--vot-space-2);display:flex}.vot-textfield{display:inline-block;--vot-helper-theme:rgb(var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243)))!important;--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;--vot-helper-safari3:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:start!important;padding-top:6px!important;font-size:16px!important;line-height:1.5!important;position:relative!important}.vot-textfield>:is(input,textarea){box-sizing:border-box!important;border-style:solid!important;border-width:1px!important;border-color:transparent var(--vot-helper-safari2) var(--vot-helper-safari2)!important;width:100%!important;height:inherit!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;-webkit-text-fill-color:currentColor!important;font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;caret-color:var(--vot-helper-theme)!important;background-color:#0000!important;border-radius:4px!important;margin:0!important;padding:15px 13px!important;transition:border .2s,box-shadow .2s!important;box-shadow:inset 1px 0 #0000,inset -1px 0 #0000,inset 0 -1px #0000!important}.vot-textfield>:is(input,textarea):not(:focus):not(:is(.vot-show-placeholder,.vot-show-placeholer))::placeholder{color:#0000!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown{border-top-color:var(--vot-helper-safari2)!important}.vot-textfield>:is(input,textarea)+.vot-textfield__label{font-family:inherit;width:100%!important;max-height:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;cursor:text!important;pointer-events:none!important;font-size:75%!important;line-height:15px!important;transition:color .2s,font-size .2s,line-height .2s!important;display:flex!important;position:absolute!important;top:0!important;left:0!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown+.vot-textfield__label{font-size:inherit!important;line-height:68px!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{content:\"\"!important;box-sizing:border-box!important;border-top:solid 1px var(--vot-helper-safari2)!important;pointer-events:none!important;min-width:10px!important;height:8px!important;margin-top:6px!important;transition:border .2s,box-shadow .2s!important;display:block!important;box-shadow:inset 0 1px #0000!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:before{border-left:1px solid #0000!important;border-radius:4px 0!important;margin-right:4px!important}.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:after{border-right:1px solid #0000!important;border-radius:0 4px!important;flex-grow:1!important;margin-left:4px!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before{margin-right:0!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after{margin-left:0!important}.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}.vot-textfield>textarea{resize:none!important}.vot-textfield:hover>input:not(:disabled),.vot-textfield:hover>textarea:not(:disabled){border-color:transparent var(--vot-helper-safari3) var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:after,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:after{border-top-color:var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled):not(:focus):placeholder-shown,.vot-textfield:hover>textarea:not(:disabled):not(:focus):placeholder-shown{border-color:var(--vot-helper-safari3)!important}.vot-textfield>input:focus,.vot-textfield>textarea:focus{border-color:transparent var(--vot-helper-theme) var(--vot-helper-theme)!important;box-shadow:inset 1px 0 var(--vot-helper-theme), inset -1px 0 var(--vot-helper-theme), inset 0 -1px var(--vot-helper-theme)!important;outline:none!important}.vot-textfield>input:focus+.vot-textfield__label,.vot-textfield>textarea:focus+.vot-textfield__label{color:var(--vot-helper-theme)!important}.vot-textfield>input:focus+.vot-textfield__label:before,.vot-textfield>input:focus+.vot-textfield__label:after,.vot-textfield>textarea:focus+.vot-textfield__label:before,.vot-textfield>textarea:focus+.vot-textfield__label:after{border-top-color:var(--vot-helper-theme)!important;box-shadow:inset 0 1px var(--vot-helper-theme)!important}.vot-textfield>input:disabled,.vot-textfield>input:disabled+.vot-textfield__label,.vot-textfield>textarea:disabled,.vot-textfield>textarea:disabled+.vot-textfield__label{border-color:transparent var(--vot-helper-safari1) var(--vot-helper-safari1)!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;pointer-events:none!important}.vot-textfield>input:disabled+.vot-textfield__label:before,.vot-textfield>input:disabled+.vot-textfield__label:after,.vot-textfield>textarea:disabled+.vot-textfield__label:before,.vot-textfield>textarea:disabled+.vot-textfield__label:after,.vot-textfield>input:disabled:placeholder-shown,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label,.vot-textfield>textarea:disabled:placeholder-shown,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label{border-top-color:var(--vot-helper-safari1)!important}.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}@media not all and (resolution>=.001dpcm){@supports ((-webkit-appearance:none)){.vot-textfield>input,.vot-textfield>input+.vot-textfield__label,.vot-textfield>textarea,.vot-textfield>textarea+.vot-textfield__label,.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{transition-duration:.1s!important}}}.vot-segmented-button{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);cursor:default;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));max-width:100%;height:36px;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);align-items:center;font-size:16px;display:flex;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;box-shadow:var(--vot-shadow-1)!important}.vot-segmented-button[data-direction=column]{flex-direction:column;height:fit-content}.vot-segmented-button[data-direction=column] .vot-segment,.vot-segmented-button[data-direction=column] .vot-segment-only-icon{padding:var(--vot-space-2)!important}.vot-segmented-button[data-direction=column] .vot-separator{width:50%;height:1px}.vot-segmented-button[data-status=error] .vot-translate-button{color:rgb(var(--vot-error-rgb,242, 139, 130))}.vot-segmented-button[data-status=success] .vot-translate-button{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment,.vot-segmented-button .vot-segment-only-icon{min-width:0;height:100%;color:inherit;transition:background-color var(--vot-duration-fast) var(--vot-easing-standard);-webkit-tap-highlight-color:transparent;background-color:#0000;outline:none;flex:auto;justify-content:center;align-items:center;display:flex;position:relative;overflow:hidden;gap:var(--vot-space-2)!important;padding:0 var(--vot-space-2)!important;border:none!important}.vot-segmented-button .vot-segment:focus,.vot-segmented-button .vot-segment-only-icon:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color);outline:none}.vot-segmented-button .vot-segment:focus:not(:focus-visible),.vot-segmented-button .vot-segment-only-icon:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before{background-color:rgb(var(--vot-helper-theme-rgb));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-segmented-button .vot-segment:hover:before,.vot-segmented-button .vot-segment-only-icon:hover:before{opacity:.04}.vot-segmented-button .vot-segment:active:after,.vot-segmented-button .vot-segment-only-icon:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{pointer-events:none}.vot-segmented-button .vot-segment svg,.vot-segmented-button .vot-segment-only-icon svg{font-size:24px}.vot-segmented-button .vot-segment>svg,.vot-segmented-button .vot-segment-only-icon>svg,.vot-segmented-button .vot-segment-label,.vot-segmented-button .vot-segment .vot-dropdown-arrow,.vot-segmented-button .vot-segment-only-icon .vot-dropdown-arrow{z-index:1;position:relative}.vot-segmented-button .vot-segment-only-icon{min-width:36px;padding:0!important}.vot-segmented-button .vot-segment-only-icon[data-active=true]{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment-label{text-overflow:ellipsis;white-space:nowrap;min-width:0;color:inherit;flex:auto;line-height:1;overflow:hidden;font-weight:400!important}.vot-segmented-button .vot-dropdown-arrow{width:30px;min-width:30px;height:100%;color:inherit;fill:inherit;opacity:.95;cursor:default;-webkit-tap-highlight-color:transparent;outline:none;flex:none;justify-content:center;align-items:center;display:inline-flex;position:relative;border-radius:var(--vot-radius-s)!important;margin-inline-end:-4px!important;margin-top:2px!important}.vot-segmented-button .vot-dropdown-arrow:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color)}.vot-segmented-button .vot-dropdown-arrow:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-dropdown-arrow:hover{background:rgba(var(--vot-helper-theme-rgb), .04)}.vot-segmented-button .vot-dropdown-arrow:before,.vot-segmented-button .vot-dropdown-arrow:after{display:none}.vot-segmented-button .vot-dropdown-arrow svg{transform-origin:50%;transition:transform var(--vot-duration-fast) var(--vot-easing-standard);font-size:28px;transform:scale(1.08)}.vot-segmented-button .vot-dropdown-arrow[aria-expanded=true] svg{transform:rotate(180deg)scale(1.08)}.vot-segmented-button .vot-separator{background:rgba(var(--vot-helper-theme-rgb), .1);width:1px;height:50%}.vot-overlay.vot-overlay__segmented-button{--vot-overlay-default-top:5rem;--vot-overlay-top-offset:max(16px, env(safe-area-inset-top,0px));--vot-overlay-side-offset:max(16px, env(safe-area-inset-left,0px));--vot-overlay-side-offset-right:max(16px, env(safe-area-inset-right,0px));--vot-overlay-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px));transition:opacity var(--vot-duration-slow) var(--vot-easing-standard);pointer-events:auto;touch-action:none;max-width:100%;left:50%;transform:translate(-50%)}.vot-overlay.vot-overlay__segmented-button[data-dragging=true]{cursor:grabbing;will-change:transform;transform:translate3d(var(--vot-button-drag-left,0px), var(--vot-button-drag-top,0px), 0)!important;opacity:.96!important;transition:none!important;top:0!important;left:0!important;right:auto!important}.vot-overlay.vot-overlay__segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segment,.vot-overlay.vot-overlay__segmented-button .vot-segment-only-icon,.vot-overlay.vot-overlay__segmented-button .vot-dropdown-arrow{touch-action:none}.vot-overlay.vot-overlay__segmented-button[data-position=left]{left:var(--vot-overlay-side-offset);right:auto;top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=right]{left:auto;right:var(--vot-overlay-side-offset-right);top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=leftCenter]{left:var(--vot-overlay-side-offset);top:50%;right:auto;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button[data-position=rightCenter]{left:auto;right:var(--vot-overlay-side-offset-right);top:50%;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button.vot-segmented-button--dock-preview{z-index:2147483646;transition:left var(--vot-duration-medium) var(--vot-easing-standard), right var(--vot-duration-medium) var(--vot-easing-standard), top var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard), opacity var(--vot-duration-fast) var(--vot-easing-standard);opacity:.72!important;pointer-events:none!important}.vot-voice-icon{display:block;overflow:visible}.vot-voice-icon .vot-eq-bar{transform-origin:50% 100%;transform-box:fill-box;transform:scaleY(1)}.vot-voice-icon--standard .vot-eq-bar{fill:rgba(var(--vot-onsurface-rgb,227, 227, 227), .4)}.vot-voice-icon--live .vot-eq-bar{fill:#e040a0}.vot-voice-popover{--vot-helper-surface-rgb:var(--vot-surface-rgb,32, 33, 36);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,227, 227, 227);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-helper-onsurface-secondary:rgba(var(--vot-helper-onsurface-rgb), .55);--vot-voice-active-standard-bg:rgba(var(--vot-primary-rgb,139, 180, 245), .1);--vot-voice-active-standard-fg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-voice-active-live-bg:#e040a01a;--vot-voice-active-live-fg:#e040a0;z-index:2147483647;background:var(--vot-helper-surface);min-width:230px;max-width:var(--vot-voice-popover-max-width,310px);max-height:var(--vot-voice-popover-max-height,calc(100vh - 16px));cursor:default;user-select:none;overscroll-behavior:contain;transform-origin:0 0;width:max-content;display:block;position:absolute;top:0;left:0;overflow:hidden auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:left!important}.vot-voice-popover,.vot-voice-popover *{box-sizing:border-box!important}.vot-voice-popover{opacity:0;visibility:hidden;pointer-events:none;transition:none;transform:none}.vot-voice-popover[hidden]{display:none!important}.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{opacity:1;visibility:visible;pointer-events:auto;transform:none}.vot-voice-popover[data-placement=top]{transform-origin:bottom}.vot-voice-popover[data-placement=bottom]{transform-origin:top}.vot-voice-popover[data-placement=left]{transform-origin:100%}.vot-voice-popover[data-placement=right]{transform-origin:0}.vot-voice-popover.is-closing{opacity:0;visibility:visible;pointer-events:none;transform:none}.vot-voice-popover__item{cursor:pointer;min-height:62px;color:var(--vot-helper-onsurface);outline:none;gap:12px;transition:none;display:flex;position:relative;overflow:hidden;padding:14px 44px 14px 16px!important}.vot-voice-popover__item:before{content:\"\";opacity:0;pointer-events:none;background:linear-gradient(180deg, rgba(var(--vot-helper-onsurface-rgb), .045), rgba(var(--vot-helper-onsurface-rgb), .06));transition:none;position:absolute;inset:0}.vot-voice-popover__item:hover,.vot-voice-popover__item:focus-visible{box-shadow:inset 0 1px #ffffff08,inset 0 -1px #0000000a}.vot-voice-popover__item:hover:before,.vot-voice-popover__item:focus-visible:before{opacity:1}.vot-voice-popover__item:focus-visible{box-shadow:inset 0 0 0 1px rgba(var(--vot-primary-rgb,139, 180, 245), .18)}.vot-voice-popover__item:after{content:\"\";opacity:0;background-color:currentColor;width:18px;height:18px;transition:none;position:absolute;top:50%;right:14px;transform:translateY(-50%)scale(.88);-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat;mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat}.vot-voice-popover__item--active{font-weight:500!important}.vot-voice-popover__item--active:after{opacity:1;transform:translateY(-50%)scale(1)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active{background-color:var(--vot-voice-active-standard-bg);color:var(--vot-voice-active-standard-fg)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-icon--standard .vot-eq-bar{fill:currentColor}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active{background-color:var(--vot-voice-active-live-bg);color:var(--vot-voice-active-live-fg)}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item-icon{font-size:20px}.vot-voice-popover__item-text{flex-direction:column;gap:2px;min-width:0;display:flex}.vot-voice-popover__item-title{color:inherit;white-space:nowrap;font-size:15px;line-height:1.3;transition:none;font-weight:400!important}.vot-voice-popover__item-subtitle{color:var(--vot-helper-onsurface-secondary);white-space:normal;font-size:12px;line-height:1.4}.vot-voice-popover__divider{background:var(--vot-border-color);height:1px;margin:0!important}@media (prefers-reduced-motion:reduce){.vot-voice-icon .vot-eq-bar{animation:none!important;transform:scaleY(1)!important}.vot-voice-popover,.vot-voice-popover *,.vot-voice-popover:before,.vot-voice-popover:after{transition:none!important;animation:none!important}.vot-voice-popover,.vot-voice-popover.is-closing,.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{transform:none!important}}.vot-segmented-button__menu-header{align-items:center;gap:var(--vot-space-2);margin-left:auto;display:flex}.vot-langpair-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);color:var(--vot-helper-theme);justify-content:space-between;align-items:center;display:flex}.vot-langpair-select__icon{justify-content:center;align-items:center;font-size:24px;display:flex}.vot-overlay.vot-overlay__segmented-button-menu{--vot-overlay-default-top:calc(5rem + 48px);--vot-menu-side-offset:max(76px, calc(env(safe-area-inset-left,0px) + 64px));--vot-menu-side-offset-right:max(76px, calc(env(safe-area-inset-right,0px) + 64px));--vot-menu-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px))}@media (pointer:coarse){.vot-overlay.vot-overlay__segmented-button-menu{--vot-menu-default-top:calc(3rem + 48px);--vot-menu-side-offset:max(64px, calc(env(safe-area-inset-left,0px) + 54px));--vot-menu-side-offset-right:max(64px, calc(env(safe-area-inset-right,0px) + 54px))}}.vot-overlay.vot-overlay__segmented-button-menu{transform-origin:top;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);left:50%;right:auto;transform:translate(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[aria-hidden=true]{transform:translate(-50%,-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left] .vot-menu,.vot-overlay.vot-overlay__segmented-button-menu[data-position=right] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - var(--vot-menu-side-top-offset,48px) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter] .vot-menu,.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left]{left:var(--vot-menu-side-offset);right:auto;top:var(--vot-menu-side-top-offset);transform-origin:0 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=right]{left:auto;right:var(--vot-menu-side-offset-right);top:var(--vot-menu-side-top-offset);transform-origin:100% 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter]{left:var(--vot-menu-side-offset);transform-origin:0;top:50%;right:auto;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter]{left:auto;right:var(--vot-menu-side-offset-right);transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left]{transform-origin:0;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right]{transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=right][aria-hidden=true]{transform:translateY(-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right][aria-hidden=true]{transform:translateY(calc(-50% - 4px))scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-menu__header{flex-wrap:wrap}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-menu__header .vot-segmented-button__menu-header:has(>:nth-child(2)){margin-left:inherit}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-menu__body{max-height:275px}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-langpair-select{gap:var(--vot-space-1);flex-direction:column}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-langpair-select__icon{transform:rotate(90deg)}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-select{justify-content:start;gap:var(--vot-space-1);flex-direction:column;align-items:start;width:100%}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-select-outer{justify-content:space-around;width:100%;max-width:100%}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-select-outer__title{min-width:0;max-width:120px}@property --vot-subtitles-opacity{syntax:\"<number>\";inherits:true;initial-value:.8}@property --vot-subtitles-scale-compensation{syntax:\"<number>\";inherits:true;initial-value:1}.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), var(--vot-subtitles-opacity,.8));--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);background:var(--vot-subtitles-background,#2e2f34cc);width:max-content;inline-size:max-content;color:var(--vot-subtitles-color,#e3e3e3);pointer-events:all;touch-action:none;font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2.2vw), 50px)) * var(--vot-subtitles-scale-compensation,1));-webkit-text-stroke:var(--vot-subtitles-text-stroke-width,clamp(1px, .08em, 2px)) var(--vot-subtitles-text-stroke-color,#000000eb);paint-order:stroke fill;text-shadow:var(--vot-subtitles-text-shadow,0 1px 2px #00000073, 0 2px 8px #00000040);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis:none;position:relative;--vot-subtitles-font-family:var(--vot-subtitles-font-family-custom,var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif))!important;font-family:var(--vot-subtitles-font-family)!important;font-style:normal!important;font-weight:var(--vot-subtitles-font-weight,500)!important;text-transform:none!important;letter-spacing:normal!important;border-radius:.5em!important;padding:.5em .75em!important;line-height:1.25!important}.vot-subtitles,.vot-subtitles *{-webkit-text-stroke:inherit;paint-order:inherit;font-family:var(--vot-subtitles-font-family)!important}.vot-subtitles{box-sizing:border-box;user-select:none;contain:layout paint;isolation:isolate;text-align:center;text-wrap:balance;white-space:normal;overflow-wrap:anywhere;unicode-bidi:plaintext;margin:0 auto;display:block}.vot-subtitles-widget{--vot-subtitles-anchor-width:100vw;--vot-subtitles-anchor-height:100vh;--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));--vot-subtitles-smart-target-width:48ch;--vot-subtitles-smart-min-width-ratio:.62;--vot-subtitles-smart-max-width-ratio:.78;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333);--vot-subtitles-smart-max-width:clamp(calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-min-width-ratio)), var(--vot-subtitles-smart-target-width), calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-max-width-ratio)));box-sizing:border-box;z-index:2147483647;--vot-subtitles-fallback-bottom-inset:calc(env(safe-area-inset-bottom,0px) + clamp(56px, 10vh, 220px) + 10px);left:50%;top:calc(100% - var(--vot-subtitles-fallback-bottom-inset));width:max-content;inline-size:max-content;max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);pointer-events:none;will-change:left, top, transform;max-height:100%;display:block;position:absolute;transform:translate(-50%,-100%)}.vot-subtitles-info{color:#f5f7fa;-webkit-backdrop-filter:blur(18px);text-align:start;background:#1f2023f5;border:1px solid #ffffff14;flex-direction:column;gap:10px;min-width:min(360px,100vw - 32px);max-width:min(720px,100vw - 32px);display:flex;box-shadow:0 18px 48px #00000057,0 4px 16px #00000038;border-radius:18px!important;padding:18px 22px 20px!important}.vot-subtitles-info-service{display:none!important}.vot-subtitles-info-title{letter-spacing:-.01em;align-items:baseline;gap:8px;min-width:0;max-width:100%;display:flex;font-size:clamp(18px,2.4vw,26px)!important;line-height:1.18!important}.vot-subtitles-info-source,.vot-subtitles-info-divider,.vot-subtitles-info-header,.vot-subtitles-info-context{overflow-wrap:anywhere;white-space:normal!important}.vot-subtitles-info-source{color:#f5f7faad;flex:0 auto;font-weight:650!important}.vot-subtitles-info-divider{color:#f5f7fa61;flex:none;font-weight:500!important}.vot-subtitles-info-header{color:#fff;flex:auto;min-width:0;font-weight:750!important}.vot-subtitles-info-context{color:#dee4ecb8;max-width:100%;font-size:clamp(14px,1.45vw,17px)!important;line-height:1.42!important}.vot-subtitles span[data-vot-highlight-index].passed{color:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"]{cursor:pointer;white-space:normal;overflow-wrap:inherit;word-break:normal;position:relative;font-size:inherit!important;font-family:inherit!important;font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-transform:inherit!important;text-decoration:none!important}.vot-subtitles span[data-vot-token=\"1\"]:before{content:\"\";z-index:-1;position:absolute;inset:2px -2px;border-radius:4px!important}.vot-subtitles span[data-vot-token=\"1\"]:hover:before,.vot-subtitles span[data-vot-token=\"1\"]:focus-visible:before{background:var(--vot-subtitles-hover-color,#ffffff8c)}.vot-subtitles span[data-vot-token=\"1\"].selected:before{background:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"].passed.selected:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .4)}.vot-subtitles span[data-vot-token=\"1\"].passed:hover:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .3)}.vot-subtitles span[data-vot-style-italic=\"1\"]{font-style:italic!important}.vot-subtitles span[data-vot-style-bold=\"1\"]{font-weight:700!important}.vot-subtitles span[data-vot-style-underline=\"1\"]{text-decoration:underline!important}.vot-subtitles span[data-vot-style-color=\"1\"]{color:var(--vot-subtitles-inline-color)!important}.vot-subtitles-layer{pointer-events:none;z-index:2147483647;contain:layout paint;width:100vw!important;height:100vh!important;position:fixed!important;inset:0!important}.vot-subtitles-guides{pointer-events:none;z-index:2147483646;position:absolute;inset:0}.vot-subtitles-guide{background:rgba(var(--vot-primary-rgb,33, 150, 243), .7);box-shadow:0 0 0 1px rgba(var(--vot-primary-rgb,33, 150, 243), .12);opacity:0;transition:opacity .12s linear;position:absolute}.vot-subtitles-guide[data-visible=true]{opacity:1}.vot-subtitles-guide--vertical{width:2px;transform:translate(-50%)}.vot-subtitles-guide--horizontal{height:2px;transform:translateY(-50%)}@media (aspect-ratio<=1){.vot-subtitles-widget{--vot-subtitles-smart-target-width:28ch;--vot-subtitles-smart-min-width-ratio:.8;--vot-subtitles-smart-max-width-ratio:.92;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0296)}}@media (aspect-ratio>=1) and (aspect-ratio<=7/5){.vot-subtitles-widget{--vot-subtitles-smart-target-width:32ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.9;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333)}}@media (width<=900px) and (pointer:coarse){.vot-subtitles-widget{--vot-subtitles-fallback-bottom-inset:env(safe-area-inset-bottom,0px)}}@media (prefers-contrast:more){.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), .92);--vot-subtitles-text-stroke-width:max(2px, .1em);--vot-subtitles-text-shadow:0 2px 10px #0000008c}}:is(:fullscreen .vot-subtitles-widget,:fullscreen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:is(:fullscreen .vot-subtitles,:fullscreen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}#vot-subtitles-info.vot-subtitles-info *{user-select:text!important}.vot-or-block{--vot-or-block-line:rgba(var(--vot-primary-rgb,139, 180, 245), .5);color:rgb(var(--vot-primary-rgb));align-items:center;gap:12px;font-size:.75em;font-weight:600;display:flex}.vot-or-block:before,.vot-or-block:after{background:var(--vot-or-block-line);content:\"\";flex:1;height:1px}.vot-menu{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);background:var(--vot-helper-surface);color:var(--vot-helper-onsurface);width:fit-content;min-width:min(320px, 100% - var(--vot-menu-side-offset,0px));max-width:min(90vw,560px);min-height:100px;max-height:calc(var(--vot-container-height,75vh) - var(--vot-overlay-default-top,0px) - 16px);flex-direction:column;font-size:16px;line-height:1.5;display:flex;overflow:auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-menu__header{align-items:center;gap:var(--vot-space-2);flex-shrink:0;min-height:32px;display:flex;padding:var(--vot-space-2) var(--vot-space-4)!important}.vot-menu__body{box-sizing:border-box;gap:var(--vot-space-2);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-4)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-menu__body::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-menu__footer{flex-shrink:0;justify-content:flex-end;display:flex;padding:var(--vot-space-4)!important}.vot-menu__footer:empty{padding:var(--vot-space-4) 0 0 0!important}.vot-tooltip{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-border:rgb(var(--vot-tooltip-border,69, 69, 69));user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));color:var(--vot-helper-theme);fill:var(--vot-helper-theme);font-family:var(--vot-font-family);cursor:default;z-index:2147483647;overflow-wrap:anywhere;white-space:normal;opacity:0;align-items:center;width:max-content;max-width:calc(100vw - 10px);height:max-content;font-size:14px;line-height:1.5;transition:opacity .5s;display:flex;position:absolute;inset:0;overflow:hidden;box-shadow:0 1px 3px #0000001f;border-radius:4px!important;padding:4px 8px!important}.vot-tooltip[data-trigger=click]{user-select:text}.vot-tooltip[data-mode=follow]{pointer-events:auto;user-select:text;align-items:stretch}.vot-tooltip[data-mode=follow],.vot-tooltip[data-mode=follow] *{user-select:text!important}.vot-tooltip.vot-tooltip-bordered{border:1px solid var(--vot-helper-border)}.vot-tooltip *{box-sizing:border-box!important;font-family:inherit!important}.vot-tooltip.vot-tooltip--subtitles-info{overflow:visible;box-shadow:none!important;background:0 0!important;border-radius:18px!important;padding:0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info{flex-direction:column;gap:8px;width:max-content;max-width:min(420px,100vw - 24px);display:flex;color:#ffffffeb!important;letter-spacing:0!important;background:#1f2024f5!important;border:1px solid #ffffff14!important;border-radius:16px!important;padding:14px 16px!important;font-size:13px!important;line-height:1.35!important;box-shadow:0 12px 30px #00000047,0 2px 6px #00000038!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-title{flex-wrap:wrap;align-items:center;gap:6px;min-width:0;display:flex;font-size:15px!important;font-weight:600!important;line-height:1.35!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-source{overflow-wrap:anywhere;color:#fffffff0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-divider{color:#ffffff6b!important;font-weight:500!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-header{overflow-wrap:anywhere;color:rgb(var(--vot-primary-rgb,255, 83, 151))!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-context{overflow-wrap:anywhere;max-width:100%;color:#ffffffad!important;font-size:13px!important;font-weight:400!important;line-height:1.45!important}.vot-overlay{--vot-overlay-default-top:0;user-select:none;width:fit-content;max-width:100vw;right:auto;top:var(--vot-overlay-default-top);z-index:2147483646;font-size:16px;line-height:1.5;position:absolute;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-overlay[aria-hidden=true]{pointer-events:none;opacity:0;display:none;visibility:hidden!important}");
 	var sharedShadowStyleSheet = null;
 	var sharedShadowStyleSheetReady = false;
 	function scopeCssForShadowRoots(cssText) {
@@ -36075,8 +36562,7 @@ var vot = (function(exports) {
 	function destroyShadowMount(mount) {
 		mount?.host.remove();
 	}
-	//#endregion
-	//#region src/subtitles/tokenTooltipController.ts
+	// src/subtitles/tokenTooltipController.ts
 	var trimEdgePunctuation = (value) => value.trim().replace(LEADING_PUNCTUATION_RE, "").replace(TRAILING_PUNCTUATION_RE, "");
 	var TokenTooltipController = class {
 		getContext;
@@ -36246,8 +36732,7 @@ var vot = (function(exports) {
 			return requestId !== this.translationRequestId || toLang !== this.getTranslationLanguage() || tokenText !== this.getContext().tokenText || this.tooltip !== tooltip || this.target !== target || !tooltip.isOpen();
 		}
 	};
-	//#endregion
-	//#region src/subtitles/wakeSchedule.ts
+	// src/subtitles/wakeSchedule.ts
 	function upperBoundByStart(lines, timeMs) {
 		let lo = 0;
 		let hi = lines.length;
@@ -36277,10 +36762,7 @@ var vot = (function(exports) {
 	}
 	function findNextThresholdMs(timeMs, thresholds) {
 		let next = null;
-		for (let i = 0; i < thresholds.length; i += 1) {
-			const value = thresholds[i];
-			if (value > timeMs && (next === null || value < next)) next = value;
-		}
+		for (const value of thresholds) if (value > timeMs && (next === null || value < next)) next = value;
 		return next;
 	}
 	function computeNextWakeMs({ timeMs, lines, maxCueDurationMs, thresholds, maxSleepMs = 250 }) {
@@ -36293,8 +36775,7 @@ var vot = (function(exports) {
 		if (next === null || next > cap) return cap;
 		return next;
 	}
-	//#endregion
-	//#region src/shims/rvfc-polyfill.ts
+	// src/shims/rvfc-polyfill.ts
 	var VidProto = typeof HTMLVideoElement === "undefined" ? {} : HTMLVideoElement.prototype;
 	var hasQuality = "getVideoPlaybackQuality" in VidProto || "webkitDecodedFrameCount" in VidProto || "mozPresentedFrames" in VidProto || "mozPaintedFrames" in VidProto;
 	if (!("requestVideoFrameCallback" in VidProto) && hasQuality && typeof requestAnimationFrame === "function") {
@@ -36347,8 +36828,7 @@ var vot = (function(exports) {
 			}
 		};
 	}
-	//#endregion
-	//#region src/utils/inputDevice.ts
+	// src/utils/inputDevice.ts
 	function matchesMedia(query) {
 		try {
 			return typeof globalThis.matchMedia === "function" && globalThis.matchMedia(query).matches;
@@ -36362,8 +36842,7 @@ var vot = (function(exports) {
 	function isTouchFirstInput() {
 		return matchesMedia("(pointer: coarse)") || hasTouchScreen() && !matchesMedia("(hover: hover)");
 	}
-	//#endregion
-	//#region src/subtitles/widget.ts
+	// src/subtitles/widget.ts
 	var SubtitlesWidget = class {
 		video;
 		container;
@@ -36553,7 +37032,7 @@ var vot = (function(exports) {
 			if (!block) return null;
 			const cacheKey = `${this.contentEpoch}|${this.subtitleStyleController.epoch}`;
 			const cached = this.smartCssMetricsCache;
-			if (cached && cached.key === cacheKey) return cached.value;
+			if (cached?.key === cacheKey) return cached.value;
 			const value = this.readSmartCssMetricsNow(block);
 			this.smartCssMetricsCache = {
 				key: cacheKey,
@@ -36864,7 +37343,7 @@ var vot = (function(exports) {
 		}
 		getLayoutSize() {
 			const cached = this.layoutSizeCache;
-			if (cached && cached.tick === this.tickSeq) return cached.value;
+			if (cached?.tick === this.tickSeq) return cached.value;
 			const value = this.readLayoutSize();
 			this.layoutSizeCache = {
 				tick: this.tickSeq,
@@ -37116,7 +37595,7 @@ var vot = (function(exports) {
 		measureContainerBox(subtitlesContainer) {
 			const key = `${this.contentEpoch}|${this.subtitleStyleController.epoch}`;
 			const cached = this.elementMetricsCache;
-			if (cached && cached.key === key) return {
+			if (cached?.key === key) return {
 				w: cached.w,
 				h: cached.h
 			};
@@ -37228,7 +37707,7 @@ var vot = (function(exports) {
 		getTokenLayoutInputs(ctx) {
 			const cacheKey = `${this.contentEpoch}|${this.subtitleStyleController.epoch}|${this.subtitleStyleController.fontSizeOverridden ? this.subtitleStyleController.fontSize : "auto"}|${this.subtitleStyleController.fontFamily}`;
 			const cached = this.tokenLayoutInputsCache;
-			if (cached && cached.key === cacheKey) {
+			if (cached?.key === cacheKey) {
 				ctx.font = cached.value.fontKey;
 				return cached.value;
 			}
@@ -37605,8 +38084,7 @@ var vot = (function(exports) {
 			this.insetCacheReady = false;
 		}
 	};
-	//#endregion
-	//#region src/subtitles/displayModel.ts
+	// src/subtitles/displayModel.ts
 	var LEADING_SPEAKER_MARKER_RE = /^(\s*)>>\s*/u;
 	var ATTACHED_TIME_WORD_RE = /(\d{1,2}:\d{2}(?::\d{2})?)(?=[\p{L}\p{M}])/gu;
 	var LETTER_OR_MARK_RUN_RE = /[\p{L}\p{M}]+/uy;
@@ -37659,7 +38137,7 @@ var vot = (function(exports) {
 	};
 	var isHtmlTagSpace = (char) => char === " " || char === "	";
 	var isAsciiAlphaNumeric = (char) => {
-		const code = char.charCodeAt(0);
+		const code = char.codePointAt(0) ?? -1;
 		return code >= 48 && code <= 57 || code >= 65 && code <= 90 || code >= 97 && code <= 122;
 	};
 	var parseHtmlTagToken = (text) => {
@@ -37979,8 +38457,7 @@ var vot = (function(exports) {
 		if (!styledSpans?.length || end <= start) return;
 		return styledSpans.find((span) => start < span.end && end > span.start && span.style)?.style;
 	};
-	//#endregion
-	//#region src/subtitles/standards.ts
+	// src/subtitles/standards.ts
 	var BOM = "﻿";
 	var SRT_TIMING_RE = /^[ \t]*(?<start>\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})[ \t]*-->[ \t]*(?<end>\d{1,2}:\d{2}:\d{2}[,.]\d{1,3})[ \t]*$/u;
 	var VTT_TIMESTAMP_RE = /^(?:\d{2}:)?\d{2}:\d{2}\.\d{3}$/u;
@@ -38602,8 +39079,7 @@ var vot = (function(exports) {
 		if (format === "vtt") return serializeVtt(processed);
 		return serializeAss(processed, options);
 	};
-	//#endregion
-	//#region src/utils/download.ts
+	// src/utils/download.ts
 	function toUint32BE(value) {
 		return new Uint8Array([
 			value >>> 24 & 255,
@@ -38620,7 +39096,7 @@ var vot = (function(exports) {
 			value & 127
 		]);
 	}
-	function addTitleId3Tag(mp3Buffer, title) {
+	function createTitleId3Tag(title) {
 		const titleBytes = new TextEncoder().encode(title);
 		const frameData = new Uint8Array(titleBytes.length + 1);
 		frameData[0] = 3;
@@ -38634,8 +39110,8 @@ var vot = (function(exports) {
 		], 0);
 		frame.set(toUint32BE(frameData.length), 4);
 		frame.set(frameData, 10);
-		const header = new Uint8Array(10);
-		header.set([
+		const tag = new Uint8Array(10 + frame.length);
+		tag.set([
 			73,
 			68,
 			51,
@@ -38643,71 +39119,32 @@ var vot = (function(exports) {
 			0,
 			0
 		], 0);
-		header.set(toSynchsafeInt(frame.length), 6);
-		const audioBytes = new Uint8Array(mp3Buffer);
-		const out = new Uint8Array(header.length + frame.length + audioBytes.length);
-		out.set(header, 0);
-		out.set(frame, header.length);
-		out.set(audioBytes, header.length + frame.length);
-		return new Blob([out], { type: "audio/mpeg" });
+		tag.set(toSynchsafeInt(frame.length), 6);
+		tag.set(frame, 10);
+		return tag;
 	}
-	function appendChunkToOutputBuffer(out, value, loaded) {
-		const needed = loaded + value.byteLength;
-		let nextOut = out;
-		if (needed > nextOut.length) {
-			const grown = new Uint8Array(Math.max(needed, nextOut.length * 2));
-			grown.set(nextOut.subarray(0, loaded));
-			nextOut = grown;
-		}
-		nextOut.set(value, loaded);
-		return {
-			out: nextOut,
-			loaded: needed
-		};
-	}
-	function mergeChunks(chunks, loaded) {
-		const merged = new Uint8Array(loaded);
-		let offset = 0;
-		for (const chunk of chunks) {
-			merged.set(chunk, offset);
-			offset += chunk.byteLength;
-		}
-		return merged.buffer;
-	}
-	async function readResponseArrayBuffer(res, onProgress) {
+	async function readResponseChunks(res, onProgress) {
+		if (!res.body) return [];
 		const total = Number(res.headers.get("Content-Length") ?? 0);
-		if (!res.body) return res.arrayBuffer();
 		const reader = res.body.getReader();
-		let loaded = 0;
-		let out = total > 0 ? new Uint8Array(total) : null;
 		const chunks = [];
+		let loaded = 0;
 		while (true) {
 			const { done, value } = await reader.read();
 			if (done) break;
-			if (!value || value.byteLength === 0) continue;
-			if (out) {
-				const appended = appendChunkToOutputBuffer(out, value, loaded);
-				out = appended.out;
-				loaded = appended.loaded;
-			} else {
-				chunks.push(value);
-				loaded += value.byteLength;
-			}
+			if (!value?.byteLength) continue;
+			chunks.push(value);
+			loaded += value.byteLength;
 			if (total > 0) onProgress(clamp(Math.round(loaded / total * 100)));
 		}
-		if (out) return out.buffer.slice(0, loaded);
-		return mergeChunks(chunks, loaded);
+		return chunks;
 	}
 	async function downloadTranslation(res, filename, onProgress = () => {}, saveOptions = {}) {
-		return await downloadBlob(await buildTranslationBlob(res, filename, onProgress), `${filename}.mp3`, saveOptions);
-	}
-	async function buildTranslationBlob(res, filename, onProgress = () => {}) {
-		const arrayBuffer = await readResponseArrayBuffer(res, onProgress);
+		const chunks = await readResponseChunks(res, onProgress);
 		onProgress(100);
-		return addTitleId3Tag(arrayBuffer, filename);
+		return await downloadBlob(new Blob([createTitleId3Tag(filename), ...chunks], { type: "audio/mpeg" }), `${filename}.mp3`, saveOptions);
 	}
-	//#endregion
-	//#region src/videoHandler/translationVolume.ts
+	// src/videoHandler/translationVolume.ts
 	function normalizeMediaElementVolume(volume) {
 		return clamp(Number.isFinite(volume) ? volume : 0, 0, 1);
 	}
@@ -38741,8 +39178,7 @@ var vot = (function(exports) {
 		if (!player || typeof nextVolume !== "number" || !Number.isFinite(nextVolume)) return;
 		safeSetPlayerVolume(player, nextVolume / 100);
 	}
-	//#endregion
-	//#region src/ui/mount.ts
+	// src/ui/mount.ts
 	function isSameOverlayMount(previous, next) {
 		return previous.root === next.root && previous.portalContainer === next.portalContainer && previous.subtitlesMountContainer === next.subtitlesMountContainer;
 	}
@@ -38751,8 +39187,7 @@ var vot = (function(exports) {
 		onChanged(next);
 		return next;
 	}
-	//#endregion
-	//#region src/ui/buttonPlacement.ts
+	// src/ui/buttonPlacement.ts
 	var SIDE_EDGE_FRACTION = .18;
 	var SIDE_TOP_FRACTION = .36;
 	var MIN_SIDE_EDGE_PX = 84;
@@ -38792,16 +39227,14 @@ var vot = (function(exports) {
 		if (x >= width - sideEdge) return resolveSideVerticalPosition("right", y, height);
 		return "default";
 	}
-	//#endregion
-	//#region src/components/componentShared.ts
+	// src/components/componentShared.ts
 	function isPrimaryPointerAction(event) {
 		return event.isPrimary && event.button === 0;
 	}
 	function isKeyboardActivation(event) {
 		return event.key === "Enter" || event.key === " ";
 	}
-	//#endregion
-	//#region src/components/Button/RawButton.tsx
+	// src/components/Button/RawButton.tsx
 	function RawButton(props) {
 		const finalProps = mergeProps$1({
 			hidden: false,
@@ -38845,12 +39278,12 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Icons/ChevronIcon.tsx
+	// src/components/Icons/ChevronIcon.tsx
 	function ChevronIcon() {
 		return (() => {
 			var _el$ = createElement("svg"), _el$2 = createElement("path");
 			insertNode(_el$, _el$2);
+			setProp(_el$, "aria-hidden", "true");
 			setProp(_el$, "width", "1em");
 			setProp(_el$, "height", "1em");
 			setProp(_el$, "viewBox", "0 0 24 24");
@@ -38859,12 +39292,12 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Icons/MenuIcon.tsx
+	// src/components/Icons/MenuIcon.tsx
 	function MenuIcon() {
 		return (() => {
 			var _el$ = createElement("svg"), _el$2 = createElement("path");
 			insertNode(_el$, _el$2);
+			setProp(_el$, "aria-hidden", "true");
 			setProp(_el$, "height", "1em");
 			setProp(_el$, "width", "1em");
 			setProp(_el$, "viewBox", "0 -960 960 960");
@@ -38872,12 +39305,12 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Icons/PiPIcon.tsx
+	// src/components/Icons/PiPIcon.tsx
 	function PiPIcon() {
 		return (() => {
 			var _el$ = createElement("svg"), _el$2 = createElement("path");
 			insertNode(_el$, _el$2);
+			setProp(_el$, "aria-hidden", "true");
 			setProp(_el$, "height", "1em");
 			setProp(_el$, "width", "1em");
 			setProp(_el$, "viewBox", "0 -960 960 960");
@@ -38885,12 +39318,12 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Icons/SubtitlesIcon.tsx
+	// src/components/Icons/SubtitlesIcon.tsx
 	function SubtitlesIcon() {
 		return (() => {
 			var _el$ = createElement("svg"), _el$2 = createElement("path");
 			insertNode(_el$, _el$2);
+			setProp(_el$, "aria-hidden", "true");
 			setProp(_el$, "width", "1em");
 			setProp(_el$, "height", "100%");
 			setProp(_el$, "viewBox", "0 0 24 24");
@@ -38899,24 +39332,19 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Icons/TranslateIcon.tsx
+	// src/components/Icons/TranslateIcon.tsx
 	function TranslateIcon(props) {
-		const finalProps = mergeProps$1({ loading: false }, props);
-		const [loading, setLoading] = createSignal(finalProps.loading);
-		createRenderEffect(() => {
-			setLoading(finalProps.loading);
-		});
 		return (() => {
 			var _el$ = createElement("svg"), _el$3 = createElement("path");
 			insertNode(_el$, _el$3);
+			setProp(_el$, "aria-hidden", "true");
 			setProp(_el$, "width", "1em");
 			setProp(_el$, "height", "1em");
 			setProp(_el$, "viewBox", "0 0 24 24");
 			setProp(_el$, "fill", "currentColor");
 			insert(_el$, createComponent(Show, {
 				get when() {
-					return loading();
+					return props.loading;
 				},
 				get fallback() {
 					return (() => {
@@ -38936,8 +39364,7 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/SegmentedButton/PreviewSegmentedButton.tsx
+	// src/components/SegmentedButton/PreviewSegmentedButton.tsx
 	function PreviewSegmentedButton(props) {
 		const finalProps = mergeProps$1({
 			direction: "default",
@@ -39026,8 +39453,7 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/SegmentedButton/PreviewSegmentedButtonOverlay.tsx
+	// src/components/SegmentedButton/PreviewSegmentedButtonOverlay.tsx
 	function PreviewSegmentedButtonOverlay(props) {
 		const [local, rest] = splitProps(mergeProps$1({ position: "default" }, props), ["position"]);
 		return createComponent(Overlay, {
@@ -39046,8 +39472,7 @@ var vot = (function(exports) {
 			}
 		});
 	}
-	//#endregion
-	//#region src/components/Button/IconButton.tsx
+	// src/components/Button/IconButton.tsx
 	function IconButton(props) {
 		const [local, rest] = splitProps(props, ["ariaLabel", "buttonProps"]);
 		return createComponent(RawButton, mergeProps(rest, {
@@ -39060,8 +39485,7 @@ var vot = (function(exports) {
 			}
 		}));
 	}
-	//#endregion
-	//#region src/components/Icons/ProgressIcon.tsx
+	// src/components/Icons/ProgressIcon.tsx
 	function ProgressIcon(props) {
 		const finalProps = mergeProps$1({ progress: 0 }, props);
 		const progress = () => clamp(finalProps.progress, 0, 100);
@@ -39069,6 +39493,7 @@ var vot = (function(exports) {
 			var _el$ = createElement("svg"), _el$2 = createElement("circle"), _el$3 = createElement("circle");
 			insertNode(_el$, _el$2);
 			insertNode(_el$, _el$3);
+			setProp(_el$, "aria-hidden", "true");
 			setProp(_el$, "width", "1em");
 			setProp(_el$, "height", "100%");
 			setProp(_el$, "viewBox", "0 0 24 24");
@@ -39087,8 +39512,7 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Button/ProgressIconButton.tsx
+	// src/components/Button/ProgressIconButton.tsx
 	function ProgressIconButton(props) {
 		const [local, rest] = splitProps(mergeProps$1({
 			progress: 0,
@@ -39114,14 +39538,14 @@ var vot = (function(exports) {
 			});
 		} }));
 	}
-	//#endregion
-	//#region src/components/Icons/LoadingDotsIcon.tsx
+	// src/components/Icons/LoadingDotsIcon.tsx
 	function LoadingDotsIcon() {
 		return (() => {
 			var _el$ = createElement("svg"), _el$2 = createElement("circle"), _el$3 = createElement("animate"), _el$4 = createElement("circle"), _el$5 = createElement("animate"), _el$6 = createElement("circle"), _el$7 = createElement("animate");
 			insertNode(_el$, _el$2);
 			insertNode(_el$, _el$4);
 			insertNode(_el$, _el$6);
+			setProp(_el$, "aria-hidden", "true");
 			setProp(_el$, "xmlns", "http://www.w3.org/2000/svg");
 			setProp(_el$, "width", "1em");
 			setProp(_el$, "height", "1em");
@@ -39165,8 +39589,7 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Textfield/Textfield.tsx
+	// src/components/Textfield/Textfield.tsx
 	function Textfield(props) {
 		const finalProps = mergeProps$1({
 			value: "",
@@ -39247,8 +39670,7 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Control/Select.tsx
+	// src/components/Control/Select.tsx
 	function genSelectOptionsByLangs(langs) {
 		return langs.map((lang) => {
 			const phrase = `langs.${lang}`;
@@ -39275,14 +39697,13 @@ var vot = (function(exports) {
 		let searchRequestId = 0;
 		const selectId = createUniqueId();
 		const [selectedValues, setSelectedValues] = createSignal(new Set(finalProps.multiple ? finalProps.selectedValues : [finalProps.selectedValue]));
-		const [options, setOptions] = createSignal(finalProps.options);
 		const [searchQuery, setSearchQuery] = createSignal("");
 		const [isOpen, setIsOpen] = createSignal(finalProps.isOpen);
 		const [isSearching, setIsSearching] = createSignal(false);
 		const [searchOptions, setSearchOptions] = createSignal();
 		const [selectedOptionCache, setSelectedOptionCache] = createSignal(new Map());
 		const baseOptions = createMemo(() => {
-			const result = [...options()];
+			const result = [...finalProps.options];
 			const existingValues = new Set(result.map((option) => option.value));
 			for (const [value, option] of selectedOptionCache()) if (selectedValues().has(value) && !existingValues.has(value)) result.push(option);
 			return result;
@@ -39310,9 +39731,6 @@ var vot = (function(exports) {
 		});
 		createRenderEffect(() => {
 			setIsOpen(finalProps.isOpen);
-		});
-		createRenderEffect(() => {
-			setOptions(finalProps.options);
 		});
 		createFloatingPosition({
 			anchor: () => outerRef,
@@ -39560,8 +39978,7 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Control/Slider.tsx
+	// src/components/Control/Slider.tsx
 	var DRAG_THRESHOLD = 4;
 	function Slider(props) {
 		const finalProps = mergeProps$1({
@@ -39578,6 +39995,10 @@ var vot = (function(exports) {
 		const progress = () => {
 			const range = finalProps.max - finalProps.min;
 			return clamp(range <= 0 ? 0 : (value() - finalProps.min) / range, 0, 1);
+		};
+		const stopDragging = () => {
+			pointerStart = void 0;
+			setDragging(false);
 		};
 		createRenderEffect(() => {
 			setValue(clampVal(finalProps.value));
@@ -39604,14 +40025,8 @@ var vot = (function(exports) {
 				if (!pointerStart || pointerStart.id !== event.pointerId) return;
 				if (Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y) >= DRAG_THRESHOLD) setDragging(true);
 			});
-			setProp(_el$2, "onpointerup", () => {
-				pointerStart = void 0;
-				setDragging(false);
-			});
-			setProp(_el$2, "onpointercancel", () => {
-				pointerStart = void 0;
-				setDragging(false);
-			});
+			setProp(_el$2, "onpointerup", stopDragging);
+			setProp(_el$2, "onpointercancel", stopDragging);
 			setProp(_el$2, "oninput", (e) => {
 				const newValue = e.target.valueAsNumber;
 				setValue(newValue);
@@ -39644,8 +40059,7 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Control/SliderLabel.tsx
+	// src/components/Control/SliderLabel.tsx
 	function SliderLabel(props) {
 		const finalProps = mergeProps$1({
 			disabled: false,
@@ -39666,8 +40080,7 @@ var vot = (function(exports) {
 			return _el$2;
 		})();
 	}
-	//#endregion
-	//#region src/components/Control/SliderWrapper.tsx
+	// src/components/Control/SliderWrapper.tsx
 	function SliderWrapper(props) {
 		return (() => {
 			var _el$ = createElement("vot-block");
@@ -39678,12 +40091,12 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Icons/ArrowRightIcon.tsx
+	// src/components/Icons/ArrowRightIcon.tsx
 	function ArrowRightIcon() {
 		return (() => {
 			var _el$ = createElement("svg"), _el$2 = createElement("path");
 			insertNode(_el$, _el$2);
+			setProp(_el$, "aria-hidden", "true");
 			setProp(_el$, "width", "1em");
 			setProp(_el$, "height", "1em");
 			setProp(_el$, "viewBox", "0 -960 960 960");
@@ -39693,12 +40106,12 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Icons/DownloadIcon.tsx
+	// src/components/Icons/DownloadIcon.tsx
 	function DownloadIcon() {
 		return (() => {
 			var _el$ = createElement("svg"), _el$2 = createElement("path");
 			insertNode(_el$, _el$2);
+			setProp(_el$, "aria-hidden", "true");
 			setProp(_el$, "width", "1em");
 			setProp(_el$, "height", "100%");
 			setProp(_el$, "viewBox", "0 0 24 24");
@@ -39707,12 +40120,12 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Icons/GearIcon.tsx
+	// src/components/Icons/GearIcon.tsx
 	function GearIcon() {
 		return (() => {
 			var _el$ = createElement("svg"), _el$2 = createElement("path");
 			insertNode(_el$, _el$2);
+			setProp(_el$, "aria-hidden", "true");
 			setProp(_el$, "width", "1em");
 			setProp(_el$, "height", "100%");
 			setProp(_el$, "viewBox", "0 -960 960 960");
@@ -39721,10 +40134,8 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Utils/Menu.tsx
+	// src/components/Utils/Menu.tsx
 	function Menu(props) {
-		const finalProps = mergeProps$1({}, props);
 		const menuId = `vot-menu-${createUniqueId()}`;
 		const titleId = `vot-menu-title-${createUniqueId()}`;
 		return (() => {
@@ -39748,31 +40159,30 @@ var vot = (function(exports) {
 			setProp(_el$3, "class", "vot-menu__title-container");
 			setProp(_el$4, "class", "vot-menu-title");
 			setProp(_el$4, "id", titleId);
-			insert(_el$4, () => finalProps.title);
+			insert(_el$4, () => props.title);
 			insert(_el$2, createComponent(Show, {
 				get when() {
-					return finalProps.headerChildren;
+					return props.headerChildren;
 				},
 				get children() {
-					return finalProps.headerChildren;
+					return props.headerChildren;
 				}
 			}), null);
 			setProp(_el$5, "class", "vot-menu__body");
-			insert(_el$5, () => finalProps.children);
+			insert(_el$5, () => props.children);
 			setProp(_el$6, "class", "vot-menu__footer");
 			insert(_el$6, createComponent(Show, {
 				get when() {
-					return finalProps.footerChildren;
+					return props.footerChildren;
 				},
 				get children() {
-					return finalProps.footerChildren;
+					return props.footerChildren;
 				}
 			}));
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/SegmentedButton/SegmentedButtonMenu.tsx
+	// src/components/SegmentedButton/SegmentedButtonMenu.tsx
 	function MenuHeaderContent(props) {
 		const finalProps = mergeProps$1({
 			showDownloadTranslation: false,
@@ -40067,8 +40477,7 @@ var vot = (function(exports) {
 			}
 		});
 	}
-	//#endregion
-	//#region src/components/SegmentedButton/SegmentedButtonMenuOverlay.tsx
+	// src/components/SegmentedButton/SegmentedButtonMenuOverlay.tsx
 	function SegmentedButtonMenuOverlay(props) {
 		const [local, rest] = splitProps(mergeProps$1({
 			position: "default",
@@ -40095,8 +40504,7 @@ var vot = (function(exports) {
 			}
 		});
 	}
-	//#endregion
-	//#region src/components/Icons/LiveVoiceIcon.tsx
+	// src/components/Icons/LiveVoiceIcon.tsx
 	function LiveVoiceIcon() {
 		return (() => {
 			var _el$ = createElement("svg"), _el$2 = createElement("circle"), _el$3 = createElement("circle"), _el$4 = createElement("circle"), _el$5 = createElement("circle"), _el$6 = createElement("circle"), _el$7 = createElement("circle"), _el$8 = createElement("circle");
@@ -40107,6 +40515,7 @@ var vot = (function(exports) {
 			insertNode(_el$, _el$6);
 			insertNode(_el$, _el$7);
 			insertNode(_el$, _el$8);
+			setProp(_el$, "aria-hidden", "true");
 			setProp(_el$, "width", "24");
 			setProp(_el$, "height", "24");
 			setProp(_el$, "viewBox", "0 0 24 24");
@@ -40135,8 +40544,7 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Icons/StandartVoiceIcon.tsx
+	// src/components/Icons/StandartVoiceIcon.tsx
 	function StandardVoiceIcon() {
 		return (() => {
 			var _el$ = createElement("svg"), _el$2 = createElement("circle"), _el$3 = createElement("circle"), _el$4 = createElement("circle"), _el$5 = createElement("circle");
@@ -40144,6 +40552,7 @@ var vot = (function(exports) {
 			insertNode(_el$, _el$3);
 			insertNode(_el$, _el$4);
 			insertNode(_el$, _el$5);
+			setProp(_el$, "aria-hidden", "true");
 			setProp(_el$, "width", "24");
 			setProp(_el$, "height", "24");
 			setProp(_el$, "viewBox", "0 0 24 24");
@@ -40163,14 +40572,16 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/SegmentedButton/VoicePopover.tsx
+	// src/components/SegmentedButton/VoicePopover.tsx
 	var DEFAULT_SHOW_DELAY_MS = 80;
 	var DEFAULT_HIDE_DELAY_MS = 80;
 	var POPOVER_GAP = 8;
 	var MIN_POPOVER_WIDTH = 160;
 	var MAX_POPOVER_WIDTH = 310;
 	var MIN_POPOVER_HEIGHT = 96;
+	function getColumnPlacement(position, spaceLeft, spaceRight) {
+		return (position === "right" || position === "rightCenter") && spaceLeft >= MIN_POPOVER_WIDTH || spaceLeft >= spaceRight ? "left" : "right";
+	}
 	function VoicePopover(props) {
 		const finalProps = mergeProps$1({
 			isOpen: false,
@@ -40276,7 +40687,7 @@ var vot = (function(exports) {
 			if (direction === "column") {
 				const spaceLeft = containerRect.left - rootRect.left - POPOVER_GAP;
 				const spaceRight = rootRect.right - containerRect.right - POPOVER_GAP;
-				placement = (position === "right" || position === "rightCenter") && spaceLeft >= MIN_POPOVER_WIDTH || spaceLeft >= spaceRight ? "left" : "right";
+				placement = getColumnPlacement(position, spaceLeft, spaceRight);
 				const availableWidth = placement === "left" ? spaceLeft : spaceRight;
 				element.style.setProperty("--vot-voice-popover-max-width", `${Math.max(MIN_POPOVER_WIDTH, Math.min(MAX_POPOVER_WIDTH, availableWidth))}px`);
 				const popoverRect = element.getBoundingClientRect();
@@ -40375,12 +40786,14 @@ var vot = (function(exports) {
 				window.visualViewport?.removeEventListener("resize", updatePosition);
 			});
 		});
-		createEffect(() => {
-			finalProps.activeVoice;
-			finalProps.anchor;
-			finalProps.layoutRoot;
+		createEffect(on(() => [
+			finalProps.activeVoice,
+			finalProps.anchor,
+			finalProps.layoutRoot,
+			isOpen()
+		], () => {
 			if (isOpen()) floatingPosition.update();
-		});
+		}));
 		onCleanup(() => {
 			clearShowTimer();
 			clearHideTimer();
@@ -40478,8 +40891,7 @@ var vot = (function(exports) {
 		});
 		return document.createTextNode("");
 	}
-	//#endregion
-	//#region src/components/SegmentedButton/SegmentedButton.tsx
+	// src/components/SegmentedButton/SegmentedButton.tsx
 	function SegmentedButton(props) {
 		const finalProps = mergeProps$1({
 			direction: "default",
@@ -40547,7 +40959,7 @@ var vot = (function(exports) {
 			if (status === "error") {
 				voicePopoverControls?.hideNow();
 				setSuppressVoiceTooltip(false);
-			} else if (previousStatus === "error" && translationButton()?.matches(":hover")) voicePopoverControls?.showNow();
+			} else if (previousStatus === "error") voicePopoverControls?.showNow();
 		}, { defer: true }));
 		return (() => {
 			var _el$ = createElement("vot-block"), _el$3 = createElement("vot-block"), _el$5 = createElement("vot-block");
@@ -40862,8 +41274,7 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/SegmentedButton/SegmentedButtonOverlay.tsx
+	// src/components/SegmentedButton/SegmentedButtonOverlay.tsx
 	function SegmentedButtonOverlay(props) {
 		const [local, rest] = splitProps(mergeProps$1({
 			position: "default",
@@ -40905,8 +41316,7 @@ var vot = (function(exports) {
 			}
 		});
 	}
-	//#endregion
-	//#region src/components/OverlayView/OverlayView.tsx
+	// src/components/OverlayView/OverlayView.tsx
 	var DRAG_ACTION_SUPPRESS_MS = 350;
 	var DRAG_THRESHOLD_PX = 6;
 	function OverlayView(props) {
@@ -41059,7 +41469,7 @@ var vot = (function(exports) {
 		};
 		const requestButtonDragFrame = () => {
 			const state = dragState;
-			if (!isDragging() || !state || state.frameId !== null) return;
+			if (!isDragging() || state?.frameId !== null) return;
 			state.frameId = requestAnimationFrame(applyButtonDragFrame);
 		};
 		const startButtonDrag = () => {
@@ -41385,8 +41795,7 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/ui/overlayController.ts
+	// src/ui/overlayController.ts
 	var OverlayController = class {
 		resizeObserver;
 		fullscreenHelper;
@@ -41663,8 +42072,7 @@ var vot = (function(exports) {
 			syncContainerSize();
 		}
 	};
-	//#endregion
-	//#region src/components/About/AboutItem.tsx
+	// src/components/About/AboutItem.tsx
 	function AboutItem(props) {
 		return (() => {
 			var _el$ = createElement("vot-block"), _el$2 = createElement("vot-block"), _el$3 = createElement("vot-block");
@@ -41680,22 +42088,16 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/stores/locale.ts
-	function createInitialState() {
-		return {
-			updatedAt: 0,
-			hash: ""
-		};
-	}
-	var [locale, setLocale] = createStore(createInitialState());
-	//#endregion
-	//#region src/components/Button/OutlinedButton.tsx
+	// src/stores/locale.ts
+	var [locale, setLocale] = createStore({
+		updatedAt: 0,
+		hash: ""
+	});
+	// src/components/Button/OutlinedButton.tsx
 	function OutlinedButton(props) {
 		return createComponent(RawButton, mergeProps(props, { "class": "vot-outlined-button" }));
 	}
-	//#endregion
-	//#region src/components/About/AboutSection.tsx
+	// src/components/About/AboutSection.tsx
 	function AboutSection(props) {
 		const envInfo = getEnvironmentInfo();
 		const safeGMInfo = getGMInfo();
@@ -41770,17 +42172,16 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Button/TextButton.tsx
+	// src/components/Button/TextButton.tsx
 	function TextButton(props) {
 		return createComponent(RawButton, mergeProps(props, { "class": "vot-text-button" }));
 	}
-	//#endregion
-	//#region src/components/Icons/LogoutIcon.tsx
+	// src/components/Icons/LogoutIcon.tsx
 	function LogoutIcon() {
 		return (() => {
 			var _el$ = createElement("svg"), _el$2 = createElement("g"), _el$3 = createElement("path"), _el$4 = createElement("path");
 			insertNode(_el$, _el$2);
+			setProp(_el$, "aria-hidden", "true");
 			setProp(_el$, "xmlns", "http://www.w3.org/2000/svg");
 			setProp(_el$, "width", "1em");
 			setProp(_el$, "height", "1em");
@@ -41794,8 +42195,7 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Account/AccountLogout.tsx
+	// src/components/Account/AccountLogout.tsx
 	function AccountLogout(props) {
 		return (() => {
 			var _el$ = createElement("vot-block");
@@ -41820,12 +42220,12 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Icons/RefreshIcon.tsx
+	// src/components/Icons/RefreshIcon.tsx
 	function RefreshIcon() {
 		return (() => {
 			var _el$ = createElement("svg"), _el$2 = createElement("g"), _el$3 = createElement("path"), _el$4 = createElement("path");
 			insertNode(_el$, _el$2);
+			setProp(_el$, "aria-hidden", "true");
 			setProp(_el$, "width", "1em");
 			setProp(_el$, "height", "1em");
 			setProp(_el$, "viewBox", "0 0 24 24");
@@ -41838,8 +42238,7 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Account/AccountRefreshButton.tsx
+	// src/components/Account/AccountRefreshButton.tsx
 	function AccountRefreshButton(props) {
 		return createComponent(IconButton, {
 			ref(r$) {
@@ -41865,8 +42264,7 @@ var vot = (function(exports) {
 			}
 		});
 	}
-	//#endregion
-	//#region src/components/Account/AccountInfo.tsx
+	// src/components/Account/AccountInfo.tsx
 	function AccountInfo(props) {
 		return (() => {
 			var _el$ = createElement("vot-block"), _el$2 = createElement("vot-block"), _el$3 = createElement("vot-block"), _el$4 = createElement("img"), _el$5 = createElement("vot-block"), _el$6 = createElement("vot-block"), _el$7 = createElement("vot-block"), _el$8 = createElement("vot-block"), _el$9 = createElement("vot-block");
@@ -41901,8 +42299,7 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Utils/OrBlock.tsx
+	// src/components/Utils/OrBlock.tsx
 	function OrBlock(props) {
 		return (() => {
 			var _el$ = createElement("vot-block");
@@ -41913,8 +42310,7 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Account/AccountLogin.tsx
+	// src/components/Account/AccountLogin.tsx
 	function AccountLogin(props) {
 		const finalProps = mergeProps$1({ disableExternalLogin: votStorage.isSupportOnlyLS }, props);
 		return (() => {
@@ -41964,8 +42360,7 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Account/AccountMenu.tsx
+	// src/components/Account/AccountMenu.tsx
 	function AccountMenu(props) {
 		const avatarId = () => account.avatarId ?? "0/0-0";
 		const username = () => account.username ?? "unnamed";
@@ -42003,12 +42398,12 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Icons/CloseIcon.tsx
+	// src/components/Icons/CloseIcon.tsx
 	function CloseIcon() {
 		return (() => {
 			var _el$ = createElement("svg"), _el$2 = createElement("path");
 			insertNode(_el$, _el$2);
+			setProp(_el$, "aria-hidden", "true");
 			setProp(_el$, "width", "1em");
 			setProp(_el$, "height", "100%");
 			setProp(_el$, "viewBox", "0 -960 960 960");
@@ -42016,8 +42411,7 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Dialog/Dialog.tsx
+	// src/components/Dialog/Dialog.tsx
 	function Dialog(props) {
 		const titleId = `vot-dialog-title-${createUniqueId()}`;
 		let container;
@@ -42193,8 +42587,7 @@ var vot = (function(exports) {
 			}
 		});
 	}
-	//#endregion
-	//#region src/types/components/votButton.ts
+	// src/types/components/votButton.ts
 	var positions = [
 		"default",
 		"left",
@@ -42202,8 +42595,7 @@ var vot = (function(exports) {
 		"leftCenter",
 		"rightCenter"
 	];
-	//#endregion
-	//#region src/components/Control/Switch.tsx
+	// src/components/Control/Switch.tsx
 	function Switch(props) {
 		const finalProps = mergeProps$1({
 			checked: false,
@@ -42296,8 +42688,7 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Settings/SettingsSection.tsx
+	// src/components/Settings/SettingsSection.tsx
 	function SettingsSection(props) {
 		const finalProps = mergeProps$1({ isOpen: false }, props);
 		const sectionId = createUniqueId();
@@ -42346,8 +42737,7 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Settings/SettingsAppearanceSection.tsx
+	// src/components/Settings/SettingsAppearanceSection.tsx
 	var MAX_AUTO_HIDE_BUTTON_DELAY = 3e3;
 	var MIN_AUTO_HIDE_BUTTON_DELAY = 100;
 	var STEP_AUTO_HIDE_BUTTON_DELAY = 100;
@@ -42437,13 +42827,11 @@ var vot = (function(exports) {
 			}
 		});
 	}
-	//#endregion
-	//#region src/components/Button/GeneralButton.tsx
+	// src/components/Button/GeneralButton.tsx
 	function GeneralButton(props) {
 		return createComponent(RawButton, mergeProps(props, { "class": "vot-button" }));
 	}
-	//#endregion
-	//#region src/components/Settings/SettingsFooter.tsx
+	// src/components/Settings/SettingsFooter.tsx
 	function SettingsFooter(props) {
 		return (() => {
 			var _el$ = createElement("vot-block");
@@ -42467,8 +42855,7 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Button/HotkeyButton.tsx
+	// src/components/Button/HotkeyButton.tsx
 	function HotkeyButton(props) {
 		const [local, buttonProps] = splitProps(mergeProps$1({ key: null }, props), [
 			"children",
@@ -42579,8 +42966,7 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	//#endregion
-	//#region src/components/Settings/SettingsHotkeySection.tsx
+	// src/components/Settings/SettingsHotkeySection.tsx
 	function SettingsHotkeySection(props) {
 		return createComponent(SettingsSection, {
 			get title() {
@@ -42607,8 +42993,7 @@ var vot = (function(exports) {
 			}
 		});
 	}
-	//#endregion
-	//#region src/components/Settings/SettingsMiscSection.tsx
+	// src/components/Settings/SettingsMiscSection.tsx
 	function SettingsMiscSection(props) {
 		const finalProps = mergeProps$1({
 			isAudioContextSupported: false,
@@ -42695,8 +43080,7 @@ var vot = (function(exports) {
 			}
 		});
 	}
-	//#endregion
-	//#region src/components/Settings/SettingsProxySection.tsx
+	// src/components/Settings/SettingsProxySection.tsx
 	function SettingsProxySection(props) {
 		const translateProxyOptions = [
 			t$1("VOTTranslateProxyDisabled"),
@@ -42756,8 +43140,7 @@ var vot = (function(exports) {
 			}
 		});
 	}
-	//#endregion
-	//#region src/components/Settings/SettingsSubtitlesSection.tsx
+	// src/components/Settings/SettingsSubtitlesSection.tsx
 	var DEFAULT_SUBTITLE_FONT_FAMILY = "default-sans";
 	var GOOGLE_FONTS_SEARCH_LIMIT = 30;
 	var LANG_PREFIX = "langs.";
@@ -43003,8 +43386,7 @@ var vot = (function(exports) {
 			}
 		});
 	}
-	//#endregion
-	//#region src/components/Settings/SettingsTranslationSection.tsx
+	// src/components/Settings/SettingsTranslationSection.tsx
 	function SettingsTranslationSection(props) {
 		const finalProps = mergeProps$1({
 			isAudioContextSupported: false,
@@ -43300,8 +43682,7 @@ var vot = (function(exports) {
 			}
 		});
 	}
-	//#endregion
-	//#region src/components/Settings/SettingsDialog.tsx
+	// src/components/Settings/SettingsDialog.tsx
 	function SettingsDialog(props) {
 		return createComponent(Dialog, {
 			ref(r$) {
@@ -43349,8 +43730,7 @@ var vot = (function(exports) {
 			}
 		});
 	}
-	//#endregion
-	//#region src/ui/settingsController.ts
+	// src/ui/settingsController.ts
 	var SETTINGS_EVENT_KEYS = [
 		"click:bugReport",
 		"click:resetSettings",
@@ -43467,12 +43847,12 @@ var vot = (function(exports) {
 		}
 		initUI() {
 			if (this.isInitialized()) throw new Error("[VOT] SettingsController is already initialized");
-			const self = this;
+			const getSettingsData = () => this.data;
 			this.videoHandler.hotkeyController.actions = [
 				{
 					action: () => this.videoHandler.uiManager.handleTranslationBtnClick(),
 					get hotkey() {
-						return self.data.translationHotkey;
+						return getSettingsData().translationHotkey;
 					},
 					localizationPhrase: "translateVideo",
 					settingsKey: "translationHotkey",
@@ -43481,7 +43861,7 @@ var vot = (function(exports) {
 				{
 					action: () => this.videoHandler.toggleSubtitlesForCurrentLangPair(),
 					get hotkey() {
-						return self.data.subtitlesHotkey;
+						return getSettingsData().subtitlesHotkey;
 					},
 					localizationPhrase: "VOTSubtitles",
 					settingsKey: "subtitlesHotkey",
@@ -43490,7 +43870,7 @@ var vot = (function(exports) {
 				...isPiPAvailable() ? [{
 					action: () => this.videoHandler.uiManager.togglePictureInPicture(),
 					get hotkey() {
-						return self.data.pipHotkey;
+						return getSettingsData().pipHotkey;
 					},
 					localizationPhrase: "VOTPiP",
 					settingsKey: "pipHotkey",
@@ -43730,8 +44110,7 @@ var vot = (function(exports) {
 			return this.dialogOpen?.() ?? false;
 		}
 	};
-	//#endregion
-	//#region src/ui/translationCommands.ts
+	// src/ui/translationCommands.ts
 	async function getVideoDataForTranslation(videoHandler) {
 		if (!videoHandler.videoData?.videoId) throw new VOTLocalizedError("VOTNoVideoIDFound");
 		if (shouldRefreshVideoDataBeforeTranslation(videoHandler)) videoHandler.videoData = await videoHandler.getVideoData();
@@ -43745,6 +44124,19 @@ var vot = (function(exports) {
 		if (!await deleteExpiredAccount(videoHandler)) return;
 		await openAuthWindow();
 		throw new VOTLocalizedError("VOTYandexTokenExpired");
+	}
+	function handleTranslationButtonError(deps, err) {
+		if (isAbortError(err)) {
+			deps.transformBtn("none", t$1("translateVideo"));
+			return;
+		}
+		logger_default.error(err);
+		if (!(err instanceof Error)) {
+			deps.transformBtn("error", String(err));
+			return;
+		}
+		const message = err.name === "VOTLocalizedError" ? err.localizedMessage : err.message;
+		deps.transformBtn("error", message);
 	}
 	async function handleTranslationButtonCommand(deps) {
 		const videoHandler = deps.videoHandler;
@@ -43776,21 +44168,10 @@ var vot = (function(exports) {
 			const requestLang = videoHandler.translateFromLang === "auto" ? videoData.detectedLanguage : videoHandler.translateFromLang;
 			await videoHandler.translateFunc(videoData.videoId, videoData.isStream, requestLang, videoData.responseLanguage, videoData.translationHelp);
 		} catch (err) {
-			if (isAbortError(err)) {
-				deps.transformBtn("none", t$1("translateVideo"));
-				return;
-			}
-			logger_default.error(err);
-			if (!(err instanceof Error)) {
-				deps.transformBtn("error", String(err));
-				return;
-			}
-			const message = err.name === "VOTLocalizedError" ? err.localizedMessage : err.message;
-			deps.transformBtn("error", message);
+			handleTranslationButtonError(deps, err);
 		}
 	}
-	//#endregion
-	//#region src/ui/manager.ts
+	// src/ui/manager.ts
 	var UIManager = class {
 		mount;
 		initialized = false;
@@ -43897,7 +44278,7 @@ var vot = (function(exports) {
 			}).addEventListener("click:subtitles", async () => {
 				if (!this.videoHandler) return;
 				await this.videoHandler.toggleSubtitlesForCurrentLangPair();
-			}).addEventListener("click:settings", async () => {
+			}).addEventListener("click:settings", () => {
 				this.videoHandler?.subtitlesWidget?.releaseTooltip();
 				this.videoHandler?.overlayVisibility?.cancel();
 				this.videoHandler?.overlayVisibility?.show();
@@ -43948,7 +44329,7 @@ var vot = (function(exports) {
 		bindSettingsViewEvents() {
 			const settingsView = this.votSettingsView;
 			if (!settingsView) return;
-			settingsView.addEventListener("update:account", async (account) => {
+			settingsView.addEventListener("update:account", (account) => {
 				if (!this.videoHandler) return;
 				if (this.videoHandler.data) this.videoHandler.data.account = account;
 				if (this.videoHandler.votClient) this.videoHandler.votClient.provider.apiToken = account?.token;
@@ -43961,7 +44342,7 @@ var vot = (function(exports) {
 			}).addEventListener("select:responseLanguageSubtitles", async () => {
 				if (!this.videoHandler?.data.autoSubtitles || !this.videoHandler.videoData) return;
 				await this.videoHandler.refreshAutoSubtitlesForCurrentLangPair();
-			}).addEventListener("change:audioBooster", async () => {
+			}).addEventListener("change:audioBooster", () => {
 				const overlayViewControls = this.votOverlayView.overlayViewControls;
 				if (!overlayViewControls) return;
 				const nextTranslation = overlayViewControls.getTranslationVolume();
@@ -44196,8 +44577,7 @@ var vot = (function(exports) {
 			}
 		}
 	};
-	//#endregion
-	//#region src/ui/overlayVisibilityController.ts
+	// src/ui/overlayVisibilityController.ts
 	function isDomNode(value) {
 		return typeof Node !== "undefined" && value instanceof Node;
 	}
@@ -44357,8 +44737,7 @@ var vot = (function(exports) {
 			return getNowMs();
 		}
 	};
-	//#endregion
-	//#region src/core/platformEvents.ts
+	// src/core/platformEvents.ts
 	var defaultPlatformConfig = {
 		allowTouchMoveHandler: true,
 		disableContainerDrag: false,
@@ -44377,8 +44756,7 @@ var vot = (function(exports) {
 			...overrides
 		};
 	}
-	//#endregion
-	//#region src/videoHandler/modules/ducking.ts
+	// src/videoHandler/modules/ducking.ts
 	var VOLUME_MIN_01 = 0;
 	var VOLUME_MAX_01 = 1;
 	var SMART_DUCKING_DEFAULT_CONFIG = Object.freeze({
@@ -44541,8 +44919,7 @@ var vot = (function(exports) {
 	function isFiniteNumber(value) {
 		return typeof value === "number" && Number.isFinite(value);
 	}
-	//#endregion
-	//#region src/videoHandler/modules/smartDuckingRuntime.ts
+	// src/videoHandler/modules/smartDuckingRuntime.ts
 	var SMART_DUCKING_TICK_MS = SMART_DUCKING_DEFAULT_CONFIG.tickMs;
 	var smartDuckingAnalyserState = new WeakMap();
 	function isAudioNode(node) {
@@ -44856,8 +45233,7 @@ var vot = (function(exports) {
 		this.smartVolumeDuckingBaseline = nextVolume;
 		this.smartVolumeLastApplied = nextVolume;
 	}
-	//#endregion
-	//#region src/videoHandler/modules/subtitlesShared.ts
+	// src/videoHandler/modules/subtitlesShared.ts
 	var DISABLED_SUBTITLES_VALUE = "disabled";
 	var SUBTITLES_INDEX_OPTION_PATTERN = /^\d+$/u;
 	function getIndexedSubtitleDescriptors(subtitles) {
@@ -44936,33 +45312,15 @@ var vot = (function(exports) {
 			return langMatches(descriptor.translatedFromLanguage, lang);
 		};
 		const find = (predicate) => subtitles.find(({ descriptor }) => predicate(descriptor))?.index ?? null;
-		const findOtherTarget = () => {
-			const otherTargetManual = find((descriptor) => !isYandex(descriptor) && langMatches(descriptor.language, to) && !isAutoGenerated(descriptor));
-			if (otherTargetManual != null) return otherTargetManual;
-			return find((descriptor) => !isYandex(descriptor) && langMatches(descriptor.language, to) && isAutoGenerated(descriptor));
-		};
+		const findManualPreferred = (predicate) => find((descriptor) => predicate(descriptor) && !isAutoGenerated(descriptor)) ?? find(predicate);
+		const findOtherTarget = () => findManualPreferred((descriptor) => !isYandex(descriptor) && langMatches(descriptor.language, to));
 		if (!fromIsAuto && fromBase && toBase && fromBase === toBase) {
-			const nativeManual = find((descriptor) => isSameLangOriginal(descriptor, to) && !isAutoGenerated(descriptor));
-			if (nativeManual != null) return nativeManual;
-			const nativeAuto = find((descriptor) => isSameLangOriginal(descriptor, to) && isAutoGenerated(descriptor));
-			if (nativeAuto != null) return nativeAuto;
-			const otherTarget = findOtherTarget();
-			if (otherTarget != null) return otherTarget;
-			const yandexTargetSameLang = find((descriptor) => isYandex(descriptor) && langMatches(descriptor.language, to));
-			if (yandexTargetSameLang != null) return yandexTargetSameLang;
+			const sameLanguage = findManualPreferred((descriptor) => isSameLangOriginal(descriptor, to)) ?? findOtherTarget() ?? find((descriptor) => isYandex(descriptor) && langMatches(descriptor.language, to));
+			if (sameLanguage !== null) return sameLanguage;
 		}
-		const yandexPair = find((descriptor) => isYandex(descriptor) && matchesPair(descriptor, from, to));
-		if (yandexPair != null) return yandexPair;
-		const yandexTarget = find((descriptor) => isYandex(descriptor) && langMatches(descriptor.language, to));
-		if (yandexTarget != null) return yandexTarget;
-		const otherPair = find((descriptor) => !isYandex(descriptor) && matchesPair(descriptor, from, to));
-		if (otherPair != null) return otherPair;
-		const otherTarget = findOtherTarget();
-		if (otherTarget != null) return otherTarget;
-		return null;
+		return find((descriptor) => isYandex(descriptor) && matchesPair(descriptor, from, to)) ?? find((descriptor) => isYandex(descriptor) && langMatches(descriptor.language, to)) ?? find((descriptor) => !isYandex(descriptor) && matchesPair(descriptor, from, to)) ?? findOtherTarget();
 	}
-	//#endregion
-	//#region src/videoHandler/modules/translationShared.ts
+	// src/videoHandler/modules/translationShared.ts
 	function normalizeTranslationHelp(translationHelp) {
 		return translationHelp ?? null;
 	}
@@ -45007,8 +45365,7 @@ var vot = (function(exports) {
 			usedLivelyVoice: options.usedLivelyVoice
 		}));
 	}
-	//#endregion
-	//#region src/videoHandler/modules/translationPlayback.ts
+	// src/videoHandler/modules/translationPlayback.ts
 	async function resumePlayerAudioContextIfNeeded(handler) {
 		const ctx = handler.audioPlayer?.audioContext;
 		if (ctx?.state !== "suspended") return "not-needed";
@@ -45045,26 +45402,15 @@ var vot = (function(exports) {
 			debug.log("[updateTranslation] failed to clear stale source", err);
 		}
 	}
-	async function validateAudioUrl(audioUrl, actionContext) {
-		if (this.isActionStale(actionContext)) return audioUrl;
-		return audioUrl;
-	}
-	function scheduleTranslationRefresh() {
-		if (!this.videoData || this.videoData.isStream) return;
-		if (!this.hasActiveSource()) return;
-		this.refreshTranslationAudio().catch((error) => {
-			debug.log("[scheduleTranslationRefresh] refresh failed", error);
-		});
-	}
 	async function handlePlaybackResumedTranslationRefresh() {
 		if (!this.videoData || this.videoData.isStream) return;
-		if (!this.hasActiveSource()) return;
+		if (!this.hasActiveSource() || this.activeTranslation || this.isRefreshingTranslation) return;
 		const videoId = this.videoData.videoId;
 		if (!videoId) return;
 		const normalizedTranslationHelp = normalizeTranslationHelp(this.videoData.translationHelp);
 		const cacheKey = this.getTranslationCacheKey(videoId, this.translateFromLang, this.translateToLang, normalizedTranslationHelp);
 		if (!this.cacheManager.getTranslation(cacheKey)?.url) {
-			debug.log("[scheduleTranslationRefresh] translation cache expired after resume, refreshing now");
+			debug.log("[handlePlaybackResumedTranslationRefresh] translation cache expired after resume, refreshing now");
 			await this.refreshTranslationAudio();
 		}
 	}
@@ -45173,7 +45519,7 @@ var vot = (function(exports) {
 		};
 		const normalizedTranslationHelp = normalizeTranslationHelp(this.videoData.translationHelp);
 		try {
-			if (!await requestApplyAndCacheTranslation(this, {
+			await requestApplyAndCacheTranslation(this, {
 				videoData: this.videoData,
 				requestLang: this.translateFromLang,
 				responseLang: this.translateToLang,
@@ -45183,7 +45529,7 @@ var vot = (function(exports) {
 				cacheVideoId: videoId,
 				cacheRequestLang: this.translateFromLang,
 				cacheResponseLang: this.translateToLang
-			})) return;
+			});
 		} finally {
 			this.isRefreshingTranslation = false;
 		}
@@ -45363,7 +45709,6 @@ var vot = (function(exports) {
 			return;
 		}
 		overlayView.overlayViewControls.setIsLoading(true);
-		this.hadAsyncWait = false;
 		this.volumeOnStart = this.getVideoVolume();
 		if (!VIDEO_ID) {
 			debug.log("Skip translation - no VIDEO_ID resolved yet");
@@ -45383,6 +45728,7 @@ var vot = (function(exports) {
 			await this.activeTranslation.promise;
 			return;
 		}
+		this.hadAsyncWait = false;
 		const actionContext = {
 			gen: this.actionsGeneration,
 			videoId: VIDEO_ID
@@ -45415,7 +45761,7 @@ var vot = (function(exports) {
 				onTranslationWaiting: () => {
 					cleanupPauseListener = pauseVideoForTranslation(this);
 				},
-				onBeforeCache: async () => {
+				onBeforeCache: () => {
 					const preferredSubtitleLanguage = this.getPreferredSubtitlesLanguage(videoData.detectedLanguage, videoData.responseLanguage);
 					if (!preferredSubtitleLanguage) return;
 					const subsCacheKey = this.videoData ? this.getSubtitlesCacheKey(VIDEO_ID, this.videoData.detectedLanguage, preferredSubtitleLanguage) : null;
@@ -45471,8 +45817,7 @@ var vot = (function(exports) {
 	function isYouTubeHosts() {
 		return isTranslationDownloadHost(this.site.host);
 	}
-	//#endregion
-	//#region src/videoHandler/modules/events.ts
+	// src/videoHandler/modules/events.ts
 	function mergeListenerSignals(primary, secondary) {
 		if (!secondary || secondary === primary) return primary;
 		const signals = [primary, secondary];
@@ -45643,7 +45988,8 @@ var vot = (function(exports) {
 		const eventContainer = self.getEventContainer();
 		if (eventContainer) {
 			const useWindowEvents = isIframe() && globalThis.window !== void 0;
-			const interactionTarget = useWindowEvents ? globalThis.window : platformConfig.useDocumentInteractionTarget ? document : eventContainer;
+			const defaultInteractionTarget = platformConfig.useDocumentInteractionTarget ? document : eventContainer;
+			const interactionTarget = useWindowEvents ? globalThis.window : defaultInteractionTarget;
 			if (useWindowEvents) {
 				addMany(interactionTarget, ["pointermove", "pointerdown"], (event) => self.overlayVisibility.handleHostInteraction(event), { passive: true });
 				add(interactionTarget, "blur", () => self.overlayVisibility.scheduleHide());
@@ -45663,10 +46009,11 @@ var vot = (function(exports) {
 			wasPausedSinceLastPlay = false;
 		};
 		add(self.video, "pause", () => {
+			if (self.pausedByTranslation) return;
 			wasPausedSinceLastPlay = true;
 		});
 		add(self.video, "playing", () => {
-			if (!wasPausedSinceLastPlay) return;
+			if (!wasPausedSinceLastPlay || document.visibilityState === "hidden") return;
 			wasPausedSinceLastPlay = false;
 			handlePlaybackResumedTranslationRefresh.call(self).catch((error) => {
 				debug.log("Failed to refresh translation after playback resumed", error);
@@ -45799,8 +46146,7 @@ var vot = (function(exports) {
 		this.overlayVisibilityTargetsAbortController = void 0;
 		if (isDesktopYouTubeLikeSite(this.site)) this.syncVolumeObserver?.disconnect();
 	}
-	//#endregion
-	//#region src/videoHandler/modules/init.ts
+	// src/videoHandler/modules/init.ts
 	async function init() {
 		if (this.initialized) return;
 		const audioContextSupported = this.isAudioContextSupported;
@@ -45848,8 +46194,7 @@ var vot = (function(exports) {
 		this.initExtraEvents();
 		this.initialized = true;
 	}
-	//#endregion
-	//#region src/subtitles/segmenter.ts
+	// src/subtitles/segmenter.ts
 	var HAS_SEGMENTER = typeof Intl !== "undefined" && typeof Intl.Segmenter === "function";
 	var DEFAULT_CACHE_LOCALE = "und";
 	var segmenterCache = new Map();
@@ -45928,8 +46273,7 @@ var vot = (function(exports) {
 		}));
 		return fallbackSegmentSentences(text);
 	};
-	//#endregion
-	//#region src/subtitles/textSpacing.ts
+	// src/subtitles/textSpacing.ts
 	var WHITESPACE_RE$1 = /\s/u;
 	var NO_SPACE_BEFORE_RE = /^[,.:;!?%)\]}>»]/u;
 	var NO_SPACE_AFTER_RE = /[([{<«'"-]$/u;
@@ -45943,8 +46287,7 @@ var vot = (function(exports) {
 		if (CJK_CHAR_RE.test(leftLastChar) && CJK_CHAR_RE.test(rightFirstChar)) return false;
 		return true;
 	};
-	//#endregion
-	//#region src/subtitles/autoMerge.ts
+	// src/subtitles/autoMerge.ts
 	var WHITESPACE_RE = /\s/u;
 	var hasVisibleText = (value) => Boolean(value.trim());
 	var buildNormalizedLineSpans = (lines) => {
@@ -46034,8 +46377,7 @@ var vot = (function(exports) {
 		const sentenceLines = segmentSentences(streamText, locale).map((segment) => buildSentenceLine(streamText, spans, segment)).filter((line) => line !== null);
 		return sentenceLines.length ? sentenceLines : spans.map(({ line }) => line);
 	};
-	//#endregion
-	//#region src/subtitles/processor.ts
+	// src/subtitles/processor.ts
 	var toFiniteNumber = (value) => typeof value === "number" && Number.isFinite(value) ? value : 0;
 	var toNonNegativeNumber = (value) => Math.max(0, toFiniteNumber(value));
 	var appendYoutubePoTokenParams = (inputUrl) => {
@@ -46560,8 +46902,7 @@ var vot = (function(exports) {
 			}
 		}
 	};
-	//#endregion
-	//#region src/videoHandler/modules/subtitles.ts
+	// src/videoHandler/modules/subtitles.ts
 	var subtitlesSelectionRequestVersion = new WeakMap();
 	function getPreferredSubtitlesLanguage(handler) {
 		const videoData = handler.videoData;
@@ -46771,8 +47112,7 @@ var vot = (function(exports) {
 		}
 		await this.updateSubtitlesLangSelect();
 	}
-	//#endregion
-	//#region src/videoHandler/shared.ts
+	// src/videoHandler/shared.ts
 	var _countryCode;
 	var countryCodeRequest;
 	function getCountryCode() {
@@ -46794,8 +47134,7 @@ var vot = (function(exports) {
 		});
 		return countryCodeRequest;
 	}
-	//#endregion
-	//#region src/videoHandler/volumeLink.ts
+	// src/videoHandler/volumeLink.ts
 	function syncVideoLinkSnapshot(state, volumePercent) {
 		state.lastVideoPercent = clampPercentInt(volumePercent);
 	}
@@ -46831,8 +47170,7 @@ var vot = (function(exports) {
 		state.lastVideoPercent = nextVideo;
 		return { nextVideo };
 	}
-	//#endregion
-	//#region src/VideoHandler.ts
+	// src/VideoHandler.ts
 	var RESOLVED_VOID_PROMISE = Promise.resolve();
 	var TRANSLATION_LOADING_MESSAGES = new Set([
 		"Подготавливаем перевод",
@@ -46953,7 +47291,7 @@ var vot = (function(exports) {
 			};
 		}
 		getTranslationCacheKey(videoId, from, to, translationHelp) {
-			const requestLangForApi = this.getRequestLangForTranslation(from, to);
+			const requestLangForApi = from;
 			const useLivelyVoice = this.isLivelyVoiceAllowed(requestLangForApi, to) && this.data?.useLivelyVoice;
 			const helpStr = translationHelp === void 0 || translationHelp === null ? "" : stringifyCircularSafe(translationHelp, { sortKeys: true });
 			return `${videoId}_${requestLangForApi}_${to}_${useLivelyVoice}_${helpStr ? fnv1a32ToKeyPart(helpStr) : "0"}`;
@@ -47137,7 +47475,11 @@ var vot = (function(exports) {
 			return init.call(this);
 		}
 		async initVOTClient() {
-			while (this.votClientInitPromise) await this.votClientInitPromise.catch(() => void 0);
+			const pendingInit = this.votClientInitPromise;
+			if (pendingInit !== void 0) {
+				await pendingInit.catch(() => void 0);
+				return this.initVOTClient();
+			}
 			const proxyKey = this.getVOTClientProxyKey();
 			if (this.votClient && this.votClientProxyKey === proxyKey) return this;
 			const initPromise = this.buildVOTClient();
@@ -47174,16 +47516,26 @@ var vot = (function(exports) {
 			this.votClient = new VOTClient(this.votOpts);
 			this.votClient.provider.sessions = await this.votSessionStorage.restore(transportHost, this.votClient.provider.sessions);
 			const originalGetSession = this.votClient.provider.getSession.bind(this.votClient.provider);
-			this.votClient.provider.getSession = async (module) => {
-				let session;
-				try {
-					session = await originalGetSession(module);
-				} catch (err) {
-					this.reportSessionFailure(err, module, transportHost);
-					throw err;
-				}
-				await this.votSessionStorage.persist(transportHost, this.votClient.provider.sessions);
-				return session;
+			const inFlightSessions = new Map();
+			const provider = this.votClient.provider;
+			provider.getSession = (module) => {
+				const pending = inFlightSessions.get(module);
+				if (pending !== void 0) return pending;
+				const request = (async () => {
+					let session;
+					try {
+						session = await originalGetSession(module);
+					} catch (err) {
+						this.reportSessionFailure(err, module, transportHost);
+						throw err;
+					}
+					await this.votSessionStorage.persist(transportHost, provider.sessions);
+					return session;
+				})().finally(() => {
+					inFlightSessions.delete(module);
+				});
+				inFlightSessions.set(module, request);
+				return request;
 			};
 			return this;
 		}
@@ -47262,12 +47614,8 @@ var vot = (function(exports) {
 		toggleSubtitlesForCurrentLangPair() {
 			return toggleSubtitlesForCurrentLangPair.call(this);
 		}
-		getRequestLangForTranslation(requestLang, responseLang) {
-			if (this.data?.useLivelyVoice && requestLang === "auto" && responseLang === "ru") return "en";
-			return requestLang;
-		}
 		isLivelyVoiceAllowed(requestLang = this.videoData?.detectedLanguage ?? "auto", responseLang = this.videoData?.responseLanguage ?? this.translateToLang) {
-			if (this.getRequestLangForTranslation(requestLang, responseLang) === "auto" || responseLang !== "ru") return false;
+			if (requestLang === "auto" || responseLang !== "ru") return false;
 			return true;
 		}
 		getVideoVolume = () => this.videoManager.getVideoVolume();
@@ -47453,12 +47801,6 @@ var vot = (function(exports) {
 				this.hadAsyncWait = false;
 			}
 		}
-		validateAudioUrl(audioUrl, actionContext) {
-			return validateAudioUrl.call(this, audioUrl, actionContext);
-		}
-		scheduleTranslationRefresh() {
-			scheduleTranslationRefresh.call(this);
-		}
 		refreshTranslationAudio = refreshTranslationAudio;
 		proxifyAudio(audioUrl) {
 			return proxifyAudio.call(this, audioUrl);
@@ -47643,11 +47985,7 @@ var vot = (function(exports) {
 			});
 		}
 	}
-	(async () => {
-		await bootstrapContentScript();
-	})();
-	//#endregion
+	bootstrapContentScript();
 	exports.bootstrapContentScript = bootstrapContentScript;
 	return exports;
 })({});
-//# debugId=bb892cc0-186e-4e04-a3a4-fd2c994a6a00

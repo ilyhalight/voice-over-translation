@@ -35,7 +35,8 @@ export function getSameWindowPostMessageTargetOrigin(): string {
   // Opaque origins (about:blank, about:srcdoc, sandboxed frames) expose
   // location.origin as "null". That string is not a valid postMessage
   // target origin, so the only valid target is "*". The bridge still
-  // verifies event.source and the private marker before accepting messages.
+  // verifies event.source and origin. The public marker only routes messages;
+  // scripts in the same page are not authenticated by these checks.
   return !origin || origin === "null" ? "*" : origin;
 }
 

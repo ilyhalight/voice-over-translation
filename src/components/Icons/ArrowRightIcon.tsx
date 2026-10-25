@@ -3,6 +3,7 @@ import type { JSX } from "solid-js";
 export function ArrowRightIcon(): JSX.Element {
   return (
     <svg
+      aria-hidden="true"
       width="1em"
       height="1em"
       viewBox="0 -960 960 960"

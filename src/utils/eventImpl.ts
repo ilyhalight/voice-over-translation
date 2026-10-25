@@ -21,7 +21,12 @@ export class EventImpl<Args extends unknown[] = unknown[]> {
   dispatch(...args: Args): void {
     for (const handler of this.listeners) {
       try {
-        handler(...args);
+        const result = handler(...args);
+        if (result) {
+          result.catch((exception) => {
+            logger.error(exception);
+          });
+        }
       } catch (exception) {
         logger.error(exception);
       }

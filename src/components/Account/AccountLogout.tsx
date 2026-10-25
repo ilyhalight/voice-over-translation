@@ -1,7 +1,5 @@
 import type { JSX } from "solid-js";
 
-import "./AccountLogout.scss";
-
 import { t } from "../../localization/localizationProvider";
 import { resetAccount } from "../../stores/account";
 import { votStorage } from "../../utils/storage";

@@ -104,18 +104,16 @@ async function getEncryptedEmbedConfig(
             },
           },
           serializedSharedEntity: encodeURIComponent(
-            targetWindow.btoa(String.fromCharCode(...bytes)),
+            targetWindow.btoa(String.fromCodePoint(...bytes)),
           ),
         }),
       },
     );
-    const match = (await response.text()).match(
-      /"encryptedEmbedConfig"\s*:\s*("[^"]+")/,
+    const match = /"encryptedEmbedConfig"\s*:\s*("[^"]+")/.exec(
+      await response.text(),
     );
     return match ? `{"enc":${match[1]}}` : undefined;
-  } catch {
-    return;
-  }
+  } catch {}
 }
 
 type CapturedEvent =
@@ -399,20 +397,17 @@ function createAudioChunkStream(
                 const element = videos[0];
                 try {
                   element.muted = true;
-                  const attempt = element.play();
-                  if (attempt && typeof attempt.catch === "function") {
-                    attempt.catch((playError: unknown) => {
-                      playReject ??=
-                        playError instanceof Error
-                          ? playError.name
-                          : String(playError);
-                    });
-                  }
+                  element.play().catch((playError: unknown) => {
+                    playReject ??=
+                      playError instanceof Error
+                        ? playError.name
+                        : toErrorMessage(playError);
+                  });
                 } catch (playError) {
                   playReject ??=
                     playError instanceof Error
                       ? playError.name
-                      : String(playError);
+                      : toErrorMessage(playError);
                 }
               }
               return (
@@ -490,7 +485,7 @@ function createAudioChunkStream(
           if (finished) return;
           if (totalSize === 0) {
             debug.error("Audio downloader. MSE empty stream", { videoId });
-            void onMseError(new Error("Audio downloader. Empty MSE stream"));
+            onMseError(new Error("Audio downloader. Empty MSE stream"));
           } else {
             debug.log("Audio downloader. MSE stream finished", {
               videoId,
@@ -520,7 +515,7 @@ function createAudioChunkStream(
                 videoId,
                 totalSize,
               });
-              void onMseError(new Error("Audio downloader. MSE source closed"));
+              onMseError(new Error("Audio downloader. MSE source closed"));
               return;
             }
 
@@ -564,12 +559,12 @@ function createAudioChunkStream(
                 try {
                   player.seekTo(bufferedEnd, true);
                 } catch (error) {
-                  void onMseError(error);
+                  onMseError(error);
                 }
               }, 1000);
             }
           } catch (error) {
-            void onMseError(error);
+            onMseError(error);
           }
         };
         let stopCapture = () => {};
@@ -592,7 +587,7 @@ function createAudioChunkStream(
             stopCapture = capture.listen(onCapturedEvent);
             if (finished) stopCapture();
           } catch (error) {
-            void onMseError(error);
+            onMseError(error);
           }
         });
         if (finished) removeCaptureListener();
@@ -620,6 +615,26 @@ function postResponse(
   (target as Window).postMessage(message, targetOrigin || "*");
 }
 
+function createRequestAbortListener(
+  event: MessageEvent<MseMessage>,
+  source: MessageEventSource,
+  controller: AbortController,
+) {
+  return (abortEvent: MessageEvent<MseMessage>) => {
+    const data = abortEvent.data;
+    if (
+      abortEvent.source === source &&
+      abortEvent.origin === event.origin &&
+      data.messageId === event.data.messageId &&
+      data.messageType === MESSAGE_TYPE &&
+      data.messageDirection === "request" &&
+      data.isAborted
+    ) {
+      controller.abort(data.payload);
+    }
+  };
+}
+
 async function handleIframeRequest(
   event: MessageEvent<MseMessage>,
   targetWindow: MseWindow,
@@ -628,19 +643,7 @@ async function handleIframeRequest(
   const source = event.source;
   if (!source) return;
   const controller = new AbortController();
-  const abort = (abortEvent: MessageEvent<MseMessage>) => {
-    const data = abortEvent.data;
-    if (
-      abortEvent.source === source &&
-      abortEvent.origin === event.origin &&
-      data.messageId === message.messageId &&
-      data.messageType === MESSAGE_TYPE &&
-      data.messageDirection === "request" &&
-      data.isAborted
-    ) {
-      controller.abort(data.payload);
-    }
-  };
+  const abort = createRequestAbortListener(event, source, controller);
   targetWindow.addEventListener("message", abort);
 
   let settled = false;
@@ -666,27 +669,29 @@ async function handleIframeRequest(
         isProgress: true,
       });
     };
-    const chunks: AsyncIterable<AudioChunk> =
-      audioDownloadType === SABR_STRATEGY
-        ? getSabrAudioChunks(
-            targetWindow,
-            videoId,
-            controller.signal,
-            getSourceLanguage(message),
-          )
-        : audioDownloadType === AudioDownloadType.WEB_ABR
-          ? getWebAbrAudioChunks(
-              targetWindow,
-              videoId,
-              controller.signal,
-              getSourceLanguage(message),
-            )
-          : createAudioChunkStream(
-              targetWindow,
-              videoId,
-              controller.signal,
-              postProgress,
-            );
+    let chunks: AsyncIterable<AudioChunk>;
+    if (audioDownloadType === SABR_STRATEGY) {
+      chunks = getSabrAudioChunks(
+        targetWindow,
+        videoId,
+        controller.signal,
+        getSourceLanguage(message),
+      );
+    } else if (audioDownloadType === AudioDownloadType.WEB_ABR) {
+      chunks = getWebAbrAudioChunks(
+        targetWindow,
+        videoId,
+        controller.signal,
+        getSourceLanguage(message),
+      );
+    } else {
+      chunks = createAudioChunkStream(
+        targetWindow,
+        videoId,
+        controller.signal,
+        postProgress,
+      );
+    }
     if (
       audioDownloadType === SABR_STRATEGY ||
       audioDownloadType === AudioDownloadType.WEB_ABR
@@ -740,6 +745,133 @@ async function handleIframeRequest(
   }
 }
 
+async function handleDirectRequest(
+  event: MessageEvent<MseMessage>,
+  targetWindow: MseWindow,
+  source: MessageEventSource,
+  videoId: string,
+  audioDownloadType: AudioBridgeStrategy,
+): Promise<void> {
+  const message = event.data;
+  const controller = new AbortController();
+  let settled = false;
+
+  const abort = createRequestAbortListener(event, source, controller);
+  targetWindow.addEventListener("message", abort);
+
+  const postProgress = () => {
+    if (settled) return;
+    postResponse(source, event.origin, {
+      ...message,
+      messageDirection: "response",
+      payload: undefined,
+      isProgress: true,
+    });
+  };
+
+  const heartbeat = setInterval(postProgress, 30_000);
+  postProgress();
+  debug.log("Audio downloader. direct strategy request started", {
+    strategy: audioDownloadType,
+    videoId,
+    messageId: message.messageId,
+    host: targetWindow.location.hostname,
+  });
+
+  try {
+    const chunks =
+      audioDownloadType === SABR_STRATEGY
+        ? getSabrAudioChunks(
+            targetWindow,
+            videoId,
+            controller.signal,
+            getSourceLanguage(message),
+          )
+        : getWebAbrAudioChunks(
+            targetWindow,
+            videoId,
+            controller.signal,
+            getSourceLanguage(message),
+          );
+
+    for await (const chunk of chunks) {
+      // Normalize the chunk into this realm before crossing the message
+      // boundary. Firefox is stricter about structured-cloning objects and
+      // typed arrays originating in another userscript/page compartment.
+      // Always copying also makes Safari follow the same deterministic path
+      // instead of relying on browser-specific cross-realm behaviour.
+      const buffer = new Uint8Array(
+        chunk.buffer.buffer,
+        chunk.buffer.byteOffset,
+        chunk.buffer.byteLength,
+      ).slice();
+      const payload: AudioChunk = {
+        ...chunk,
+        buffer,
+      };
+
+      debug.log("Audio downloader. direct chunk received", {
+        videoId,
+        messageId: message.messageId,
+        size: buffer.byteLength,
+        isLastChunk: chunk.isLastChunk,
+      });
+
+      try {
+        postResponse(source, event.origin, {
+          ...message,
+          messageDirection: "response",
+          payload,
+        });
+        debug.log("Audio downloader. direct chunk posted", {
+          videoId,
+          messageId: message.messageId,
+          size: buffer.byteLength,
+          isLastChunk: chunk.isLastChunk,
+        });
+      } catch (error) {
+        debug.error("Audio downloader. direct chunk post failed", {
+          videoId,
+          messageId: message.messageId,
+          size: buffer.byteLength,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        throw error;
+      }
+    }
+
+    settled = true;
+    debug.log("Audio downloader. direct strategy stream finished", {
+      strategy: audioDownloadType,
+      videoId,
+      messageId: message.messageId,
+    });
+    postResponse(source, event.origin, {
+      ...message,
+      messageDirection: "response",
+      payload: undefined,
+      isStreamFinished: true,
+    });
+  } catch (error) {
+    settled = true;
+    debug.error("Audio downloader. direct WebABR/SABR request failed", {
+      videoId,
+      messageId: message.messageId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    postResponse(source, event.origin, {
+      ...message,
+      messageDirection: "response",
+      payload: undefined,
+      error: error instanceof Error ? error.message : String(error),
+      isAborted: controller.signal.aborted || isAbortError(error),
+    });
+  } finally {
+    clearInterval(heartbeat);
+    targetWindow.removeEventListener("message", abort);
+  }
+}
+
 async function handleTopRequest(
   event: MessageEvent<MseMessage>,
   targetWindow: MseWindow,
@@ -783,135 +915,13 @@ async function handleTopRequest(
     audioDownloadType === SABR_STRATEGY ||
     audioDownloadType === AudioDownloadType.WEB_ABR
   ) {
-    const controller = new AbortController();
-    let settled = false;
-
-    const abort = (abortEvent: MessageEvent<MseMessage>) => {
-      const data = abortEvent.data;
-      if (
-        abortEvent.source === source &&
-        abortEvent.origin === event.origin &&
-        data.messageId === message.messageId &&
-        data.messageType === MESSAGE_TYPE &&
-        data.messageDirection === "request" &&
-        data.isAborted
-      ) {
-        controller.abort(data.payload);
-      }
-    };
-    targetWindow.addEventListener("message", abort);
-
-    const postProgress = () => {
-      if (settled) return;
-      postResponse(source, event.origin, {
-        ...message,
-        messageDirection: "response",
-        payload: undefined,
-        isProgress: true,
-      });
-    };
-
-    const heartbeat = setInterval(postProgress, 30_000);
-    postProgress();
-    debug.log("Audio downloader. direct strategy request started", {
-      strategy: audioDownloadType,
+    await handleDirectRequest(
+      event,
+      targetWindow,
+      source,
       videoId,
-      messageId: message.messageId,
-      host: targetWindow.location.hostname,
-    });
-
-    try {
-      const chunks =
-        audioDownloadType === SABR_STRATEGY
-          ? getSabrAudioChunks(
-              targetWindow,
-              videoId,
-              controller.signal,
-              getSourceLanguage(message),
-            )
-          : getWebAbrAudioChunks(
-              targetWindow,
-              videoId,
-              controller.signal,
-              getSourceLanguage(message),
-            );
-
-      for await (const chunk of chunks) {
-        // Normalize the chunk into this realm before crossing the message
-        // boundary. Firefox is stricter about structured-cloning objects and
-        // typed arrays originating in another userscript/page compartment.
-        // Always copying also makes Safari follow the same deterministic path
-        // instead of relying on browser-specific cross-realm behaviour.
-        const buffer = new Uint8Array(
-          chunk.buffer.buffer,
-          chunk.buffer.byteOffset,
-          chunk.buffer.byteLength,
-        ).slice();
-        const payload: AudioChunk = {
-          ...chunk,
-          buffer,
-        };
-
-        debug.log("Audio downloader. direct chunk received", {
-          videoId,
-          messageId: message.messageId,
-          size: buffer.byteLength,
-          isLastChunk: chunk.isLastChunk,
-        });
-
-        try {
-          postResponse(source, event.origin, {
-            ...message,
-            messageDirection: "response",
-            payload,
-          });
-          debug.log("Audio downloader. direct chunk posted", {
-            videoId,
-            messageId: message.messageId,
-            size: buffer.byteLength,
-            isLastChunk: chunk.isLastChunk,
-          });
-        } catch (error) {
-          debug.error("Audio downloader. direct chunk post failed", {
-            videoId,
-            messageId: message.messageId,
-            size: buffer.byteLength,
-            error: error instanceof Error ? error.message : String(error),
-          });
-          throw error;
-        }
-      }
-
-      settled = true;
-      debug.log("Audio downloader. direct strategy stream finished", {
-        strategy: audioDownloadType,
-        videoId,
-        messageId: message.messageId,
-      });
-      postResponse(source, event.origin, {
-        ...message,
-        messageDirection: "response",
-        payload: undefined,
-        isStreamFinished: true,
-      });
-    } catch (error) {
-      settled = true;
-      debug.error("Audio downloader. direct WebABR/SABR request failed", {
-        videoId,
-        messageId: message.messageId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      postResponse(source, event.origin, {
-        ...message,
-        messageDirection: "response",
-        payload: undefined,
-        error: error instanceof Error ? error.message : String(error),
-        isAborted: controller.signal.aborted || isAbortError(error),
-      });
-    } finally {
-      clearInterval(heartbeat);
-      targetWindow.removeEventListener("message", abort);
-    }
+      audioDownloadType,
+    );
     return;
   }
 

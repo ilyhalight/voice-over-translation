@@ -54,6 +54,16 @@ export interface BaseViteConfigOptions {
   cacheName: string;
 }
 
+export const solidPluginOptions = {
+  solid: {
+    generate: "universal",
+    moduleName: "vot-solid-renderer",
+  },
+} as const;
+
+/** Plugins shared by every build that are not provided by a WXT module. */
+export const sharedVitePlugins: Plugin[] = [minifiedYouTubePlayerSolverPlugin];
+
 export function createBaseViteConfig({
   cacheName,
 }: BaseViteConfigOptions): UserConfig {
@@ -63,15 +73,7 @@ export function createBaseViteConfig({
     publicDir: false,
     cacheDir: viteCacheDir(cacheName),
     appType: "custom",
-    plugins: [
-      solidPlugin({
-        solid: {
-          generate: "universal",
-          moduleName: "vot-solid-renderer",
-        },
-      }),
-      minifiedYouTubePlayerSolverPlugin,
-    ],
+    plugins: [solidPlugin(solidPluginOptions), ...sharedVitePlugins],
     resolve: {
       alias: sharedResolveAlias,
       dedupe: ["solid-js", "solid-js/web", "solid-js/store"],

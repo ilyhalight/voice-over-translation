@@ -1,23 +1,7 @@
-/**
- * Shared constants for the MV3 extension build.
- *
- * These strings MUST be identical across:
- *  - prelude (MAIN world)
- *  - bridge  (ISOLATED world)
- *  - background (service worker port name)
- *
- * CRXJS creates a separate internal Rollup build for each content-script
- * entry and the service worker, so shared code is duplicated per entry.
- * If tree-shaking/minification diverges, string constants would diverge
- * and break the postMessage bridge — keep them literal and centralized.
- */
-
 export type AnyObject = Record<string, any>;
 
-// Message channel marker (kept very specific to avoid collisions).
 export const MARK = "__VOT_EXT_BRIDGE__";
 
-// Message types (page <-> bridge)
 export const TYPE_REQ = "VOT_EXT_REQ";
 export const TYPE_RES = "VOT_EXT_RES";
 
@@ -28,10 +12,25 @@ export const TYPE_XHR_EVENT = "VOT_EXT_XHR_EVENT";
 
 export const TYPE_NOTIFY = "VOT_EXT_NOTIFY";
 
-// Background port name (bridge <-> service worker)
+// Bridge lifecycle (bridge -> page). A bridge instance announces itself with
+// READY (new instance id) and, when its extension context dies (reload/update),
+// with DOWN so the page can queue work until the next READY. PING is sent by
+// the page to ask any live bridge to re-announce itself.
+export const TYPE_BRIDGE_READY = "VOT_EXT_BRIDGE_READY";
+export const TYPE_BRIDGE_DOWN = "VOT_EXT_BRIDGE_DOWN";
+export const TYPE_BRIDGE_PING = "VOT_EXT_BRIDGE_PING";
+
+/** Error code put into TYPE_RES / XHR error payloads when the bridge died. */
+export const BRIDGE_RESTART_ERROR_CODE = "VOT_EXT_BRIDGE_RESTARTED";
+
+/** DOM event (shared between worlds) used by a fresh bridge to retire orphans. */
+export const BRIDGE_TAKEOVER_EVENT = "vot-ext:bridge-takeover";
+
+/** Long-lived port used only to detect extension unload from content scripts. */
+export const LIFECYCLE_PORT_NAME = "vot_lifecycle";
+
 export const PORT_NAME = "vot_gm_xhr";
 
-// Background runtime message types (bridge <-> service worker, one-off)
 export const BG_MSG_STORAGE = "gm_storage";
 export const BG_MSG_NOTIFICATION = "gm_notification";
 export const BG_MSG_TELEMETRY_CONSENT = "telemetry_consent";
@@ -81,7 +80,15 @@ export type BridgeXhrEventMessage = BridgeMarked & {
   payload?: AnyObject;
 };
 
+export type BridgeLifecycleMessage = BridgeMarked &
+  (
+    | { type: typeof TYPE_BRIDGE_READY; instanceId: string }
+    | { type: typeof TYPE_BRIDGE_DOWN; instanceId: string; reason?: string }
+    | { type: typeof TYPE_BRIDGE_PING }
+  );
+
 export type BridgeWireMessage =
+  | BridgeLifecycleMessage
   | BridgeReqMessage
   | BridgeResMessage
   | BridgeNotifyMessage
@@ -98,6 +105,9 @@ const BRIDGE_MESSAGE_TYPES = new Set<string>([
   TYPE_XHR_ABORT,
   TYPE_XHR_ACK,
   TYPE_XHR_EVENT,
+  TYPE_BRIDGE_READY,
+  TYPE_BRIDGE_DOWN,
+  TYPE_BRIDGE_PING,
 ]);
 
 export function isOurMessage(data: unknown): data is BridgeWireMessage {

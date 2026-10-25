@@ -24,6 +24,7 @@ let backgroundListener: BackgroundListener;
 globals.browser = {
   permissions: { getAll: () => getAll() },
   runtime: {
+    id: "test-extension",
     onMessage: {
       addListener: (listener: BackgroundListener) => {
         backgroundListener = listener;

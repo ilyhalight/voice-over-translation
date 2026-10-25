@@ -8,8 +8,6 @@ import {
   Switch,
 } from "solid-js";
 
-import "./SubtitlesWidget.scss";
-
 import { buildSubtitleInlineStyleCssText } from "../../subtitles/inlineStyle";
 import type {
   SubtitleRenderPlanPart,

@@ -1,7 +1,7 @@
 import { isRecord } from "#utils/guards.ts";
-import type { SubtitleDescriptor } from "../types/subtitles";
 import {
   type BuiltInSubtitleFontFamily,
+  type SubtitleDescriptor,
   type SubtitleFormat,
   subtitleFontFamilies,
   subtitleFormats,

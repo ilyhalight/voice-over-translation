@@ -1,8 +1,6 @@
 import { createSignal, createUniqueId, type JSX, mergeProps } from "solid-js";
 import { effect } from "solid-js/web";
 
-import "./SettingsSection.scss";
-
 import { RawButton } from "../Button/RawButton";
 import { ChevronIcon } from "../Icons/ChevronIcon";
 

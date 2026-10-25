@@ -34,11 +34,13 @@ async function main() {
 
   const tmpdir = await fs.mkdtemp(path.join(OUTPUT_DIR_PATH, "tmp-"));
   try {
-    for (const sourcePath of SOURCE_PATHS) {
-      const destPath = path.join(tmpdir, path.relative(ROOT_DIR, sourcePath));
-      await fs.mkdir(path.dirname(destPath), { recursive: true });
-      await fs.cp(sourcePath, destPath, { recursive: true });
-    }
+    await Promise.all(
+      SOURCE_PATHS.map(async (sourcePath) => {
+        const destPath = path.join(tmpdir, path.relative(ROOT_DIR, sourcePath));
+        await fs.mkdir(path.dirname(destPath), { recursive: true });
+        await fs.cp(sourcePath, destPath, { recursive: true });
+      }),
+    );
     await zipDir(tmpdir, OUTPUT_SOURCE_FILE_PATH);
     console.log(`Source code zipped successfully: ${OUTPUT_SOURCE_FILE_PATH}`);
   } finally {

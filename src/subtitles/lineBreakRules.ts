@@ -409,8 +409,7 @@ const lastWordOf = (text: string): string => {
 };
 
 const firstWordOf = (text: string): string => {
-  const parts = normalizeLexiconWord(text).split(" ").filter(Boolean);
-  return parts[0] ?? "";
+  return normalizeLexiconWord(text).split(" ").find(Boolean) ?? "";
 };
 
 const LINE_BREAK_PENALTY = {

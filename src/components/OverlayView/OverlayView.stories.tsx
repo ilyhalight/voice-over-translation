@@ -84,10 +84,10 @@ export const SmallVideoLayout: Story = {
 
     setSettings("buttonPos", "left");
     smallLayoutControls?.setContainerSize(400, 300);
-    expect(buttonOverlay).toHaveAttribute("data-position", "default");
+    await expect(buttonOverlay).toHaveAttribute("data-position", "default");
 
     smallLayoutControls?.setContainerSize(700, 450);
-    expect(buttonOverlay).toHaveAttribute("data-position", "left");
+    await expect(buttonOverlay).toHaveAttribute("data-position", "left");
     setSettings("buttonPos", "default");
   },
 };

@@ -9,7 +9,6 @@ import { t } from "../../localization/localizationProvider";
 import { getDeepActiveElement } from "../../utils/dom";
 import { IconButton } from "../Button/IconButton";
 import { Overlay } from "../Utils/Overlay";
-import "./Dialog.scss";
 import { CloseIcon } from "../Icons/CloseIcon";
 
 export type DialogProps = {

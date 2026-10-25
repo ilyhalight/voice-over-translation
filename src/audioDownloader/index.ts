@@ -222,11 +222,15 @@ export class AudioDownloader {
   } | null = null;
   private readonly collectingChunks = new Map<string, Uint8Array[]>();
 
-  onDownloadedAudio = new EventImpl<[string, DownloadedAudioData]>();
-  onDownloadedPartialAudio = new EventImpl<
-    [string, DownloadedPartialAudioData]
+  onDownloadedAudio = new EventImpl<
+    AudioDownloaderEventMap["downloadedAudio"]
   >();
-  onDownloadAudioError = new EventImpl<[string, string, boolean]>();
+  onDownloadedPartialAudio = new EventImpl<
+    AudioDownloaderEventMap["downloadedPartialAudio"]
+  >();
+  onDownloadAudioError = new EventImpl<
+    AudioDownloaderEventMap["downloadAudioError"]
+  >();
 
   private readonly events: {
     [K in keyof AudioDownloaderEventMap]: EventImpl<AudioDownloaderEventMap[K]>;
@@ -409,49 +413,17 @@ export class AudioDownloader {
     }
   }
 
-  addEventListener(
-    type: "downloadedAudio",
-    listener: (translationId: string, data: DownloadedAudioData) => void,
-  ): this;
-  addEventListener(
-    type: "downloadedPartialAudio",
-    listener: (translationId: string, data: DownloadedPartialAudioData) => void,
-  ): this;
-  addEventListener(
-    type: "downloadAudioError",
-    listener: (
-      translationId: string,
-      videoId: string,
-      signInSuggested: boolean,
-    ) => void,
-  ): this;
-  addEventListener(
-    type: "downloadedAudio" | "downloadedPartialAudio" | "downloadAudioError",
-    listener: (...data: any[]) => void,
+  addEventListener<K extends keyof AudioDownloaderEventMap>(
+    type: K,
+    listener: (...data: AudioDownloaderEventMap[K]) => void,
   ): this {
     this.events[type].addListener(listener);
     return this;
   }
 
-  removeEventListener(
-    type: "downloadedAudio",
-    listener: (translationId: string, data: DownloadedAudioData) => void,
-  ): this;
-  removeEventListener(
-    type: "downloadedPartialAudio",
-    listener: (translationId: string, data: DownloadedPartialAudioData) => void,
-  ): this;
-  removeEventListener(
-    type: "downloadAudioError",
-    listener: (
-      translationId: string,
-      videoId: string,
-      signInSuggested: boolean,
-    ) => void,
-  ): this;
-  removeEventListener(
-    type: "downloadedAudio" | "downloadedPartialAudio" | "downloadAudioError",
-    listener: (...data: any[]) => void,
+  removeEventListener<K extends keyof AudioDownloaderEventMap>(
+    type: K,
+    listener: (...data: AudioDownloaderEventMap[K]) => void,
   ): this {
     this.events[type].removeListener(listener);
     return this;

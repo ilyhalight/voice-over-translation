@@ -1,5 +1,4 @@
 import { type JSX, Show } from "solid-js";
-import "./AccountMenu.scss";
 
 import { YANDEX_AUTH_AVATAR_BASE } from "#modules/auth/consts.ts";
 import { account } from "../../stores/account";

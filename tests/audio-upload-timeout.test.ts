@@ -105,7 +105,7 @@ describe("audio upload progressive timeouts", () => {
             amount: entry.amount,
           });
         }
-        expect(calls.length).toBe(entry.expectedTimeouts.length);
+        expect(calls).toHaveLength(entry.expectedTimeouts.length);
         expect(calls.map((c) => (c[5] as any)?.timeout)).toEqual(
           entry.expectedTimeouts,
         );

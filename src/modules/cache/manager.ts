@@ -1,4 +1,4 @@
-import type { ClientSession, SessionModule } from "@vot.js/shared/types/secure";
+import type { ClientSession } from "@vot.js/shared/types/secure";
 import { computeExpiresAt } from "#utils/responseCache.ts";
 import { votStorage } from "#utils/storage.ts";
 import { getTimestamp } from "#utils/utils.ts";
@@ -43,18 +43,9 @@ function sanitizeVOTSessions(value: unknown): VOTSessions {
   }
 
   const now = getTimestamp();
-  const entries = Object.entries(value as Record<string, unknown>).flatMap(
-    ([module, session]) => {
-      if (!isClientSession(session)) {
-        return [];
-      }
-
-      if (session.timestamp + session.expires <= now) {
-        return [];
-      }
-
-      return [[module as SessionModule, session] as const];
-    },
+  const entries = Object.entries(value).filter(
+    ([, session]) =>
+      isClientSession(session) && session.timestamp + session.expires > now,
   );
 
   return Object.fromEntries(entries) as VOTSessions;
@@ -67,15 +58,11 @@ function hasSessions(sessions: VOTSessions): boolean {
 export class VOTSessionStorageCache {
   constructor(private readonly storage: VOTSessionStorage = votStorage) {}
 
-  private getStorageKey(): string {
-    return VOT_SESSION_STORAGE_KEY;
-  }
-
   async restore(
     _host: string,
     currentSessions: VOTSessions = {},
   ): Promise<VOTSessions> {
-    const storageKey = this.getStorageKey();
+    const storageKey = VOT_SESSION_STORAGE_KEY;
     const rawStoredSession = await this.storage.getRaw<unknown>(storageKey);
     const restoredSessions = sanitizeVOTSessions(rawStoredSession);
     if (!hasSessions(restoredSessions)) {
@@ -95,8 +82,16 @@ export class VOTSessionStorageCache {
     _host: string,
     sessions: VOTSessions | undefined,
   ): Promise<void> {
-    const storageKey = this.getStorageKey();
-    const sanitizedSessions = sanitizeVOTSessions(sessions);
+    const storageKey = VOT_SESSION_STORAGE_KEY;
+    // Merge with stored sessions so one client/tab doesn't wipe valid
+    // sessions of other modules created elsewhere.
+    const storedSessions = sanitizeVOTSessions(
+      await this.storage.getRaw<unknown>(storageKey),
+    );
+    const sanitizedSessions = {
+      ...storedSessions,
+      ...sanitizeVOTSessions(sessions),
+    };
     if (!hasSessions(sanitizedSessions)) {
       await this.storage.deleteRaw(storageKey);
       return;
@@ -106,11 +101,7 @@ export class VOTSessionStorageCache {
   }
 }
 
-/**
- * Small in-memory cache with TTL for both translations and subtitles.
- *
- * The cache is keyed by a stable key built by VideoHandler.
- */
+/** TTL cache keyed by stable keys built by VideoHandler. */
 class InMemoryCacheManager {
   private readonly translations = new Map<
     string,
@@ -121,12 +112,7 @@ class InMemoryCacheManager {
     TimedCacheEntry<CacheSubtitle[]>
   >();
 
-  /**
-   * Clears all cached entries.
-   *
-   * Used when runtime settings change (e.g. proxy mode/host), because cached
-   * translation URLs and especially previous failures can become stale.
-   */
+  /** Runtime settings changes can make cached translation URLs stale. */
   clear(): void {
     this.translations.clear();
     this.subtitles.clear();

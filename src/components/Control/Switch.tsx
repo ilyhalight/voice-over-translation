@@ -5,7 +5,6 @@ import {
   mergeProps,
   Show,
 } from "solid-js";
-import "./Switch.scss";
 import { effect } from "solid-js/web";
 
 export type SwitchProps = {

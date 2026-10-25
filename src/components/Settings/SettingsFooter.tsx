@@ -1,7 +1,5 @@
 import type { JSX } from "solid-js";
 
-import "./SettingsFooter.scss";
-
 import { t } from "../../localization/localizationProvider";
 import { GeneralButton } from "../Button/GeneralButton";
 import { OutlinedButton } from "../Button/OutlinedButton";

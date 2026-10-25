@@ -1,13 +1,7 @@
 import path from "node:path";
 import { defineConfig, type UserConfig } from "vite";
-import { debugIdPlugin } from "./lib/debug-id.ts";
 import { buildDefine } from "./lib/env.ts";
-import {
-  DIST_DIR,
-  SOURCE_DIR,
-  SOURCEMAP_DIR,
-  singleFileBuildOptions,
-} from "./lib/paths.ts";
+import { DIST_DIR, SOURCE_DIR, sharedBuildOptions } from "./lib/paths.ts";
 import {
   collectUsedUserscriptGrantsFromEntry,
   getHeaders,
@@ -77,13 +71,6 @@ export default defineConfig(async ({ command, mode }) => {
 
   return {
     ...baseConfig,
-    plugins: [
-      ...(baseConfig.plugins ?? []),
-      debugIdPlugin({
-        variant: minified ? "userscript-min" : "userscript",
-        sourcemapDir: debug ? undefined : SOURCEMAP_DIR,
-      }),
-    ],
     define: buildDefine({
       debug,
       isExtension: false,
@@ -91,15 +78,14 @@ export default defineConfig(async ({ command, mode }) => {
       repoBranch,
       version,
       authors,
-      crxjsBuild: false,
       minified,
     }),
     build: {
       ...baseConfig.build,
-      ...singleFileBuildOptions,
+      ...sharedBuildOptions,
       outDir: DIST_DIR,
       emptyOutDir: false,
-      sourcemap: debug ? true : "hidden",
+      sourcemap: debug,
       minify: minified ? "oxc" : false,
       lib: {
         entry: USERSCRIPT_ENTRY,

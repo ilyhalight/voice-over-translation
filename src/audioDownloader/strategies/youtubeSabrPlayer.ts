@@ -42,32 +42,51 @@ function readInitialPlayerResponseFromDocument(
     if (!source.includes("ytInitialPlayerResponse")) continue;
 
     for (const marker of markers) {
-      let cursor = 0;
-      while (cursor < source.length) {
-        const markerIndex = source.indexOf(marker, cursor);
-        if (markerIndex < 0) break;
-        let start = markerIndex + marker.length;
-        while (start < source.length && /\s/.test(source[start] ?? "")) start++;
-        if (source[start] !== "{") {
-          cursor = start + 1;
-          continue;
-        }
-        const end = findJsonValueEnd(source, start);
-        if (end < 0) break;
-        try {
-          const value = JSON.parse(
-            source.slice(start, end),
-          ) as WebEmbeddedPlayerResponse;
-          if (value && typeof value === "object") return value;
-        } catch {
-          // Keep looking: pages can contain stale/non-JSON occurrences too.
-        }
-        cursor = end;
-      }
+      const response = readPlayerResponseMarker(source, marker);
+      if (response) return response;
     }
   }
 
   return undefined;
+}
+
+function readPlayerResponseMarker(
+  source: string,
+  marker: string,
+): WebEmbeddedPlayerResponse | undefined {
+  let cursor = 0;
+  while (cursor < source.length) {
+    const markerIndex = source.indexOf(marker, cursor);
+    if (markerIndex < 0) break;
+    const afterMarker = markerIndex + marker.length;
+    const rest = source.slice(afterMarker);
+    const start = afterMarker + rest.length - rest.trimStart().length;
+    if (source[start] !== "{") {
+      cursor = start + 1;
+      continue;
+    }
+    const end = findJsonValueEnd(source, start);
+    if (end < 0) break;
+    try {
+      const value = JSON.parse(
+        source.slice(start, end),
+      ) as WebEmbeddedPlayerResponse;
+      if (value && typeof value === "object") return value;
+    } catch {
+      // Stale or non-JSON occurrences must not hide later valid responses.
+    }
+    cursor = end;
+  }
+  return undefined;
+}
+
+function hasNativeStreamingData(value: WebEmbeddedPlayerResponse): boolean {
+  return Boolean(
+    value.streamingData?.serverAbrStreamingUrl &&
+      value.playerConfig?.mediaCommonConfig?.mediaUstreamerRequestConfig
+        ?.videoPlaybackUstreamerConfig &&
+      value.streamingData?.adaptiveFormats?.length,
+  );
 }
 
 export function getNativePlayerResponse(
@@ -100,12 +119,7 @@ export function getNativePlayerResponse(
   for (const value of candidates) {
     const responseVideoId = value.videoDetails?.videoId;
     if (responseVideoId && responseVideoId !== videoId) continue;
-    if (
-      value.streamingData?.serverAbrStreamingUrl &&
-      value.playerConfig?.mediaCommonConfig?.mediaUstreamerRequestConfig
-        ?.videoPlaybackUstreamerConfig &&
-      value.streamingData?.adaptiveFormats?.length
-    ) {
+    if (hasNativeStreamingData(value)) {
       return value;
     }
   }

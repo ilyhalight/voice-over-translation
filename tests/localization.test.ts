@@ -10,70 +10,15 @@ const locales = {
   translationTakeApproximatelyMinute2: "Перевод займёт примерно {0} минуту",
 } as const;
 
-const localizationProvider = {
-  get: (message: keyof typeof locales) => locales[message] ?? message,
-};
-
-const t = localizationProvider.get;
-
-function secsToStrTime(secs: number) {
-  return formatTranslationEta(secs, (key) => t(key));
-}
-
-describe("secs to str time", () => {
-  test("30 sec", () => {
-    const result = secsToStrTime(30);
-    const expected = t("translationTakeAboutMinute");
-    expect(result).toBe(expected);
-  });
-  test("60 sec", () => {
-    const result = secsToStrTime(60);
-    const expected = t("translationTakeAboutMinute");
-    expect(result).toBe(expected);
-  });
-  test("90 sec", () => {
-    const result = secsToStrTime(90);
-    const expected = t("translationTakeAboutMinute");
-    expect(result).toBe(expected);
-  });
-  test("100 sec", () => {
-    const result = secsToStrTime(100);
-    const expected = localizationProvider
-      .get("translationTakeApproximatelyMinute")
-      .replace("{0}", "2");
-    expect(result).toBe(expected);
-  });
-  test("120 sec", () => {
-    const result = secsToStrTime(120);
-    const expected = localizationProvider
-      .get("translationTakeApproximatelyMinute")
-      .replace("{0}", "2");
-    expect(result).toBe(expected);
-  });
-  test("280 sec", () => {
-    const result = secsToStrTime(280);
-    const expected = localizationProvider
-      .get("translationTakeApproximatelyMinutes")
-      .replace("{0}", "5");
-    expect(result).toBe(expected);
-  });
-  test("300 sec", () => {
-    const result = secsToStrTime(300);
-    const expected = localizationProvider
-      .get("translationTakeApproximatelyMinutes")
-      .replace("{0}", "5");
-    expect(result).toBe(expected);
-  });
-  test("3587 sec", () => {
-    const result = secsToStrTime(3587);
-    const expected = t("translationTakeMoreThanHour");
-    expect(result).toBe(expected);
-  });
-  test("1240 sec", () => {
-    const result = secsToStrTime(1240);
-    const expected = localizationProvider
-      .get("translationTakeApproximatelyMinute2")
-      .replace("{0}", "21");
-    expect(result).toBe(expected);
+describe("translation ETA", () => {
+  test.each([
+    [30, locales.translationTakeAboutMinute],
+    [90, locales.translationTakeAboutMinute],
+    [100, locales.translationTakeApproximatelyMinute.replace("{0}", "2")],
+    [280, locales.translationTakeApproximatelyMinutes.replace("{0}", "5")],
+    [3587, locales.translationTakeMoreThanHour],
+    [1240, locales.translationTakeApproximatelyMinute2.replace("{0}", "21")],
+  ])("%i seconds", (seconds, expected) => {
+    expect(formatTranslationEta(seconds, (key) => locales[key])).toBe(expected);
   });
 });

@@ -5,7 +5,9 @@ import { isAbortError } from "../src/utils/errors";
 describe("createAbortableDelay", () => {
   test("resolves after delay", async () => {
     const controller = new AbortController();
-    await createAbortableDelay(20, controller.signal);
+    await expect(
+      createAbortableDelay(20, controller.signal),
+    ).resolves.toBeUndefined();
   });
 
   test("rejects when signal is already aborted", async () => {

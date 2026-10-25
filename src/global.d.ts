@@ -12,14 +12,6 @@ declare global {
   const REPO_BRANCH: "master" | "dev";
 
   /**
-   * Build-time injected CRXJS Chrome build flag.
-   * "true" in Chrome CRXJS builds, "false" in Firefox/userscript.
-   */
-  interface ImportMetaEnv {
-    readonly VITE_CRXJS_BUILD: string;
-  }
-
-  /**
    * Build-time injected comma-separated author list (from `src/headers.json`).
    * Present in both userscript and extension builds.
    */

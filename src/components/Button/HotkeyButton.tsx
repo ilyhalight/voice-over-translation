@@ -1,6 +1,5 @@
 import { createSignal, type JSX, mergeProps, Show, splitProps } from "solid-js";
 
-import "./HotkeyButton.scss";
 import { effect } from "solid-js/web";
 import {
   formatKeysCombo,

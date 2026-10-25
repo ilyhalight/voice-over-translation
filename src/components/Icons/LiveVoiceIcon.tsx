@@ -2,7 +2,13 @@ import type { JSX } from "solid-js";
 
 export function LiveVoiceIcon(): JSX.Element {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+    <svg
+      aria-hidden="true"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+    >
       <circle cx="10" cy="4.5" r="1.4" />
 
       <circle cx="10" cy="9" r="1.9" />

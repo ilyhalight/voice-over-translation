@@ -114,6 +114,28 @@ function installSafariPageBridge(): boolean {
   return document.documentElement.hasAttribute(BRIDGE_MARKER);
 }
 
+function createTokenSettlement(
+  signal: AbortSignal,
+  cleanup: () => void,
+  resolve: (value: string | undefined) => void,
+  reject: (reason: unknown) => void,
+) {
+  let settled = false;
+  const finish = (value: string | undefined) => {
+    if (settled) return;
+    settled = true;
+    cleanup();
+    resolve(value);
+  };
+  const onAbort = () => {
+    if (settled) return;
+    settled = true;
+    cleanup();
+    reject(signal.reason);
+  };
+  return { finish, onAbort };
+}
+
 async function requestSafariPagePoTokenLocal(
   binding: string,
   signal: AbortSignal,
@@ -132,7 +154,6 @@ async function requestSafariPagePoTokenLocal(
   });
 
   return await new Promise<string | undefined>((resolve, reject) => {
-    let settled = false;
     const timeout = setTimeout(() => finish(undefined), 8000);
 
     const cleanup = () => {
@@ -141,19 +162,12 @@ async function requestSafariPagePoTokenLocal(
       signal.removeEventListener("abort", onAbort);
     };
 
-    const finish = (value: string | undefined) => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      resolve(value);
-    };
-
-    const onAbort = () => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      reject(signal.reason);
-    };
+    const { finish, onAbort } = createTokenSettlement(
+      signal,
+      cleanup,
+      resolve,
+      reject,
+    );
 
     const onResponse = (event: Event) => {
       const detail = (event as CustomEvent<PoTokenResponse>).detail;
@@ -230,25 +244,18 @@ async function requestTopSafariPagePoToken(
     bindingLength: binding.length,
   });
   return await new Promise<string | undefined>((resolve, reject) => {
-    let settled = false;
     const timeout = setTimeout(() => finish(undefined), 8000);
     const cleanup = () => {
       clearTimeout(timeout);
       removeEventListener("message", onMessage);
       signal.removeEventListener("abort", onAbort);
     };
-    const finish = (value: string | undefined) => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      resolve(value);
-    };
-    const onAbort = () => {
-      if (settled) return;
-      settled = true;
-      cleanup();
-      reject(signal.reason);
-    };
+    const { finish, onAbort } = createTokenSettlement(
+      signal,
+      cleanup,
+      resolve,
+      reject,
+    );
     const onMessage = (event: MessageEvent<TopPoTokenMessage>) => {
       if (event.source !== window.top || event.origin !== location.origin)
         return;
