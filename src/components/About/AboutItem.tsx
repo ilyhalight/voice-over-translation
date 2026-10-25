@@ -1,7 +1,5 @@
 import type { JSX } from "solid-js";
 
-import "./AboutItem.scss";
-
 export type AccountInfoProps = {
   label: string;
   children: JSX.Element;

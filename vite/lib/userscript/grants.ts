@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import fsPromises from "node:fs/promises";
 import path from "node:path";
-import * as ts from "typescript";
+import { type ESTree, parseAstAsync, Visitor } from "vite";
 import { SOURCE_DIR } from "../paths.ts";
 
 const analyzableCodeExtensions = new Set([
@@ -74,120 +74,109 @@ function sortGrantSet(grants: Iterable<string>): string[] {
   return [...new Set(grants)].sort((left, right) => left.localeCompare(right));
 }
 
-function getScriptKind(filePath: string): ts.ScriptKind {
-  switch (path.extname(filePath).toLowerCase()) {
-    case ".ts":
-      return ts.ScriptKind.TS;
-    case ".tsx":
-      return ts.ScriptKind.TSX;
-    case ".jsx":
-      return ts.ScriptKind.JSX;
+type ParserLang = "js" | "jsx" | "ts" | "tsx";
+
+function getParserLang(filePath: string): ParserLang {
+  const ext = path.extname(filePath).toLowerCase().slice(1);
+  return ext === "ts" || ext === "tsx" || ext === "jsx" ? ext : "js";
+}
+
+function unwrapExpression(expression: ESTree.Expression): ESTree.Expression {
+  switch (expression.type) {
+    case "ParenthesizedExpression":
+    case "TSAsExpression":
+    case "TSTypeAssertion":
+    case "TSNonNullExpression":
+    case "TSSatisfiesExpression":
+      return unwrapExpression(expression.expression);
     default:
-      return ts.ScriptKind.JS;
+      return expression;
   }
 }
 
-function unwrapExpression(expression: ts.Expression): ts.Expression {
-  if (
-    ts.isParenthesizedExpression(expression) ||
-    ts.isAsExpression(expression) ||
-    ts.isTypeAssertionExpression(expression) ||
-    ts.isNonNullExpression(expression) ||
-    ts.isSatisfiesExpression(expression)
-  ) {
-    return unwrapExpression(expression.expression);
-  }
-
-  return expression;
+function isGlobalObjectName(name: string): boolean {
+  return name === "globalThis" || name === "window" || name === "self";
 }
 
-function isGmNamespaceOrigin(expression: ts.Expression): boolean {
+function isGmNamespaceOrigin(expression: ESTree.Expression): boolean {
   const unwrappedExpression = unwrapExpression(expression);
 
-  if (ts.isIdentifier(unwrappedExpression)) {
-    return unwrappedExpression.text === "GM";
+  switch (unwrappedExpression.type) {
+    case "Identifier":
+      return unwrappedExpression.name === "GM";
+    case "MemberExpression": {
+      if (
+        unwrappedExpression.computed ||
+        unwrappedExpression.property.type !== "Identifier"
+      ) {
+        return false;
+      }
+      const baseExpression = unwrapExpression(unwrappedExpression.object);
+      return (
+        unwrappedExpression.property.name === "GM" &&
+        baseExpression.type === "Identifier" &&
+        isGlobalObjectName(baseExpression.name)
+      );
+    }
+    case "ConditionalExpression":
+      return (
+        isGmNamespaceOrigin(unwrappedExpression.consequent) ||
+        isGmNamespaceOrigin(unwrappedExpression.alternate)
+      );
+    case "LogicalExpression":
+      return (
+        (unwrappedExpression.operator === "||" ||
+          unwrappedExpression.operator === "??") &&
+        (isGmNamespaceOrigin(unwrappedExpression.left) ||
+          isGmNamespaceOrigin(unwrappedExpression.right))
+      );
+    default:
+      return false;
   }
-
-  if (ts.isPropertyAccessExpression(unwrappedExpression)) {
-    const baseExpression = unwrapExpression(unwrappedExpression.expression);
-    return (
-      unwrappedExpression.name.text === "GM" &&
-      ts.isIdentifier(baseExpression) &&
-      (baseExpression.text === "globalThis" ||
-        baseExpression.text === "window" ||
-        baseExpression.text === "self")
-    );
-  }
-
-  if (ts.isConditionalExpression(unwrappedExpression)) {
-    return (
-      isGmNamespaceOrigin(unwrappedExpression.whenTrue) ||
-      isGmNamespaceOrigin(unwrappedExpression.whenFalse)
-    );
-  }
-
-  if (
-    ts.isBinaryExpression(unwrappedExpression) &&
-    (unwrappedExpression.operatorToken.kind === ts.SyntaxKind.BarBarToken ||
-      unwrappedExpression.operatorToken.kind ===
-        ts.SyntaxKind.QuestionQuestionToken)
-  ) {
-    return (
-      isGmNamespaceOrigin(unwrappedExpression.left) ||
-      isGmNamespaceOrigin(unwrappedExpression.right)
-    );
-  }
-
-  return false;
 }
 
 function visitGrantNodes(
-  parsed: ts.SourceFile,
+  program: ESTree.Program,
   detectedGrants: Set<string>,
 ): void {
   const gmNamespaceAliases = new Set<string>();
 
-  function visit(node: ts.Node) {
-    if (
-      ts.isVariableDeclaration(node) &&
-      ts.isIdentifier(node.name) &&
-      node.initializer &&
-      isGmNamespaceOrigin(node.initializer)
-    ) {
-      gmNamespaceAliases.add(node.name.text);
-    }
-
-    if (ts.isIdentifier(node)) {
-      const grant = legacyIdentifierGrantMap.get(node.text);
+  new Visitor({
+    VariableDeclarator(node) {
+      if (
+        node.id.type === "Identifier" &&
+        node.init &&
+        isGmNamespaceOrigin(node.init)
+      ) {
+        gmNamespaceAliases.add(node.id.name);
+      }
+    },
+    Identifier(node) {
+      const grant = legacyIdentifierGrantMap.get(node.name);
       if (grant) detectedGrants.add(grant);
-    }
+    },
+    MemberExpression(node) {
+      if (
+        node.computed ||
+        node.object.type !== "Identifier" ||
+        node.property.type !== "Identifier"
+      ) {
+        return;
+      }
 
-    if (
-      ts.isPropertyAccessExpression(node) &&
-      ts.isIdentifier(node.expression)
-    ) {
-      const targetName = node.expression.text;
-      const propertyName = node.name.text;
+      const targetName = node.object.name;
+      const propertyName = node.property.name;
 
       if (targetName === "GM" || gmNamespaceAliases.has(targetName)) {
         const grant = gmMemberGrantMap.get(propertyName);
         if (grant) detectedGrants.add(grant);
       }
 
-      if (
-        propertyName === "focus" &&
-        (targetName === "window" ||
-          targetName === "globalThis" ||
-          targetName === "self")
-      ) {
+      if (propertyName === "focus" && isGlobalObjectName(targetName)) {
         detectedGrants.add("window.focus");
       }
-    }
-
-    ts.forEachChild(node, visit);
-  }
-
-  visit(parsed);
+    },
+  }).visit(program);
 }
 
 function normalizeImportSpecifier(specifier: string): string {
@@ -227,51 +216,40 @@ function resolveLocalModule(
 
 function collectLocalDependencies(
   filePath: string,
-  parsed: ts.SourceFile,
+  program: ESTree.Program,
 ): string[] {
   const dependencies = new Set<string>();
 
-  function addDependency(specifier?: string) {
-    if (!specifier) return;
+  function addDependency(specifier: string) {
     const resolved = resolveLocalModule(filePath, specifier);
     if (resolved) dependencies.add(resolved);
   }
 
-  function visit(node: ts.Node) {
-    if (
-      ts.isImportDeclaration(node) &&
-      ts.isStringLiteral(node.moduleSpecifier) &&
-      !node.importClause?.isTypeOnly
-    ) {
-      addDependency(node.moduleSpecifier.text);
-    }
+  new Visitor({
+    ImportDeclaration(node) {
+      if (node.importKind !== "type") addDependency(node.source.value);
+    },
+    ExportNamedDeclaration(node) {
+      if (node.source && node.exportKind !== "type") {
+        addDependency(node.source.value);
+      }
+    },
+    ExportAllDeclaration(node) {
+      if (node.exportKind !== "type") addDependency(node.source.value);
+    },
+  }).visit(program);
 
-    if (
-      ts.isExportDeclaration(node) &&
-      node.moduleSpecifier &&
-      ts.isStringLiteral(node.moduleSpecifier) &&
-      !node.isTypeOnly
-    ) {
-      addDependency(node.moduleSpecifier.text);
-    }
-
-    ts.forEachChild(node, visit);
-  }
-
-  visit(parsed);
   return [...dependencies];
 }
 
 export async function collectUsedUserscriptGrantsFromEntry(
   entryFilePath: string,
 ): Promise<string[]> {
-  const pendingFiles = [path.resolve(entryFilePath)];
   const visitedFiles = new Set<string>();
   const detectedGrants = new Set<string>();
 
-  while (pendingFiles.length > 0) {
-    const currentFilePath = pendingFiles.pop();
-    if (!currentFilePath || visitedFiles.has(currentFilePath)) continue;
+  async function visitFile(currentFilePath: string): Promise<void> {
+    if (visitedFiles.has(currentFilePath)) return;
 
     visitedFiles.add(currentFilePath);
 
@@ -280,30 +258,24 @@ export async function collectUsedUserscriptGrantsFromEntry(
       !analyzableCodeExtensions.has(ext) ||
       currentFilePath.endsWith(".d.ts")
     ) {
-      continue;
+      return;
     }
 
     const source = await fsPromises.readFile(currentFilePath, "utf8");
-    const parsed = ts.createSourceFile(
-      currentFilePath,
+    const program = await parseAstAsync(
       source,
-      ts.ScriptTarget.Latest,
-      true,
-      getScriptKind(currentFilePath),
+      { lang: getParserLang(currentFilePath) },
+      currentFilePath,
     );
 
-    visitGrantNodes(parsed, detectedGrants);
+    visitGrantNodes(program, detectedGrants);
 
-    for (const dependencyPath of collectLocalDependencies(
-      currentFilePath,
-      parsed,
-    )) {
-      if (!visitedFiles.has(dependencyPath)) {
-        pendingFiles.push(dependencyPath);
-      }
-    }
+    await Promise.all(
+      collectLocalDependencies(currentFilePath, program).map(visitFile),
+    );
   }
 
+  await visitFile(path.resolve(entryFilePath));
   return sortGrantSet(detectedGrants);
 }
 

@@ -634,14 +634,16 @@ function getSupportedSites() {
 async function main() {
   const supportedSites = getSupportedSites();
   const langs = ["ru", "en"];
-  for (const lang of langs) {
-    const mdText = `${genMarkdown(supportedSites, lang).join("\n\n")}\n`;
+  await Promise.all(
+    langs.map(async (lang) => {
+      const mdText = `${genMarkdown(supportedSites, lang).join("\n\n")}\n`;
 
-    await Bun.write(
-      path.join(import.meta.dir, `SITES-${lang.toUpperCase()}.md`),
-      mdText,
-    );
-  }
+      await Bun.write(
+        path.join(import.meta.dir, `SITES-${lang.toUpperCase()}.md`),
+        mdText,
+      );
+    }),
+  );
 }
 
 if (import.meta.main) {

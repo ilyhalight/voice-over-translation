@@ -66,19 +66,19 @@ export const SegmentedButtonLongLabel: Story = {
       '.vot-segment-only-icon[aria-haspopup="dialog"]',
     );
 
-    expect(container).toBeDefined();
-    expect(button).toBeDefined();
-    expect(label).toBeDefined();
-    expect(menu).toBeDefined();
+    await expect(container).toBeDefined();
+    await expect(button).toBeDefined();
+    await expect(label).toBeDefined();
+    await expect(menu).toBeDefined();
     if (!container || !button || !label || !menu) return;
 
-    expect(button.getBoundingClientRect().right).toBeLessThanOrEqual(
+    await expect(button.getBoundingClientRect().right).toBeLessThanOrEqual(
       container.getBoundingClientRect().right + 1,
     );
-    expect(menu.getBoundingClientRect().right).toBeLessThanOrEqual(
+    await expect(menu.getBoundingClientRect().right).toBeLessThanOrEqual(
       button.getBoundingClientRect().right + 1,
     );
-    expect(label.scrollWidth).toBeGreaterThan(label.clientWidth);
+    await expect(label.scrollWidth).toBeGreaterThan(label.clientWidth);
   },
 };
 

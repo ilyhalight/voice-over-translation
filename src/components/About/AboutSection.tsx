@@ -2,7 +2,6 @@ import type { TMInfoScriptMeta } from "@toil/gm-types/types/info/tampermonkey";
 import type { JSX } from "solid-js";
 
 import { AboutItem } from "./AboutItem";
-import "./AboutSection.scss";
 
 import { getGMInfo } from "#utils/gm.ts";
 import {

@@ -138,8 +138,14 @@ export function categorizeFailure(error: unknown): string {
  */
 export function makeAbortError(reason: unknown = "Aborted"): Error {
   if (reason instanceof Error && isAbortError(reason)) return reason;
-  const message =
-    reason instanceof Error ? reason.message : String(reason ?? "Aborted");
+  let message: string;
+  if (reason instanceof Error) {
+    message = reason.message;
+  } else if (typeof reason === "object" && reason !== null) {
+    message = toErrorMessage(reason, "Aborted");
+  } else {
+    message = String(reason ?? "Aborted");
+  }
   try {
     return new DOMException(message, "AbortError");
   } catch {

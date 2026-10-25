@@ -4,6 +4,7 @@ import {
   someComposedAncestor,
   walkShadowIncludingSubtree,
 } from "./domTraversal";
+import { getNowMs } from "./environment";
 import { EventImpl } from "./eventImpl";
 import {
   createIntervalIdleChecker,
@@ -436,19 +437,9 @@ export class VideoObserver {
     return Array.from(set);
   }
 
-  private getNowMs(): number {
-    if (
-      typeof performance !== "undefined" &&
-      typeof performance.now === "function"
-    ) {
-      return performance.now();
-    }
-    return Date.now();
-  }
-
   private isSliceBudgetReached(startMs: number, processed: number): boolean {
     if (processed >= VideoObserver.MAX_NODES_PER_SLICE) return true;
-    return this.getNowMs() - startMs >= VideoObserver.MAX_FLUSH_BUDGET_MS;
+    return getNowMs() - startMs >= VideoObserver.MAX_FLUSH_BUDGET_MS;
   }
 
   private processPendingAdded(startMs: number): number {
@@ -501,7 +492,7 @@ export class VideoObserver {
       return;
     }
 
-    const startMs = this.getNowMs();
+    const startMs = getNowMs();
     const processedAdded = this.processPendingAdded(startMs);
     this.processPendingRemoved(startMs, processedAdded);
 

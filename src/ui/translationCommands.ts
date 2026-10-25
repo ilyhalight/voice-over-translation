@@ -55,6 +55,28 @@ async function prepareAuthStateForTranslation(
   throw new VOTLocalizedError("VOTYandexTokenExpired");
 }
 
+function handleTranslationButtonError(
+  deps: TranslationButtonCommandDeps,
+  err: unknown,
+): void {
+  if (isAbortError(err)) {
+    deps.transformBtn("none", t("translateVideo"));
+    return;
+  }
+
+  logger.error(err);
+  if (!(err instanceof Error)) {
+    deps.transformBtn("error", String(err));
+    return;
+  }
+
+  const message =
+    err.name === "VOTLocalizedError"
+      ? (err as VOTLocalizedError).localizedMessage
+      : err.message;
+  deps.transformBtn("error", message);
+}
+
 export async function handleTranslationButtonCommand(
   deps: TranslationButtonCommandDeps,
 ) {
@@ -125,21 +147,6 @@ export async function handleTranslationButtonCommand(
       videoData.translationHelp,
     );
   } catch (err) {
-    if (isAbortError(err)) {
-      deps.transformBtn("none", t("translateVideo"));
-      return;
-    }
-
-    logger.error(err);
-    if (!(err instanceof Error)) {
-      deps.transformBtn("error", String(err));
-      return;
-    }
-
-    const message =
-      err.name === "VOTLocalizedError"
-        ? (err as VOTLocalizedError).localizedMessage
-        : err.message;
-    deps.transformBtn("error", message);
+    handleTranslationButtonError(deps, err);
   }
 }

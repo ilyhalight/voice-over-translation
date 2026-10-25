@@ -27,6 +27,7 @@ export function startProgressAnimation(
 
 const meta = {
   component: ProgressIcon,
+  excludeStories: ["startProgressAnimation"],
   render: (args) => (
     <vot-block style="display: flex;color:#fff;font-size: 40px">
       <ProgressIcon {...args} />

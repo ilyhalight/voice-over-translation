@@ -11,7 +11,6 @@ import {
 } from "solid-js";
 import { effect } from "solid-js/web";
 
-import "./Select.scss";
 import { t } from "../../localization/localizationProvider";
 import type { LanguageSelectKey } from "../../types/components/select";
 import type { Phrase } from "../../types/localization";
@@ -117,7 +116,6 @@ export function Select(props: SelectProps): JSX.Element {
         : [finalProps.selectedValue],
     ),
   );
-  const [options, setOptions] = createSignal(finalProps.options);
   const [searchQuery, setSearchQuery] = createSignal("");
   const [isOpen, setIsOpen] = createSignal(finalProps.isOpen);
   const [isSearching, setIsSearching] = createSignal(false);
@@ -130,7 +128,7 @@ export function Select(props: SelectProps): JSX.Element {
   );
 
   const baseOptions = createMemo(() => {
-    const result = [...options()];
+    const result = [...finalProps.options];
     const existingValues = new Set(result.map((option) => option.value));
 
     for (const [value, option] of selectedOptionCache()) {
@@ -195,10 +193,6 @@ export function Select(props: SelectProps): JSX.Element {
 
   effect(() => {
     setIsOpen(finalProps.isOpen);
-  });
-
-  effect(() => {
-    setOptions(finalProps.options);
   });
 
   createFloatingPosition({

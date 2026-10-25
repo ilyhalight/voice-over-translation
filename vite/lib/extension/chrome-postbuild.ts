@@ -29,18 +29,22 @@ async function writeChromeUpdatesManifest({
   return updatesManifestPath;
 }
 
+/**
+ * Packages an already-built Chrome extension directory (e.g. WXT's
+ * `.output/chrome-mv3`) into dist-ext and writes the self-hosted update.xml.
+ */
 export async function finalizeChromeBuild(
+  sourceDir: string,
   config: BuildConfig,
   headers: {
     version?: string;
     author?: string;
   },
 ): Promise<void> {
-  const chromeDir = path.join(DIST_EXT_DIR, "chrome");
   const version = String(headers.version || "");
 
   const zipPath = path.join(DIST_EXT_DIR, CHROME_ZIP_FILE);
-  await zipDir(chromeDir, zipPath);
+  await zipDir(sourceDir, zipPath);
 
   const updatesPath = await writeChromeUpdatesManifest({
     version,
@@ -49,19 +53,4 @@ export async function finalizeChromeBuild(
 
   console.log(`Chrome package: ${zipPath}`);
   console.log(`Chrome updates: ${updatesPath}`);
-}
-
-export async function getChromeExtensionBuildEnv(config: BuildConfig): Promise<{
-  headers: { version?: string; author?: string };
-  locales: string[];
-  branch: string;
-}> {
-  const { getExtensionHeaders, getLocaleCodes } = await import(
-    "./firefox-pipeline"
-  );
-  const [headers, locales] = await Promise.all([
-    getExtensionHeaders(),
-    getLocaleCodes(),
-  ]);
-  return { headers, locales, branch: config.REPO_BRANCH };
 }

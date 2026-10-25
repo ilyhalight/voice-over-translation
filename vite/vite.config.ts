@@ -1,7 +1,7 @@
 import path from "node:path";
 import { defineConfig, type UserConfig } from "vite";
 import { buildDefine } from "./lib/env.ts";
-import { DIST_DIR, SOURCE_DIR, singleFileBuildOptions } from "./lib/paths.ts";
+import { DIST_DIR, SOURCE_DIR, sharedBuildOptions } from "./lib/paths.ts";
 import {
   collectUsedUserscriptGrantsFromEntry,
   getHeaders,
@@ -78,12 +78,11 @@ export default defineConfig(async ({ command, mode }) => {
       repoBranch,
       version,
       authors,
-      crxjsBuild: false,
       minified,
     }),
     build: {
       ...baseConfig.build,
-      ...singleFileBuildOptions,
+      ...sharedBuildOptions,
       outDir: DIST_DIR,
       emptyOutDir: false,
       sourcemap: debug,

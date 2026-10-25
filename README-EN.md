@@ -195,7 +195,7 @@ Automatic builds are available only when using [Bun.sh][bun-link]:
 bun run autobuild
 ```
 
-After the build completes, the `.output` directory will contain build artifacts ready for publishing to the Chrome and Firefox extension stores.
+After the build completes, the `release-output` directory will contain build artifacts ready for publishing to the Chrome and Firefox extension stores.
 
 The `dist-ext` directory contains non-store builds distributed as `.zip` archives (for Chrome) and `.xpi` archives (for Firefox).
 
@@ -221,11 +221,25 @@ Userscript (both builds):
 npm run build:gm
 ```
 
-Native Chrome/Firefox extensions:
+Native Chrome/Firefox extensions (WXT):
 
 ```bash
-npm run build:ext
+bun build:chrome     # Chrome
+bun build:firefox    # Firefox
+bun build:ext        # production build for Chrome + Firefox → .output/ and dist-ext/
+bun build:ext:debug  # unminified, with inline source maps
+bun zip:ext          # package as .zip
 ```
+
+Development:
+
+```bash
+bun dev:ext      # extension, Chrome (wxt): dev mode, opens the browser on YouTube
+bun dev:firefox  # extension, Firefox (wxt -b firefox)
+bun dev:gm       # userscript (vite build --watch)
+```
+
+Extension pages and Solid components update via Vite HMR, while WXT automatically rebuilds and re-injects content scripts — no manual extension reload needed.
 
 Development userscript build with source maps:
 
@@ -233,7 +247,7 @@ Development userscript build with source maps:
 npm run build:dev
 ```
 
-Userscript build artifacts are placed in `dist/`, while native extension builds are placed in `dist-ext/`.
+Userscript build artifacts are placed in `dist/`, unpacked extension builds in `.output/chrome-mv3` and `.output/firefox-mv3` (WXT), and packaged `.zip`/`.xpi` archives in `dist-ext/`.
 
 ## Customization of appearance:
 

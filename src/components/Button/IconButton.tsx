@@ -1,6 +1,5 @@
 import { type JSX, splitProps } from "solid-js";
 
-import "./IconButton.scss";
 import { RawButton, type RawButtonProps } from "./RawButton";
 
 export type IconButtonProps = Omit<RawButtonProps, "class" | "ariaLabel"> & {

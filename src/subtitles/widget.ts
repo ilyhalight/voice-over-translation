@@ -290,7 +290,7 @@ export class SubtitlesWidget {
     if (!block) return null;
     const cacheKey = `${this.contentEpoch}|${this.subtitleStyleController.epoch}`;
     const cached = this.smartCssMetricsCache;
-    if (cached && cached.key === cacheKey) return cached.value;
+    if (cached?.key === cacheKey) return cached.value;
     const value = this.readSmartCssMetricsNow(block);
     this.smartCssMetricsCache = { key: cacheKey, value };
     return value;
@@ -725,7 +725,7 @@ export class SubtitlesWidget {
   }
   private getLayoutSize(): LayoutMetrics {
     const cached = this.layoutSizeCache;
-    if (cached && cached.tick === this.tickSeq) return cached.value;
+    if (cached?.tick === this.tickSeq) return cached.value;
     const value = this.readLayoutSize();
     this.layoutSizeCache = { tick: this.tickSeq, value };
     return value;
@@ -1059,7 +1059,7 @@ export class SubtitlesWidget {
   } {
     const key = `${this.contentEpoch}|${this.subtitleStyleController.epoch}`;
     const cached = this.elementMetricsCache;
-    if (cached && cached.key === key) return { w: cached.w, h: cached.h };
+    if (cached?.key === key) return { w: cached.w, h: cached.h };
     const w = subtitlesContainer.offsetWidth;
     const h = subtitlesContainer.offsetHeight;
     this.elementMetricsCache = { key, w, h };
@@ -1213,7 +1213,7 @@ export class SubtitlesWidget {
   } {
     const cacheKey = `${this.contentEpoch}|${this.subtitleStyleController.epoch}|${this.subtitleStyleController.fontSizeOverridden ? this.subtitleStyleController.fontSize : "auto"}|${this.subtitleStyleController.fontFamily}`;
     const cached = this.tokenLayoutInputsCache;
-    if (cached && cached.key === cacheKey) {
+    if (cached?.key === cacheKey) {
       ctx.font = cached.value.fontKey;
       return cached.value;
     }

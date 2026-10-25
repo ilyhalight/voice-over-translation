@@ -71,8 +71,7 @@ function findNextThresholdMs(
   thresholds: readonly number[],
 ): number | null {
   let next: number | null = null;
-  for (let i = 0; i < thresholds.length; i += 1) {
-    const value = thresholds[i];
+  for (const value of thresholds) {
     if (value > timeMs && (next === null || value < next)) next = value;
   }
   return next;

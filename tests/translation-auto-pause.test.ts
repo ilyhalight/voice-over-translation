@@ -119,7 +119,6 @@ function createTranslationHandlerForResponse(
     autoRetry: undefined as ReturnType<typeof setTimeout> | undefined,
     data: { useLivelyVoice: false },
     votClient: { translateVideo: async () => response },
-    getRequestLangForTranslation: () => "en",
     isLivelyVoiceAllowed: () => false,
     isYouTubeHosts: () => false,
     ensureProxySettingsResolved: async () => undefined,

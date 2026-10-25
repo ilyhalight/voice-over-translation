@@ -5,6 +5,7 @@ import debug from "../../utils/debug";
 import {
   getYoutubeAudioFormatLanguage as getAudioFormatLanguage,
   normalizeAudioLanguageTag as normalizeAudioLanguage,
+  toPrimitiveString,
   selectSmallestAudioFormat,
 } from "../utils";
 import { type AudioChunk, concatBuffers } from "./audioChunks";
@@ -36,7 +37,7 @@ export type WebEmbeddedFormat = {
   url?: string;
   mimeType?: string;
   bitrate?: number;
-  averageBitrate?: number;
+  averageBitrate?: number | string;
   contentLength?: string | number;
   lastModified?: string;
   signatureCipher?: string;
@@ -212,25 +213,29 @@ function buildContentPlaybackContext(
   return context;
 }
 
+function findJsonStringEnd(source: string, start: number): number {
+  let escaped = false;
+  for (let index = start + 1; index < source.length; index++) {
+    const char = source[index];
+    if (escaped) escaped = false;
+    else if (char === "\\") escaped = true;
+    else if (char === '"') return index + 1;
+  }
+  return -1;
+}
+
 export function findJsonValueEnd(source: string, start: number): number {
   const first = source[start];
-  if (first !== "{" && first !== "[" && first !== '"') return -1;
+  if (first === '"') return findJsonStringEnd(source, start);
+  if (first !== "{" && first !== "[") return -1;
   let depth = 0;
-  let inString = false;
-  let escaped = false;
   for (let index = start; index < source.length; index++) {
     const char = source[index];
-    if (inString) {
-      if (escaped) escaped = false;
-      else if (char === "\\") escaped = true;
-      else if (char === '"') {
-        inString = false;
-        if (depth === 0) return index + 1;
-      }
-      continue;
-    }
-    if (char === '"') inString = true;
-    else if (char === "{" || char === "[") depth++;
+    if (char === '"') {
+      const end = findJsonStringEnd(source, index);
+      if (end < 0) return -1;
+      index = end - 1;
+    } else if (char === "{" || char === "[") depth++;
     else if ((char === "}" || char === "]") && --depth === 0) return index + 1;
   }
   return -1;
@@ -332,7 +337,7 @@ export async function resolveYtcfg(
     }
   }
   if (typeof data.INNERTUBE_API_KEY !== "string") {
-    throw new Error("Audio downloader. web ABR config is unavailable");
+    throw new TypeError("Audio downloader. web ABR config is unavailable");
   }
   debug.log("Audio downloader. web ABR config recovered", {
     source,
@@ -435,27 +440,29 @@ export function selectWebEmbeddedAudioFormat(
             getAudioFormatLanguage(format) === normalizedRequestedLanguage,
         )
       : [];
-  const requestedLanguageCandidates =
-    exactLanguageCandidates.length > 0
-      ? exactLanguageCandidates
-      : normalizedRequestedLanguage && normalizedRequestedLanguage !== "auto"
-        ? audioOnly.filter((format) =>
-            audioLanguageMatches(
-              getAudioFormatLanguage(format),
-              normalizedRequestedLanguage,
-            ),
-          )
-        : [];
+  let requestedLanguageCandidates = exactLanguageCandidates;
+  if (
+    requestedLanguageCandidates.length === 0 &&
+    normalizedRequestedLanguage &&
+    normalizedRequestedLanguage !== "auto"
+  ) {
+    requestedLanguageCandidates = audioOnly.filter((format) =>
+      audioLanguageMatches(
+        getAudioFormatLanguage(format),
+        normalizedRequestedLanguage,
+      ),
+    );
+  }
 
   const defaultAudioOnly = audioOnly.filter(
     ({ audioTrack }) => audioTrack?.audioIsDefault === true,
   );
-  const trackCandidates =
-    requestedLanguageCandidates.length > 0
-      ? requestedLanguageCandidates
-      : defaultAudioOnly.length > 0
-        ? defaultAudioOnly
-        : audioOnly;
+  let trackCandidates = audioOnly;
+  if (requestedLanguageCandidates.length > 0) {
+    trackCandidates = requestedLanguageCandidates;
+  } else if (defaultAudioOnly.length > 0) {
+    trackCandidates = defaultAudioOnly;
+  }
   const nonDrcCandidates = trackCandidates.filter(
     (format) => !isDrcAudioFormat(format),
   );
@@ -1200,7 +1207,7 @@ async function probeContentLength(
   const total = Number(
     /\/(\d+)\s*$/.exec(response.headers.get("content-range") ?? "")?.[1],
   );
-  if (!(total > 0)) {
+  if (Number.isNaN(total) || total <= 0) {
     throw new Error("Audio downloader. web ABR content length unknown");
   }
   return total;
@@ -1322,7 +1329,7 @@ async function fetchMediaRange(
     // If another failed range is already refreshing the signed media URL,
     // wait for that refresh before starting this retry. This keeps every retry
     // on the newest URL without restarting ranges that already succeeded.
-    if (attempt > 0 && urlState.refreshPromise) {
+    if (attempt > 0 && urlState.refreshPromise !== undefined) {
       await urlState.refreshPromise;
     }
     try {
@@ -1353,9 +1360,9 @@ async function fetchMediaRange(
         }
         return bytes;
       }
-      const redirect = new TextDecoder("ascii")
-        .decode(bytes)
-        .match(/^\s*(https:\/\/\S+)\s*$/)?.[1];
+      const redirect = /^\s*(https:\/\/\S+)\s*$/.exec(
+        new TextDecoder("ascii").decode(bytes),
+      )?.[1];
       if (redirect) {
         const next = new URL(redirect);
         if (!/(?:^|\.)googlevideo\.com$/.test(next.hostname))
@@ -1437,11 +1444,11 @@ async function fetchMediaRange(
     : new Error("Audio downloader. Media range failed");
 }
 
-async function* emitOrderedBuffers(
+function* emitOrderedBuffers(
   buffers: Uint8Array[],
   isLastBatch: boolean,
   pendingState: PendingState,
-): AsyncGenerator<AudioChunk> {
+): Generator<AudioChunk> {
   for (let bufferIndex = 0; bufferIndex < buffers.length; bufferIndex++) {
     const buffer = buffers[bufferIndex];
     pendingState.buffers.push(buffer);
@@ -1828,7 +1835,7 @@ export async function* getWebAbrAudioChunks(
   const config = await resolveYtcfg(targetWindow, signal);
   const apiKey = getConfigValue(config, "INNERTUBE_API_KEY");
   if (typeof apiKey !== "string") {
-    throw new Error("Audio downloader. web ABR config is unavailable");
+    throw new TypeError("Audio downloader. web ABR config is unavailable");
   }
 
   const playerCodes = new Map<string, Promise<string>>();
@@ -1849,16 +1856,16 @@ export async function* getWebAbrAudioChunks(
     return code;
   };
   let sts = Number(getConfigValue(config, "STS"));
-  if (!(sts > 0)) {
+  if (Number.isNaN(sts) || sts <= 0) {
     sts = Number(
       (await fetchPlayerCode())?.match(
-        /(?:signatureTimestamp|sts)\s*:\s*([0-9]{5})/,
+        /(?:signatureTimestamp|sts)\s*:\s*(\d{5})/,
       )?.[1],
     );
   }
   const body = buildWebEmbeddedPlayerRequest(config, videoId, sts);
   const context = body.context as { client: Record<string, unknown> };
-  const clientVersion = String(context.client.clientVersion ?? "");
+  const clientVersion = toPrimitiveString(context.client.clientVersion);
   const visitorData =
     context.client.visitorData ?? getConfigValue(config, "VISITOR_DATA");
   if (typeof visitorData === "string") context.client.visitorData = visitorData;
@@ -1872,10 +1879,9 @@ export async function* getWebAbrAudioChunks(
   // for videos that YouTube itself exposes only to the signed-in account.
   const authorization = await getYouTubeAuthorization(
     targetWindow,
-    String(
+    toPrimitiveString(
       getConfigValue(config, "USER_SESSION_ID") ??
-        (secondSyncId || firstSyncId) ??
-        "",
+        (secondSyncId || firstSyncId),
     ) || undefined,
   );
   const loggedIn = getConfigValue(config, "LOGGED_IN") === true;
@@ -1921,14 +1927,20 @@ export async function* getWebAbrAudioChunks(
       clientVersion: fetchedConfig?.clientVersion,
     };
     // Studio cannot be fetched from the embed realm without CORS permission.
-    const candidateBody =
-      name === "web_embedded"
-        ? body
-        : name === "tv_downgraded"
-          ? buildTvDowngradedPlayerRequest(videoId, options)
-          : name === "web"
-            ? buildWebPlayerRequest(config, videoId, sts)
-            : buildWebCreatorPlayerRequest(videoId, options);
+    let candidateBody: Record<string, unknown>;
+    switch (name) {
+      case "web_embedded":
+        candidateBody = body;
+        break;
+      case "tv_downgraded":
+        candidateBody = buildTvDowngradedPlayerRequest(videoId, options);
+        break;
+      case "web":
+        candidateBody = buildWebPlayerRequest(config, videoId, sts);
+        break;
+      default:
+        candidateBody = buildWebCreatorPlayerRequest(videoId, options);
+    }
     const candidateContext = candidateBody.context as {
       client: Record<string, unknown>;
     };
@@ -1941,14 +1953,10 @@ export async function* getWebAbrAudioChunks(
         signal,
         fetchedConfig?.apiKey ?? apiKey,
         candidateBody,
-        name === "web_embedded"
-          ? "56"
-          : name === "tv_downgraded"
-            ? "7"
-            : name === "web"
-              ? "1"
-              : "62",
-        String(candidateContext.client.clientVersion ?? clientVersion),
+        { web_embedded: "56", tv_downgraded: "7", web: "1", web_creator: "62" }[
+          name
+        ] ?? "62",
+        toPrimitiveString(candidateContext.client.clientVersion, clientVersion),
         authenticated ? authenticatedAuth : {},
       );
     const requestPlayer = async (authenticated = false) => {
@@ -2044,13 +2052,17 @@ export async function* getWebAbrAudioChunks(
               throw new Error(
                 "Audio downloader. Refreshed audio format changed",
               );
-            for await (const url of resolveWebEmbeddedFormatUrl(
+            const urls = resolveWebEmbeddedFormatUrl(
               targetWindow,
               refreshed,
               getCode,
               signal,
-            )) {
-              return await authorizeUrl(url);
+            );
+            try {
+              const next = await urls.next();
+              if (!next.done) return await authorizeUrl(next.value);
+            } finally {
+              await urls.return(undefined);
             }
             throw new Error(
               "Audio downloader. Refreshed audio URL unavailable",

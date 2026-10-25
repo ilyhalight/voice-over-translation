@@ -4,6 +4,7 @@ import debug from "../../utils/debug";
 import {
   getYoutubeAudioFormatLanguage as getAudioFormatLanguage,
   normalizeAudioLanguageTag as normalizeAudioLanguage,
+  toPrimitiveString,
 } from "../utils";
 import { type AudioChunk, concatBuffers } from "./audioChunks";
 import {
@@ -34,77 +35,6 @@ import {
   waitForSabrAudioTrackId,
 } from "./youtubeSabrSupport";
 
-function readProtoVarint(
-  bytes: Uint8Array,
-  start: number,
-): { value: number; next: number } {
-  let value = 0;
-  let shift = 0;
-  let offset = start;
-  while (offset < bytes.length && shift <= 35) {
-    const byte = bytes[offset++];
-    value += (byte & 0x7f) * 2 ** shift;
-    if ((byte & 0x80) === 0) return { value, next: offset };
-    shift += 7;
-  }
-  throw new Error("invalid protobuf varint");
-}
-
-function getGeneratedSabrAudioTrackId(bytes: Uint8Array): string | undefined {
-  try {
-    let offset = 0;
-    while (offset < bytes.length) {
-      const tag = readProtoVarint(bytes, offset);
-      offset = tag.next;
-      const field = Math.floor(tag.value / 8);
-      const wire = tag.value & 7;
-      if (wire !== 2) {
-        if (wire === 0) offset = readProtoVarint(bytes, offset).next;
-        else if (wire === 1) offset += 8;
-        else if (wire === 5) offset += 4;
-        else return undefined;
-        continue;
-      }
-      const length = readProtoVarint(bytes, offset);
-      const start = length.next;
-      const end = start + length.value;
-      if (end > bytes.length) return undefined;
-      if (field === 1) {
-        let inner = start;
-        while (inner < end) {
-          const innerTag = readProtoVarint(bytes, inner);
-          inner = innerTag.next;
-          const innerField = Math.floor(innerTag.value / 8);
-          const innerWire = innerTag.value & 7;
-          if (innerWire === 2) {
-            const innerLength = readProtoVarint(bytes, inner);
-            const valueStart = innerLength.next;
-            const valueEnd = valueStart + innerLength.value;
-            if (valueEnd > end) return undefined;
-            if (innerField === 69) {
-              const trackId = new TextDecoder().decode(
-                bytes.slice(valueStart, valueEnd),
-              );
-              return /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})?\.\d{1,3}$/.test(
-                trackId,
-              )
-                ? trackId
-                : undefined;
-            }
-            inner = valueEnd;
-          } else if (innerWire === 0)
-            inner = readProtoVarint(bytes, inner).next;
-          else if (innerWire === 1) inner += 8;
-          else if (innerWire === 5) inner += 4;
-          else return undefined;
-        }
-      }
-      offset = end;
-    }
-  } catch {}
-  return undefined;
-}
-
 export async function* trySabrAudioChunks(
   targetWindow: WebAbrWindow,
   videoId: string,
@@ -124,7 +54,7 @@ export async function* trySabrAudioChunks(
     Number(getConfigValue(config, "STS")),
   );
   const context = body.context as { client: Record<string, unknown> };
-  const clientVersion = String(context.client.clientVersion ?? "");
+  const clientVersion = toPrimitiveString(context.client.clientVersion);
   const visitorData =
     context.client.visitorData ?? getConfigValue(config, "VISITOR_DATA");
   if (typeof visitorData === "string") context.client.visitorData = visitorData;
@@ -134,10 +64,9 @@ export async function* trySabrAudioChunks(
     typeof dataSyncId === "string" ? dataSyncId.split("||") : [];
   const authorization = await getYouTubeAuthorization(
     targetWindow,
-    String(
+    toPrimitiveString(
       getConfigValue(config, "USER_SESSION_ID") ??
-        (secondSyncId || firstSyncId) ??
-        "",
+        (secondSyncId || firstSyncId),
     ) || undefined,
   );
   const auth = authorization
@@ -350,16 +279,16 @@ export async function* trySabrAudioChunks(
       ? audioCandidates
       : [];
 
-  const selectedTrackAudioCandidates =
-    exactTrackAudioCandidates.length > 0
-      ? exactTrackAudioCandidates
-      : languageTrackAudioCandidates.length > 0
-        ? languageTrackAudioCandidates
-        : nativeBoundUnscopedAudioCandidates.length > 0
-          ? nativeBoundUnscopedAudioCandidates
-          : sabrAvailableTrackIds.length <= 1
-            ? audioCandidates
-            : [];
+  let selectedTrackAudioCandidates = audioCandidates;
+  if (exactTrackAudioCandidates.length > 0) {
+    selectedTrackAudioCandidates = exactTrackAudioCandidates;
+  } else if (languageTrackAudioCandidates.length > 0) {
+    selectedTrackAudioCandidates = languageTrackAudioCandidates;
+  } else if (nativeBoundUnscopedAudioCandidates.length > 0) {
+    selectedTrackAudioCandidates = nativeBoundUnscopedAudioCandidates;
+  } else if (sabrAvailableTrackIds.length > 1) {
+    selectedTrackAudioCandidates = [];
+  }
 
   if (selectedTrackAudioCandidates.length === 0) {
     throw new Error(
@@ -582,16 +511,18 @@ export async function* trySabrAudioChunks(
     const index = ++sabrRequestIndex;
     const RequestCtor = fetchRealm.Request;
     const inputIsRequest =
-      typeof RequestCtor !== "undefined" && input instanceof RequestCtor;
+      RequestCtor !== undefined && input instanceof RequestCtor;
     const requestInput = inputIsRequest ? (input as Request) : undefined;
     // Let SabrStream own the request URL/session sequence.  A native capture
     // belongs to another request pump and must not be grafted onto this one.
-    const requestUrl =
-      typeof input === "string"
-        ? input
-        : input instanceof URL
-          ? input.toString()
-          : input.url;
+    let requestUrl: string;
+    if (typeof input === "string") {
+      requestUrl = input;
+    } else if (input instanceof URL) {
+      requestUrl = input.toString();
+    } else {
+      requestUrl = input.url;
+    }
     const url = new URL(requestUrl, targetWindow.location.href);
     const isSabrRequest =
       url.hostname.endsWith("googlevideo.com") &&
@@ -623,11 +554,7 @@ export async function* trySabrAudioChunks(
     // custom SABR body as raw bytes so Firefox cannot re-add that header.
     let transportBody: BodyInit | null = body;
     const BlobCtor = fetchRealm.Blob;
-    if (
-      isSabrRequest &&
-      typeof BlobCtor !== "undefined" &&
-      body instanceof BlobCtor
-    ) {
+    if (isSabrRequest && BlobCtor !== undefined && body instanceof BlobCtor) {
       transportBody = await (body as Blob).arrayBuffer();
     }
 
@@ -640,14 +567,10 @@ export async function* trySabrAudioChunks(
         bytes = new Uint8Array(body);
       } else if (ArrayBuffer.isView(body)) {
         bytes = new Uint8Array(body.buffer, body.byteOffset, body.byteLength);
-      } else if (typeof BlobCtor !== "undefined" && body instanceof BlobCtor) {
       }
 
       if (bytes) {
         const protobuf = inspectSabrProto(bytes);
-        const encodedAudioTrackId = getGeneratedSabrAudioTrackId(bytes);
-        if (index <= 3 || encodedAudioTrackId !== sabrAudioTrackId) {
-        }
 
         // A healthy post-bootstrap SabrStream must start reporting buffered
         // ranges. Without field 3 the server can keep returning data while the
@@ -671,7 +594,7 @@ export async function* trySabrAudioChunks(
     const fetchWithGmFallback = async (): Promise<Response> => {
       try {
         const nativeInit: RequestInit = {
-          ...(init ?? {}),
+          ...init,
           headers,
           body: transportBody,
           credentials: "include",
@@ -714,12 +637,10 @@ export async function* trySabrAudioChunks(
         const callbackGm = gmGlobal.GM_xmlhttpRequest;
         const promiseGm =
           gmGlobal.GM?.xmlHttpRequest ?? gmGlobal.GM?.xmlhttpRequest;
-        const gm =
-          typeof callbackGm === "function"
-            ? callbackGm
-            : typeof promiseGm === "function"
-              ? promiseGm.bind(gmGlobal.GM)
-              : undefined;
+        let gm = callbackGm;
+        if (typeof gm !== "function" && typeof promiseGm === "function") {
+          gm = promiseGm.bind(gmGlobal.GM);
+        }
         if (typeof gm !== "function") throw nativeError;
 
         let gmBody: string | ArrayBuffer | Blob | undefined;
@@ -733,7 +654,7 @@ export async function* trySabrAudioChunks(
             transportBody.byteOffset + transportBody.byteLength,
           ) as ArrayBuffer;
         } else if (
-          typeof BlobCtor !== "undefined" &&
+          BlobCtor !== undefined &&
           transportBody instanceof BlobCtor
         ) {
           gmBody = await (transportBody as Blob).arrayBuffer();
@@ -954,9 +875,9 @@ export async function* trySabrAudioChunks(
     sabrPrototype.__votNativeAbrStatePatched = true;
   }
 
-  let stream: SabrStream;
-  stream = new SabrStream({
-    fetch: sabrDiagnosticFetch,
+  const stream = new SabrStream({
+    videoId,
+    fetchFunction: sabrDiagnosticFetch,
     poToken: sabrPoToken,
     serverAbrStreamingUrl,
     videoPlaybackUstreamerConfig,
@@ -1002,6 +923,7 @@ export async function* trySabrAudioChunks(
       enabledTrackTypes: 1,
       maxRetries: 3,
       stallDetectionMs: 20_000,
+      isPostLiveDvr: false,
     });
     debug.log("[SABR][PURE_ONLY] SabrStream started", {
       videoId,
@@ -1026,25 +948,12 @@ export async function* trySabrAudioChunks(
     let readyChunk: Uint8Array | null = null;
     let total = 0;
 
-    // In some userscript builds @vot.js/shared exposes config without
-    // minChunkSize at runtime. Do not let `undefined` poison the arithmetic
-    // below and turn pendingSize into NaN.
-    const configuredMinChunkSize = Number(votConfig.minChunkSize);
-    const minChunkSize =
-      Number.isFinite(configuredMinChunkSize) && configuredMinChunkSize > 0
-        ? Math.floor(configuredMinChunkSize)
-        : 5_295_308;
-
-    debug.log("[SABR] chunk config", {
-      configuredMinChunkSize: votConfig.minChunkSize,
-      minChunkSize,
-      usedFallback: minChunkSize !== configuredMinChunkSize,
-    });
+    const { minChunkSize } = votConfig;
     try {
       while (true) {
         signal.throwIfAborted();
 
-        let result: ReadableStreamReadResult<Uint8Array>;
+        let result: ReadableStreamReadResult<ArrayBufferView>;
         const readTimeoutMs = 25_000;
         let timeoutId: ReturnType<typeof setTimeout> | undefined;
         const timeout = new Promise<never>((_, reject) => {

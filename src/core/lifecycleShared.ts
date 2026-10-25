@@ -1,4 +1,5 @@
 import type { OverlayViewControls } from "../components/OverlayView/OverlayView";
+import logger from "../utils/logger";
 
 export type LifecycleTranslationResetHost = {
   videoData?: unknown;
@@ -23,7 +24,12 @@ function resetLifecycleTranslation(
     host.videoData = undefined;
   }
 
-  host.stopTranslation();
+  const stopping = host.stopTranslation();
+  if (stopping) {
+    stopping.catch((exception) => {
+      logger.error(exception);
+    });
+  }
   host.resetSubtitlesWidget();
 }
 

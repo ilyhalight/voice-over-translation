@@ -127,11 +127,17 @@ export const TrackReplacement: Story = {
     const observed: Element[] = [];
     const unobserved: Element[] = [];
     class TrackingResizeObserver implements ResizeObserver {
-      disconnect(): void {}
+      private readonly targets = new Set<Element>();
+
+      disconnect(): void {
+        this.targets.clear();
+      }
       observe(target: Element): void {
+        this.targets.add(target);
         observed.push(target);
       }
       unobserve(target: Element): void {
+        this.targets.delete(target);
         unobserved.push(target);
       }
     }
@@ -201,7 +207,7 @@ export const TokenTooltipLifecycle: Story = {
         tokenText: "hello world",
         suppressClicksUntil: 0,
       }),
-      getTranslationService: async () => "test",
+      getTranslationService: () => Promise.resolve("test"),
       translateText: async (text) => {
         await new Promise((resolve) => requestAnimationFrame(resolve));
         return Array.isArray(text)
@@ -308,7 +314,7 @@ export const TokenTranslationLanguage: Story = {
         tokenText: "hello world",
         suppressClicksUntil: 0,
       }),
-      getTranslationService: async () => "test",
+      getTranslationService: () => Promise.resolve("test"),
       translateText,
     });
     let activation = Promise.resolve();

@@ -30,14 +30,20 @@ function hasDnr(): boolean {
   return Boolean(ext?.declarativeNetRequest?.updateSessionRules);
 }
 
-async function updateSessionRules(args: {
-  addRules?: unknown[];
-  removeRuleIds?: number[];
-}): Promise<void> {
-  await dnrUpdateSessionRules(args);
-}
-
 const FORBIDDEN_HEADERS = new Set(["user-agent", "origin", "referer"]);
+
+function createHeaderRule(
+  id: number,
+  requestHeaders: readonly DnrRequestHeader[],
+  urlFilter: string,
+) {
+  return {
+    id,
+    priority: 1,
+    action: { type: "modifyHeaders", requestHeaders },
+    condition: { urlFilter, resourceTypes: ["xmlhttprequest"] },
+  };
+}
 
 export function isForbiddenToSetViaFetch(headerName: string): boolean {
   const n = headerName.trim().toLowerCase();
@@ -70,27 +76,22 @@ async function queueDnrSessionRuleUpdate(
     return false;
   }
 
-  const prev = dnrRuleUpdateQueue;
-  let releaseNext!: () => void;
-  dnrRuleUpdateQueue = new Promise<void>((resolve) => {
-    releaseNext = resolve;
-  });
-
-  try {
-    await prev;
-  } catch {
-    // Previous update failed; continue with next in queue.
-  }
-
-  try {
+  const update = dnrRuleUpdateQueue.then(async () => {
     if (signature !== dnrAppliedSignatures.get(ruleId)) {
-      await updateSessionRules({ removeRuleIds: [ruleId], addRules: [rule] });
+      await dnrUpdateSessionRules({
+        removeRuleIds: [ruleId],
+        addRules: [rule],
+      });
       dnrAppliedSignatures.set(ruleId, signature);
     }
     return true;
-  } finally {
-    releaseNext();
-  }
+  });
+  // A failed update still rejects its caller, but must not poison the queue.
+  dnrRuleUpdateQueue = update.then(
+    () => {},
+    () => {},
+  );
+  return update;
 }
 
 export async function ensureDnrHeaderRuleForYandex(
@@ -126,15 +127,11 @@ export async function ensureDnrHeaderRuleForYandex(
   }
 
   const signature = signatureFromDnrRequestHeaders(requestHeaders);
-  const rule = {
-    id: DNR_RULE_ID_YANDEX_HEADERS,
-    priority: 1,
-    action: { type: "modifyHeaders", requestHeaders },
-    condition: {
-      urlFilter: "|https://api.browser.yandex.ru/",
-      resourceTypes: ["xmlhttprequest"],
-    },
-  };
+  const rule = createHeaderRule(
+    DNR_RULE_ID_YANDEX_HEADERS,
+    requestHeaders,
+    "|https://api.browser.yandex.ru/",
+  );
 
   await queueDnrSessionRuleUpdate(DNR_RULE_ID_YANDEX_HEADERS, signature, rule);
 }
@@ -162,21 +159,14 @@ function isGooglevideoUrl(url: string): boolean {
 }
 
 async function ensureDnrHeaderStripRule(
-  url: string,
-  isTargetUrl: (url: string) => boolean,
   ruleId: number,
   requestHeaders: DnrRequestHeader[],
   urlFilter: string,
 ): Promise<boolean> {
-  if (!hasDnr() || !isTargetUrl(url)) return false;
+  if (!hasDnr()) return false;
 
   const signature = signatureFromDnrRequestHeaders(requestHeaders);
-  const rule = {
-    id: ruleId,
-    priority: 1,
-    action: { type: "modifyHeaders", requestHeaders },
-    condition: { urlFilter, resourceTypes: ["xmlhttprequest"] },
-  };
+  const rule = createHeaderRule(ruleId, requestHeaders, urlFilter);
 
   debug.log("[VOT EXT][background][dnr] applying rule", {
     ruleId,
@@ -218,8 +208,6 @@ export async function ensureDnrOriginStripRuleForYoutubei(
   );
 
   return ensureDnrHeaderStripRule(
-    url,
-    isYoutubeMobileUrl,
     DNR_RULE_ID_YOUTUBEI_ORIGIN,
     requestHeaders,
     "||m.youtube.com/",
@@ -237,8 +225,6 @@ export async function ensureDnrStripRuleForGooglevideo(
   );
 
   return ensureDnrHeaderStripRule(
-    url,
-    isGooglevideoUrl,
     DNR_RULE_ID_GOOGLEVIDEO_HEADERS,
     requestHeaders,
     "||googlevideo.com/",
@@ -249,36 +235,22 @@ export async function preseedDnrRules(): Promise<void> {
   if (!hasDnr()) return;
 
   try {
-    await updateSessionRules({
+    await dnrUpdateSessionRules({
       removeRuleIds: [
         DNR_RULE_ID_YOUTUBEI_ORIGIN,
         DNR_RULE_ID_GOOGLEVIDEO_HEADERS,
       ],
       addRules: [
-        {
-          id: DNR_RULE_ID_YOUTUBEI_ORIGIN,
-          priority: 1,
-          action: {
-            type: "modifyHeaders",
-            requestHeaders: YOUTUBEI_BASE_HEADERS,
-          },
-          condition: {
-            urlFilter: "||m.youtube.com/",
-            resourceTypes: ["xmlhttprequest"],
-          },
-        },
-        {
-          id: DNR_RULE_ID_GOOGLEVIDEO_HEADERS,
-          priority: 1,
-          action: {
-            type: "modifyHeaders",
-            requestHeaders: GOOGLEVIDEO_BASE_HEADERS,
-          },
-          condition: {
-            urlFilter: "||googlevideo.com/",
-            resourceTypes: ["xmlhttprequest"],
-          },
-        },
+        createHeaderRule(
+          DNR_RULE_ID_YOUTUBEI_ORIGIN,
+          YOUTUBEI_BASE_HEADERS,
+          "||m.youtube.com/",
+        ),
+        createHeaderRule(
+          DNR_RULE_ID_GOOGLEVIDEO_HEADERS,
+          GOOGLEVIDEO_BASE_HEADERS,
+          "||googlevideo.com/",
+        ),
       ],
     });
     dnrAppliedSignatures.set(

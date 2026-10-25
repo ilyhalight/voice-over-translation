@@ -8,10 +8,10 @@ export const ENVELOPE_URL = "https://ingest.nirel.cc/api/1/envelope/";
 export const INGEST_HOST = "ingest.nirel.cc";
 
 const V8_FRAME_RE = /^\s*at (?:(.+?) \()?(.+?):(\d+):(\d+)\)?\s*$/;
-const GECKO_FRAME_RE = /^(.*?)@(.+?):(\d+):(\d+)\s*$/;
+const GECKO_FRAME_RE = /^([^@]*)@(.+?):(\d+):(\d+)\s*$/;
 const URL_RE = /https?:\/\/[^\s"'<>)]+/g;
 // V8 echoes a snippet of the parsed body: `Unexpected token '<', "<!DOCT"... is not valid JSON`.
-const JSON_SNIPPET_RE = /"[\s\S]*"(?:\.\.\.)? is not valid JSON/;
+const JSON_ERROR_SUFFIX = " is not valid JSON";
 const UUID_RE =
   /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
 const HEX_ID_RE = /\b(?=[0-9a-f]*\d)[0-9a-f]{8,}\b/gi;
@@ -69,7 +69,7 @@ function normalizeFilename(filename: string): {
   filename: string;
   inApp: boolean;
 } {
-  const cleaned = filename.replace(/[?#].*$/, "");
+  const cleaned = filename.split(/[?#]/, 1)[0];
   if (!VOT_FRAME_RE.test(cleaned)) {
     return { filename: PAGE_FILENAME, inApp: false };
   }
@@ -118,11 +118,26 @@ export function toError(value: unknown): Error {
   return value instanceof Error ? value : new Error(toErrorMessage(value));
 }
 
+function scrubJsonSnippet(message: string): string {
+  const firstQuote = message.indexOf('"');
+  if (firstQuote < 0) return message;
+
+  let suffixIndex = message.lastIndexOf(JSON_ERROR_SUFFIX);
+  while (suffixIndex > firstQuote) {
+    const quoteIndex = message.startsWith("...", suffixIndex - 3)
+      ? suffixIndex - 4
+      : suffixIndex - 1;
+    if (quoteIndex > firstQuote && message[quoteIndex] === '"') {
+      return `${message.slice(0, firstQuote)}<body>${message.slice(suffixIndex)}`;
+    }
+    suffixIndex = message.lastIndexOf(JSON_ERROR_SUFFIX, suffixIndex - 1);
+  }
+  return message;
+}
+
 // Messages may embed request URLs with video ids or tokens.
 export function scrubMessage(message: string): string {
-  return message
-    .replace(URL_RE, "<url>")
-    .replace(JSON_SNIPPET_RE, "<body> is not valid JSON");
+  return scrubJsonSnippet(message.replace(URL_RE, "<url>"));
 }
 
 /** Replaces volatile parts so that similar errors share one fingerprint. */

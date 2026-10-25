@@ -3,6 +3,7 @@ import type { JSX } from "solid-js";
 export function GearIcon(): JSX.Element {
   return (
     <svg
+      aria-hidden="true"
       width="1em"
       height="100%"
       viewBox="0 -960 960 960"

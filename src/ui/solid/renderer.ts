@@ -173,6 +173,40 @@ function setEvent(element: Element, property: string, value: unknown): void {
   element.addEventListener(eventName, listener, capture);
 }
 
+function setAttributeValue(node: Element, name: string, value: unknown): void {
+  if (value == null || (value === false && booleanAttributes.has(name))) {
+    node.removeAttribute(name);
+  } else if (value === true && booleanAttributes.has(name)) {
+    node.setAttribute(name, "");
+  } else {
+    node.setAttribute(name, String(value));
+  }
+}
+
+function setSpecialProperty<T>(
+  node: Element,
+  name: string,
+  value: T,
+  previous?: T,
+): boolean {
+  if (
+    name === "style" &&
+    (node instanceof HTMLElement || node instanceof SVGElement)
+  ) {
+    setStyle(node, value as never, previous as never);
+    return true;
+  }
+  if (name === "classList") {
+    setClassList(node, value as never, previous as never);
+    return true;
+  }
+  if (name.startsWith("on")) {
+    setEvent(node, name, value);
+    return true;
+  }
+  return false;
+}
+
 function setProperty<T>(
   node: Node,
   name: string,
@@ -185,25 +219,10 @@ function setProperty<T>(
       "[VOT] innerHTML is not supported by the CSP-safe renderer",
     );
   }
-  if (
-    name === "style" &&
-    (node instanceof HTMLElement || node instanceof SVGElement)
-  ) {
-    setStyle(node, value as never, previous as never);
-    return;
-  }
-  if (name === "classList") {
-    setClassList(node, value as never, previous as never);
-    return;
-  }
-  if (name.startsWith("on")) {
-    setEvent(node, name, value);
-    return;
-  }
+  if (setSpecialProperty(node, name, value, previous)) return;
   if (name.startsWith("attr:")) name = name.slice(5);
   if (name === "class" || name === "className") {
-    if (value == null) node.removeAttribute("class");
-    else node.setAttribute("class", String(value));
+    setAttributeValue(node, "class", value);
     return;
   }
   if (name === "textContent") {
@@ -225,13 +244,7 @@ function setProperty<T>(
     Reflect.set(node, propertyName, value);
     return;
   }
-  if (value == null || (value === false && booleanAttributes.has(name))) {
-    node.removeAttribute(name);
-  } else if (value === true && booleanAttributes.has(name)) {
-    node.setAttribute(name, "");
-  } else {
-    node.setAttribute(name, String(value));
-  }
+  setAttributeValue(node, name, value);
 }
 
 export const {
@@ -266,8 +279,8 @@ export const {
   insertNode(parent, node, anchor) {
     parent.insertBefore(node, anchor ?? null);
   },
-  removeNode(parent, node) {
-    parent.removeChild(node);
+  removeNode(_parent, node) {
+    (node as ChildNode).remove();
   },
   getParentNode(node) {
     return node.parentNode ?? undefined;

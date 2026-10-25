@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import type { StorybookConfig } from "storybook-solidjs-vite";
+import { defineMain } from "storybook-solidjs-vite";
 import { mergeConfig, type PluginOption } from "vite";
 import solidPlugin from "vite-plugin-solid";
 
@@ -19,7 +19,7 @@ function isSolidPlugin(plugin: PluginOption): boolean {
   );
 }
 
-const config: StorybookConfig = {
+export default defineMain({
   stories: ["../src/**/*.stories.@(js|jsx|mjs|ts|tsx)"],
   addons: [
     "@storybook/addon-vitest",
@@ -56,5 +56,4 @@ const config: StorybookConfig = {
       },
     );
   },
-};
-export default config;
+});

@@ -224,7 +224,7 @@ export class UIManager {
 
         await this.videoHandler.toggleSubtitlesForCurrentLangPair();
       })
-      .addEventListener("click:settings", async () => {
+      .addEventListener("click:settings", () => {
         this.videoHandler?.subtitlesWidget?.releaseTooltip();
         this.videoHandler?.overlayVisibility?.cancel();
         this.videoHandler?.overlayVisibility?.show();
@@ -328,7 +328,7 @@ export class UIManager {
     }
 
     settingsView
-      .addEventListener("update:account", async (account) => {
+      .addEventListener("update:account", (account) => {
         if (!this.videoHandler) {
           return;
         }
@@ -363,7 +363,7 @@ export class UIManager {
 
         await this.videoHandler.refreshAutoSubtitlesForCurrentLangPair();
       })
-      .addEventListener("change:audioBooster", async () => {
+      .addEventListener("change:audioBooster", () => {
         const overlayViewControls = this.votOverlayView.overlayViewControls;
         if (!overlayViewControls) {
           return;

@@ -72,57 +72,38 @@ const DEFAULT_PROFILE: IntervalIdleProfile = {
   hiddenIntervalMs: 2000,
 };
 
-function normalizePositiveMs(
+function normalizeMs(
   value: number | undefined,
   fallback: number,
+  minimum = 1,
 ): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return fallback;
   }
-  return Math.max(1, Math.trunc(value));
-}
-
-function normalizeNonNegativeMs(
-  value: number | undefined,
-  fallback: number,
-): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return fallback;
-  }
-  return Math.max(0, Math.trunc(value));
+  return Math.max(minimum, Math.trunc(value));
 }
 
 function normalizeProfile(
   profile: Partial<IntervalIdleProfile> = {},
 ): IntervalIdleProfile {
+  const checkIntervalMs = normalizeMs(
+    profile.checkIntervalMs,
+    DEFAULT_PROFILE.checkIntervalMs,
+  );
   return {
-    checkIntervalMs: normalizePositiveMs(
-      profile.checkIntervalMs,
-      DEFAULT_PROFILE.checkIntervalMs,
-    ),
-    idleAfterMs: normalizeNonNegativeMs(
+    checkIntervalMs,
+    idleAfterMs: normalizeMs(
       profile.idleAfterMs,
       DEFAULT_PROFILE.idleAfterMs,
+      0,
     ),
-    idleIntervalMs: normalizePositiveMs(
+    idleIntervalMs: normalizeMs(
       profile.idleIntervalMs,
-      Math.max(
-        DEFAULT_PROFILE.idleIntervalMs,
-        normalizePositiveMs(
-          profile.checkIntervalMs,
-          DEFAULT_PROFILE.checkIntervalMs,
-        ),
-      ),
+      Math.max(DEFAULT_PROFILE.idleIntervalMs, checkIntervalMs),
     ),
-    hiddenIntervalMs: normalizePositiveMs(
+    hiddenIntervalMs: normalizeMs(
       profile.hiddenIntervalMs,
-      Math.max(
-        DEFAULT_PROFILE.hiddenIntervalMs,
-        normalizePositiveMs(
-          profile.checkIntervalMs,
-          DEFAULT_PROFILE.checkIntervalMs,
-        ),
-      ),
+      Math.max(DEFAULT_PROFILE.hiddenIntervalMs, checkIntervalMs),
     ),
   };
 }

@@ -1,4 +1,5 @@
 import type { SabrFormat } from "googlevideo/shared-types";
+import { CODEC_CODES } from "googlevideo/utils";
 import { createAbortableDelay } from "../../utils/abort";
 import debug from "../../utils/debug";
 import {
@@ -20,7 +21,15 @@ export function toSabrFormat(
   const bitrate = Number(format.bitrate ?? format.averageBitrate);
   const approxDurationMs = Number(format.approxDurationMs);
   const lastModified = String(format.lastModified ?? "");
-  if (!(itag > 0) || !(bitrate > 0) || !(approxDurationMs > 0) || !lastModified)
+  if (
+    Number.isNaN(itag) ||
+    itag <= 0 ||
+    Number.isNaN(bitrate) ||
+    bitrate <= 0 ||
+    Number.isNaN(approxDurationMs) ||
+    approxDurationMs <= 0 ||
+    !lastModified
+  )
     return;
   const language = getAudioFormatLanguage(format) || undefined;
   return {
@@ -41,6 +50,11 @@ export function toSabrFormat(
     approxDurationMs,
     language,
     isOriginal: format.audioTrack?.audioIsDefault === true,
+    isHdr: false,
+    hasAudio: true,
+    hasVideo: false,
+    hasText: false,
+    codecCode: (CODEC_CODES as Record<number, string>)[itag] ?? "",
   };
 }
 
@@ -646,7 +660,7 @@ export function assertYouTubeAudioIsUsefulForVot(
           audioLanguageMatches(sabrTrackLanguage(id), requested),
         )
       : undefined;
-  const supportedAlternate = runtimeTrackIds.find(isVotSupportedSabrTrack);
+  const supportedAlternate = runtimeTrackIds.some(isVotSupportedSabrTrack);
 
   if (!isVotSupportedAudioLanguage(actual)) {
     // A concrete requested language may only be satisfied by that language.

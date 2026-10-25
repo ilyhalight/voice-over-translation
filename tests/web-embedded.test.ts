@@ -468,8 +468,8 @@ test("web_embedded ranks by smallest contentLength, bitrate, then first", () => 
       { ...base, mimeType: "audio/mp4", averageBitrate: "70000" },
       { ...base, mimeType: "audio/mp4", averageBitrate: 0 },
       { ...base, mimeType: "audio/mp4" },
-    ]).averageBitrate,
-  ).toBe("70000");
+    ]),
+  ).toMatchObject({ averageBitrate: "70000" });
   expect(
     selectWebEmbeddedAudioFormat([
       { ...base, mimeType: "audio/webm" },

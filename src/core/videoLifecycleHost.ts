@@ -7,38 +7,36 @@ export function createVideoLifecycleHost(
   handler: VideoHandler,
   resolveOverlayMount: (container: HTMLElement) => OverlayMount,
 ): VideoLifecycleHost {
-  const self = () => handler;
-
   return {
     get video() {
-      return self().video;
+      return handler.video;
     },
     get site() {
-      return self().site;
+      return handler.site;
     },
     get container() {
-      return self().container;
+      return handler.container;
     },
     set container(value: HTMLElement) {
-      if (self().container === value) {
+      if (handler.container === value) {
         return;
       }
-      self().container = value;
-      self().uiManager.updateMount(resolveOverlayMount(value));
+      handler.container = value;
+      handler.uiManager.updateMount(resolveOverlayMount(value));
     },
     get firstPlay() {
-      return self().firstPlay;
+      return handler.firstPlay;
     },
     set firstPlay(value: boolean) {
-      self().firstPlay = value;
+      handler.firstPlay = value;
     },
     stopTranslation: () => handler.stopTranslation(),
     get uiManager() {
-      return self().uiManager as VideoLifecycleHost["uiManager"];
+      return handler.uiManager as VideoLifecycleHost["uiManager"];
     },
     getVideoData: () => handler.getVideoData(),
     cacheManager: {
-      getSubtitles: (key: string) => self().cacheManager.getSubtitles(key),
+      getSubtitles: (key: string) => handler.cacheManager.getSubtitles(key),
     },
     getSubtitlesCacheKey: (
       videoId: string,
@@ -57,31 +55,30 @@ export function createVideoLifecycleHost(
     setSelectMenuValues: (from: string, to: string) =>
       handler.setSelectMenuValues(from, to),
     get translateToLang() {
-      return self().translateToLang;
+      return handler.translateToLang;
     },
     set translateToLang(value: string) {
-      self().translateToLang = value as ResponseLang;
+      handler.translateToLang = value as ResponseLang;
     },
     get data() {
-      return self().data ?? {};
+      return handler.data ?? {};
     },
     get subtitles() {
-      return self().subtitles;
+      return handler.subtitles;
     },
     set subtitles(value: any[]) {
-      self().subtitles = value;
+      handler.subtitles = value;
     },
     get subtitlesCacheKey() {
-      return self().subtitlesCacheKey;
+      return handler.subtitlesCacheKey;
     },
     set subtitlesCacheKey(value: string | null) {
-      self().subtitlesCacheKey = value;
+      handler.subtitlesCacheKey = value;
     },
     get videoData() {
-      return self().videoData;
+      return handler.videoData;
     },
     set videoData(value: any) {
-      const handler = self();
       const previousVideoId = handler.videoData?.videoId;
       const nextVideoId = value?.videoId;
       if (previousVideoId !== nextVideoId) {
@@ -90,10 +87,10 @@ export function createVideoLifecycleHost(
       handler.videoData = value;
     },
     get actionsAbortController() {
-      return self().actionsAbortController;
+      return handler.actionsAbortController;
     },
     set actionsAbortController(value: AbortController) {
-      self().actionsAbortController = value;
+      handler.actionsAbortController = value;
     },
     resetActionsAbortController: (reason?: unknown) =>
       handler.resetActionsAbortController(reason),

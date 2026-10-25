@@ -107,12 +107,12 @@ export function getAudioFailureTags(error: unknown, stage: string): Tags {
   });
 }
 
-const SESSION_MODULES = [
+const SESSION_MODULES = new Set([
   "video-translation",
   "summarization",
   "neuroapi",
   "neuroedit",
-];
+]);
 
 /** Fixed-set description of a failed session creation; never ids or secrets. */
 export function getSessionFailureTags(error: unknown, module: string): Tags {
@@ -125,7 +125,7 @@ export function getSessionFailureTags(error: unknown, module: string): Tags {
   else failure = "bad_response";
 
   return compactTags({
-    session_module: SESSION_MODULES.includes(module) ? module : "other",
+    session_module: SESSION_MODULES.has(module) ? module : "other",
     session_failure: failure,
   });
 }

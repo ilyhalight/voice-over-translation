@@ -18,7 +18,10 @@ import {
   sanitizeSubtitleInlineStyle,
   subtitleInlineStylesEqual,
 } from "../src/subtitles/inlineStyle";
-import { buildSubtitleRenderPlan } from "../src/subtitles/renderPlan";
+import {
+  buildSubtitleRenderPlan,
+  TRAILING_PUNCTUATION_RE,
+} from "../src/subtitles/renderPlan";
 import type { SubtitleLine, SubtitleToken } from "../src/types/subtitles";
 
 const word = (text: string, startMs = 0, durationMs = 100): SubtitleToken => ({
@@ -67,6 +70,14 @@ const makeSpans = (count: number, offset = 0) =>
   })) as unknown as (HighlightTokenElement & { classList: FakeClassList })[];
 
 describe("render plan (consolidated punctuation scanning)", () => {
+  test("finds trailing Unicode punctuation without retrying within a run", () => {
+    const original = /[\p{P}\p{S}]+$/u;
+    for (const sample of ["", "hello", "hello!?", "💡💡", "text💡!", "!💡hello", "a\n!?"]) {
+      expect(TRAILING_PUNCTUATION_RE.exec(sample)?.[0]).toBe(original.exec(sample)?.[0]);
+    }
+    expect(TRAILING_PUNCTUATION_RE.test("!".repeat(20_000) + "a")).toBe(false);
+  });
+
   test("keeps leading punctuation attached to the following word highlight", () => {
     const plan = buildSubtitleRenderPlan([word('"hello"'), word(" world")], 1, null);
     expect(plan).toEqual([

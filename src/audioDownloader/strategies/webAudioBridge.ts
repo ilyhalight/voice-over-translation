@@ -17,14 +17,14 @@ function parseAudioBridgeChunk(payload: unknown): AudioChunk {
     buffer: unknown;
     isLastChunk?: unknown;
   };
-  const bytes =
-    buffer instanceof Uint8Array
-      ? buffer
-      : buffer instanceof ArrayBuffer
-        ? new Uint8Array(buffer)
-        : ArrayBuffer.isView(buffer)
-          ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength)
-          : null;
+  let bytes: Uint8Array | null = null;
+  if (buffer instanceof Uint8Array) {
+    bytes = buffer;
+  } else if (buffer instanceof ArrayBuffer) {
+    bytes = new Uint8Array(buffer);
+  } else if (ArrayBuffer.isView(buffer)) {
+    bytes = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength);
+  }
 
   if (!bytes || typeof isLastChunk !== "boolean") {
     throw new Error("Audio downloader. Invalid audio bridge chunk");

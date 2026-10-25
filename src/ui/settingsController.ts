@@ -262,12 +262,12 @@ export class SettingsController {
       throw new Error("[VOT] SettingsController is already initialized");
     }
 
-    const self = this;
+    const getSettingsData = () => this.data;
     this.videoHandler.hotkeyController.actions = [
       {
         action: () => this.videoHandler.uiManager.handleTranslationBtnClick(),
         get hotkey() {
-          return self.data.translationHotkey;
+          return getSettingsData().translationHotkey;
         },
         localizationPhrase: "translateVideo",
         settingsKey: "translationHotkey",
@@ -278,7 +278,7 @@ export class SettingsController {
       {
         action: () => this.videoHandler.toggleSubtitlesForCurrentLangPair(),
         get hotkey() {
-          return self.data.subtitlesHotkey;
+          return getSettingsData().subtitlesHotkey;
         },
         localizationPhrase: "VOTSubtitles",
         settingsKey: "subtitlesHotkey",
@@ -292,7 +292,7 @@ export class SettingsController {
               action: () =>
                 this.videoHandler.uiManager.togglePictureInPicture(),
               get hotkey() {
-                return self.data.pipHotkey;
+                return getSettingsData().pipHotkey;
               },
               localizationPhrase: "VOTPiP",
               settingsKey: "pipHotkey",

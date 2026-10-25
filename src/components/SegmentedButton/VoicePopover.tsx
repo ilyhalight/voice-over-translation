@@ -4,10 +4,9 @@ import {
   createUniqueId,
   type JSX,
   mergeProps,
+  on,
   onCleanup,
 } from "solid-js";
-
-import "./VoicePopover.scss";
 
 import { t } from "../../localization/localizationProvider";
 import { render } from "../../ui/solid/renderer";
@@ -52,6 +51,18 @@ const POPOVER_GAP = 8;
 const MIN_POPOVER_WIDTH = 160;
 const MAX_POPOVER_WIDTH = 310;
 const MIN_POPOVER_HEIGHT = 96;
+
+function getColumnPlacement(
+  position: string,
+  spaceLeft: number,
+  spaceRight: number,
+): "left" | "right" {
+  const preferLeft = position === "right" || position === "rightCenter";
+  return (preferLeft && spaceLeft >= MIN_POPOVER_WIDTH) ||
+    spaceLeft >= spaceRight
+    ? "left"
+    : "right";
+}
 
 export function VoicePopover(props: VoicePopoverProps): JSX.Element {
   const finalProps = mergeProps(
@@ -204,12 +215,7 @@ export function VoicePopover(props: VoicePopoverProps): JSX.Element {
     if (direction === "column") {
       const spaceLeft = containerRect.left - rootRect.left - POPOVER_GAP;
       const spaceRight = rootRect.right - containerRect.right - POPOVER_GAP;
-      const preferLeft = position === "right" || position === "rightCenter";
-      placement =
-        (preferLeft && spaceLeft >= MIN_POPOVER_WIDTH) ||
-        spaceLeft >= spaceRight
-          ? "left"
-          : "right";
+      placement = getColumnPlacement(position, spaceLeft, spaceRight);
       const availableWidth = placement === "left" ? spaceLeft : spaceRight;
       element.style.setProperty(
         "--vot-voice-popover-max-width",
@@ -367,15 +373,21 @@ export function VoicePopover(props: VoicePopoverProps): JSX.Element {
     });
   });
 
-  createEffect(() => {
-    // Reading layout props keeps the floating position in sync with prop changes.
-    finalProps.activeVoice;
-    finalProps.anchor;
-    finalProps.layoutRoot;
-    if (isOpen()) {
-      floatingPosition.update();
-    }
-  });
+  createEffect(
+    on(
+      () => [
+        finalProps.activeVoice,
+        finalProps.anchor,
+        finalProps.layoutRoot,
+        isOpen(),
+      ],
+      () => {
+        if (isOpen()) {
+          floatingPosition.update();
+        }
+      },
+    ),
+  );
 
   onCleanup(() => {
     clearShowTimer();

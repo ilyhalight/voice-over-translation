@@ -15,7 +15,11 @@ import {
   summarizeBodyForDebug,
 } from "../shared/bodySerialization";
 import { PORT_NAME } from "../shared/constants";
-import { ext, runtimeMessagesUseStructuredClone } from "../shared/webext";
+import {
+  ext,
+  lastErrorMessage,
+  runtimeMessagesUseStructuredClone,
+} from "../shared/webext";
 import {
   ensureDnrHeaderRuleForYandex,
   ensureDnrOriginStripRuleForYoutubei,
@@ -44,6 +48,16 @@ type XhrStartMessage = {
 type XhrAbortMessage = { type: "abort" };
 
 type XhrPortMessage = XhrStartMessage | XhrAbortMessage;
+type FetchResponseBase = Pick<
+  XhrResponse,
+  "finalUrl" | "readyState" | "status" | "statusText" | "responseHeaders"
+>;
+type ParsedFetchResponse = {
+  response: unknown;
+  responseText?: string;
+  responseB64?: string;
+};
+
 const MAX_INLINE_BINARY_RESPONSE_BYTES = 512 * 1024;
 const PROTOBUF_CONTENT_TYPE_RE =
   /application\/(?:x-)?protobuf|application\/octet-stream/;
@@ -198,19 +212,9 @@ function recoverProtobufBody(
 async function parseFetchResponseBody(
   res: Response,
   responseType: string,
-  makeBase: (readyState: number) => {
-    finalUrl: string;
-    readyState: number;
-    status: number;
-    statusText: string;
-    responseHeaders: string;
-  },
+  makeBase: (readyState: number) => FetchResponseBase,
   postMessage: (msg: unknown) => void,
-): Promise<{
-  response: unknown;
-  responseText?: string;
-  responseB64?: string;
-}> {
+): Promise<ParsedFetchResponse> {
   const wantBinary =
     responseType === "arraybuffer" ||
     responseType === "blob" ||
@@ -220,8 +224,8 @@ async function parseFetchResponseBody(
     return await parseBinaryResponse(res, makeBase, postMessage);
   }
 
+  const text = await res.text();
   if (responseType === "json") {
-    const text = await res.text();
     let parsed: unknown;
     try {
       parsed = JSON.parse(text);
@@ -231,25 +235,14 @@ async function parseFetchResponseBody(
     return { response: parsed, responseText: text };
   }
 
-  const text = await res.text();
   return { response: text, responseText: text };
 }
 
 async function parseBinaryResponse(
   res: Response,
-  makeBase: (readyState: number) => {
-    finalUrl: string;
-    readyState: number;
-    status: number;
-    statusText: string;
-    responseHeaders: string;
-  },
+  makeBase: (readyState: number) => FetchResponseBase,
   postMessage: (msg: unknown) => void,
-): Promise<{
-  response: unknown;
-  responseText?: string;
-  responseB64?: string;
-}> {
+): Promise<ParsedFetchResponse> {
   const contentLength = Number(res.headers.get("content-length") || 0);
   const shouldStream =
     !!res.body &&
@@ -309,8 +302,14 @@ export function registerXhrPortListener(): void {
       return;
     }
 
+    let disconnected = false;
     const safePostMessage = (payload: unknown) => {
-      typedPort.postMessage?.(payload);
+      if (disconnected) return;
+      try {
+        typedPort.postMessage?.(payload);
+      } catch {
+        // port closed under us; the bridge settles on its own onDisconnect
+      }
     };
 
     xhrSessionSeq += 1;
@@ -329,9 +328,12 @@ export function registerXhrPortListener(): void {
     };
 
     typedPort.onDisconnect.addListener(() => {
+      disconnected = true;
       cleanup();
       debug.warn("[VOT EXT][background][xhr] port disconnected", {
         xhrSessionId,
+        // Consumed only to avoid "Unchecked runtime.lastError" noise.
+        lastError: lastErrorMessage(),
       });
       requestAbort();
     });
@@ -363,30 +365,6 @@ export function registerXhrPortListener(): void {
       return { allHeaders, headers, forbiddenHeaders };
     };
 
-    const postAbortBeforeStart = (url: string) => {
-      const errorObj = createTerminalXhrError(url, "Aborted");
-      try {
-        safePostMessage({ type: "abort", state: "terminal", error: errorObj });
-      } catch {
-        // ignore
-      }
-    };
-
-    const resolveFetchCredentials = (
-      details: XhrStartMessage["details"],
-    ): RequestCredentials =>
-      details.anonymous || details.withCredentials === false
-        ? "omit"
-        : "include";
-
-    const resolveFetchCache = (
-      details: XhrStartMessage["details"],
-    ): RequestCache | undefined => {
-      if (details.nocache) return "no-store";
-      if (details.revalidate) return "no-cache";
-      return undefined;
-    };
-
     const normalizeRequestBody = (
       details: XhrStartMessage["details"],
       method: string,
@@ -414,26 +392,6 @@ export function registerXhrPortListener(): void {
       }
 
       return body;
-    };
-
-    const createRequestInit = (params: {
-      method: string;
-      headers: Record<string, string>;
-      redirect: RequestRedirect;
-      credentials: RequestCredentials;
-      body: BodyInit | undefined;
-      cache: RequestCache | undefined;
-    }): RequestInit => {
-      const init: RequestInit = {
-        method: params.method,
-        headers: params.headers,
-        redirect: params.redirect,
-        credentials: params.credentials,
-        signal: controller?.signal,
-      };
-      if (params.body !== undefined) init.body = params.body;
-      if (params.cache !== undefined) init.cache = params.cache;
-      return init;
     };
 
     const handleFetchSuccess = async (params: {
@@ -518,11 +476,7 @@ export function registerXhrPortListener(): void {
           url,
           kind === "timeout" ? "Timeout" : "Aborted",
         );
-        try {
-          safePostMessage({ type: kind, state: "terminal", error: errorObj });
-        } catch {
-          // ignore
-        }
+        safePostMessage({ type: kind, state: "terminal", error: errorObj });
         debug.warn("[VOT EXT][background][xhr] terminal", {
           xhrSessionId,
           state: "terminal",
@@ -574,7 +528,11 @@ export function registerXhrPortListener(): void {
       });
 
       if (shouldAbortImmediately) {
-        postAbortBeforeStart(url);
+        safePostMessage({
+          type: "abort",
+          state: "terminal",
+          error: createTerminalXhrError(url, "Aborted"),
+        });
         return;
       }
 
@@ -588,8 +546,13 @@ export function registerXhrPortListener(): void {
         }, timeout) as unknown as number;
       }
 
-      const credentials = resolveFetchCredentials(details);
-      const cache = resolveFetchCache(details);
+      const credentials: RequestCredentials =
+        details.anonymous || details.withCredentials === false
+          ? "omit"
+          : "include";
+      let cache: RequestCache | undefined;
+      if (details.nocache) cache = "no-store";
+      else if (details.revalidate) cache = "no-cache";
       const redirect: RequestRedirect =
         details.redirect === "error" || details.redirect === "manual"
           ? details.redirect
@@ -622,17 +585,17 @@ export function registerXhrPortListener(): void {
           body: summarizeBodyForDebug(body),
         });
 
-        const res = await fetch(
-          url,
-          createRequestInit({
-            method,
-            headers,
-            redirect,
-            credentials,
-            body,
-            cache,
-          }),
-        );
+        const init: RequestInit = {
+          method,
+          headers,
+          redirect,
+          credentials,
+          signal: controller.signal,
+        };
+        if (body !== undefined) init.body = body;
+        if (cache !== undefined) init.cache = cache;
+
+        const res = await fetch(url, init);
         await handleFetchSuccess({ url, method, responseType, res });
       } catch (err) {
         handleFetchFailure(url, method, responseType, err);

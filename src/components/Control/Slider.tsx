@@ -1,5 +1,4 @@
 import { createSignal, type JSX, mergeProps } from "solid-js";
-import "./Slider.scss";
 import { effect } from "solid-js/web";
 import { clamp } from "#utils/number.ts";
 
@@ -39,6 +38,11 @@ export function Slider(props: SliderProps): JSX.Element {
     const range = finalProps.max - finalProps.min;
     const raw = range <= 0 ? 0 : (value() - finalProps.min) / range;
     return clamp(raw, 0, 1);
+  };
+
+  const stopDragging = () => {
+    pointerStart = undefined;
+    setDragging(false);
   };
 
   effect(() => {
@@ -82,14 +86,8 @@ export function Slider(props: SliderProps): JSX.Element {
             setDragging(true);
           }
         }}
-        onpointerup={() => {
-          pointerStart = undefined;
-          setDragging(false);
-        }}
-        onpointercancel={() => {
-          pointerStart = undefined;
-          setDragging(false);
-        }}
+        onpointerup={stopDragging}
+        onpointercancel={stopDragging}
         oninput={(e) => {
           const newValue = e.target.valueAsNumber;
           setValue(newValue);

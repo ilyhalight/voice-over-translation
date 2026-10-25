@@ -7,8 +7,6 @@ import {
   Show,
 } from "solid-js";
 
-import "./SegmentedButton.scss";
-
 import { t } from "../../localization/localizationProvider";
 import { setSettings, settings } from "../../stores/settings";
 import type { Direction, Status } from "../../types/components/votButton";

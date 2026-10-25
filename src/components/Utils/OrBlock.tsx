@@ -1,5 +1,4 @@
 import type { JSX } from "solid-js";
-import "./OrBlock.scss";
 
 export type OrBlockProps = {
   ref?: (element: HTMLElement) => void;

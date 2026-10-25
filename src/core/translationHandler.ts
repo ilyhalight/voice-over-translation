@@ -616,10 +616,8 @@ export class VOTTranslationHandler {
     const { disableLivelyVoice = false, retryAttempt = 0 } = options;
     clearTimeout(this.videoHandler.autoRetry);
     this.finishDownloadSuccess();
-    const requestLangForApi = this.videoHandler.getRequestLangForTranslation(
-      requestLang,
-      responseLang,
-    );
+    // vot.js sends `requestLang` as-is ("auto" is detected server-side).
+    const requestLangForApi = requestLang;
     debug.log("[Translation] translateVideoImpl start", {
       videoId: videoData.videoId,
       duration: videoData.duration,
@@ -685,7 +683,12 @@ export class VOTTranslationHandler {
       });
       throwIfAborted(signal);
 
-      if (res.translated && res.remainingTime < 1) {
+      // vot.js API: FINISHED/PART_CONTENT => translated=true. FINISHED is terminal:
+      // never re-request translate after it (stale remainingTime used to schedule a retry).
+      if (
+        res.translated &&
+        (res.status === VideoTranslationStatus.FINISHED || res.remainingTime < 1)
+      ) {
         this.etaCountdown.stop();
         logger.log("[Translation] translation finished", {
           videoId: videoData.videoId,
@@ -938,7 +941,11 @@ export class VOTTranslationHandler {
           shouldSendFailedAudio,
         });
 
-        if (!useLivelyVoice || !this.isLivelyVoiceUnavailableError(response)) {
+        if (
+          !useLivelyVoice ||
+          response.translated ||
+          !this.isLivelyVoiceUnavailableError(response)
+        ) {
           debug.log("[Translation] votClient.translateVideo resolved", {
             videoId: videoData.videoId,
             useLivelyVoice,

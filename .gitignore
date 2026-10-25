@@ -1,4 +1,7 @@
 .output
+.wxt
+web-ext.config.ts
+release-output
 .amo-upload-uuid
 src/audioDownloader/MAPPINGS.md
 src/audioDownloader/VM*.js
@@ -9,7 +12,6 @@ dist/test-ui.user.js
 dist/*.txt
 dist/*.map
 dist/main.user.js
-dist/*.css
 dist-ext/chrome/
 dist-ext/firefox/
 dist-ext/vot-extension-chrome.zip

@@ -1,27 +1,20 @@
-import { createSignal, type JSX, mergeProps, Show } from "solid-js";
-import { effect } from "solid-js/web";
+import { type JSX, Show } from "solid-js";
 
 export type TranslateIconProps = {
   loading?: boolean;
 };
 
 export function TranslateIcon(props: TranslateIconProps): JSX.Element {
-  const finalProps = mergeProps(
-    {
-      loading: false,
-    },
-    props,
-  );
-
-  const [loading, setLoading] = createSignal(finalProps.loading);
-  effect(() => {
-    setLoading(finalProps.loading);
-  });
-
   return (
-    <svg width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor">
+    <svg
+      aria-hidden="true"
+      width="1em"
+      height="1em"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+    >
       <Show
-        when={loading()}
+        when={props.loading}
         fallback={
           <path
             fill-rule="evenodd"
