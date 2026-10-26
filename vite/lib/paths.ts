@@ -7,6 +7,8 @@ export const SOURCE_DIR = path.resolve(ROOT_DIR, "src");
 export const DIST_DIR = path.resolve(ROOT_DIR, "dist");
 export const DIST_EXT_DIR = path.resolve(ROOT_DIR, "dist-ext");
 export const OUT_TEMP_DIR = path.resolve(DIST_EXT_DIR, "_tmp");
+export const SOURCEMAP_DIR = "sourcemaps";
+export const EXT_SOURCEMAPS_DIR = path.resolve(DIST_EXT_DIR, SOURCEMAP_DIR);
 
 export const EXTENSION_NAME = "vot-extension";
 export const FIREFOX_EXTENSION_NAME = `${EXTENSION_NAME}-firefox`;

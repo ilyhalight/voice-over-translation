@@ -7,6 +7,7 @@ import {
   DIST_EXT_DIR,
   getReleaseDownloadBase,
 } from "../paths";
+import { stashChromeSourcemaps } from "./sourcemaps";
 
 async function writeChromeUpdatesManifest({
   version,
@@ -40,6 +41,7 @@ export async function finalizeChromeBuild(
   const version = String(headers.version || "");
 
   const zipPath = path.join(DIST_EXT_DIR, CHROME_ZIP_FILE);
+  await stashChromeSourcemaps(chromeDir);
   await zipDir(chromeDir, zipPath);
 
   const updatesPath = await writeChromeUpdatesManifest({

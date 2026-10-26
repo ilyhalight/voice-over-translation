@@ -1,13 +1,25 @@
+import { cp } from "node:fs/promises";
+import path from "node:path";
 import { $ } from "bun";
 import {
   CHROME_ZIP_FILE,
+  DIST_DIR,
+  DIST_EXT_DIR,
   FIREFOX_EXTENSION_NAME,
   FIREFOX_XPI_FILE,
+  SOURCEMAP_DIR,
 } from "../vite/lib/paths";
 import {
+  OUTPUT_DIR_PATH,
   OUTPUT_EXTENSION_CHROME_NAME,
   OUTPUT_EXTENSION_FIREFOX_NAME,
 } from "./output/paths";
+
+async function keepSourcemaps(from: string, name: string) {
+  await cp(from, path.join(OUTPUT_DIR_PATH, SOURCEMAP_DIR, name), {
+    recursive: true,
+  });
+}
 
 async function main() {
   console.log("Starting autobuild...");
@@ -19,6 +31,7 @@ async function main() {
   await $`bun zip:source`.quiet(false);
   console.log("Building extension as an userscript...");
   await $`bun build:gm`.quiet(false);
+  await keepSourcemaps(path.join(DIST_DIR, SOURCEMAP_DIR), "userscript");
 
   console.log("Building extension in store mode...");
   await $`bun build:ext`
@@ -30,6 +43,14 @@ async function main() {
     .quiet(false);
 
   console.log("Copying store build to output directory...");
+  await keepSourcemaps(
+    path.join(DIST_EXT_DIR, SOURCEMAP_DIR, "chrome"),
+    "chrome-store",
+  );
+  await keepSourcemaps(
+    path.join(DIST_EXT_DIR, SOURCEMAP_DIR, "firefox"),
+    "firefox-store",
+  );
   await $`cp dist-ext/${FIREFOX_XPI_FILE} .output/${OUTPUT_EXTENSION_FIREFOX_NAME}-store.xpi`.quiet(
     false,
   );
@@ -44,6 +65,14 @@ async function main() {
       IS_STORE_BUILD: "false",
     })
     .quiet(false);
+  await keepSourcemaps(
+    path.join(DIST_EXT_DIR, SOURCEMAP_DIR, "chrome"),
+    "chrome",
+  );
+  await keepSourcemaps(
+    path.join(DIST_EXT_DIR, SOURCEMAP_DIR, "firefox"),
+    "firefox",
+  );
   console.log("Copying non-store firefox build to output directory...");
   await $`cp dist-ext/${FIREFOX_XPI_FILE} .output/${OUTPUT_EXTENSION_FIREFOX_NAME}.xpi`.quiet(
     false,

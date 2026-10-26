@@ -25,6 +25,16 @@ jobs:
           AMO_API_KEY: ${{ secrets.AMO_API_KEY }}
           AMO_API_SECRET: ${{ secrets.AMO_API_SECRET }}
           CHROME_EXTENSION_ID: dnioaagdjgpcokckfpokpndoblenmfcg
+      - name: Upload sourcemaps to Bugsink
+        continue-on-error: true
+        run: >-
+          bunx @sentry/cli@2 --url "$BUGSINK_URL" sourcemaps
+          --org bugsinkhasnoorgs --project "$BUGSINK_PROJECT"
+          upload .output/sourcemaps
+        env:
+          BUGSINK_URL: https://ingest.nirel.cc/
+          BUGSINK_PROJECT: "vot-ext"
+          SENTRY_AUTH_TOKEN: ${{ secrets.BUGSINK_AUTH_TOKEN }}
       - name: Create release
         uses: softprops/action-gh-release@v3
         with:

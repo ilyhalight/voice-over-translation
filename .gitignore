@@ -8,6 +8,8 @@ keys/
 dist/test-ui.user.js
 dist/*.txt
 dist/*.map
+dist/sourcemaps/
+dist-ext/sourcemaps/
 dist/main.user.js
 dist/*.css
 dist-ext/chrome/

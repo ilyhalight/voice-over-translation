@@ -35,6 +35,21 @@ export type ExceptionValue = {
   stacktrace?: { frames: StackFrame[] };
 };
 
+export type DebugIdEntry = {
+  debugId: string;
+  /** Lines a userscript manager prepended to the built file. */
+  lineOffset: number;
+};
+
+/** Registration of the bundle served under a normalized filename. */
+export type DebugIdRegistry = Map<string, DebugIdEntry>;
+
+export type DebugImage = {
+  type: "sourcemap";
+  code_file: string;
+  debug_id: string;
+};
+
 export type Tags = Record<string, string>;
 export type Contexts = Record<string, Record<string, string>>;
 
@@ -52,11 +67,13 @@ export type SentryEvent = {
   extra?: Record<string, unknown>;
   fingerprint: string[];
   exception: { values: ExceptionValue[] };
+  debug_meta?: { images: DebugImage[] };
 };
 
 export type EventContext = {
   version: string;
   environment: string;
+  debugIds?: DebugIdRegistry;
   level?: EventLevel;
   tags: Tags;
   contexts?: Contexts;
@@ -164,8 +181,64 @@ function toExceptionValue(value: unknown): ExceptionValue {
   };
 }
 
+// Userscript managers serve the script under unpredictable urls, so when only
+// one bundle registered itself it is assumed to own every in-app frame.
+function createEntryResolver(
+  registry: DebugIdRegistry,
+): (frame: StackFrame) => DebugIdEntry | undefined {
+  const soleEntry =
+    registry.size === 1 ? registry.values().next().value : undefined;
+  return (frame) =>
+    frame.in_app ? (registry.get(frame.filename) ?? soleEntry) : undefined;
+}
+
+function buildDebugMeta(
+  values: ExceptionValue[],
+  resolveEntry: (frame: StackFrame) => DebugIdEntry | undefined,
+): SentryEvent["debug_meta"] {
+  const images = new Map<string, DebugImage>();
+  for (const { stacktrace } of values) {
+    for (const frame of stacktrace?.frames ?? []) {
+      if (images.has(frame.filename)) continue;
+
+      const entry = resolveEntry(frame);
+      if (entry) {
+        images.set(frame.filename, {
+          type: "sourcemap",
+          code_file: frame.filename,
+          debug_id: entry.debugId,
+        });
+      }
+    }
+  }
+  return images.size ? { images: [...images.values()] } : undefined;
+}
+
+// Maps runtime lines back to the built file so that the uploaded sourcemap
+// applies; a shift larger than the line itself means the frame is not ours.
+function removeLineOffsets(
+  values: ExceptionValue[],
+  resolveEntry: (frame: StackFrame) => DebugIdEntry | undefined,
+): void {
+  for (const { stacktrace } of values) {
+    for (const frame of stacktrace?.frames ?? []) {
+      const lineOffset = resolveEntry(frame)?.lineOffset;
+      if (lineOffset && frame.lineno - lineOffset >= 1) {
+        frame.lineno -= lineOffset;
+      }
+    }
+  }
+}
+
 export function buildEvent(error: Error, context: EventContext): SentryEvent {
   const { source, service } = context.tags;
+  const values = collectCauses(error).map(toExceptionValue);
+  let debugMeta: SentryEvent["debug_meta"];
+  if (context.debugIds?.size) {
+    const resolveEntry = createEntryResolver(context.debugIds);
+    debugMeta = buildDebugMeta(values, resolveEntry);
+    removeLineOffsets(values, resolveEntry);
+  }
 
   return {
     event_id: createEventId(),
@@ -183,7 +256,8 @@ export function buildEvent(error: Error, context: EventContext): SentryEvent {
       service,
       normalizeMessage(error.message),
     ].filter((part): part is string => Boolean(part)),
-    exception: { values: collectCauses(error).map(toExceptionValue) },
+    exception: { values },
+    ...(debugMeta && { debug_meta: debugMeta }),
   };
 }
 

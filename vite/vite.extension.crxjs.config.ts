@@ -1,14 +1,17 @@
 import path from "node:path";
 import { crx } from "@crxjs/vite-plugin";
 import { defineConfig, type Plugin, type UserConfig } from "vite";
+import { debugIdPlugin } from "./lib/debug-id";
 import { type BuildConfig, buildDefine, getBuildConfig } from "./lib/env";
 import {
   finalizeChromeBuild,
   getChromeExtensionBuildEnv,
 } from "./lib/extension/chrome-postbuild";
 import manifest from "./lib/extension/manifest.config";
-import { DIST_EXT_DIR } from "./lib/paths";
+import { DIST_EXT_DIR, SOURCEMAP_DIR } from "./lib/paths";
 import { createBaseViteConfig } from "./lib/vite-base-config";
+
+const BACKGROUND_ENTRY = "src/extension/background.ts";
 
 function chromePackagePlugin(
   config: BuildConfig,
@@ -43,6 +46,12 @@ export default defineConfig(async ({ mode }) => {
           standaloneFiles: ["src/extension/bridge.ts"],
         },
       }),
+      debugIdPlugin({
+        variant: "chrome",
+        registerChunk: ({ facadeModuleId }) =>
+          !facadeModuleId?.endsWith(BACKGROUND_ENTRY),
+        sourcemapDir: SOURCEMAP_DIR,
+      }),
       chromePackagePlugin(buildConfig, headers),
     ],
     define: buildDefine({
@@ -63,7 +72,7 @@ export default defineConfig(async ({ mode }) => {
       ...baseConfig.build,
       outDir: path.join(DIST_EXT_DIR, "chrome"),
       emptyOutDir: true,
-      sourcemap: false,
+      sourcemap: "hidden",
       minify: "oxc",
     },
   } satisfies UserConfig;

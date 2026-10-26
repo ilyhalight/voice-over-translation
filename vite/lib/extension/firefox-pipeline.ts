@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { type InlineConfig, type UserConfig, build as viteBuild } from "vite";
 import { zipDir } from "../../../scripts/zip/utils";
+import { debugIdPlugin } from "../debug-id";
 import { type BuildConfig, type BuildEnvMeta, buildDefine } from "../env";
 import {
   DIST_EXT_DIR,
@@ -13,6 +14,7 @@ import {
   OUT_TEMP_DIR,
   ROOT_DIR,
   SOURCE_DIR,
+  SOURCEMAP_DIR,
   singleFileBuildOptions,
 } from "../paths";
 import { createBaseViteConfig } from "../vite-base-config";
@@ -21,6 +23,7 @@ import {
   EXTENSION_ICON_SIZES,
   type ExtensionHeaders,
 } from "./manifest-helpers";
+import { stashFirefoxSourcemaps } from "./sourcemaps";
 
 const DEFAULT_EXTENSION_VERSION = "0.0.0";
 const EXTENSION_LOADER_FILES = ["prelude.js", "content.js"] as const;
@@ -38,6 +41,8 @@ interface ExtensionEntry {
   entry: string;
   fileName: string;
   emptyOutDir: boolean;
+  /** Only the content script reports errors through telemetry. */
+  registerDebugId: boolean;
 }
 
 const extensionEntries: ExtensionEntry[] = [
@@ -45,21 +50,25 @@ const extensionEntries: ExtensionEntry[] = [
     entry: "src/index.ts",
     fileName: "content.module.js",
     emptyOutDir: true,
+    registerDebugId: true,
   },
   {
     entry: "src/extension/prelude.ts",
     fileName: "prelude.module.js",
     emptyOutDir: false,
+    registerDebugId: false,
   },
   {
     entry: "src/extension/bridge.ts",
     fileName: "bridge.js",
     emptyOutDir: false,
+    registerDebugId: false,
   },
   {
     entry: "src/extension/background.ts",
     fileName: "background-ff.js",
     emptyOutDir: false,
+    registerDebugId: false,
   },
 ];
 
@@ -148,13 +157,21 @@ function createExtensionEntryConfig(
   return {
     ...baseConfig,
     configFile: false,
+    plugins: [
+      ...(baseConfig.plugins ?? []),
+      debugIdPlugin({
+        variant: "firefox",
+        registerChunk: () => entry.registerDebugId,
+        sourcemapDir: SOURCEMAP_DIR,
+      }),
+    ],
     define,
     build: {
       ...baseConfig.build,
       ...singleFileBuildOptions,
       outDir: OUT_TEMP_DIR,
       emptyOutDir: entry.emptyOutDir,
-      sourcemap: false,
+      sourcemap: "hidden",
       minify: "oxc",
       lib: {
         entry: path.join(ROOT_DIR, entry.entry),
@@ -728,6 +745,7 @@ export async function finalizeFirefoxBuild(config: BuildConfig): Promise<void> {
   const version = headers.version || DEFAULT_EXTENSION_VERSION;
 
   const outDir = path.join(DIST_EXT_DIR, "firefox");
+  await stashFirefoxSourcemaps(OUT_TEMP_DIR);
   await ensureCleanDir(outDir);
   await copyExtensionFiles(outDir);
   await writeManifest(
