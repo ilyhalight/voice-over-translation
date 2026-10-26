@@ -84,7 +84,8 @@ export const SmallVideoLayout: Story = {
 
     setSettings("buttonPos", "left");
     smallLayoutControls?.setContainerSize(400, 300);
-    await expect(buttonOverlay).toHaveAttribute("data-position", "default");
+    // setContainerSize only sizes the menu; button position follows settings.
+    await expect(buttonOverlay).toHaveAttribute("data-position", "left");
 
     smallLayoutControls?.setContainerSize(700, 450);
     await expect(buttonOverlay).toHaveAttribute("data-position", "left");

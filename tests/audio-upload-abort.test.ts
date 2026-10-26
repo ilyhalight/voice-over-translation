@@ -389,7 +389,7 @@ describe("fatal audio upload failure keeps preparing source", () => {
             };
           }
           return {
-            status: VideoTranslationStatus.TRANSLATED,
+            status: VideoTranslationStatus.FINISHED,
             translated: true,
             remainingTime: 0,
             translationId: "tr-2",

@@ -66,11 +66,13 @@ export const SegmentedButtonLongLabel: Story = {
       '.vot-segment-only-icon[aria-haspopup="dialog"]',
     );
 
-    await expect(container).toBeDefined();
-    await expect(button).toBeDefined();
-    await expect(label).toBeDefined();
-    await expect(menu).toBeDefined();
-    if (!container || !button || !label || !menu) return;
+    await expect(container).toBeInstanceOf(HTMLElement);
+    await expect(button).toBeInstanceOf(HTMLElement);
+    await expect(label).toBeInstanceOf(HTMLElement);
+    await expect(menu).toBeInstanceOf(HTMLElement);
+    if (!container || !button || !label || !menu) {
+      throw new Error("SegmentedButton layout elements were not rendered");
+    }
 
     await expect(button.getBoundingClientRect().right).toBeLessThanOrEqual(
       container.getBoundingClientRect().right + 1,

@@ -6,6 +6,8 @@ type FullscreenLayerControllerOptions = {
 
 export class FullscreenLayerController {
   private container: HTMLElement | ShadowRoot;
+  private patchedLayoutRoot: HTMLElement | null = null;
+  private originalInlinePosition = "";
 
   constructor({ container }: FullscreenLayerControllerOptions) {
     this.container = container;
@@ -22,6 +24,11 @@ export class FullscreenLayerController {
   syncWidgetContainer(widgetContainer: HTMLElement | null): void {
     const containerEl = this.getLayoutRootElement();
     if (getComputedStyle(containerEl).position === "static") {
+      if (this.patchedLayoutRoot !== containerEl) {
+        this.restoreLayoutRootPosition();
+        this.patchedLayoutRoot = containerEl;
+        this.originalInlinePosition = containerEl.style.position;
+      }
       containerEl.style.position = "relative";
     }
 
@@ -29,8 +36,15 @@ export class FullscreenLayerController {
       this.container.appendChild(widgetContainer);
     }
   }
+
   release(): void {
-    // No resources to release: the controller holds only a DOM container
-    // reference that is managed by the caller.
+    this.restoreLayoutRootPosition();
+  }
+
+  private restoreLayoutRootPosition(): void {
+    if (!this.patchedLayoutRoot) return;
+    this.patchedLayoutRoot.style.position = this.originalInlinePosition;
+    this.patchedLayoutRoot = null;
+    this.originalInlinePosition = "";
   }
 }

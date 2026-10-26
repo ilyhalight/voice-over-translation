@@ -71,7 +71,11 @@ async function reinjectContentScripts(): Promise<void> {
 
   const plan = new Map<
     number,
-    { tab: InjectableTab; entries: ManifestContentScript[] }
+    {
+      tab: InjectableTab;
+      entries: ManifestContentScript[];
+      files: Set<string>;
+    }
   >();
   const queries = contentScripts
     .filter((entry) => entry.js?.length)
@@ -86,8 +90,20 @@ async function reinjectContentScripts(): Promise<void> {
     const excluded = new Set(excludedTabs.map((tab) => tab.id));
     for (const tab of tabs) {
       if (!isInjectableTab(tab) || excluded.has(tab.id)) continue;
-      const item = plan.get(tab.id) ?? { tab, entries: [] };
-      item.entries.push(entry);
+      const item = plan.get(tab.id) ?? {
+        tab,
+        entries: [],
+        files: new Set<string>(),
+      };
+      // Duplicate content_scripts entries must not inject the same file twice.
+      const js = (entry.js ?? []).filter((file) => {
+        const key = `${entry.world ?? "ISOLATED"}:${file.replace(/^\//, "")}`;
+        if (item.files.has(key)) return false;
+        item.files.add(key);
+        return true;
+      });
+      if (!js.length) continue;
+      item.entries.push({ ...entry, js });
       plan.set(tab.id, item);
     }
   }

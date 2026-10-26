@@ -5,14 +5,11 @@ import {
   solveYouTubeChallenges,
   validPageValue,
   type WebAbrWindow,
-  type WebEmbeddedFormat,
   type WebEmbeddedPlayerResponse,
   type YouTubeConfig,
 } from "./webAbr";
 
 import { getTopPageWindow } from "./youtubePage";
-
-export { getTopPageWindow } from "./youtubePage";
 
 function readInitialPlayerResponseFromDocument(
   targetWindow: WebAbrWindow,

@@ -37,20 +37,19 @@ function normalizeBase64Input(input: string): string {
 // concatenated, and small enough to stay below Function#apply argument limits.
 const BASE64_ENCODE_CHUNK_SIZE = 0x8000 - (0x8000 % 3);
 
-function bytesToBase64WithBtoa(
-  bytes: Uint8Array,
-  btoaFn: (data: string) => string,
-): string {
+function bytesToBase64WithBtoa(bytes: Uint8Array): string {
   // Encode per chunk instead of building one huge binary string first:
   // avoids a full-size intermediate string + flatten and stays cache-friendly.
   const len = bytes.length;
   if (len <= BASE64_ENCODE_CHUNK_SIZE) {
-    return btoaFn(String.fromCharCode.apply(null, bytes as unknown as number[]));
+    return btoa(String.fromCharCode.apply(null, bytes as unknown as number[]));
   }
   const parts: string[] = [];
   for (let i = 0; i < len; i += BASE64_ENCODE_CHUNK_SIZE) {
     const chunk = bytes.subarray(i, i + BASE64_ENCODE_CHUNK_SIZE);
-    parts.push(btoaFn(String.fromCharCode.apply(null, chunk as unknown as number[])));
+    parts.push(
+      btoa(String.fromCharCode.apply(null, chunk as unknown as number[])),
+    );
   }
   return parts.join("");
 }
@@ -75,9 +74,7 @@ function tryDecodeBase64Direct(input: string): Uint8Array | null {
     if (typeof nativeFromBase64 === "function") {
       return nativeFromBase64(input);
     }
-    const atobFn = globalThis.atob;
-    if (typeof atobFn !== "function") return null;
-    return binaryStringToBytes(atobFn(input));
+    return binaryStringToBytes(atob(input));
   } catch {
     return null;
   }
@@ -101,11 +98,7 @@ export function bytesToBase64(bytes: Uint8Array): string {
     return nativeToBase64.call(bytes);
   }
 
-  const btoaFn = globalThis.btoa;
-  if (typeof btoaFn !== "function") {
-    throw new TypeError("Base64 encoder is not available in this environment.");
-  }
-  return bytesToBase64WithBtoa(bytes, btoaFn);
+  return bytesToBase64WithBtoa(bytes);
 }
 
 export function arrayBufferToBase64(ab: ArrayBuffer): string {
@@ -127,12 +120,7 @@ export function base64ToBytes(input: string): Uint8Array {
     return nativeFromBase64(standard);
   }
 
-  const atobFn = globalThis.atob;
-  if (typeof atobFn !== "function") {
-    throw new TypeError("Base64 decoder is not available in this environment.");
-  }
-
-  return binaryStringToBytes(atobFn(standard));
+  return binaryStringToBytes(atob(standard));
 }
 
 export function base64ToArrayBuffer(b64: string): ArrayBuffer {

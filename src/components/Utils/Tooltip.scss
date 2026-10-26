@@ -27,6 +27,10 @@
   padding: 4px 8px !important;
   opacity: 0;
 
+  &[data-trigger="hover"]:not([data-mode="follow"]) {
+    pointer-events: none;
+  }
+
   &[data-trigger="click"] {
     user-select: text;
   }

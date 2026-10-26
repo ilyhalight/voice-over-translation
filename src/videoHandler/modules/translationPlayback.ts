@@ -73,13 +73,17 @@ async function resumePlayerAudioContextIfNeeded(
   return result;
 }
 
+const translationSourceOwners = new WeakMap<object, ActionContext | undefined>();
+
 async function rollbackStaleAppliedSourceIfStillCurrent(
   handler: VideoHandler,
   appliedSourceUrl: string | null,
+  actionContext?: ActionContext,
 ): Promise<void> {
   if (!appliedSourceUrl || !handler.audioPlayer) return;
 
   const player = handler.audioPlayer.player;
+  if (translationSourceOwners.get(player) !== actionContext) return;
   const currentSource = String(player.currentSrc || player.src || "");
   const normalizedCurrentUrl = handler.proxifyAudio(
     handler.unproxifyAudio(currentSource),
@@ -383,6 +387,7 @@ async function applyTranslationSource(
 ): Promise<ApplyTranslationSourceResult> {
   const currentSrc = handler.audioPlayer.player.src;
   const didSetSource = currentSrc !== sourceUrl;
+  translationSourceOwners.set(handler.audioPlayer.player, actionContext);
   let appliedSourceUrl: string | null = null;
 
   if (didSetSource) {
@@ -395,7 +400,11 @@ async function applyTranslationSource(
       await handler.audioPlayer.init();
     }
     if (handler.isActionStale(actionContext)) {
-      await rollbackStaleAppliedSourceIfStillCurrent(handler, appliedSourceUrl);
+      await rollbackStaleAppliedSourceIfStillCurrent(
+        handler,
+        appliedSourceUrl,
+        actionContext,
+      );
       return {
         status: "stale",
         didSetSource,
@@ -415,7 +424,11 @@ async function applyTranslationSource(
     }
 
     if (handler.isActionStale(actionContext)) {
-      await rollbackStaleAppliedSourceIfStillCurrent(handler, appliedSourceUrl);
+      await rollbackStaleAppliedSourceIfStillCurrent(
+        handler,
+        appliedSourceUrl,
+        actionContext,
+      );
       return {
         status: "stale",
         didSetSource,
@@ -477,7 +490,11 @@ export async function updateTranslation(
 
   if (applyResult.status === "error") {
     debug.log("this.audioPlayer.init() error", applyResult.error);
-    await rollbackStaleAppliedSourceIfStillCurrent(this, appliedSourceUrl);
+    await rollbackStaleAppliedSourceIfStillCurrent(
+      this,
+      appliedSourceUrl,
+      actionContext,
+    );
     captureException(applyResult.error, {
       source: "audio",
       operation: "loadTranslationAudio",
@@ -581,7 +598,11 @@ async function retryTranslationWithDirectSource(
 
   try {
     if (handler.isActionStale(actionContext)) {
-      await rollbackStaleAppliedSourceIfStillCurrent(handler, appliedSourceUrl);
+      await rollbackStaleAppliedSourceIfStillCurrent(
+        handler,
+        appliedSourceUrl,
+        actionContext,
+      );
       return {
         nextAudioUrl: directUrl,
         applyResult: {

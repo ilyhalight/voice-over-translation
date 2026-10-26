@@ -213,10 +213,12 @@ export class AudioDownloader {
   private completedAudioCache: {
     videoId: string;
     fileId: string;
+    sourceLanguage: string;
     chunks: Uint8Array[];
     version: 1;
   } | null = null;
   private readonly collectingChunks = new Map<string, Uint8Array[]>();
+  private readonly collectingLanguages = new Map<string, string>();
 
   onDownloadedAudio = new EventImpl<
     AudioDownloaderEventMap["downloadedAudio"]
@@ -252,6 +254,7 @@ export class AudioDownloader {
         this.completedAudioCache = {
           videoId: data.videoId,
           fileId: data.fileId,
+          sourceLanguage: this.collectingLanguages.get(data.videoId) ?? "",
           chunks: chunks.slice(0, data.amount),
           version: data.version,
         };
@@ -278,9 +281,11 @@ export class AudioDownloader {
     videoId: string,
     translationId: string,
     signal: AbortSignal,
+    sourceLanguage: string,
   ): Promise<boolean> {
     const cached = this.completedAudioCache;
-    if (cached?.videoId !== videoId) return false;
+    if (cached?.videoId !== videoId || cached.sourceLanguage !== sourceLanguage)
+      return false;
     debug.log("[AudioDownload] replaying cached prepared audio", {
       videoId,
       chunks: cached.chunks.length,
@@ -305,7 +310,11 @@ export class AudioDownloader {
     signal: AbortSignal,
     sourceLanguage?: string,
   ) {
-    if (await this.replayCachedAudio(videoId, translationId, signal)) {
+    const languageKey =
+      sourceLanguage?.trim().toLowerCase().replaceAll("_", "-") ?? "";
+    if (
+      await this.replayCachedAudio(videoId, translationId, signal, languageKey)
+    ) {
       return;
     }
 
@@ -329,7 +338,14 @@ export class AudioDownloader {
     let collecting: Uint8Array[] | undefined;
     try {
       // A predecessor may have finished the same video while this run waited.
-      if (await this.replayCachedAudio(videoId, translationId, signal)) {
+      if (
+        await this.replayCachedAudio(
+          videoId,
+          translationId,
+          signal,
+          languageKey,
+        )
+      ) {
         return;
       }
       // Buffer chunks in a run-local array so an abort/failure can drop them.
@@ -337,6 +353,7 @@ export class AudioDownloader {
       // collection when an overlapping predecessor cleans up.
       collecting = [];
       this.collectingChunks.set(videoId, collecting);
+      this.collectingLanguages.set(videoId, languageKey);
       const attempts: AvailableAudioDownloadType[] =
         this.strategy === "auto"
           ? [SABR_STRATEGY, WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY]
@@ -410,6 +427,7 @@ export class AudioDownloader {
       if (collecting && this.collectingChunks.get(videoId) === collecting) {
         this.collectingChunks.delete(videoId);
       }
+      this.collectingLanguages.delete(videoId);
       release();
     }
   }
