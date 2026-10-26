@@ -22,6 +22,14 @@ export const OUTPUT_CHROME_STORE_ZIP_PATH = path.join(
   `${OUTPUT_EXTENSION_CHROME_NAME}-store.zip`,
 );
 
+// Unsigned Firefox build packed by `wxt zip -b firefox` (zip.artifactTemplate
+// in wxt.config.ts). Only a by-product of the sources archive: autobuild
+// deletes it, the shipped Firefox builds are the XPIs above.
+export const OUTPUT_WXT_FIREFOX_ZIP_PATH = path.join(
+  OUTPUT_DIR_PATH,
+  `${OUTPUT_EXTENSION_FIREFOX_NAME}.zip`,
+);
+
 // Written by `wxt zip -b firefox` (zip.sourcesTemplate in wxt.config.ts).
 export const OUTPUT_SOURCE_FILENAME = `${EXTENSION_NAME}-${headers.version}-sources.zip`;
 export const OUTPUT_SOURCE_FILE_PATH = path.join(

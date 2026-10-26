@@ -227,33 +227,37 @@ export async function ensureDnrStripRuleForGooglevideo(
 }
 
 export async function preseedDnrRules(): Promise<void> {
-  try {
-    await browser.declarativeNetRequest.updateSessionRules({
-      removeRuleIds: [
-        DNR_RULE_ID_YOUTUBEI_ORIGIN,
-        DNR_RULE_ID_GOOGLEVIDEO_HEADERS,
-      ],
-      addRules: [
-        createHeaderRule(
-          DNR_RULE_ID_YOUTUBEI_ORIGIN,
-          YOUTUBEI_BASE_HEADERS,
-          "||m.youtube.com/",
-        ),
-        createHeaderRule(
-          DNR_RULE_ID_GOOGLEVIDEO_HEADERS,
-          GOOGLEVIDEO_BASE_HEADERS,
-          "||googlevideo.com/",
-        ),
-      ],
-    });
-    dnrAppliedSignatures.set(
-      DNR_RULE_ID_YOUTUBEI_ORIGIN,
-      signatureFromDnrRequestHeaders(YOUTUBEI_BASE_HEADERS),
-    );
-    dnrAppliedSignatures.set(
+  const seeds = [
+    [DNR_RULE_ID_YOUTUBEI_ORIGIN, YOUTUBEI_BASE_HEADERS, "||m.youtube.com/"],
+    [
       DNR_RULE_ID_GOOGLEVIDEO_HEADERS,
-      signatureFromDnrRequestHeaders(GOOGLEVIDEO_BASE_HEADERS),
-    );
+      GOOGLEVIDEO_BASE_HEADERS,
+      "||googlevideo.com/",
+    ],
+  ] as const;
+  // Serialized through the shared queue: running outside it races with
+  // queueDnrSessionRuleUpdate (a request-specific rule could be clobbered and
+  // dnrAppliedSignatures would stop matching the installed session rules).
+  const update = dnrRuleUpdateQueue.then(async () => {
+    // Never overwrite a rule a request already installed via the queue.
+    const pending = seeds.filter(([id]) => !dnrAppliedSignatures.has(id));
+    if (!pending.length) return;
+    await browser.declarativeNetRequest.updateSessionRules({
+      removeRuleIds: pending.map(([id]) => id),
+      addRules: pending.map(([id, headers, urlFilter]) =>
+        createHeaderRule(id, headers, urlFilter),
+      ),
+    });
+    for (const [id, headers] of pending) {
+      dnrAppliedSignatures.set(id, signatureFromDnrRequestHeaders(headers));
+    }
+  });
+  dnrRuleUpdateQueue = update.then(
+    () => {},
+    () => {},
+  );
+  try {
+    await update;
     debug.log("[VOT EXT][background] DNR rules pre-seeded");
   } catch (e) {
     debug.warn("[VOT EXT][background] Failed to pre-seed DNR rules:", e);

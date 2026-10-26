@@ -2,7 +2,6 @@ import { FormatXTags } from "googlevideo/protos";
 import type { SabrFormat } from "googlevideo/shared-types";
 import { base64ToU8, buildSabrFormat } from "googlevideo/utils";
 import { createAbortableDelay } from "../../utils/abort";
-import debug from "../../utils/debug";
 import {
   getYoutubeAudioFormatLanguage as getAudioFormatLanguage,
   normalizeAudioLanguageTag as normalizeAudioLanguage,
@@ -434,26 +433,6 @@ function isVotSupportedSabrTrack(trackId: string): boolean {
   );
 }
 
-type CurrentYouTubeAudioEvidence = {
-  language?: string;
-  trackId?: string;
-  representationId?: string;
-  source: "track-id" | "track-language" | "default-asr" | "unknown";
-  isDefault?: boolean;
-  isAutoDubbed?: boolean;
-  asrLanguages: string[];
-};
-
-function isVotSupportedAudioLanguage(language: string | undefined): boolean {
-  const normalized = normalizeAudioLanguage(language);
-  if (!normalized) return false;
-  if (VOT_SUPPORTED_SABR_SOURCE_LANGUAGES.has(normalized)) return true;
-  const base = normalized.split("-")[0];
-  return [...VOT_SUPPORTED_SABR_SOURCE_LANGUAGES].some(
-    (supported) => supported.split("-")[0] === base,
-  );
-}
-
 /**
  * Read the audio track that the native YouTube player is actually playing.
  *
@@ -597,135 +576,4 @@ export async function waitForSabrAudioTrackId(
       `to a YouTube trackId within ${timeoutMs}ms ` +
       `(available: ${lastAvailable.join(", ")})`,
   );
-}
-
-// --- Generated SABR request patching (ClientAbrState.audioTrackId) ---------
-
-const SABR_CLIENT_ABR_STATE_FIELD = 1;
-const SABR_AUDIO_TRACK_ID_FIELD = 69;
-const PROTO_WIRE_LEN = 2;
-
-type ProtoFieldSpan = {
-  field: number;
-  wire: number;
-  start: number;
-  payloadStart: number;
-  end: number;
-};
-
-function readProtoVarint(buf: Uint8Array, offset: number): [number, number] {
-  let result = 0;
-  let multiplier = 1;
-  for (let pos = offset; pos < buf.length && pos - offset < 10; pos++) {
-    const byte = buf[pos];
-    result += (byte & 0x7f) * multiplier;
-    if ((byte & 0x80) === 0) return [result, pos + 1];
-    multiplier *= 128;
-  }
-  throw new Error("SABR: truncated protobuf field");
-}
-
-/** Single pass over top-level fields: O(n), no intermediate copies. */
-function* iterateProtoFields(buf: Uint8Array): Generator<ProtoFieldSpan> {
-  let pos = 0;
-  while (pos < buf.length) {
-    const start = pos;
-    const [key, afterKey] = readProtoVarint(buf, pos);
-    const wire = key % 8;
-    const field = Math.floor(key / 8);
-    let payloadStart = afterKey;
-    let end: number;
-    switch (wire) {
-      case 0:
-        end = readProtoVarint(buf, afterKey)[1];
-        break;
-      case 1:
-        end = afterKey + 8;
-        break;
-      case PROTO_WIRE_LEN: {
-        const [length, dataStart] = readProtoVarint(buf, afterKey);
-        payloadStart = dataStart;
-        end = dataStart + length;
-        break;
-      }
-      case 5:
-        end = afterKey + 4;
-        break;
-      default:
-        throw new Error(`SABR: unsupported protobuf wire type ${wire}`);
-    }
-    if (end > buf.length) throw new Error("SABR: truncated protobuf field");
-    yield { field, wire, start, payloadStart, end };
-    pos = end;
-  }
-}
-
-function encodeProtoVarint(value: number): number[] {
-  const out: number[] = [];
-  let rest = value;
-  while (rest > 0x7f) {
-    out.push((rest % 128) | 0x80);
-    rest = Math.floor(rest / 128);
-  }
-  out.push(rest);
-  return out;
-}
-
-function concatProtoParts(parts: Uint8Array[]): Uint8Array {
-  let total = 0;
-  for (const part of parts) total += part.length;
-  const out = new Uint8Array(total);
-  let offset = 0;
-  for (const part of parts) {
-    out.set(part, offset);
-    offset += part.length;
-  }
-  return out;
-}
-
-function encodeProtoLenField(field: number, payload: Uint8Array): Uint8Array {
-  const header = encodeProtoVarint(field * 8 + PROTO_WIRE_LEN).concat(
-    encodeProtoVarint(payload.length),
-  );
-  return concatProtoParts([Uint8Array.from(header), payload]);
-}
-
-/**
- * Sets ClientAbrState.audioTrackId (field 69) inside a generated SABR request
- * (field 1 = ClientAbrState). Existing field 69 entries are replaced, every
- * other field is copied byte-for-byte.
- */
-export function setGeneratedSabrAudioTrackId(
-  generated: Uint8Array,
-  audioTrackId: string,
-): Uint8Array {
-  const trackIdField = encodeProtoLenField(
-    SABR_AUDIO_TRACK_ID_FIELD,
-    new TextEncoder().encode(audioTrackId),
-  );
-  const parts: Uint8Array[] = [];
-  let found = false;
-  for (const span of iterateProtoFields(generated)) {
-    if (
-      span.field !== SABR_CLIENT_ABR_STATE_FIELD ||
-      span.wire !== PROTO_WIRE_LEN
-    ) {
-      parts.push(generated.subarray(span.start, span.end));
-      continue;
-    }
-    found = true;
-    const state = generated.subarray(span.payloadStart, span.end);
-    const kept: Uint8Array[] = [];
-    for (const inner of iterateProtoFields(state)) {
-      if (inner.field !== SABR_AUDIO_TRACK_ID_FIELD) {
-        kept.push(state.subarray(inner.start, inner.end));
-      }
-    }
-    kept.push(trackIdField);
-    parts.push(
-      encodeProtoLenField(SABR_CLIENT_ABR_STATE_FIELD, concatProtoParts(kept)),
-    );
-  }
-  if (!found) throw new Error("SABR ClientAbrState field is unavailable");
-  return concatProtoParts(parts);
 }

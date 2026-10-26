@@ -18,13 +18,38 @@ export async function* getQueuedAudioChunks(
     videoId,
     hasPrevious: previous !== undefined,
   });
+  let previousSettled = previous === undefined;
+  void previous?.then(() => {
+    previousSettled = true;
+  });
   try {
-    await previous;
+    await waitForPrevious(previous, signal);
     signal.throwIfAborted();
     yield* download();
   } finally {
-    releaseCurrent();
-    if (queue.get(videoId) === current) queue.delete(videoId);
-    debug.log(`Audio downloader. ${strategy} queue released`, { videoId });
+    const release = () => {
+      releaseCurrent();
+      if (queue.get(videoId) === current) queue.delete(videoId);
+      debug.log(`Audio downloader. ${strategy} queue released`, { videoId });
+    };
+    // Aborted while waiting: keep serialization, release after predecessor.
+    if (previousSettled || !previous) release();
+    else void previous.then(release);
   }
+}
+
+function waitForPrevious(
+  previous: Promise<void> | undefined,
+  signal: AbortSignal,
+): Promise<void> {
+  if (!previous) return Promise.resolve();
+  signal.throwIfAborted();
+  return new Promise<void>((resolve, reject) => {
+    const onAbort = () => reject(signal.reason);
+    signal.addEventListener("abort", onAbort, { once: true });
+    void previous.then(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    });
+  });
 }

@@ -584,14 +584,17 @@ export function registerXhrPortListener(): void {
       }
     };
 
-    typedPort.onMessage.addListener(async (msg: XhrPortMessage) => {
+    typedPort.onMessage.addListener((msg: XhrPortMessage) => {
       if (!msg || typeof msg !== "object") return;
       if (msg.type === "abort") {
         handleAbortMessage();
         return;
       }
       if (msg.type !== "start") return;
-      await handleStartMessage(msg);
+      // Port listeners ignore returned promises, so surface failures explicitly.
+      handleStartMessage(msg).catch((error) => {
+        console.error("[VOT EXT][background][xhr] start failed", error);
+      });
     });
   });
 }

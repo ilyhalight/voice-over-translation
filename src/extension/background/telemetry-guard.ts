@@ -5,18 +5,6 @@ import { sendBridgeResponse } from "../shared/utils";
 
 const TECHNICAL_AND_INTERACTION = "technicalAndInteraction";
 
-/**
- * Runtime build detection. `VOT_BUILD_VARIANT` is the single source of truth
- * shared with telemetry/client.ts and telemetry/consent.ts; the WXT compile-time
- * flag is only a fallback for builds that do not inject the variant.
- */
-function isFirefoxBuild(): boolean {
-  if (typeof VOT_BUILD_VARIANT !== "undefined") {
-    return VOT_BUILD_VARIANT === "firefox";
-  }
-  return Boolean(import.meta.env?.FIREFOX);
-}
-
 function isIngestUrl(url: string): boolean {
   try {
     const { hostname } = new URL(url);
@@ -29,9 +17,10 @@ function isIngestUrl(url: string): boolean {
 export async function hasTelemetryConsent(): Promise<boolean> {
   try {
     // `data_collection` is Firefox-only and missing from the Chrome typings.
-    const { data_collection: granted } = (await browser.permissions.getAll()) as {
-      data_collection?: unknown;
-    };
+    const { data_collection: granted } =
+      (await browser.permissions.getAll()) as {
+        data_collection?: unknown;
+      };
     return (
       Array.isArray(granted) && granted.includes(TECHNICAL_AND_INTERACTION)
     );
@@ -42,7 +31,7 @@ export async function hasTelemetryConsent(): Promise<boolean> {
 
 /** Firefox only: error reports need the user's built-in data collection consent. */
 export async function isTelemetryBlocked(url: string): Promise<boolean> {
-  if (!isFirefoxBuild() || !isIngestUrl(url)) return false;
+  if (!import.meta.env.FIREFOX || !isIngestUrl(url)) return false;
   return !(await hasTelemetryConsent());
 }
 
@@ -56,9 +45,12 @@ export function registerBackgroundTelemetryConsent(): void {
       return;
     }
 
-    void hasTelemetryConsent().then((result) => {
-      sendBridgeResponse(sendResponse, { ok: true, result });
-    });
+    // Fail closed: a storage error must still answer the sender (no consent).
+    void hasTelemetryConsent()
+      .catch(() => false)
+      .then((result) => {
+        sendBridgeResponse(sendResponse, { ok: true, result });
+      });
     return true;
   });
 }

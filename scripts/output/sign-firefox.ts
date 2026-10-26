@@ -70,6 +70,8 @@ export async function signFirefoxExtension() {
 
   const signedFilePath = path.join(OUTPUT_DIR_PATH, signedFile);
   await fs.cp(signedFilePath, FIREFOX_XPI_PATH, { force: true });
+  // Drop the AMO-named download so `.output` only holds autobuild's XPIs.
+  await fs.rm(signedFilePath, { force: true });
   console.log(`Signed Firefox extension saved as ${FIREFOX_XPI_PATH}`);
 }
 

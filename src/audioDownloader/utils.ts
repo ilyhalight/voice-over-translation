@@ -34,12 +34,11 @@ export function getYoutubeAudioFormatLanguage(
     return tag;
   };
 
-  const direct = accept(
-    format?.languageCode ??
-      format?.language ??
-      format?.audioTrack?.languageCode ??
-      format?.audioTrack?.language,
-  );
+  const direct =
+    accept(format?.languageCode) ??
+    accept(format?.language) ??
+    accept(format?.audioTrack?.languageCode) ??
+    accept(format?.audioTrack?.language);
   if (direct) return direct;
 
   const trackId = format?.audioTrack?.id ?? format?.audioTrackId;

@@ -89,10 +89,13 @@ export default defineConfig({
       };
     }
 
-    if (config.IS_STORE_BUILD) return manifest;
+    // content_scripts `world: "MAIN"` requires Chrome 111+; older Chrome
+    // ignores the key and would run MAIN-world scripts in ISOLATED.
+    const chromeManifest = { ...manifest, minimum_chrome_version: "111" };
+    if (config.IS_STORE_BUILD) return chromeManifest;
 
     return {
-      ...manifest,
+      ...chromeManifest,
       update_url: `${getReleaseDownloadBase(config.REPO_BRANCH)}/update.xml`,
       key: CHROME_EXTENSION_KEY,
     };
