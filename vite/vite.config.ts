@@ -1,7 +1,13 @@
 import path from "node:path";
 import { defineConfig, type UserConfig } from "vite";
-import { buildDefine } from "./lib/env.ts";
-import { DIST_DIR, SOURCE_DIR, sharedBuildOptions } from "./lib/paths.ts";
+import { debugIdPlugin } from "./lib/debug-id.ts";
+import { buildDefine, resolveDebugMode } from "./lib/env.ts";
+import {
+  DIST_DIR,
+  SOURCE_DIR,
+  SOURCEMAP_DIR,
+  sharedBuildOptions,
+} from "./lib/paths.ts";
 import {
   collectUsedUserscriptGrantsFromEntry,
   getHeaders,
@@ -21,7 +27,7 @@ const USERSCRIPT_GLOBAL_NAME = "vot";
 type UserscriptBranch = "dev" | "master";
 
 function isDebugBuild(command: string, mode: string): boolean {
-  return command === "serve" || mode === "development";
+  return resolveDebugMode(mode, command === "serve" || mode === "development");
 }
 
 function getUserscriptBranches({
@@ -71,6 +77,13 @@ export default defineConfig(async ({ command, mode }) => {
 
   return {
     ...baseConfig,
+    plugins: [
+      ...(baseConfig.plugins ?? []),
+      debugIdPlugin({
+        variant: minified ? "userscript-min" : "userscript",
+        sourcemapDir: debug ? undefined : SOURCEMAP_DIR,
+      }),
+    ],
     define: buildDefine({
       debug,
       isExtension: false,
@@ -85,7 +98,7 @@ export default defineConfig(async ({ command, mode }) => {
       ...sharedBuildOptions,
       outDir: DIST_DIR,
       emptyOutDir: false,
-      sourcemap: debug,
+      sourcemap: debug ? true : "hidden",
       minify: minified ? "oxc" : false,
       lib: {
         entry: USERSCRIPT_ENTRY,

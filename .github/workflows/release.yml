@@ -35,6 +35,14 @@ jobs:
           BUGSINK_URL: https://ingest.nirel.cc/
           BUGSINK_PROJECT: "vot-ext"
           SENTRY_AUTH_TOKEN: ${{ secrets.BUGSINK_AUTH_TOKEN }}
+      - name: Upload .output artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: vot-extension-output
+          if-no-files-found: error
+          path: |
+            .output/*.zip
+            .output/*.xpi
       - name: Create release
         uses: softprops/action-gh-release@v3
         with:

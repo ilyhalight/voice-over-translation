@@ -1,3 +1,4 @@
+import fs from "node:fs/promises";
 import { $ } from "bun";
 import {
   CHROME_ZIP_FILE,
@@ -5,18 +6,31 @@ import {
   FIREFOX_XPI_FILE,
 } from "../vite/lib/paths";
 import {
-  OUTPUT_EXTENSION_CHROME_NAME,
-  OUTPUT_EXTENSION_FIREFOX_NAME,
+  OUTPUT_CHROME_STORE_ZIP_PATH,
+  OUTPUT_DIR_PATH,
+  OUTPUT_FIREFOX_STORE_XPI_PATH,
+  OUTPUT_FIREFOX_XPI_PATH,
+  OUTPUT_SOURCE_FILE_PATH,
 } from "./output/paths";
 
 async function main() {
   console.log("Starting autobuild...");
-  console.log("Clearing output directory...");
-  await $`rm -rf release-output`.quiet(false);
-  await $`mkdir -p release-output`.quiet(false);
+  // `.output` is the single WXT output folder for every artifact. Clear it
+  // exactly once, before anything is written: `wxt zip -b firefox` puts the
+  // Firefox zip and the sources archive here, and the later `wxt build` runs
+  // only recreate their own `.output/<browser>-mv*` subfolders.
+  console.log(`Clearing output directory (${OUTPUT_DIR_PATH})...`);
+  await $`rm -rf ${OUTPUT_DIR_PATH}`.quiet(false);
+  await $`mkdir -p ${OUTPUT_DIR_PATH}`.quiet(false);
 
-  console.log("Building extension source zip...");
-  await $`bun zip:source`.quiet(false);
+  console.log("Building Firefox extension and sources zip (wxt zip)...");
+  await $`bun run zip:firefox`.quiet(false);
+  if (!(await fs.exists(OUTPUT_SOURCE_FILE_PATH))) {
+    throw new Error(
+      `Sources archive ${OUTPUT_SOURCE_FILE_PATH} wasn't created by wxt zip.`,
+    );
+  }
+
   console.log("Building extension as an userscript...");
   await $`bun build:gm`.quiet(false);
 
@@ -30,10 +44,10 @@ async function main() {
     .quiet(false);
 
   console.log("Copying store build to output directory...");
-  await $`cp dist-ext/${FIREFOX_XPI_FILE} release-output/${OUTPUT_EXTENSION_FIREFOX_NAME}-store.xpi`.quiet(
+  await $`cp dist-ext/${FIREFOX_XPI_FILE} ${OUTPUT_FIREFOX_STORE_XPI_PATH}`.quiet(
     false,
   );
-  await $`cp dist-ext/${CHROME_ZIP_FILE} release-output/${OUTPUT_EXTENSION_CHROME_NAME}-store.zip`.quiet(
+  await $`cp dist-ext/${CHROME_ZIP_FILE} ${OUTPUT_CHROME_STORE_ZIP_PATH}`.quiet(
     false,
   );
 
@@ -44,10 +58,6 @@ async function main() {
       IS_STORE_BUILD: "false",
     })
     .quiet(false);
-  console.log("Copying non-store firefox build to output directory...");
-  await $`cp dist-ext/${FIREFOX_XPI_FILE} release-output/${OUTPUT_EXTENSION_FIREFOX_NAME}.xpi`.quiet(
-    false,
-  );
 
   await $`bunx @biomejs/biome check --write --unsafe dist-ext/${FIREFOX_EXTENSION_NAME}-updates.json`.quiet(
     false,
@@ -57,6 +67,12 @@ async function main() {
     console.log("Signing the Firefox extension...");
     await $`bun sign:firefox`.quiet(false);
   }
+
+  // Copied after signing so `.output` gets the signed XPI with SIGN_FIREFOX=true.
+  console.log("Copying non-store firefox build to output directory...");
+  await $`cp dist-ext/${FIREFOX_XPI_FILE} ${OUTPUT_FIREFOX_XPI_PATH}`.quiet(
+    false,
+  );
 }
 
 await main();

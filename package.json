@@ -44,6 +44,7 @@
     "vite": "^8.3.5",
     "vite-plugin-solid": "^2.11.14",
     "vitest": "^5.0.5",
+    "web-ext": "^10.8.0",
     "wxt": "^0.21.4",
     "zip-a-folder": "^7.0.1"
   },
@@ -59,7 +60,7 @@
     "build:chrome": "wxt build",
     "build:firefox": "wxt build -b firefox",
     "build:dev": "vite build --mode development --config vite/vite.config.ts",
-    "dev:gm": "vite build --watch --mode development --config vite/vite.config.ts",
+    "dev:gm": "DEBUG_MODE=true vite build --watch --mode development --config vite/vite.config.ts",
     "format": "bunx @biomejs/biome check --write --unsafe ./src ./vite ./scripts",
     "lint": "bunx @biomejs/biome lint ./src ./vite ./scripts",
     "check": "bunx tsc -p ./src/tsconfig.json --noEmit",
@@ -67,17 +68,16 @@
     "autobuild": "bun run ./scripts/autobuild.ts",
     "autobuild:signed": "SIGN_FIREFOX=true bun run ./scripts/autobuild.ts",
     "sign:firefox": "bun run ./scripts/output/sign-firefox.ts",
-    "zip:source": "bun ./scripts/output/zip-source.ts",
     "localize": "bunx \"@toil/localize-tui\"",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "postinstall": "wxt prepare",
-    "dev:ext": "wxt",
-    "dev:chrome": "wxt",
-    "dev:firefox": "wxt -b firefox",
+    "dev:firefox": "DEBUG_MODE=true wxt -b firefox",
     "build:ext:debug": "run-s \"build:chrome -- --mode development\" \"build:firefox -- --mode development\"",
-    "zip:ext": "wxt zip && wxt zip -b firefox",
-    "dev": "wxt"
+    "zip:ext": "run-s zip:chrome zip:firefox",
+    "dev": "DEBUG_MODE=true wxt",
+    "zip:chrome": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox"
   },
   "dependencies": {
     "@toil/gm-types": "^1.0.6",
@@ -89,7 +89,10 @@
     "chaimu": "^1.1.0",
     "googlevideo": "^5.0.1",
     "meriyah": "7.4.0",
-    "solid-js": "^1.9.17",
-    "web-ext": "^10.8.0"
+    "solid-js": "^1.9.17"
+  },
+  "engines": {
+    "node": ">=22.12.0",
+    "bun": ">=1.2.0"
   }
 }

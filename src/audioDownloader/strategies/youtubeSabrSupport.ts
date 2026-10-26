@@ -1,5 +1,6 @@
+import { FormatXTags } from "googlevideo/protos";
 import type { SabrFormat } from "googlevideo/shared-types";
-import { CODEC_CODES } from "googlevideo/utils";
+import { base64ToU8, buildSabrFormat } from "googlevideo/utils";
 import { createAbortableDelay } from "../../utils/abort";
 import debug from "../../utils/debug";
 import {
@@ -12,172 +13,130 @@ import {
   type WebAbrWindow,
   type WebEmbeddedFormat,
 } from "./webAbr";
+import { selectYouTubeAudioFormat } from "./youtubeAudioSelection";
 import { getTopPageWindow } from "./youtubePage";
 
 export function toSabrFormat(
   format: WebEmbeddedFormat,
 ): SabrFormat | undefined {
+  if (
+    format.audioTrackId &&
+    format.audioTrack?.id &&
+    format.audioTrackId.toLowerCase() !== format.audioTrack.id.toLowerCase()
+  )
+    return;
   const itag = Number(format.itag);
   const bitrate = Number(format.bitrate ?? format.averageBitrate);
   const approxDurationMs = Number(format.approxDurationMs);
   const lastModified = String(format.lastModified ?? "");
   if (
-    Number.isNaN(itag) ||
+    !Number.isSafeInteger(itag) ||
     itag <= 0 ||
-    Number.isNaN(bitrate) ||
+    !Number.isFinite(bitrate) ||
     bitrate <= 0 ||
-    Number.isNaN(approxDurationMs) ||
+    !Number.isFinite(approxDurationMs) ||
     approxDurationMs <= 0 ||
     !lastModified
   )
     return;
-  const language = getAudioFormatLanguage(format) || undefined;
-  return {
+  const converted = buildSabrFormat({
+    ...format,
     itag,
-    lastModified,
-    xtags: format.xtags,
-    width: format.width,
-    height: format.height,
-    contentLength: Number(format.contentLength) || undefined,
-    audioTrackId: format.audioTrackId ?? format.audioTrack?.id,
-    mimeType: format.mimeType,
-    isDrc: isDrcAudioFormat(format),
-    quality: format.quality,
-    qualityLabel: format.qualityLabel,
-    averageBitrate: Number(format.averageBitrate) || undefined,
     bitrate,
-    audioQuality: format.audioQuality,
-    approxDurationMs,
-    language,
-    isOriginal: format.audioTrack?.audioIsDefault === true,
-    isHdr: false,
-    hasAudio: true,
-    hasVideo: false,
-    hasText: false,
-    codecCode: (CODEC_CODES as Record<number, string>)[itag] ?? "",
+    lastModified,
+    approxDurationMs: String(approxDurationMs),
+    contentLength:
+      format.contentLength === undefined
+        ? undefined
+        : String(format.contentLength),
+    averageBitrate: Number(format.averageBitrate) || undefined,
+    audioTrack: {
+      ...format.audioTrack,
+      id: format.audioTrackId ?? format.audioTrack?.id,
+    },
+    language: getAudioFormatLanguage(format) || undefined,
+    isDrc: isDrcAudioFormat(format),
+  });
+  converted.hasAudio = Boolean(format.mimeType?.includes("audio/"));
+  const tags = format.xtags
+    ? FormatXTags.decode(base64ToU8(decodeURIComponent(format.xtags))).xtags
+    : [];
+  const directLanguage = getAudioFormatLanguage(format);
+  const taggedLanguage = normalizeAudioLanguage(
+    tags.find((tag) => tag.key === "lang")?.value,
+  );
+  const known = (value: string | undefined) =>
+    value && value !== "und" && value !== "auto";
+  if (
+    known(directLanguage) &&
+    known(taggedLanguage) &&
+    !audioLanguageMatches(directLanguage, taggedLanguage || "")
+  )
+    return;
+  converted.language = known(directLanguage)
+    ? directLanguage
+    : taggedLanguage || directLanguage || converted.language;
+  converted.isDrc ||= tags.some(
+    (tag) => tag.key === "drc" && tag.value === "1",
+  );
+  return converted;
+}
+
+export function selectSabrAudioFormat(
+  formats: SabrFormat[],
+  selectedTrackId?: string,
+  requestedLanguage?: string,
+): SabrFormat | undefined {
+  const trackId = selectedTrackId?.trim().toLowerCase();
+  const language = normalizeAudioLanguage(
+    trackId ? sabrTrackLanguage(trackId) : requestedLanguage,
+  );
+  const knownLanguage = (value: unknown) => {
+    const normalized = normalizeAudioLanguage(value);
+    return normalized && normalized !== "und" && normalized !== "auto"
+      ? normalized
+      : undefined;
   };
-}
-
-function encodeProtoVarint(value: number): Uint8Array {
-  const out: number[] = [];
-  let current = Math.max(0, Math.floor(value));
-  do {
-    let byte = current % 128;
-    current = Math.floor(current / 128);
-    if (current > 0) byte |= 0x80;
-    out.push(byte);
-  } while (current > 0);
-  return new Uint8Array(out);
-}
-
-function concatBytes(parts: Uint8Array[]): Uint8Array {
-  const size = parts.reduce((sum, part) => sum + part.byteLength, 0);
-  const out = new Uint8Array(size);
-  let offset = 0;
-  for (const part of parts) {
-    out.set(part, offset);
-    offset += part.byteLength;
-  }
-  return out;
-}
-
-function readProtoVarintAt(
-  bytes: Uint8Array,
-  offset: number,
-): { value: number; next: number } {
-  let value = 0;
-  let shift = 0;
-  let cursor = offset;
-  while (cursor < bytes.length && shift <= 49) {
-    const byte = bytes[cursor++];
-    value += (byte & 0x7f) * 2 ** shift;
-    if ((byte & 0x80) === 0) return { value, next: cursor };
-    shift += 7;
-  }
-  throw new Error("invalid protobuf varint");
-}
-
-function splitTopLevelProto(
-  bytes: Uint8Array,
-): Array<{ field: number; start: number; end: number }> {
-  const out: Array<{ field: number; start: number; end: number }> = [];
-  let offset = 0;
-  while (offset < bytes.length) {
-    const start = offset;
-    const tag = readProtoVarintAt(bytes, offset);
-    offset = tag.next;
-    const field = Math.floor(tag.value / 8);
-    const wire = tag.value & 7;
-    if (wire === 0) offset = readProtoVarintAt(bytes, offset).next;
-    else if (wire === 1) offset += 8;
-    else if (wire === 2) {
-      const length = readProtoVarintAt(bytes, offset);
-      offset = length.next + length.value;
-    } else if (wire === 5) offset += 4;
-    else throw new Error(`unsupported protobuf wire ${wire}`);
-    if (offset > bytes.length) throw new Error("truncated protobuf field");
-    out.push({ field, start, end: offset });
-  }
-  return out;
-}
-
-/**
- * SABR-only: set ClientAbrState.audioTrackId (nested field 69 inside
- * VideoPlaybackAbrRequest field 1). We keep SabrStream's generated ABR state
- * authoritative and only add/replace the concrete YouTube audio track id.
- *
- * Native requests observed on multi-audio videos carry values such as
- * "ar.10", "de-DE.10" and "en-US.4" in this field.
- */
-export function setGeneratedSabrAudioTrackId(
-  generated: Uint8Array,
-  trackId: string,
-): Uint8Array {
-  const topLevel = splitTopLevelProto(generated);
-  const encodedTrackId = new TextEncoder().encode(trackId);
-  const trackField = concatBytes([
-    encodeProtoVarint((69 << 3) | 2),
-    encodeProtoVarint(encodedTrackId.byteLength),
-    encodedTrackId,
-  ]);
-
-  const chunks: Uint8Array[] = [];
-  let replacedClientAbrState = false;
-
-  for (const part of topLevel) {
-    if (part.field !== 1 || replacedClientAbrState) {
-      chunks.push(generated.slice(part.start, part.end));
-      continue;
+  const eligible = formats.filter((format) => {
+    if (!format.mimeType?.includes("audio/") || format.hasVideo) return false;
+    const candidateId = format.audioTrackId?.trim().toLowerCase();
+    if (trackId && candidateId && candidateId !== trackId) return false;
+    if (language && language !== "auto") {
+      const languages = [
+        knownLanguage(format.language),
+        candidateId ? knownLanguage(sabrTrackLanguage(candidateId)) : undefined,
+      ];
+      if (
+        languages.some(
+          (value) => value && !audioLanguageMatches(value, language),
+        )
+      )
+        return false;
     }
-
-    const tag = readProtoVarintAt(generated, part.start);
-    const length = readProtoVarintAt(generated, tag.next);
-    const payloadStart = length.next;
-    const payloadEnd = payloadStart + length.value;
-    if (payloadEnd > part.end) throw new Error("truncated ClientAbrState");
-
-    const payload = generated.slice(payloadStart, payloadEnd);
-    const fields = splitTopLevelProto(payload);
-    const payloadChunks: Uint8Array[] = fields
-      .filter((field) => field.field !== 69)
-      .map((field) => payload.slice(field.start, field.end));
-    payloadChunks.push(trackField);
-    const patchedPayload = concatBytes(payloadChunks);
-
-    chunks.push(
-      concatBytes([
-        encodeProtoVarint((1 << 3) | 2),
-        encodeProtoVarint(patchedPayload.byteLength),
-        patchedPayload,
-      ]),
-    );
-    replacedClientAbrState = true;
-  }
-
-  if (!replacedClientAbrState) {
-    throw new Error("SABR ClientAbrState field is unavailable");
-  }
-  return concatBytes(chunks);
+    return true;
+  });
+  const exact = trackId
+    ? eligible.filter(
+        (format) => format.audioTrackId?.trim().toLowerCase() === trackId,
+      )
+    : [];
+  const matching =
+    language && language !== "auto"
+      ? eligible.filter((format) => {
+          const candidateLanguage =
+            knownLanguage(format.language) ||
+            (format.audioTrackId ? sabrTrackLanguage(format.audioTrackId) : "");
+          return audioLanguageMatches(candidateLanguage, language);
+        })
+      : [];
+  // Unknown metadata is usable only after excluding explicit track/language
+  // conflicts. Never relabel a concrete foreign representation as the UI track.
+  const candidates = exact.length
+    ? exact
+    : matching.length
+      ? matching
+      : eligible;
+  return selectYouTubeAudioFormat(candidates);
 }
 
 type YouTubeRuntimeAudioTrack = {
@@ -507,188 +466,6 @@ function isVotSupportedAudioLanguage(language: string | undefined): boolean {
  * Be deliberately conservative: translated/manual captions are never used as
  * audio-language evidence, and ambiguous ASR languages produce no decision.
  */
-function getCurrentYouTubeAudioEvidence(
-  targetWindow: WebAbrWindow,
-): CurrentYouTubeAudioEvidence {
-  try {
-    const pageWindow = getTopPageWindow(targetWindow);
-    const moviePlayer = pageWindow.document.querySelector("#movie_player") as
-      | (HTMLElement & { getAudioTrack?: () => unknown })
-      | null;
-    if (!moviePlayer || typeof moviePlayer.getAudioTrack !== "function") {
-      return { source: "unknown", asrLanguages: [] };
-    }
-
-    const raw = moviePlayer.getAudioTrack() as
-      | {
-          id?: unknown;
-          language?: unknown;
-          languageCode?: unknown;
-          xtags?: unknown;
-          wM?: {
-            id?: unknown;
-            language?: unknown;
-            languageCode?: unknown;
-            isDefault?: unknown;
-            isAutoDubbed?: unknown;
-          };
-          captionTracks?: Array<{
-            kind?: unknown;
-            languageCode?: unknown;
-          }>;
-        }
-      | undefined;
-    if (!raw) return { source: "unknown", asrLanguages: [] };
-
-    const isDefault = raw.wM?.isDefault === true;
-    const isAutoDubbed = raw.wM?.isAutoDubbed === true;
-    const representationId =
-      typeof raw.id === "string" && raw.id.trim() ? raw.id.trim() : undefined;
-    const concreteTrackId =
-      typeof raw.wM?.id === "string" &&
-      /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})?\.\d{1,3}$/.test(raw.wM.id.trim())
-        ? raw.wM.id.trim()
-        : undefined;
-
-    // Only wM.id is a logical YouTube audioTrackId. raw.id is a media
-    // representation identity (for example `251;<attrs>`) and must never be
-    // fed back into ClientAbrState.audioTrackId.
-    if (concreteTrackId) {
-      return {
-        language: sabrTrackLanguage(concreteTrackId),
-        trackId: concreteTrackId,
-        representationId,
-        source: "track-id",
-        isDefault,
-        isAutoDubbed,
-        asrLanguages: [],
-      };
-    }
-
-    const directLanguage = [
-      raw.languageCode,
-      raw.language,
-      raw.wM?.languageCode,
-      raw.wM?.language,
-    ]
-      .filter((value): value is string => typeof value === "string")
-      .map(normalizeAudioLanguage)
-      .find((value) => value && value !== "und" && value !== "auto");
-    if (directLanguage) {
-      return {
-        language: directLanguage,
-        trackId: concreteTrackId,
-        representationId,
-        source: "track-language",
-        isDefault,
-        isAutoDubbed,
-        asrLanguages: [],
-      };
-    }
-
-    const asrLanguages = [
-      ...new Set(
-        (raw.captionTracks ?? [])
-          .filter((caption) => caption?.kind === "asr")
-          .map((caption) =>
-            typeof caption.languageCode === "string"
-              ? normalizeAudioLanguage(caption.languageCode)
-              : "",
-          )
-          .filter(
-            (language) => language && language !== "und" && language !== "auto",
-          ),
-      ),
-    ];
-
-    // Only infer from ASR for the ordinary original/default track. Auto-dubbed
-    // tracks must have their own concrete language evidence instead.
-    if (isDefault && !isAutoDubbed && asrLanguages.length === 1) {
-      return {
-        language: asrLanguages[0],
-        trackId: concreteTrackId,
-        representationId,
-        source: "default-asr",
-        isDefault,
-        isAutoDubbed,
-        asrLanguages,
-      };
-    }
-
-    return {
-      trackId: concreteTrackId,
-      representationId,
-      source: "unknown",
-      isDefault,
-      isAutoDubbed,
-      asrLanguages,
-    };
-  } catch {
-    return { source: "unknown", asrLanguages: [] };
-  }
-}
-
-export function assertYouTubeAudioIsUsefulForVot(
-  targetWindow: WebAbrWindow,
-  videoId: string,
-  requestedLanguage?: string,
-): void {
-  const evidence = getCurrentYouTubeAudioEvidence(targetWindow);
-  const actual = normalizeAudioLanguage(evidence.language);
-  const requested = normalizeAudioLanguage(requestedLanguage);
-
-  debug.log("Audio downloader. current YouTube audio evidence", {
-    videoId,
-    requestedLanguage: requested || undefined,
-    actualLanguage: actual || undefined,
-    trackId: evidence.trackId,
-    representationId: evidence.representationId,
-    source: evidence.source,
-    isDefault: evidence.isDefault,
-    isAutoDubbed: evidence.isAutoDubbed,
-    asrLanguages: evidence.asrLanguages,
-  });
-
-  if (!actual) return;
-
-  const runtimeTrackIds = getYouTubeRuntimeAudioTracks(targetWindow)
-    .map(getRuntimeAudioTrackId)
-    .filter((id): id is string => Boolean(id));
-  const requestedConcreteTrack =
-    requested && requested !== "auto"
-      ? runtimeTrackIds.find((id) =>
-          audioLanguageMatches(sabrTrackLanguage(id), requested),
-        )
-      : undefined;
-  const supportedAlternate = runtimeTrackIds.some(isVotSupportedSabrTrack);
-
-  if (!isVotSupportedAudioLanguage(actual)) {
-    // A concrete requested language may only be satisfied by that language.
-    // An arbitrary supported alternate is valid only for auto/no-language mode.
-    if (requested && requested !== "auto") {
-      if (requestedConcreteTrack) return;
-    } else if (supportedAlternate) {
-      return;
-    }
-    throw new Error(
-      `Audio downloader. refusing audio download/upload: native YouTube audio language ${actual} ` +
-        `is not supported by VOT/Yandex and no supported YouTube alternate audio track is available ` +
-        `(evidence: ${evidence.source})`,
-    );
-  }
-
-  if (
-    requested &&
-    requested !== "auto" &&
-    !audioLanguageMatches(actual, requested)
-  ) {
-    if (requestedConcreteTrack) return;
-    throw new Error(
-      `Audio downloader. refusing audio download/upload: requested ${requested}, but native YouTube audio is ${actual} ` +
-        `and no matching YouTube audio track is available (evidence: ${evidence.source})`,
-    );
-  }
-}
 
 export type WebAbrResolvedAudioLanguage = {
   videoId: string;
@@ -706,12 +483,6 @@ export const WEB_ABR_RESOLVED_AUDIO_LANGUAGES = new Map<
   string,
   WebAbrResolvedAudioLanguage
 >();
-
-export function getWebAbrResolvedAudioLanguage(
-  videoId: string,
-): WebAbrResolvedAudioLanguage | undefined {
-  return WEB_ABR_RESOLVED_AUDIO_LANGUAGES.get(videoId);
-}
 
 function resolveSabrAudioTrackId(
   targetWindow: WebAbrWindow,
@@ -828,16 +599,133 @@ export async function waitForSabrAudioTrackId(
   );
 }
 
-type VotNativeProtoContext = {
-  videoId: string;
-  sabrAudioTrackId?: string;
-  buildIndex: number;
-  pageWindow: WebAbrWindow;
+// --- Generated SABR request patching (ClientAbrState.audioTrackId) ---------
+
+const SABR_CLIENT_ABR_STATE_FIELD = 1;
+const SABR_AUDIO_TRACK_ID_FIELD = 69;
+const PROTO_WIRE_LEN = 2;
+
+type ProtoFieldSpan = {
+  field: number;
+  wire: number;
+  start: number;
+  payloadStart: number;
+  end: number;
 };
 
-// Context must belong to a SabrStream INSTANCE, not SabrStream.prototype.
-// YouTube SPA navigation can leave the previous stream alive briefly.
-export const VOT_SABR_INSTANCE_CONTEXT = new WeakMap<
-  object,
-  VotNativeProtoContext
->();
+function readProtoVarint(buf: Uint8Array, offset: number): [number, number] {
+  let result = 0;
+  let multiplier = 1;
+  for (let pos = offset; pos < buf.length && pos - offset < 10; pos++) {
+    const byte = buf[pos];
+    result += (byte & 0x7f) * multiplier;
+    if ((byte & 0x80) === 0) return [result, pos + 1];
+    multiplier *= 128;
+  }
+  throw new Error("SABR: truncated protobuf field");
+}
+
+/** Single pass over top-level fields: O(n), no intermediate copies. */
+function* iterateProtoFields(buf: Uint8Array): Generator<ProtoFieldSpan> {
+  let pos = 0;
+  while (pos < buf.length) {
+    const start = pos;
+    const [key, afterKey] = readProtoVarint(buf, pos);
+    const wire = key % 8;
+    const field = Math.floor(key / 8);
+    let payloadStart = afterKey;
+    let end: number;
+    switch (wire) {
+      case 0:
+        end = readProtoVarint(buf, afterKey)[1];
+        break;
+      case 1:
+        end = afterKey + 8;
+        break;
+      case PROTO_WIRE_LEN: {
+        const [length, dataStart] = readProtoVarint(buf, afterKey);
+        payloadStart = dataStart;
+        end = dataStart + length;
+        break;
+      }
+      case 5:
+        end = afterKey + 4;
+        break;
+      default:
+        throw new Error(`SABR: unsupported protobuf wire type ${wire}`);
+    }
+    if (end > buf.length) throw new Error("SABR: truncated protobuf field");
+    yield { field, wire, start, payloadStart, end };
+    pos = end;
+  }
+}
+
+function encodeProtoVarint(value: number): number[] {
+  const out: number[] = [];
+  let rest = value;
+  while (rest > 0x7f) {
+    out.push((rest % 128) | 0x80);
+    rest = Math.floor(rest / 128);
+  }
+  out.push(rest);
+  return out;
+}
+
+function concatProtoParts(parts: Uint8Array[]): Uint8Array {
+  let total = 0;
+  for (const part of parts) total += part.length;
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const part of parts) {
+    out.set(part, offset);
+    offset += part.length;
+  }
+  return out;
+}
+
+function encodeProtoLenField(field: number, payload: Uint8Array): Uint8Array {
+  const header = encodeProtoVarint(field * 8 + PROTO_WIRE_LEN).concat(
+    encodeProtoVarint(payload.length),
+  );
+  return concatProtoParts([Uint8Array.from(header), payload]);
+}
+
+/**
+ * Sets ClientAbrState.audioTrackId (field 69) inside a generated SABR request
+ * (field 1 = ClientAbrState). Existing field 69 entries are replaced, every
+ * other field is copied byte-for-byte.
+ */
+export function setGeneratedSabrAudioTrackId(
+  generated: Uint8Array,
+  audioTrackId: string,
+): Uint8Array {
+  const trackIdField = encodeProtoLenField(
+    SABR_AUDIO_TRACK_ID_FIELD,
+    new TextEncoder().encode(audioTrackId),
+  );
+  const parts: Uint8Array[] = [];
+  let found = false;
+  for (const span of iterateProtoFields(generated)) {
+    if (
+      span.field !== SABR_CLIENT_ABR_STATE_FIELD ||
+      span.wire !== PROTO_WIRE_LEN
+    ) {
+      parts.push(generated.subarray(span.start, span.end));
+      continue;
+    }
+    found = true;
+    const state = generated.subarray(span.payloadStart, span.end);
+    const kept: Uint8Array[] = [];
+    for (const inner of iterateProtoFields(state)) {
+      if (inner.field !== SABR_AUDIO_TRACK_ID_FIELD) {
+        kept.push(state.subarray(inner.start, inner.end));
+      }
+    }
+    kept.push(trackIdField);
+    parts.push(
+      encodeProtoLenField(SABR_CLIENT_ABR_STATE_FIELD, concatProtoParts(kept)),
+    );
+  }
+  if (!found) throw new Error("SABR ClientAbrState field is unavailable");
+  return concatProtoParts(parts);
+}

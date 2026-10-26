@@ -604,6 +604,35 @@ export const buildStyledDisplayModel = (
   return trimStyledDisplayResult(built.text, built.styledSpans);
 };
 
+// Spans built by buildStyledDisplayModel are sorted and disjoint, which allows
+// a binary search instead of a linear scan per token (O(log n) vs O(n)).
+// The order check runs once per spans array and is cached; arbitrary
+// (unsorted/overlapping/empty) inputs keep the original linear-scan semantics.
+const spanOrderCache = new WeakMap<
+  readonly SubtitleStyledSpan[],
+  { length: number; sorted: boolean }
+>();
+
+const areSpansSortedAndDisjoint = (
+  spans: readonly SubtitleStyledSpan[],
+): boolean => {
+  const cached = spanOrderCache.get(spans);
+  if (cached?.length === spans.length) return cached.sorted;
+
+  let sorted = true;
+  let previousEnd = Number.NEGATIVE_INFINITY;
+  for (const span of spans) {
+    if (!(span.start < span.end) || !(previousEnd <= span.start)) {
+      sorted = false;
+      break;
+    }
+    previousEnd = span.end;
+  }
+
+  spanOrderCache.set(spans, { length: spans.length, sorted });
+  return sorted;
+};
+
 export const getStyleForRange = (
   styledSpans: SubtitleStyledSpan[] | undefined,
   start: number,
@@ -613,8 +642,26 @@ export const getStyleForRange = (
     return undefined;
   }
 
-  const overlap = styledSpans.find(
-    (span) => start < span.end && end > span.start && span.style,
-  );
-  return overlap?.style;
+  if (styledSpans.length <= 16 || !areSpansSortedAndDisjoint(styledSpans)) {
+    const overlap = styledSpans.find(
+      (span) => start < span.end && end > span.start && span.style,
+    );
+    return overlap?.style;
+  }
+
+  // First span whose end is past `start` (ends are strictly increasing).
+  let low = 0;
+  let high = styledSpans.length;
+  while (low < high) {
+    const mid = (low + high) >>> 1;
+    if (styledSpans[mid].end > start) high = mid;
+    else low = mid + 1;
+  }
+
+  for (let index = low; index < styledSpans.length; index += 1) {
+    const span = styledSpans[index];
+    if (!(end > span.start)) break;
+    if (span.style) return span.style;
+  }
+  return undefined;
 };

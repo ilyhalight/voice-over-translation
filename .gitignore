@@ -1,7 +1,6 @@
 .output
 .wxt
 web-ext.config.ts
-release-output
 .amo-upload-uuid
 src/audioDownloader/MAPPINGS.md
 src/audioDownloader/VM*.js

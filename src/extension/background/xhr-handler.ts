@@ -2,6 +2,7 @@ import {
   createTerminalXhrError,
   type XhrResponse,
 } from "#extension/shared/xhr.ts";
+import { browser } from "wxt/browser";
 import { toErrorMessage } from "#utils/errors.ts";
 import { normalizeHttpMethod } from "#utils/http.ts";
 import logger from "#utils/logger.ts";
@@ -15,11 +16,6 @@ import {
   summarizeBodyForDebug,
 } from "../shared/bodySerialization";
 import { PORT_NAME } from "../shared/constants";
-import {
-  ext,
-  lastErrorMessage,
-  runtimeMessagesUseStructuredClone,
-} from "../shared/webext";
 import {
   ensureDnrHeaderRuleForYandex,
   ensureDnrOriginStripRuleForYoutubei,
@@ -97,7 +93,7 @@ function encodeProgressChunkForPort(chunk: Uint8Array): {
   chunk?: ArrayBuffer;
   chunkB64?: string;
 } {
-  return runtimeMessagesUseStructuredClone
+  return import.meta.env.FIREFOX
     ? { chunk: cloneArrayBufferView(chunk) }
     : { chunkB64: bytesToBase64(chunk) };
 }
@@ -106,7 +102,7 @@ function encodeBinaryResponseForPort(ab: ArrayBuffer): {
   response?: ArrayBuffer;
   responseB64?: string;
 } {
-  if (runtimeMessagesUseStructuredClone) return { response: ab };
+  if (import.meta.env.FIREFOX) return { response: ab };
   if (ab.byteLength <= 0) return {};
   return { responseB64: arrayBufferToBase64(ab) };
 }
@@ -285,28 +281,14 @@ async function parseBinaryResponse(
 export function registerXhrPortListener(): void {
   let xhrSessionSeq = 0;
 
-  ext?.runtime?.onConnect?.addListener?.((port: unknown) => {
-    if (!port || typeof port !== "object") return;
-    const typedPort = port as {
-      name?: string;
-      onDisconnect?: { addListener?: (fn: () => void) => void };
-      onMessage?: { addListener?: (fn: (msg: XhrPortMessage) => void) => void };
-      postMessage?: (payload: unknown) => void;
-    };
+  browser.runtime.onConnect.addListener((typedPort) => {
     if (typedPort.name !== PORT_NAME) return;
-    if (
-      typeof typedPort.onDisconnect?.addListener !== "function" ||
-      typeof typedPort.onMessage?.addListener !== "function" ||
-      typeof typedPort.postMessage !== "function"
-    ) {
-      return;
-    }
 
     let disconnected = false;
     const safePostMessage = (payload: unknown) => {
       if (disconnected) return;
       try {
-        typedPort.postMessage?.(payload);
+        typedPort.postMessage(payload);
       } catch {
         // port closed under us; the bridge settles on its own onDisconnect
       }
@@ -333,7 +315,7 @@ export function registerXhrPortListener(): void {
       debug.warn("[VOT EXT][background][xhr] port disconnected", {
         xhrSessionId,
         // Consumed only to avoid "Unchecked runtime.lastError" noise.
-        lastError: lastErrorMessage(),
+        lastError: browser.runtime.lastError?.message ?? null,
       });
       requestAbort();
     });

@@ -11,10 +11,10 @@ import {
   TYPE_XHR_ABORT,
   TYPE_XHR_START,
 } from "../shared/constants";
+import { browser } from "wxt/browser";
 import { isSameWindowBridgeEvent, postToPage } from "../shared/transport";
 import {
   assertExtensionContext,
-  ext,
   isExtensionContextValid,
   runtimeSendMessage,
 } from "../shared/webext";
@@ -165,7 +165,7 @@ function bootstrapExtensionBridge(): void {
     return;
   }
 
-  if (!ext?.runtime || !ext?.storage?.local) {
+  if (!browser?.runtime || !browser.storage?.local) {
     logger.warn("[VOT Extension] bridge: missing WebExtension APIs");
     return;
   }

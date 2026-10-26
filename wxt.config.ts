@@ -1,17 +1,20 @@
-import { readdirSync } from "node:fs";
-import { resolve } from "node:path";
 import { defineConfig } from "wxt";
 import headers from "./src/headers.json";
-import { buildDefine, getBuildConfig } from "./vite/lib/env";
+import { debugIdPlugin } from "./vite/lib/debug-id";
+import { buildDefine, getBuildConfig, resolveDebugMode } from "./vite/lib/env";
 import {
   getFirefoxSpecificSettings,
   getLocaleCodes,
 } from "./vite/lib/extension/firefox-pipeline";
 import {
-  buildManifestChrome,
+  buildExtensionManifest,
   type ExtensionHeaders,
+  getDevContentScriptMatches,
+  iconPathFn,
+  splitMatchesForOriginFallback,
 } from "./vite/lib/extension/manifest-helpers";
 import {
+  SOURCEMAP_DIR,
   getReleaseDownloadBase,
   sharedCssOptions,
   sharedResolveAlias,
@@ -26,19 +29,34 @@ const CHROME_EXTENSION_KEY =
   "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA3IITn/V9BfBfaSk1oNpgoUNADzm15zSyWJ/a+bSnp5SkGAziTle3efpSWFTzpfmUnN+LyQeuXsgGqLJ6N8BeXA4g/Gh+J3gcZAgeSOaWmI7zbaXKrAyUo6irOyXaXNr4z+EuH6hqxNd7N5gv/XjaE0fGd9brepbKUoImFa5GnBE/xT6hnLPjwMYYO0tYBi7Om1Z2+Em4SvwixIK42cGxt0v6RwcE3isJ9Yt3Hm28fndfwaN6UO9C5NTXrYrlO2ivDX5njhjnVUXTM4oyy0NifcibYl0e2Au2e5xDLq0R7EkfWuW4mF3xzQi3D+R1A3pqAnMUIWDKt5bu8BmlhGzc3wIDAQAB";
 
 const extensionHeaders = headers as ExtensionHeaders;
-const iconPathFn = (size: number) => `icons/icon-${size}.png`;
-
-const WXT_CONTENT_SCRIPT_PATHS: Record<string, string> = {
-  "bridge.js": "content-scripts/bridge.js",
-  "prelude.js": "content-scripts/prelude.js",
-  "content.js": "content-scripts/content.js",
-};
 
 export default defineConfig({
   srcDir: "src",
   entrypointsDir: "entrypoints",
+  // Single output folder for every artifact (builds, store zip/xpi, sources
+  // archive). Keep in sync with OUTPUT_DIR in vite/lib/paths.ts.
   outDir: ".output",
-  publicDir: "public",
+  zip: {
+    name: "vot-extension",
+    // Archives are written to `outDir`; `wxt zip -b firefox` also creates the
+    // sources archive (zipSources defaults to true for Firefox). Its name must
+    // match OUTPUT_SOURCE_FILENAME in scripts/output/paths.ts.
+    artifactTemplate: "{{name}}-{{version}}-{{browser}}.zip",
+    sourcesTemplate: "{{name}}-{{version}}-sources.zip",
+    includeSources: [
+      "src",
+      "vite",
+      "scripts",
+      "README.md",
+      "README-EN.md",
+      "package.json",
+      "bun.lock",
+      "tsconfig.json",
+      "biome.json",
+      "wxt.config.ts",
+    ],
+  },
+  publicDir: "src/public",
   manifestVersion: 3,
   browser: "chrome",
   imports: false,
@@ -58,39 +76,47 @@ export default defineConfig({
   },
   manifest: ({ browser, mode }) => {
     const config = getBuildConfig(mode);
-    const manifest = buildManifestChrome({
+    const manifest = buildExtensionManifest({
       headers: extensionHeaders,
-      includeWorld: true,
-      pathStrategy: { iconPathFn },
-      chromeOptions:
-        browser === "firefox" ? undefined : { versionName: headers.version },
+      versionName: browser === "firefox" ? undefined : headers.version,
     });
 
-    // WXT generates background and content_scripts from src/entrypoints.
-    delete manifest.manifest_version;
-    delete manifest.background;
-    delete manifest.content_scripts;
-
     if (browser === "firefox") {
-      const action = manifest.action as {
-        default_icon: Record<number, string>;
+      manifest.action.default_icon[64] = iconPathFn(64);
+      return {
+        ...manifest,
+        browser_specific_settings: getFirefoxSpecificSettings(config),
       };
-      action.default_icon[64] = iconPathFn(64);
-      manifest.browser_specific_settings = getFirefoxSpecificSettings(config);
-    } else if (!config.IS_STORE_BUILD) {
-      manifest.update_url = `${getReleaseDownloadBase(config.REPO_BRANCH)}/update.xml`;
-      manifest.key = CHROME_EXTENSION_KEY;
     }
 
-    return manifest;
+    if (config.IS_STORE_BUILD) return manifest;
+
+    return {
+      ...manifest,
+      update_url: `${getReleaseDownloadBase(config.REPO_BRANCH)}/update.xml`,
+      key: CHROME_EXTENSION_KEY,
+    };
   },
   vite: async (env) => {
-    const debug = env.command === "serve" || env.mode === "development";
+    // DEBUG_MODE=true|false env overrides; default: dev server / development.
+    const debug = resolveDebugMode(
+      env.mode,
+      env.command === "serve" || env.mode === "development",
+    );
     const version = String(headers.version || "");
 
     return {
       cacheDir: viteCacheDir(`wxt-${env.browser}-${env.mode}`),
-      plugins: sharedVitePlugins,
+      plugins: [
+        ...sharedVitePlugins,
+        debugIdPlugin({
+          variant: env.browser === "firefox" ? "firefox" : "chrome",
+          // Only content scripts report errors through telemetry.
+          registerChunk: ({ facadeModuleId }) =>
+            !facadeModuleId?.includes("/entrypoints/background"),
+          sourcemapDir: debug ? undefined : SOURCEMAP_DIR,
+        }),
+      ],
       resolve: {
         alias: sharedResolveAlias,
         dedupe: ["solid-js", "solid-js/web", "solid-js/store"],
@@ -111,38 +137,40 @@ export default defineConfig({
         reportCompressedSize: false,
         chunkSizeWarningLimit: 700,
         minify: debug ? false : "oxc",
-        sourcemap: debug ? "inline" : false,
+        sourcemap: debug ? "inline" : "hidden",
       },
     };
   },
   hooks: {
-    "build:publicAssets": (_wxt, assets) => {
-      const iconSourceDir = resolve("src/extension/icons");
-      for (const entry of readdirSync(iconSourceDir, { withFileTypes: true })) {
-        if (!entry.isFile()) continue;
-        assets.push({
-          absoluteSrc: resolve(iconSourceDir, entry.name),
-          relativeDest: `icons/${entry.name}`,
-        });
+    // `wxt` dev (MV3) registers content scripts at runtime from entrypoint
+    // options, so path-specific matches added in build:manifestGenerated never
+    // reach dev. Give dev the full production list + direct video files + Udemy.
+    "entrypoints:resolved": (wxt, entrypoints) => {
+      if (wxt.config.command !== "serve") return;
+      const devMatches = getDevContentScriptMatches(extensionHeaders.match);
+      for (const entry of entrypoints) {
+        if (entry.type !== "content-script") continue;
+        entry.options.matches = [...devMatches];
+        // Chrome rejects match_origin_as_fallback on non-"/*" paths.
+        Reflect.deleteProperty(entry.options, "matchOriginAsFallback");
       }
     },
     "build:manifestGenerated": (wxt, manifest) => {
-      // Dev mode keeps WXT's own content script entries so its built-in
-      // reload of changed content scripts keeps working.
-      if (wxt.config.command === "serve") return;
+      if (wxt.config.command === "serve" || !manifest.content_scripts) return;
 
-      // Production keeps the exact match_origin_as_fallback split
-      // the release manifests always had.
-      const full = buildManifestChrome({
-        headers: extensionHeaders,
-        includeWorld: true,
-        pathStrategy: {
-          scriptPathFn: (file) => WXT_CONTENT_SCRIPT_PATHS[file] ?? file,
-        },
+      // Chrome rejects match_origin_as_fallback on patterns with a non-"/*"
+      // path, so path-specific matches get duplicated entries without it.
+      const { directMatches } = splitMatchesForOriginFallback(
+        extensionHeaders.match,
+      );
+      if (!directMatches.length) return;
+
+      const directScripts = manifest.content_scripts.map((script) => {
+        const entry = { ...script, matches: directMatches };
+        Reflect.deleteProperty(entry, "match_origin_as_fallback");
+        return entry;
       });
-      manifest.content_scripts = full.content_scripts as NonNullable<
-        typeof manifest.content_scripts
-      >;
+      manifest.content_scripts.push(...directScripts);
     },
     "build:done": async (wxt) => {
       if (wxt.config.command !== "build") return;

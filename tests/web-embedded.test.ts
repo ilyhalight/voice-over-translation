@@ -325,7 +325,7 @@ test("web_embedded deprioritizes DRC tracks", () => {
       { ...base, itag: 251, mimeType: "audio/webm", xtags: "drc=1" },
       { ...base, itag: 140, mimeType: "audio/mp4", xtags: "drc=1" },
     ]).itag,
-  ).toBe(251);
+  ).toBe(140);
 });
 
 test("web_embedded prefers requested and base languages", () => {
@@ -481,7 +481,7 @@ test("web_embedded ranks by smallest contentLength, bitrate, then first", () => 
       { ...base, itag: 251, mimeType: "audio/webm", contentLength: 100 },
       { ...base, itag: 140, mimeType: "audio/mp4", contentLength: 100 },
     ]).itag,
-  ).toBe(251);
+  ).toBe(140);
   expect(
     selectWebEmbeddedAudioFormat([
       { ...base, itag: 251, mimeType: "audio/webm", averageBitrate: 10_000 },

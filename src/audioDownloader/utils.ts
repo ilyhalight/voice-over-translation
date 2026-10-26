@@ -1,3 +1,9 @@
+import {
+  getYouTubeAudioBitrate,
+  getYouTubeAudioSize,
+  type YouTubeAudioFormat,
+} from "./strategies/youtubeAudioSelection";
+
 type YoutubeAudioFormatLike = {
   languageCode?: unknown;
   language?: unknown;
@@ -61,30 +67,35 @@ export function getYoutubeAudioFormatLanguage(
   return "";
 }
 
-export function selectSmallestAudioFormat<
-  T extends { contentLength?: unknown; averageBitrate?: unknown },
->(candidates: T[]): T | undefined {
-  const smallest = (key: "contentLength" | "averageBitrate") => {
-    let best: T | undefined;
-    let bestValue = Number.POSITIVE_INFINITY;
-    for (const candidate of candidates) {
-      const raw = candidate[key];
-      let value = Number.NaN;
-      if (typeof raw === "number") {
-        value = raw;
-      } else if (typeof raw === "string") {
-        value = Number(raw);
-      }
-      if (Number.isFinite(value) && value > 0 && value < bestValue) {
-        best = candidate;
-        bestValue = value;
-      }
-    }
-    return best;
-  };
-  return (
-    smallest("contentLength") ?? smallest("averageBitrate") ?? candidates[0]
+export function selectSmallestAudioFormat<T extends YouTubeAudioFormat>(
+  candidates: T[],
+): T | undefined {
+  const duration = candidates
+    .map((format) => Number(format.approxDurationMs))
+    .find((value) => Number.isFinite(value) && value > 0);
+  const sizes = candidates.map((format) =>
+    getYouTubeAudioSize(format, duration),
   );
+  const useSizes = sizes.every((size) => size !== undefined);
+  let selected: T | undefined;
+  let best = Infinity;
+  let bestSecondary = Infinity;
+  candidates.forEach((format, index) => {
+    const size = sizes[index] ?? Infinity;
+    const bitrate = getYouTubeAudioBitrate(format) ?? Infinity;
+    const cost = useSizes ? size : bitrate;
+    const secondary = useSizes ? bitrate : size;
+    if (
+      !selected ||
+      cost < best ||
+      (cost === best && secondary < bestSecondary)
+    ) {
+      selected = format;
+      best = cost;
+      bestSecondary = secondary;
+    }
+  });
+  return selected;
 }
 
 export function toPrimitiveString(value: unknown, fallback = ""): string {

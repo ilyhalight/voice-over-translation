@@ -660,9 +660,14 @@ export class VideoHandler {
   }
 
   get isAudioContextSupported() {
+    const webkitAudioContext = (
+      globalThis as typeof globalThis & {
+        webkitAudioContext?: typeof AudioContext;
+      }
+    ).webkitAudioContext;
     return (
       globalThis.AudioContext !== undefined ||
-      (globalThis as any).webkitAudioContext !== undefined
+      webkitAudioContext !== undefined
     );
   }
 

@@ -9,10 +9,10 @@ import {
 } from "../shared/bodySerialization";
 import type { AnyObject } from "../shared/constants";
 import { PORT_NAME, TYPE_XHR_ACK, TYPE_XHR_EVENT } from "../shared/constants";
+import { browser } from "wxt/browser";
 import { postToPage } from "../shared/transport";
 import {
   ExtensionContextInvalidatedError,
-  ext,
   isContextInvalidatedError,
   isExtensionContextValid,
   lastErrorMessage,
@@ -443,11 +443,9 @@ export async function startBridgeXhr(
 
     logBridgeXhrStart(requestId, safeDetails);
 
-    const connected = ext?.runtime?.connect?.({ name: PORT_NAME });
-    if (!connected || typeof connected !== "object") {
-      throw new Error("Bridge port is not available");
-    }
-    const port = connected as XhrPortState["port"];
+    const port = browser.runtime.connect({
+      name: PORT_NAME,
+    }) as unknown as XhrPortState["port"];
     const responseType = String(
       safeDetails?.responseType || "text",
     ).toLowerCase();

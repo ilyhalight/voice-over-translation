@@ -1,4 +1,5 @@
 import {
+  createEffect,
   createMemo,
   createSignal,
   createUniqueId,
@@ -6,7 +7,6 @@ import {
   type JSX,
   mergeProps,
   onCleanup,
-  onMount,
   Show,
 } from "solid-js";
 import { effect } from "solid-js/web";
@@ -206,47 +206,45 @@ export function Select(props: SelectProps): JSX.Element {
     ),
   });
 
-  onMount(() => {
-    effect(() => {
-      if (!isOpen()) {
+  createEffect(() => {
+    if (!isOpen()) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const path = event.composedPath();
+      if (!path.includes(innerRef) && !path.includes(outerRef)) {
+        closeSelect();
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key !== "Escape" ||
+        !event
+          .composedPath()
+          .some((element) => element === innerRef || element === outerRef)
+      ) {
         return;
       }
 
-      const handlePointerDown = (event: PointerEvent) => {
-        const path = event.composedPath();
-        if (!path.includes(innerRef) && !path.includes(outerRef)) {
-          closeSelect();
-        }
-      };
+      event.preventDefault();
+      event.stopPropagation();
+      closeSelect();
+      outerRef.focus();
+    };
 
-      const handleKeyDown = (event: KeyboardEvent) => {
-        if (
-          event.key !== "Escape" ||
-          !event
-            .composedPath()
-            .some((element) => element === innerRef || element === outerRef)
-        ) {
-          return;
-        }
+    window.addEventListener("pointerdown", handlePointerDown, {
+      capture: true,
+      passive: true,
+    });
+    window.addEventListener("keydown", handleKeyDown, true);
 
-        event.preventDefault();
-        event.stopPropagation();
-        closeSelect();
-        outerRef.focus();
-      };
-
-      window.addEventListener("pointerdown", handlePointerDown, {
+    onCleanup(() => {
+      window.removeEventListener("pointerdown", handlePointerDown, {
         capture: true,
-        passive: true,
       });
-      window.addEventListener("keydown", handleKeyDown, true);
-
-      onCleanup(() => {
-        window.removeEventListener("pointerdown", handlePointerDown, {
-          capture: true,
-        });
-        window.removeEventListener("keydown", handleKeyDown, true);
-      });
+      window.removeEventListener("keydown", handleKeyDown, true);
     });
   });
 

@@ -17,7 +17,7 @@
 // @description:ru Смотрите видео на другом языке с закадровым переводом и субтитрами в любом браузере
 // @description:zh 在任何浏览器中观看其他语言的视频，享受配音翻译和字幕
 // @license        MIT
-// @icon           https://raw.githubusercontent.com/ilyhalight/voice-over-translation/dev/src/extension/icons/icon-128.png
+// @icon           https://raw.githubusercontent.com/ilyhalight/voice-over-translation/dev/src/public/icons/icon-128.png
 // @homepageURL    https://github.com/ilyhalight/voice-over-translation
 // @source         https://github.com/ilyhalight/voice-over-translation.git
 // @supportURL     https://github.com/ilyhalight/voice-over-translation/issues
@@ -301,6 +301,7 @@
 // @grant          GM.xmlHttpRequest
 // @grant          window.focus
 // ==/UserScript==
+(function(){try{var g=globalThis,k=Symbol.for("vot.debugIds"),s=(new Error().stack||"").replace(/(extension:\/\/)[^\/\s]+/g,"$1extension");if(s){g[k]||Object.defineProperty(g,k,{value:{}});g[k][s]={d:"c3b4323a-20f0-4270-a59b-a5eb4e8e8634",l:304}}}catch(e){}})();
 
 var vot = (function(exports) {
 	Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
@@ -1549,7 +1550,7 @@ var vot = (function(exports) {
 	function canLog(level) {
 		return config_default$1.loggerLevel <= level;
 	}
-	function log$1(...messages) {
+	function log(...messages) {
 		if (!canLog(LoggerLevel.DEBUG)) return;
 		console.log(prefix, ...messages);
 	}
@@ -1557,20 +1558,20 @@ var vot = (function(exports) {
 		if (!canLog(LoggerLevel.INFO)) return;
 		console.info(prefix, ...messages);
 	}
-	function warn$1(...messages) {
+	function warn(...messages) {
 		if (!canLog(LoggerLevel.WARN)) return;
 		console.warn(prefix, ...messages);
 	}
-	function error$1(...messages) {
+	function error(...messages) {
 		if (!canLog(LoggerLevel.ERROR)) return;
 		console.error(prefix, ...messages);
 	}
 	var Logger$1 = {
 		canLog,
-		log: log$1,
+		log,
 		info,
-		warn: warn$1,
-		error: error$1
+		warn,
+		error
 	};
 	// node_modules/@vot.js/shared/dist/utils/utils.js
 	var iso6392to6391 = {
@@ -9599,19 +9600,11 @@ var vot = (function(exports) {
 		};
 	}
 	// src/utils/debug.ts
-	var log = (...text) => {
-		console.log("%c[VOT DEBUG]", "background: #3700ffff; color: #fff; padding: 5px;", ...text);
-	};
-	var warn = (...text) => {
-		console.warn("%c[VOT DEBUG]", "background: #f6c177; color: #000; padding: 5px;", ...text);
-	};
-	var error = (...text) => {
-		console.error("%c[VOT DEBUG]", "background: #F2452D; color: #fff; padding: 5px;", ...text);
-	};
+	var noop = () => {};
 	var debug = {
-		log,
-		warn,
-		error
+		log: noop,
+		warn: noop,
+		error: noop
 	};
 	// src/utils/http.ts
 	function normalizeHttpMethod(method) {
@@ -10620,8 +10613,38 @@ var vot = (function(exports) {
 			...frames.length > 0 && { stacktrace: { frames } }
 		};
 	}
+	function createEntryResolver(registry) {
+		const soleEntry = registry.size === 1 ? registry.values().next().value : void 0;
+		return (frame) => frame.in_app ? registry.get(frame.filename) ?? soleEntry : void 0;
+	}
+	function buildDebugMeta(values, resolveEntry) {
+		const images = new Map();
+		for (const { stacktrace } of values) for (const frame of stacktrace?.frames ?? []) {
+			if (images.has(frame.filename)) continue;
+			const entry = resolveEntry(frame);
+			if (entry) images.set(frame.filename, {
+				type: "sourcemap",
+				code_file: frame.filename,
+				debug_id: entry.debugId
+			});
+		}
+		return images.size ? { images: [...images.values()] } : void 0;
+	}
+	function removeLineOffsets(values, resolveEntry) {
+		for (const { stacktrace } of values) for (const frame of stacktrace?.frames ?? []) {
+			const lineOffset = resolveEntry(frame)?.lineOffset;
+			if (lineOffset && frame.lineno - lineOffset >= 1) frame.lineno -= lineOffset;
+		}
+	}
 	function buildEvent(error, context) {
 		const { source, service } = context.tags;
+		const values = collectCauses(error).map(toExceptionValue);
+		let debugMeta;
+		if (context.debugIds?.size) {
+			const resolveEntry = createEntryResolver(context.debugIds);
+			debugMeta = buildDebugMeta(values, resolveEntry);
+			removeLineOffsets(values, resolveEntry);
+		}
 		return {
 			event_id: createEventId(),
 			timestamp: Date.now() / 1e3,
@@ -10638,7 +10661,8 @@ var vot = (function(exports) {
 				service,
 				normalizeMessage(error.message)
 			].filter((part) => Boolean(part)),
-			exception: { values: collectCauses(error).map(toExceptionValue) }
+			exception: { values },
+			...debugMeta && { debug_meta: debugMeta }
 		};
 	}
 	function buildEnvelope(event) {
@@ -10654,6 +10678,28 @@ var vot = (function(exports) {
 	}
 	function buildAuthHeader(version) {
 		return `Sentry sentry_version=7, sentry_key=${SENTRY_KEY}, sentry_client=${SENTRY_CLIENT}/${version}`;
+	}
+	// src/modules/telemetry/debug-ids.ts
+	var REGISTRY_SYMBOL = Symbol.for("vot.debugIds");
+	var DEBUG_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+	function isRegistration(value) {
+		if (typeof value !== "object" || value === null) return false;
+		const { d, l } = value;
+		return typeof d === "string" && DEBUG_ID_RE.test(d) && typeof l === "number" && Number.isInteger(l) && l >= 1;
+	}
+	function readDebugIdRegistry(scope = globalThis) {
+		const registry = new Map();
+		const raw = scope[REGISTRY_SYMBOL];
+		if (typeof raw !== "object" || raw === null) return registry;
+		for (const [stack, registration] of Object.entries(raw)) {
+			if (!isRegistration(registration)) continue;
+			const frame = parseStack(stack).findLast((item) => item.in_app);
+			if (frame) registry.set(frame.filename, {
+				debugId: registration.d,
+				lineOffset: Math.max(0, frame.lineno - registration.l)
+			});
+		}
+		return registry;
 	}
 	// src/modules/telemetry/context.ts
 	var PROXY_MODES = [
@@ -10783,7 +10829,7 @@ var vot = (function(exports) {
 		return async function report(error, options) {
 			if (isExpectedError(error)) return;
 			if (!await isEnabled()) return;
-			const { version, environment, env } = getRuntimeInfo();
+			const { version, environment, env, debugIds } = getRuntimeInfo();
 			if (isIgnoredForHandler(error, env.scriptHandler)) return;
 			const normalized = toError(error);
 			const involved = [error, ...collectCauses(normalized)].filter(isObject);
@@ -10798,6 +10844,7 @@ var vot = (function(exports) {
 			await send(buildEvent(reported, {
 				version,
 				environment,
+				debugIds,
 				level: options.level ?? classifyLevel(error),
 				tags: compactTags({
 					...buildEnvironmentTags(env),
@@ -10849,7 +10896,8 @@ var vot = (function(exports) {
 		return {
 			version: "1.12.2",
 			environment: "master",
-			env: getEnvironmentInfo$1()
+			env: getEnvironmentInfo$1(),
+			debugIds: readDebugIdRegistry()
 		};
 	}
 	async function sendEvent(event) {
@@ -12018,29 +12066,6 @@ var vot = (function(exports) {
 		for (let parent = getComposedParentElement(node); parent; parent = getComposedParentElement(parent)) if (predicate(parent)) return true;
 		return false;
 	}
-	function pushChildrenToStack(stack, stackSize, children) {
-		for (const child of children) if (child !== void 0 && child !== null) {
-			stack[stackSize] = child;
-			stackSize += 1;
-		}
-		return stackSize;
-	}
-	function walkShadowIncludingSubtree(root, adapter, visit) {
-		const stack = [root];
-		const { getChildren, getShadowRoot } = adapter;
-		let stackSize = 1;
-		while (stackSize > 0) {
-			const node = stack[stackSize - 1];
-			stackSize -= 1;
-			visit(node);
-			stackSize = pushChildrenToStack(stack, stackSize, getChildren(node));
-			const shadowRoot = getShadowRoot(node);
-			if (shadowRoot) {
-				stack[stackSize] = shadowRoot;
-				stackSize += 1;
-			}
-		}
-	}
 	// src/utils/eventImpl.ts
 	var EventImpl = class {
 		listeners = new Set();
@@ -12246,24 +12271,35 @@ var vot = (function(exports) {
 				subtree: true
 			});
 		}
-		static domAdapter = {
-			getChildren: (node) => Array.from(node.children ?? []),
-			getShadowRoot: (node) => node.shadowRoot
-		};
 		scan(root) {
 			if (root instanceof HTMLVideoElement) {
 				this.trackVideo(root);
 				return;
 			}
-			if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.DOCUMENT_FRAGMENT_NODE && root.nodeType !== Node.DOCUMENT_NODE) return;
-			walkShadowIncludingSubtree(root, VideoObserver.domAdapter, (el) => {
-				if (el instanceof HTMLVideoElement) {
-					this.trackVideo(el);
-					return;
+			const type = root.nodeType;
+			if (type !== Node.ELEMENT_NODE && type !== Node.DOCUMENT_FRAGMENT_NODE && type !== Node.DOCUMENT_NODE) return;
+			const stack = [root];
+			let size = 1;
+			while (size > 0) {
+				size -= 1;
+				const node = stack[size];
+				let shadowRoot;
+				if (node instanceof HTMLVideoElement) {
+					this.trackVideo(node);
+					shadowRoot = node.shadowRoot;
+				} else {
+					shadowRoot = node.shadowRoot;
+					if (shadowRoot) this.observeRoot(shadowRoot);
 				}
-				const sr = el.shadowRoot;
-				if (sr) this.observeRoot(sr);
-			});
+				for (let child = node.firstElementChild; child; child = child.nextElementSibling) {
+					stack[size] = child;
+					size += 1;
+				}
+				if (shadowRoot) {
+					stack[size] = shadowRoot;
+					size += 1;
+				}
+			}
 		}
 		getVideoListenerSignal(video) {
 			const existingController = this.videoListenerControllers.get(video);
@@ -12324,14 +12360,19 @@ var vot = (function(exports) {
 			}
 			this.seenVideos.delete(video);
 		}
-		collectVideos(node) {
-			const set = new Set();
-			if (node instanceof HTMLVideoElement) set.add(node);
-			if (node.nodeType !== Node.ELEMENT_NODE && node.nodeType !== Node.DOCUMENT_FRAGMENT_NODE && node.nodeType !== Node.DOCUMENT_NODE) return Array.from(set);
-			walkShadowIncludingSubtree(node, VideoObserver.domAdapter, (el) => {
-				if (el instanceof HTMLVideoElement) set.add(el);
-			});
-			return Array.from(set);
+		static isWithinRemoved(video, removed) {
+			let node = video;
+			while (node) {
+				if (removed.has(node)) return true;
+				const parent = node.parentNode;
+				if (parent) {
+					node = parent;
+					continue;
+				}
+				const host = node.host;
+				node = host?.shadowRoot === node ? host : null;
+			}
+			return false;
 		}
 		isSliceBudgetReached(startMs, processed) {
 			if (processed >= VideoObserver.MAX_NODES_PER_SLICE) return true;
@@ -12339,27 +12380,23 @@ var vot = (function(exports) {
 		}
 		processPendingAdded(startMs) {
 			let processed = 0;
-			while (this.pendingAdded.size > 0) {
-				const next = this.pendingAdded.values().next();
-				if (next.done) break;
-				this.pendingAdded.delete(next.value);
-				this.scan(next.value);
+			for (const node of this.pendingAdded) {
+				this.pendingAdded.delete(node);
+				this.scan(node);
 				processed += 1;
 				if (this.isSliceBudgetReached(startMs, processed)) break;
 			}
 			return processed;
 		}
 		processPendingRemoved(startMs, processed) {
-			let processedCount = processed;
-			while (this.pendingRemoved.size > 0) {
-				if (this.isSliceBudgetReached(startMs, processedCount)) break;
-				const next = this.pendingRemoved.values().next();
-				if (next.done) break;
-				this.pendingRemoved.delete(next.value);
-				for (const video of this.collectVideos(next.value)) if (!video.isConnected) this.untrackVideo(video);
-				processedCount += 1;
+			const removedCount = this.pendingRemoved.size;
+			if (removedCount === 0) return processed;
+			if (this.isSliceBudgetReached(startMs, processed)) return processed;
+			if (this.videoListenerControllers.size > 0) {
+				for (const video of Array.from(this.videoListenerControllers.keys())) if (!video.isConnected && VideoObserver.isWithinRemoved(video, this.pendingRemoved)) this.untrackVideo(video);
 			}
-			return processedCount;
+			this.pendingRemoved.clear();
+			return processed + removedCount;
 		}
 		flushSlice = () => {
 			if (!this.enabled) {
@@ -12378,6 +12415,7 @@ var vot = (function(exports) {
 			if (!this.flushPending) return;
 			this.flushSlice();
 		};
+		hasPendingFlush = () => this.flushPending;
 		scheduleFlush = () => {
 			if (!this.enabled) return;
 			this.flushPending = true;
@@ -12409,8 +12447,8 @@ var vot = (function(exports) {
 			this.pendingAdded.add(node);
 		}
 		enqueueMutation(mutation) {
-			for (const node of mutation.addedNodes) this.enqueueAddedNode(node);
-			for (const node of mutation.removedNodes) this.pendingRemoved.add(node);
+			for (const node of mutation.addedNodes) if (node.nodeType === Node.ELEMENT_NODE) this.enqueueAddedNode(node);
+			for (const node of mutation.removedNodes) if (node.nodeType === Node.ELEMENT_NODE) this.pendingRemoved.add(node);
 		}
 		onMutations(mutations) {
 			for (const mutation of mutations) {
@@ -12423,7 +12461,7 @@ var vot = (function(exports) {
 			if (this.enabled) return;
 			this.enabled = true;
 			this.checkerUnsubscribe?.();
-			this.checkerUnsubscribe = this.intervalIdleChecker.subscribe(this.onCheckerTick);
+			this.checkerUnsubscribe = this.intervalIdleChecker.subscribe(this.onCheckerTick, { hasPendingWork: this.hasPendingFlush });
 			this.intervalIdleChecker.start();
 			this.intervalIdleChecker.markActivity("video-observer-enable");
 			this.installAttachShadowHook();
@@ -14091,17 +14129,15 @@ var vot = (function(exports) {
 	}
 	// src/audioDownloader/strategies/audioDownloadQueue.ts
 	async function* getQueuedAudioChunks(queue, strategy, videoId, signal, download) {
-		const queueKey = String(videoId);
-		const previous = queue.get(queueKey) ?? Promise.resolve();
-		const hadPrevious = queue.has(queueKey);
+		const previous = queue.get(videoId);
 		let releaseCurrent;
 		const current = new Promise((resolve) => {
 			releaseCurrent = resolve;
 		});
-		queue.set(queueKey, current);
+		queue.set(videoId, current);
 		debug.log(`Audio downloader. ${strategy} queued`, {
 			videoId,
-			hasPrevious: hadPrevious
+			hasPrevious: previous !== void 0
 		});
 		try {
 			await previous;
@@ -14109,7 +14145,7 @@ var vot = (function(exports) {
 			yield* download();
 		} finally {
 			releaseCurrent();
-			if (queue.get(queueKey) === current) queue.delete(queueKey);
+			if (queue.get(videoId) === current) queue.delete(videoId);
 			debug.log(`Audio downloader. ${strategy} queue released`, { videoId });
 		}
 	}
@@ -15106,6 +15142,80 @@ var vot = (function(exports) {
 						case 4:
 							if (tag !== 32) break;
 							message.end = reader.int32();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
+				}
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
+			}
+		}
+	};
+	function createBaseKeyValuePair() {
+		return {
+			key: void 0,
+			value: void 0
+		};
+	}
+	var KeyValuePair = {
+		encode(message, writer = new BinaryWriter()) {
+			if (message.key !== void 0) writer.uint32(10).string(message.key);
+			if (message.value !== void 0) writer.uint32(18).string(message.value);
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseKeyValuePair();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.key = reader.string();
+							continue;
+						case 2:
+							if (tag !== 18) break;
+							message.value = reader.string();
+							continue;
+					}
+					if ((tag & 7) === 4 || tag === 0) break;
+					reader.skip(tag & 7);
+				}
+				return message;
+			} finally {
+				reader.__tsProtoDecodeDepth = previousRecursionDepth;
+			}
+		}
+	};
+	function createBaseFormatXTags() {
+		return { xtags: [] };
+	}
+	var FormatXTags = {
+		encode(message, writer = new BinaryWriter()) {
+			for (const v of message.xtags) KeyValuePair.encode(v, writer.uint32(10).fork()).join();
+			return writer;
+		},
+		decode(input, length) {
+			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const previousRecursionDepth = reader.__tsProtoDecodeDepth ?? 0;
+			if (previousRecursionDepth >= 100) throw new globalThis.Error("protobuf decode recursion limit exceeded");
+			reader.__tsProtoDecodeDepth = previousRecursionDepth + 1;
+			try {
+				const end = length === void 0 ? reader.len : reader.pos + length;
+				const message = createBaseFormatXTags();
+				while (reader.pos < end) {
+					const tag = reader.uint32();
+					switch (tag >>> 3) {
+						case 1:
+							if (tag !== 10) break;
+							message.xtags.push(KeyValuePair.decode(reader, reader.uint32()));
 							continue;
 					}
 					if ((tag & 7) === 4 || tag === 0) break;
@@ -17802,6 +17912,54 @@ var vot = (function(exports) {
 			return isAudio ? format.mimeType.includes("audio") : format.mimeType.includes("video");
 		});
 	}
+	function buildSabrFormat(formatStream) {
+		const transferCharacteristics = formatStream.color_info?.transfer_characteristics || formatStream.colorInfo?.transferCharacteristics || "";
+		const decodedXtags = formatStream.xtags ? FormatXTags.decode(base64ToU8(decodeURIComponent(formatStream.xtags))).xtags : [];
+		const hasVideo = !!(formatStream.qualityLabel || formatStream.quality_label);
+		const hasAudio = !!(formatStream.audioQuality || formatStream.audio_quality);
+		const hasText = !!(formatStream.captionTrack || formatStream.caption_track);
+		const isHdr = transferCharacteristics.includes("SMPTEST2084") || transferCharacteristics.includes("ARIB_STD_B67");
+		const sabrFormat = {
+			itag: formatStream.itag,
+			lastModified: formatStream.last_modified_ms || formatStream.lastModified || "0",
+			xtags: formatStream.xtags,
+			width: formatStream.width,
+			height: formatStream.height,
+			fps: formatStream.fps,
+			mimeType: formatStream.mime_type || formatStream.mimeType,
+			audioQuality: formatStream.audio_quality || formatStream.audioQuality,
+			numChannels: formatStream.audio_channels || formatStream.audioChannels,
+			bitrate: formatStream.bitrate,
+			averageBitrate: formatStream.average_bitrate || formatStream.averageBitrate,
+			quality: formatStream.quality,
+			qualityLabel: formatStream.quality_label || formatStream.qualityLabel,
+			audioTrackId: formatStream.audio_track?.id || formatStream.audioTrack?.id,
+			approxDurationMs: formatStream.approx_duration_ms || parseInt(formatStream.approxDurationMs || "0"),
+			contentLength: parseInt(formatStream.contentLength || "0") || formatStream.content_length,
+			targetDurationSec: formatStream.targetDurationSec || formatStream.target_duration_sec || formatStream.target_duration_dec,
+			hasAudio,
+			hasVideo,
+			hasText,
+			isHdr,
+			codecCode: CODEC_CODES[formatStream.itag]
+		};
+		if (hasVideo) sabrFormat.isSr = decodedXtags.some((tag) => tag.key === "sr" && tag.value === "1");
+		if (hasAudio || hasText) {
+			sabrFormat.language = formatStream.language ?? decodedXtags.find((tag) => tag.key === "lang")?.value;
+			if (hasAudio) {
+				sabrFormat.isDrc = !!formatStream.isDrc || !!formatStream.is_drc || decodedXtags.some((tag) => tag.key === "drc" && tag.value === "1");
+				sabrFormat.isVb = !!formatStream.isVb || !!formatStream.is_vb || decodedXtags.some((tag) => tag.key === "vb" && tag.value === "1");
+				const audioContent = decodedXtags.find((tag) => tag.key === "acont")?.value;
+				sabrFormat.isDubbed = audioContent === "dubbed";
+				sabrFormat.isDescriptive = audioContent === "descriptive";
+				sabrFormat.isSecondary = audioContent === "secondary";
+				sabrFormat.isAutoDubbed = audioContent === "dubbed-auto";
+				sabrFormat.isOriginal = audioContent === "original" || !sabrFormat.isDubbed && !sabrFormat.isDescriptive && !sabrFormat.isSecondary && !sabrFormat.isAutoDubbed && !sabrFormat.isDrc;
+			}
+			if (hasText && !sabrFormat.language && (formatStream.captionTrack || formatStream.caption_track)) sabrFormat.language = formatStream.caption_track?.language_code || formatStream.captionTrack?.languageCode;
+		}
+		return sabrFormat;
+	}
 	function createFormatKey(input) {
 		if ("formatId" in input && (input.formatId?.itag !== void 0 || input.formatId?.xtags !== void 0)) return `${input.formatId?.itag || ""}:${input.formatId?.xtags || ""}`;
 		if (("itag" in input || "xtags" in input) && (input.itag !== void 0 || input.xtags !== void 0)) return `${input.itag || ""}:${input.xtags || ""}`;
@@ -19144,6 +19302,147 @@ var vot = (function(exports) {
 			this.runtime.playerTimeMs = Math.round(timeMs);
 		}
 	};
+	// src/audioDownloader/strategies/youtubeAudioSelection.ts
+	var ITAG_BITRATES = {
+		599: 31e3,
+		600: 35e3,
+		249: 5e4,
+		250: 7e4,
+		139: 48e3,
+		140: 128e3,
+		251: 16e4
+	};
+	function positiveNumber(value) {
+		if (typeof value !== "number" && typeof value !== "string") return;
+		const number = Number(value);
+		return Number.isFinite(number) && number > 0 ? number : void 0;
+	}
+	function text(value) {
+		return typeof value === "string" ? value.trim().toLowerCase() : "";
+	}
+	function language(value) {
+		const normalized = text(value).replaceAll("_", "-");
+		if ([
+			"und",
+			"zxx",
+			"mul"
+		].includes(normalized)) return "";
+		return /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/.test(normalized) ? normalized : "";
+	}
+	function hasMetadata(value) {
+		if (Array.isArray(value)) return value.length > 0;
+		if (value && typeof value === "object") return Object.keys(value).length > 0;
+		return value !== void 0 && value !== null && value !== false && value !== "";
+	}
+	function isUsableYouTubeAudioFormat(format) {
+		if (!format || typeof format !== "object") return false;
+		const itag = positiveNumber(format.itag);
+		const mimeType = text(format.mimeType);
+		return Boolean(itag && Number.isSafeInteger(itag) && /^audio\/[a-z0-9][a-z0-9.+-]*(?:\s*;|$)/.test(mimeType) && !mimeType.includes("video/") && !positiveNumber(format.width) && !positiveNumber(format.height) && format.hasVideo !== true && format.hasAudio !== false && format.hasText !== true && !text(format.qualityLabel) && ![
+			format.isDrm,
+			format.hasDrm,
+			format.drm,
+			format.drmFamilies,
+			format.drmInfo,
+			format.licenseInfos
+		].some(hasMetadata));
+	}
+	function getYouTubeAudioBitrate(format) {
+		const measured = positiveNumber(format.averageBitrate) ?? positiveNumber(format.bitrate);
+		if (measured) return measured;
+		const size = positiveNumber(format.contentLength);
+		const duration = positiveNumber(format.approxDurationMs);
+		if (size && duration) {
+			const derived = positiveNumber(size / duration * 8e3);
+			if (derived) return derived;
+		}
+		const itag = positiveNumber(format.itag);
+		return itag ? ITAG_BITRATES[itag] : void 0;
+	}
+	function getYouTubeAudioSize(format, durationMs) {
+		const size = positiveNumber(format.contentLength);
+		if (size) return size;
+		const duration = positiveNumber(format.approxDurationMs) ?? positiveNumber(durationMs);
+		const bitrate = getYouTubeAudioBitrate(format);
+		return duration && bitrate ? positiveNumber(bitrate / 8e3 * duration) : void 0;
+	}
+	function xtags(format) {
+		const tags = [text(format.xtags)];
+		try {
+			const cipher = typeof format.signatureCipher === "string" ? new URLSearchParams(format.signatureCipher) : void 0;
+			const url = typeof format.url === "string" && format.url.trim() ? format.url : cipher?.get("url");
+			if (url) tags.push(text(new URL(url).searchParams.get("xtags")));
+		} catch {}
+		return tags.join(":");
+	}
+	function trackIds(format) {
+		return [text(format.audioTrackId), text(format.audioTrack?.id)].filter(Boolean);
+	}
+	function languages(format) {
+		const fromTags = /(?:^|:)lang=([^:]+)/i.exec(xtags(format))?.[1];
+		return [
+			format.languageCode,
+			format.language,
+			format.audioTrack?.languageCode,
+			format.audioTrack?.language,
+			...trackIds(format).map((id) => id.split(".")[0]),
+			fromTags
+		].map(language).filter(Boolean);
+	}
+	function sameLanguage(a, b) {
+		return a.split("-")[0] === b.split("-")[0];
+	}
+	function trackRank(format, requestedTrackId, requestedLanguage) {
+		const ids = trackIds(format);
+		const tags = languages(format);
+		if (requestedTrackId && ids.some((id) => id !== requestedTrackId)) return;
+		if (requestedLanguage && tags.some((tag) => !sameLanguage(tag, requestedLanguage))) return;
+		if (requestedTrackId && ids.includes(requestedTrackId)) return 0;
+		if (requestedLanguage && tags.includes(requestedLanguage)) return 1;
+		if (requestedLanguage && tags.length) return 2;
+		return 3;
+	}
+	function selectYouTubeAudioFormat(formats, options = {}) {
+		const requestedTrackId = text(options.requestedTrackId);
+		const trackLanguage = language(requestedTrackId.split(".")[0]);
+		const requestedLanguage = language(options.requestedLanguage) || trackLanguage;
+		if (trackLanguage && requestedLanguage && !sameLanguage(trackLanguage, requestedLanguage)) return;
+		let candidates = formats.filter((format) => isUsableYouTubeAudioFormat(format));
+		if (requestedTrackId || requestedLanguage) {
+			let bestRank = Number.POSITIVE_INFINITY;
+			candidates = candidates.filter((format) => {
+				const rank = trackRank(format, requestedTrackId, requestedLanguage);
+				if (rank === void 0) return false;
+				bestRank = Math.min(bestRank, rank);
+				return true;
+			}).filter((format) => trackRank(format, requestedTrackId, requestedLanguage) === bestRank);
+		} else {
+			const defaults = candidates.filter((format) => format.audioTrack?.audioIsDefault === true);
+			if (defaults.length) candidates = defaults;
+		}
+		if (options.preferNonDrc !== false) {
+			const nonDrc = candidates.filter((format) => format.isDrc !== true && !/(?:^|:)drc=1(?:$|:)/i.test(xtags(format)));
+			if (nonDrc.length) candidates = nonDrc;
+		}
+		const duration = positiveNumber(options.durationMs) ?? candidates.map((format) => positiveNumber(format.approxDurationMs)).find(Boolean);
+		const sizes = candidates.map((format) => getYouTubeAudioSize(format, duration));
+		const useSizes = sizes.every((size) => size !== void 0);
+		let selected;
+		let bestCost = Number.POSITIVE_INFINITY;
+		let bestSecondaryCost = Number.POSITIVE_INFINITY;
+		candidates.forEach((format, index) => {
+			const bitrate = getYouTubeAudioBitrate(format) ?? Number.POSITIVE_INFINITY;
+			const size = sizes[index] ?? Number.POSITIVE_INFINITY;
+			const cost = useSizes ? size : bitrate;
+			const secondaryCost = useSizes ? bitrate : size;
+			if (!selected || cost < bestCost || cost === bestCost && secondaryCost < bestSecondaryCost) {
+				selected = format;
+				bestCost = cost;
+				bestSecondaryCost = secondaryCost;
+			}
+		});
+		return selected;
+	}
 	// src/audioDownloader/utils.ts
 	function normalizeAudioLanguageTag(value) {
 		if (typeof value !== "string") return "";
@@ -19175,22 +19474,24 @@ var vot = (function(exports) {
 		return "";
 	}
 	function selectSmallestAudioFormat(candidates) {
-		const smallest = (key) => {
-			let best;
-			let bestValue = Number.POSITIVE_INFINITY;
-			for (const candidate of candidates) {
-				const raw = candidate[key];
-				let value = NaN;
-				if (typeof raw === "number") value = raw;
-				else if (typeof raw === "string") value = Number(raw);
-				if (Number.isFinite(value) && value > 0 && value < bestValue) {
-					best = candidate;
-					bestValue = value;
-				}
+		const duration = candidates.map((format) => Number(format.approxDurationMs)).find((value) => Number.isFinite(value) && value > 0);
+		const sizes = candidates.map((format) => getYouTubeAudioSize(format, duration));
+		const useSizes = sizes.every((size) => size !== void 0);
+		let selected;
+		let best = Infinity;
+		let bestSecondary = Infinity;
+		candidates.forEach((format, index) => {
+			const size = sizes[index] ?? Infinity;
+			const bitrate = getYouTubeAudioBitrate(format) ?? Infinity;
+			const cost = useSizes ? size : bitrate;
+			const secondary = useSizes ? bitrate : size;
+			if (!selected || cost < best || cost === best && secondary < bestSecondary) {
+				selected = format;
+				best = cost;
+				bestSecondary = secondary;
 			}
-			return best;
-		};
-		return smallest("contentLength") ?? smallest("averageBitrate") ?? candidates[0];
+		});
+		return selected;
 	}
 	function toPrimitiveString(value, fallback = "") {
 		if (typeof value === "string" || typeof value === "number" || typeof value === "boolean" || typeof value === "bigint" || typeof value === "symbol") return String(value);
@@ -27670,20 +27971,6 @@ var vot = (function(exports) {
 			return false;
 		}
 	}
-	function selectWebEmbeddedAudioFormat(formats, requestedLanguage) {
-		const audioOnly = formats.filter(({ url, signatureCipher }) => typeof url === "string" || typeof signatureCipher === "string").filter(({ mimeType }) => mimeType?.includes("audio/") && !mimeType?.includes("video/"));
-		const normalizedRequestedLanguage = normalizeAudioLanguageTag(requestedLanguage);
-		let requestedLanguageCandidates = normalizedRequestedLanguage && normalizedRequestedLanguage !== "auto" ? audioOnly.filter((format) => getYoutubeAudioFormatLanguage(format) === normalizedRequestedLanguage) : [];
-		if (requestedLanguageCandidates.length === 0 && normalizedRequestedLanguage && normalizedRequestedLanguage !== "auto") requestedLanguageCandidates = audioOnly.filter((format) => audioLanguageMatches(getYoutubeAudioFormatLanguage(format), normalizedRequestedLanguage));
-		const defaultAudioOnly = audioOnly.filter(({ audioTrack }) => audioTrack?.audioIsDefault === true);
-		let trackCandidates = audioOnly;
-		if (requestedLanguageCandidates.length > 0) trackCandidates = requestedLanguageCandidates;
-		else if (defaultAudioOnly.length > 0) trackCandidates = defaultAudioOnly;
-		const nonDrcCandidates = trackCandidates.filter((format) => !isDrcAudioFormat(format));
-		const selected = selectSmallestAudioFormat(nonDrcCandidates.length > 0 ? nonDrcCandidates : trackCandidates);
-		if (!selected) throw new Error("Audio downloader. web ABR returned no direct audio-only formats");
-		return selected;
-	}
 	async function sha1(value) {
 		const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(value));
 		return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -28024,6 +28311,49 @@ var vot = (function(exports) {
 			racyCheckOk: true
 		};
 	}
+	var MOBILE_PLAYER_CLIENTS = {
+		ios: {
+			name: "IOS",
+			version: "21.26.4"
+		},
+		android: {
+			name: "ANDROID",
+			version: "21.26.364"
+		},
+		mweb: {
+			name: "MWEB",
+			version: "2.20260708.05.00"
+		}
+	};
+	function buildMobilePlayerRequest(config, videoId, name, signatureTimestamp) {
+		const profile = MOBILE_PLAYER_CLIENTS[name];
+		const pageClient = getConfigValue(config, "INNERTUBE_CONTEXT")?.client;
+		return {
+			context: { client: {
+				clientName: profile.name,
+				clientVersion: pageClient?.clientName === profile.name && pageClient.clientVersion ? pageClient.clientVersion : profile.version,
+				hl: pageClient?.hl ?? "en",
+				gl: pageClient?.gl ?? "US",
+				...name === "ios" ? {
+					deviceMake: "Apple",
+					deviceModel: "iPhone16,2",
+					osName: "iPhone",
+					osVersion: "18.3.2.22D82"
+				} : name === "android" ? {
+					osName: "Android",
+					osVersion: "11",
+					androidSdkVersion: 30
+				} : {
+					clientFormFactor: "SMALL_FORM_FACTOR",
+					platform: "MOBILE"
+				}
+			} },
+			videoId,
+			playbackContext: { contentPlaybackContext: buildContentPlaybackContext$1(signatureTimestamp) },
+			contentCheckOk: true,
+			racyCheckOk: true
+		};
+	}
 	function buildWebCreatorPlayerRequest(videoId, options = {}) {
 		const contentPlaybackContext = buildContentPlaybackContext$1(options.signatureTimestamp);
 		return {
@@ -28045,27 +28375,33 @@ var vot = (function(exports) {
 	async function postInnertubePlayer(targetWindow, signal, apiKey, body, clientName, clientVersion, extra) {
 		const visitorData = body.context?.client?.visitorData;
 		const authenticated = Boolean(extra.authorization);
-		const response = await targetWindow.fetch(`https://www.youtube.com/youtubei/v1/player?prettyPrint=false&key=${encodeURIComponent(apiKey)}`, {
-			method: "POST",
-			credentials: authenticated ? "include" : "omit",
-			signal,
-			headers: {
-				"content-type": "application/json",
-				"x-youtube-client-name": clientName,
-				"x-youtube-client-version": clientVersion,
-				...typeof visitorData === "string" ? { "x-goog-visitor-id": visitorData } : {},
-				...authenticated ? {
-					authorization: extra.authorization,
-					"x-origin": "https://www.youtube.com",
-					"x-youtube-bootstrap-logged-in": "true",
-					...typeof extra.sessionIndex === "number" || typeof extra.sessionIndex === "string" ? { "x-goog-authuser": String(extra.sessionIndex) } : {},
-					...typeof extra.delegatedSessionId === "string" && extra.delegatedSessionId ? { "x-goog-pageid": extra.delegatedSessionId } : {}
-				} : {}
-			},
-			body: JSON.stringify(body)
-		});
-		if (!response.ok) throw new Error(`Audio downloader. player request failed (${response.status})`);
-		return await response.json();
+		signal.throwIfAborted();
+		const requestTimeout = createTimeoutSignal(15e3, signal);
+		try {
+			const response = await targetWindow.fetch(`https://www.youtube.com/youtubei/v1/player?prettyPrint=false&key=${encodeURIComponent(apiKey)}`, {
+				method: "POST",
+				credentials: authenticated ? "include" : "omit",
+				signal: requestTimeout.signal,
+				headers: {
+					"content-type": "application/json",
+					"x-youtube-client-name": clientName,
+					"x-youtube-client-version": clientVersion,
+					...typeof visitorData === "string" ? { "x-goog-visitor-id": visitorData } : {},
+					...authenticated ? {
+						authorization: extra.authorization,
+						"x-origin": "https://www.youtube.com",
+						"x-youtube-bootstrap-logged-in": "true",
+						...typeof extra.sessionIndex === "number" || typeof extra.sessionIndex === "string" ? { "x-goog-authuser": String(extra.sessionIndex) } : {},
+						...typeof extra.delegatedSessionId === "string" && extra.delegatedSessionId ? { "x-goog-pageid": extra.delegatedSessionId } : {}
+					} : {}
+				},
+				body: JSON.stringify(body)
+			});
+			if (!response.ok) throw new Error(`Audio downloader. player request failed (${response.status})`);
+			return await response.json();
+		} finally {
+			requestTimeout.cleanup();
+		}
 	}
 	async function probeContentLength(targetWindow, streamUrl, signal) {
 		const url = new URL(streamUrl);
@@ -28424,29 +28760,40 @@ var vot = (function(exports) {
 		throw lastError instanceof Error ? lastError : new Error("Audio downloader. All web ABR transports failed");
 	}
 	async function* getWebAbrAudioChunks$1(targetWindow, videoId, signal, sourceLanguage) {
+		signal.throwIfAborted();
 		const config = await resolveYtcfg(targetWindow, signal);
 		const apiKey = getConfigValue(config, "INNERTUBE_API_KEY");
 		if (typeof apiKey !== "string") throw new TypeError("Audio downloader. web ABR config is unavailable");
 		const playerCodes = new Map();
-		const fetchPlayerCode = (url = getPlayerUrl(config)) => {
+		const fetchPlayerCode = (url = getPlayerUrl(config), parentSignal = signal) => {
 			if (!url) return Promise.resolve(void 0);
 			let code = playerCodes.get(url);
 			if (!code) {
-				code = targetWindow.fetch(url, { signal }).then((response) => {
+				const timeout = createTimeoutSignal(15e3, parentSignal);
+				code = targetWindow.fetch(url, { signal: timeout.signal }).then(async (response) => {
 					if (!response.ok) throw new Error(`Audio downloader. YouTube player request failed (${response.status})`);
-					return response.text();
-				});
+					return await response.text();
+				}).catch((error) => {
+					playerCodes.delete(url);
+					throw error;
+				}).finally(timeout.cleanup);
 				playerCodes.set(url, code);
 			}
 			return code;
 		};
 		let sts = Number(getConfigValue(config, "STS"));
-		if (Number.isNaN(sts) || sts <= 0) sts = Number((await fetchPlayerCode())?.match(/(?:signatureTimestamp|sts)\s*:\s*(\d{5})/)?.[1]);
-		const body = buildWebEmbeddedPlayerRequest(config, videoId, sts);
-		const context = body.context;
-		const clientVersion = toPrimitiveString(context.client.clientVersion);
-		const visitorData = context.client.visitorData ?? getConfigValue(config, "VISITOR_DATA");
-		if (typeof visitorData === "string") context.client.visitorData = visitorData;
+		if (Number.isNaN(sts) || sts <= 0) try {
+			sts = Number((await fetchPlayerCode())?.match(/(?:signatureTimestamp|sts)\s*:\s*(\d{5})/)?.[1]);
+		} catch (error) {
+			signal.throwIfAborted();
+			debug.log("Audio downloader. optional signature timestamp unavailable", {
+				videoId,
+				error: toErrorMessage(error)
+			});
+		}
+		const context = getConfigValue(config, "INNERTUBE_CONTEXT");
+		const clientVersion = toPrimitiveString(getConfigValue(config, "INNERTUBE_CLIENT_VERSION") ?? context?.client?.clientVersion);
+		const visitorData = context?.client?.visitorData ?? getConfigValue(config, "VISITOR_DATA");
 		const dataSyncId = getConfigValue(config, "DATASYNC_ID");
 		const [firstSyncId, secondSyncId] = typeof dataSyncId === "string" ? dataSyncId.split("||") : [];
 		const delegatedSessionId = getConfigValue(config, "DELEGATED_SESSION_ID") ?? (secondSyncId ? firstSyncId : void 0);
@@ -28472,10 +28819,16 @@ var vot = (function(exports) {
 		let lastError;
 		let emitted = false;
 		let loginRequiredSeen = false;
+		const currentPlayer = targetWindow.ytInitialPlayerResponse;
+		const hasCurrentPlayer = currentPlayer?.videoDetails?.videoId === videoId && Boolean(currentPlayer.streamingData?.adaptiveFormats?.length || currentPlayer.streamingData?.formats?.length);
 		for (const name of [
+			...hasCurrentPlayer ? ["current"] : [],
+			"web",
+			"ios",
+			"android",
+			"mweb",
 			"web_embedded",
 			"tv_downgraded",
-			"web",
 			"web_creator"
 		]) {
 			signal.throwIfAborted();
@@ -28483,55 +28836,75 @@ var vot = (function(exports) {
 				videoId,
 				client: name
 			});
-			const fetchedConfig = name === "tv_downgraded" ? await fetchTvConfig(targetWindow, signal, videoId) : void 0;
-			const options = {
-				visitorData: fetchedConfig?.visitorData ?? visitorData,
-				signatureTimestamp: fetchedConfig?.signatureTimestamp ?? sts,
-				clientVersion: fetchedConfig?.clientVersion
-			};
-			let candidateBody;
-			switch (name) {
-				case "web_embedded":
-					candidateBody = body;
-					break;
-				case "tv_downgraded":
-					candidateBody = buildTvDowngradedPlayerRequest(videoId, options);
-					break;
-				case "web":
-					candidateBody = buildWebPlayerRequest(config, videoId, sts);
-					break;
-				default: candidateBody = buildWebCreatorPlayerRequest(videoId, options);
-			}
-			const candidateContext = candidateBody.context;
-			if (typeof options.visitorData === "string") candidateContext.client.visitorData = options.visitorData;
-			const postPlayer = (authenticated) => postInnertubePlayer(targetWindow, signal, fetchedConfig?.apiKey ?? apiKey, candidateBody, {
-				web_embedded: "56",
-				tv_downgraded: "7",
-				web: "1",
-				web_creator: "62"
-			}[name] ?? "62", toPrimitiveString(candidateContext.client.clientVersion, clientVersion), authenticated ? authenticatedAuth : {});
-			const requestPlayer = async (authenticated = false) => {
-				const response = await postPlayer(authenticated);
-				const status = response.playabilityStatus?.status ?? "";
-				if (status === "LOGIN_REQUIRED") loginRequiredSeen = true;
-				if (!authenticated && authorization && /LOGIN_REQUIRED|AGE_CHECK_REQUIRED|CONTENT_CHECK_REQUIRED/.test(status)) {
-					debug.log("Audio downloader. retrying player with YouTube session", {
-						videoId,
-						client: name,
-						status
-					});
-					return {
-						response: await postPlayer(true),
-						authenticated: true
-					};
-				}
-				return {
-					response,
-					authenticated
-				};
-			};
-			const getCode = () => fetchPlayerCode(fetchedConfig?.playerUrl);
+			const candidateController = new AbortController();
+			const onCandidateAbort = () => candidateController.abort(signal.reason);
+			signal.addEventListener("abort", onCandidateAbort, { once: true });
+			const acquisitionTimer = setTimeout(() => {
+				candidateController.abort(new Error("Audio downloader. Client acquisition timed out"));
+			}, 45e3);
+			const candidateSignal = candidateController.signal;
+			const isMobileClient = name in MOBILE_PLAYER_CLIENTS;
 			try {
+				const fetchedConfig = name === "tv_downgraded" ? await fetchTvConfig(targetWindow, candidateSignal, videoId) : void 0;
+				const options = {
+					visitorData: fetchedConfig?.visitorData ?? visitorData,
+					signatureTimestamp: fetchedConfig?.signatureTimestamp ?? sts,
+					clientVersion: fetchedConfig?.clientVersion
+				};
+				let candidateBody;
+				switch (name) {
+					case "web_embedded":
+						candidateBody = buildWebEmbeddedPlayerRequest(config, videoId, sts);
+						break;
+					case "tv_downgraded":
+						candidateBody = buildTvDowngradedPlayerRequest(videoId, options);
+						break;
+					case "current":
+					case "web":
+						candidateBody = buildWebPlayerRequest(config, videoId, sts);
+						break;
+					case "ios":
+					case "android":
+					case "mweb":
+						candidateBody = buildMobilePlayerRequest(config, videoId, name, sts);
+						break;
+					default: candidateBody = buildWebCreatorPlayerRequest(videoId, options);
+				}
+				const candidateContext = candidateBody.context;
+				if (typeof options.visitorData === "string") candidateContext.client.visitorData = options.visitorData;
+				const postPlayer = (authenticated) => postInnertubePlayer(targetWindow, candidateSignal, fetchedConfig?.apiKey ?? apiKey, candidateBody, {
+					web_embedded: "56",
+					tv_downgraded: "7",
+					web: "1",
+					current: "1",
+					web_creator: "62",
+					ios: "5",
+					android: "3",
+					mweb: "2"
+				}[name] ?? "62", toPrimitiveString(candidateContext.client.clientVersion, clientVersion), authenticated ? authenticatedAuth : {});
+				let usedCurrentPlayer = false;
+				const requestPlayer = async (authenticated = false) => {
+					const response = name === "current" && currentPlayer && !usedCurrentPlayer ? currentPlayer : await postPlayer(authenticated);
+					usedCurrentPlayer = true;
+					const status = response.playabilityStatus?.status ?? "";
+					if (status === "LOGIN_REQUIRED") loginRequiredSeen = true;
+					if (!authenticated && authorization && !isMobileClient && /LOGIN_REQUIRED|AGE_CHECK_REQUIRED|CONTENT_CHECK_REQUIRED/.test(status)) {
+						debug.log("Audio downloader. retrying player with YouTube session", {
+							videoId,
+							client: name,
+							status
+						});
+						return {
+							response: await postPlayer(true),
+							authenticated: true
+						};
+					}
+					return {
+						response,
+						authenticated
+					};
+				};
+				const getCode = () => fetchPlayerCode(fetchedConfig?.playerUrl, candidateSignal);
 				const initialPlayer = await requestPlayer();
 				const playerResponse = initialPlayer.response;
 				const requestAuthenticated = initialPlayer.authenticated;
@@ -28540,7 +28913,8 @@ var vot = (function(exports) {
 					const status = playerResponse.playabilityStatus;
 					throw new Error(`Audio downloader. ${name} ${status?.status ?? "failed"}: ${status?.reason ?? status?.messages?.join(" ") ?? "no streaming data"}`);
 				}
-				const format = selectWebEmbeddedAudioFormat(formats, sourceLanguage);
+				const format = selectYouTubeAudioFormat(formats.filter((entry) => Boolean(entry.url?.trim() || entry.signatureCipher?.trim())), { requestedLanguage: sourceLanguage });
+				if (!format) throw new Error("Audio downloader. web ABR returned no direct audio-only formats");
 				const fetchedFlags = fetchedConfig?.experimentFlags;
 				const poTokenBinding = selectGvsPoTokenBinding(videoId, {
 					loggedIn: requestAuthenticated,
@@ -28551,21 +28925,21 @@ var vot = (function(exports) {
 				let poToken;
 				const authorizeUrl = async (streamUrl) => {
 					const url = new URL(streamUrl);
-					if (!url.searchParams.has("pot") && poTokenBinding) {
-						poToken ??= mintPagePoToken(targetWindow, poTokenBinding.value, signal);
+					if (name !== "ios" && name !== "android" && !url.searchParams.has("pot") && poTokenBinding) {
+						poToken ??= mintPagePoToken(targetWindow, poTokenBinding.value, candidateSignal);
 						const token = await poToken;
 						if (token) url.searchParams.set("pot", token);
 					}
 					return url.toString();
 				};
-				for await (const solvedUrl of resolveWebEmbeddedFormatUrl(targetWindow, format, getCode, signal)) try {
+				for await (const solvedUrl of resolveWebEmbeddedFormatUrl(targetWindow, format, getCode, candidateSignal)) try {
 					const streamUrl = await authorizeUrl(solvedUrl);
-					const contentLength = Number(format.contentLength) || await probeContentLength(targetWindow, streamUrl, signal);
+					const contentLength = Number(format.contentLength) || await probeContentLength(targetWindow, streamUrl, candidateSignal);
 					const refreshUrl = async () => {
 						const response = (await requestPlayer(requestAuthenticated)).response;
 						const refreshed = [...response.streamingData?.adaptiveFormats ?? [], ...response.streamingData?.formats ?? []].find((entry) => entry.itag === format.itag && entry.mimeType === format.mimeType && Number(entry.contentLength) === contentLength && entry.lastModified === format.lastModified);
 						if (!refreshed) throw new Error("Audio downloader. Refreshed audio format changed");
-						const urls = resolveWebEmbeddedFormatUrl(targetWindow, refreshed, getCode, signal);
+						const urls = resolveWebEmbeddedFormatUrl(targetWindow, refreshed, getCode, candidateSignal);
 						try {
 							const next = await urls.next();
 							if (!next.done) return await authorizeUrl(next.value);
@@ -28574,7 +28948,9 @@ var vot = (function(exports) {
 						}
 						throw new Error("Audio downloader. Refreshed audio URL unavailable");
 					};
-					for await (const chunk of downloadMediaRanges(targetWindow, streamUrl, contentLength, signal, refreshUrl)) {
+					candidateSignal.throwIfAborted();
+					clearTimeout(acquisitionTimer);
+					for await (const chunk of downloadMediaRanges(targetWindow, streamUrl, contentLength, candidateSignal, refreshUrl)) {
 						emitted = true;
 						yield chunk;
 					}
@@ -28586,7 +28962,7 @@ var vot = (function(exports) {
 				}
 			} catch (error) {
 				signal.throwIfAborted();
-				if (error instanceof Error && error.message === "YOUTUBE_SIGN_IN_SUGGESTED") throw error;
+				if (error instanceof Error && error.message === "YOUTUBE_SIGN_IN_SUGGESTED") loginRequiredSeen = true;
 				if (emitted) throw error;
 				debug.log("Audio downloader. player client format failed", {
 					videoId,
@@ -28594,11 +28970,14 @@ var vot = (function(exports) {
 					error: toErrorMessage(error)
 				});
 				lastError = error;
+			} finally {
+				clearTimeout(acquisitionTimer);
+				signal.removeEventListener("abort", onCandidateAbort);
 			}
 		}
 		if (loginRequiredSeen && !authorization) throw new Error("YOUTUBE_SIGN_IN_SUGGESTED", { cause: lastError });
 		const fallbackError = lastError instanceof Error ? lastError : new Error("Audio downloader. no playable audio formats");
-		if (/LOGIN_REQUIRED|UNPLAYABLE/.test(fallbackError.message)) throw new Error(`${fallbackError.message}. Anonymous playback and the available signed-in YouTube session were both unable to provide a playable audio stream`, { cause: fallbackError });
+		if (/LOGIN_REQUIRED|UNPLAYABLE/.test(fallbackError.message)) throw new Error(`${fallbackError.message}. ${authorization ? "Anonymous playback and the available signed-in YouTube session were both unable" : "Anonymous playback was unable"} to provide a playable audio stream`, { cause: fallbackError });
 		throw fallbackError;
 	}
 	// src/audioDownloader/strategies/youtubeSabrPlayer.ts
@@ -28668,26 +29047,6 @@ var vot = (function(exports) {
 			if (hasNativeStreamingData(value)) return value;
 		}
 	}
-	function selectEconomyAudioFormat(formats) {
-		const audioOnly = formats.filter((format) => typeof format.itag === "number" && format.mimeType?.includes("audio/") && !format.mimeType?.includes("video/"));
-		const nonDrc = audioOnly.filter((format) => !isDrcAudioFormat(format));
-		const candidates = nonDrc.length > 0 ? nonDrc : audioOnly;
-		const contentLength = (format) => {
-			const value = Number(format.contentLength);
-			return Number.isFinite(value) && value > 0 ? value : Number.POSITIVE_INFINITY;
-		};
-		const bitrate = (format) => {
-			const value = Number(format.averageBitrate ?? format.bitrate);
-			return Number.isFinite(value) && value > 0 ? value : Number.POSITIVE_INFINITY;
-		};
-		return [...candidates].sort((a, b) => {
-			const sizeDiff = contentLength(a) - contentLength(b);
-			if (Number.isFinite(sizeDiff) && sizeDiff !== 0) return sizeDiff;
-			const bitrateDiff = bitrate(a) - bitrate(b);
-			if (Number.isFinite(bitrateDiff) && bitrateDiff !== 0) return bitrateDiff;
-			return (a.itag ?? Number.MAX_SAFE_INTEGER) - (b.itag ?? Number.MAX_SAFE_INTEGER);
-		})[0];
-	}
 	var N_PATTERN = /^[A-Za-z0-9_-]{4,}$/;
 	async function resolveSabrStreamingUrl(targetWindow, rawUrl, config, signal) {
 		signal.throwIfAborted();
@@ -28731,130 +29090,58 @@ var vot = (function(exports) {
 	}
 	// src/audioDownloader/strategies/youtubeSabrSupport.ts
 	function toSabrFormat(format) {
+		if (format.audioTrackId && format.audioTrack?.id && format.audioTrackId.toLowerCase() !== format.audioTrack.id.toLowerCase()) return;
 		const itag = Number(format.itag);
 		const bitrate = Number(format.bitrate ?? format.averageBitrate);
 		const approxDurationMs = Number(format.approxDurationMs);
 		const lastModified = String(format.lastModified ?? "");
-		if (Number.isNaN(itag) || itag <= 0 || Number.isNaN(bitrate) || bitrate <= 0 || Number.isNaN(approxDurationMs) || approxDurationMs <= 0 || !lastModified) return;
-		const language = getYoutubeAudioFormatLanguage(format) || void 0;
-		return {
+		if (!Number.isSafeInteger(itag) || itag <= 0 || !Number.isFinite(bitrate) || bitrate <= 0 || !Number.isFinite(approxDurationMs) || approxDurationMs <= 0 || !lastModified) return;
+		const converted = buildSabrFormat({
+			...format,
 			itag,
-			lastModified,
-			xtags: format.xtags,
-			width: format.width,
-			height: format.height,
-			contentLength: Number(format.contentLength) || void 0,
-			audioTrackId: format.audioTrackId ?? format.audioTrack?.id,
-			mimeType: format.mimeType,
-			isDrc: isDrcAudioFormat(format),
-			quality: format.quality,
-			qualityLabel: format.qualityLabel,
-			averageBitrate: Number(format.averageBitrate) || void 0,
 			bitrate,
-			audioQuality: format.audioQuality,
-			approxDurationMs,
-			language,
-			isOriginal: format.audioTrack?.audioIsDefault === true,
-			isHdr: false,
-			hasAudio: true,
-			hasVideo: false,
-			hasText: false,
-			codecCode: CODEC_CODES[itag] ?? ""
+			lastModified,
+			approxDurationMs: String(approxDurationMs),
+			contentLength: format.contentLength === void 0 ? void 0 : String(format.contentLength),
+			averageBitrate: Number(format.averageBitrate) || void 0,
+			audioTrack: {
+				...format.audioTrack,
+				id: format.audioTrackId ?? format.audioTrack?.id
+			},
+			language: getYoutubeAudioFormatLanguage(format) || void 0,
+			isDrc: isDrcAudioFormat(format)
+		});
+		converted.hasAudio = Boolean(format.mimeType?.includes("audio/"));
+		const tags = format.xtags ? FormatXTags.decode(base64ToU8(decodeURIComponent(format.xtags))).xtags : [];
+		const directLanguage = getYoutubeAudioFormatLanguage(format);
+		const taggedLanguage = normalizeAudioLanguageTag(tags.find((tag) => tag.key === "lang")?.value);
+		const known = (value) => value && value !== "und" && value !== "auto";
+		if (known(directLanguage) && known(taggedLanguage) && !audioLanguageMatches(directLanguage, taggedLanguage || "")) return;
+		converted.language = known(directLanguage) ? directLanguage : taggedLanguage || directLanguage || converted.language;
+		converted.isDrc ||= tags.some((tag) => tag.key === "drc" && tag.value === "1");
+		return converted;
+	}
+	function selectSabrAudioFormat(formats, selectedTrackId, requestedLanguage) {
+		const trackId = selectedTrackId?.trim().toLowerCase();
+		const language = normalizeAudioLanguageTag(trackId ? sabrTrackLanguage(trackId) : requestedLanguage);
+		const knownLanguage = (value) => {
+			const normalized = normalizeAudioLanguageTag(value);
+			return normalized && normalized !== "und" && normalized !== "auto" ? normalized : void 0;
 		};
-	}
-	function encodeProtoVarint(value) {
-		const out = [];
-		let current = Math.max(0, Math.floor(value));
-		do {
-			let byte = current % 128;
-			current = Math.floor(current / 128);
-			if (current > 0) byte |= 128;
-			out.push(byte);
-		} while (current > 0);
-		return new Uint8Array(out);
-	}
-	function concatBytes(parts) {
-		const size = parts.reduce((sum, part) => sum + part.byteLength, 0);
-		const out = new Uint8Array(size);
-		let offset = 0;
-		for (const part of parts) {
-			out.set(part, offset);
-			offset += part.byteLength;
-		}
-		return out;
-	}
-	function readProtoVarintAt(bytes, offset) {
-		let value = 0;
-		let shift = 0;
-		let cursor = offset;
-		while (cursor < bytes.length && shift <= 49) {
-			const byte = bytes[cursor++];
-			value += (byte & 127) * 2 ** shift;
-			if ((byte & 128) === 0) return {
-				value,
-				next: cursor
-			};
-			shift += 7;
-		}
-		throw new Error("invalid protobuf varint");
-	}
-	function splitTopLevelProto(bytes) {
-		const out = [];
-		let offset = 0;
-		while (offset < bytes.length) {
-			const start = offset;
-			const tag = readProtoVarintAt(bytes, offset);
-			offset = tag.next;
-			const field = Math.floor(tag.value / 8);
-			const wire = tag.value & 7;
-			if (wire === 0) offset = readProtoVarintAt(bytes, offset).next;
-			else if (wire === 1) offset += 8;
-			else if (wire === 2) {
-				const length = readProtoVarintAt(bytes, offset);
-				offset = length.next + length.value;
-			} else if (wire === 5) offset += 4;
-			else throw new Error(`unsupported protobuf wire ${wire}`);
-			if (offset > bytes.length) throw new Error("truncated protobuf field");
-			out.push({
-				field,
-				start,
-				end: offset
-			});
-		}
-		return out;
-	}
-	function setGeneratedSabrAudioTrackId(generated, trackId) {
-		const topLevel = splitTopLevelProto(generated);
-		const encodedTrackId = new TextEncoder().encode(trackId);
-		const trackField = concatBytes([
-			encodeProtoVarint(554),
-			encodeProtoVarint(encodedTrackId.byteLength),
-			encodedTrackId
-		]);
-		const chunks = [];
-		let replacedClientAbrState = false;
-		for (const part of topLevel) {
-			if (part.field !== 1 || replacedClientAbrState) {
-				chunks.push(generated.slice(part.start, part.end));
-				continue;
+		const eligible = formats.filter((format) => {
+			if (!format.mimeType?.includes("audio/") || format.hasVideo) return false;
+			const candidateId = format.audioTrackId?.trim().toLowerCase();
+			if (trackId && candidateId && candidateId !== trackId) return false;
+			if (language && language !== "auto") {
+				if ([knownLanguage(format.language), candidateId ? knownLanguage(sabrTrackLanguage(candidateId)) : void 0].some((value) => value && !audioLanguageMatches(value, language))) return false;
 			}
-			const length = readProtoVarintAt(generated, readProtoVarintAt(generated, part.start).next);
-			const payloadStart = length.next;
-			const payloadEnd = payloadStart + length.value;
-			if (payloadEnd > part.end) throw new Error("truncated ClientAbrState");
-			const payload = generated.slice(payloadStart, payloadEnd);
-			const payloadChunks = splitTopLevelProto(payload).filter((field) => field.field !== 69).map((field) => payload.slice(field.start, field.end));
-			payloadChunks.push(trackField);
-			const patchedPayload = concatBytes(payloadChunks);
-			chunks.push(concatBytes([
-				encodeProtoVarint(10),
-				encodeProtoVarint(patchedPayload.byteLength),
-				patchedPayload
-			]));
-			replacedClientAbrState = true;
-		}
-		if (!replacedClientAbrState) throw new Error("SABR ClientAbrState field is unavailable");
-		return concatBytes(chunks);
+			return true;
+		});
+		const exact = trackId ? eligible.filter((format) => format.audioTrackId?.trim().toLowerCase() === trackId) : [];
+		const matching = language && language !== "auto" ? eligible.filter((format) => {
+			return audioLanguageMatches(knownLanguage(format.language) || (format.audioTrackId ? sabrTrackLanguage(format.audioTrackId) : ""), language);
+		}) : [];
+		return selectYouTubeAudioFormat(exact.length ? exact : matching.length ? matching : eligible);
 	}
 	function getYouTubeRuntimeAudioTracks(targetWindow) {
 		try {
@@ -29060,7 +29347,6 @@ var vot = (function(exports) {
 		};
 		throw new Error(`Audio downloader. SABR could not resolve requested audio language ${requestedLanguage} to a YouTube trackId within ${timeoutMs}ms (available: ${lastAvailable.join(", ")})`);
 	}
-	var VOT_SABR_INSTANCE_CONTEXT = new WeakMap();
 	// src/audioDownloader/strategies/youtubeSabr.ts
 	async function* trySabrAudioChunks(targetWindow, videoId, signal, sourceLanguage) {
 		debug.log("[SABR][PRIMARY] entered trySabrAudioChunks", { videoId });
@@ -29090,17 +29376,12 @@ var vot = (function(exports) {
 		const resolvedSabrTrack = await waitForSabrAudioTrackId(targetWindow, signal, sourceLanguage, 2e3);
 		const sabrAvailableTrackIds = resolvedSabrTrack.availableTrackIds;
 		if (resolvedSabrTrack.trackId) switchYouTubeSabrAudioTrack(targetWindow, resolvedSabrTrack.trackId);
-		const nativeSabrAudioTrackId = void 0;
-		let sabrAudioTrackId = resolvedSabrTrack.trackId;
+		const sabrAudioTrackId = resolvedSabrTrack.trackId;
 		let sabrTrackSelection;
-		if (resolvedSabrTrack.usedSupportedAlternative) {
-			new Set(resolvedSabrTrack.supportedAlternativeTrackIds);
-			sabrTrackSelection = "supported-alternative";
-		} else if (sabrAudioTrackId) sabrTrackSelection = "ui-language";
-		else if (sabrAvailableTrackIds.length === 0) {
-			sabrAudioTrackId = nativeSabrAudioTrackId;
-			sabrTrackSelection = requestedSabrLanguage && requestedSabrLanguage !== "auto" ? "native-only" : "native-auto";
-		} else throw new Error(`Audio downloader. SABR found no VOT-supported audio track (requested: ${sourceLanguage ?? "auto"}, available: ${sabrAvailableTrackIds.join(", ")})`);
+		if (resolvedSabrTrack.usedSupportedAlternative) sabrTrackSelection = "supported-alternative";
+		else if (sabrAudioTrackId) sabrTrackSelection = "ui-language";
+		else if (sabrAvailableTrackIds.length === 0) sabrTrackSelection = requestedSabrLanguage && requestedSabrLanguage !== "auto" ? "native-only" : "native-auto";
+		else throw new Error(`Audio downloader. SABR found no VOT-supported audio track (requested: ${sourceLanguage ?? "auto"}, available: ${sabrAvailableTrackIds.join(", ")})`);
 		const actualSabrLanguage = sabrAudioTrackId ? sabrTrackLanguage(sabrAudioTrackId) : requestedSabrLanguage || void 0;
 		WEB_ABR_RESOLVED_AUDIO_LANGUAGES.set(videoId, {
 			videoId,
@@ -29112,33 +29393,21 @@ var vot = (function(exports) {
 		const serverAbrStreamingUrl = playerServerAbrStreamingUrl ? await resolveSabrStreamingUrl(targetWindow, playerServerAbrStreamingUrl, config, signal) : void 0;
 		const videoPlaybackUstreamerConfig = player.playerConfig?.mediaCommonConfig?.mediaUstreamerRequestConfig?.videoPlaybackUstreamerConfig;
 		if (!serverAbrStreamingUrl || !videoPlaybackUstreamerConfig) throw new Error("Audio downloader. SABR metadata is unavailable in player response");
-		const rawFormats = [...player.streamingData?.adaptiveFormats ?? [], ...player.streamingData?.formats ?? []];
-		const audioCandidates = rawFormats.filter((format) => format.mimeType?.includes("audio/") && !format.mimeType?.includes("video/"));
-		const normalizedSelectedTrackId = sabrAudioTrackId?.toLowerCase();
-		const requestedTrackLanguage = normalizedSelectedTrackId ? normalizeAudioLanguageTag(normalizedSelectedTrackId.split(".")[0]) : normalizeAudioLanguageTag(sourceLanguage);
-		const formatTrackId = (format) => format.audioTrackId ?? format.audioTrack?.id;
-		const exactTrackAudioCandidates = normalizedSelectedTrackId ? audioCandidates.filter((format) => formatTrackId(format)?.toLowerCase() === normalizedSelectedTrackId) : [];
-		const languageTrackAudioCandidates = exactTrackAudioCandidates.length === 0 && requestedTrackLanguage ? audioCandidates.filter((format) => audioLanguageMatches(getYoutubeAudioFormatLanguage(format), requestedTrackLanguage)) : [];
-		audioCandidates.some((format) => Boolean(formatTrackId(format) || normalizeAudioLanguageTag(getYoutubeAudioFormatLanguage(format))));
-		const nativeBoundUnscopedAudioCandidates = (exactTrackAudioCandidates.length === 0 && languageTrackAudioCandidates.length, []);
-		let selectedTrackAudioCandidates = audioCandidates;
-		if (exactTrackAudioCandidates.length > 0) selectedTrackAudioCandidates = exactTrackAudioCandidates;
-		else if (languageTrackAudioCandidates.length > 0) selectedTrackAudioCandidates = languageTrackAudioCandidates;
-		else if (nativeBoundUnscopedAudioCandidates.length > 0) selectedTrackAudioCandidates = nativeBoundUnscopedAudioCandidates;
-		else if (sabrAvailableTrackIds.length > 1) selectedTrackAudioCandidates = [];
-		if (selectedTrackAudioCandidates.length === 0) throw new Error(`Audio downloader. SABR has no concrete formats for selected track ${sabrAudioTrackId ?? "native/default"}; refusing array[0] fallback`);
-		const selected = selectEconomyAudioFormat(selectedTrackAudioCandidates);
-		if (!selected?.itag) throw new Error("Audio downloader. SABR audio format is unavailable");
-		const selectedSabr = toSabrFormat(selected);
-		if (!selectedSabr) throw new Error("Audio downloader. SABR selected format metadata is incomplete");
-		const selectedTrackAudioObjects = new Set(selectedTrackAudioCandidates);
-		const sabrFormatsForStream = rawFormats.flatMap((format) => {
-			if (format.mimeType?.includes("audio/") && !format.mimeType?.includes("video/") && !selectedTrackAudioObjects.has(format)) return [];
-			const converted = toSabrFormat(format);
-			return converted ? [converted] : [];
-		});
+		const selected = selectSabrAudioFormat([...player.streamingData?.adaptiveFormats ?? [], ...player.streamingData?.formats ?? []].flatMap((format) => {
+			if (!isUsableYouTubeAudioFormat(format)) return [];
+			try {
+				const converted = toSabrFormat(format);
+				return converted ? [converted] : [];
+			} catch {
+				return [];
+			}
+		}), sabrAudioTrackId, sourceLanguage);
+		if (!selected) throw new Error(`Audio downloader. SABR has no compatible available audio format for selected track ${sabrAudioTrackId ?? sourceLanguage ?? "native/default"}`);
+		const selectedSabr = selected.audioTrackId || !sabrAudioTrackId ? selected : {
+			...selected,
+			audioTrackId: sabrAudioTrackId
+		};
 		const nativeClient = getConfigValue(config, "INNERTUBE_CONTEXT")?.client ?? {};
-		const pageWindow = getTopPageWindow(targetWindow);
 		const clientInfo = {
 			clientName: Number(getConfigValue(config, "INNERTUBE_CONTEXT_CLIENT_NAME")) || 1,
 			clientVersion,
@@ -29158,121 +29427,41 @@ var vot = (function(exports) {
 		});
 		const sabrPoToken = sabrPoTokenBinding ? await mintPagePoToken(targetWindow, sabrPoTokenBinding.value, signal) : void 0;
 		const readSabrVarint = (bytes, start) => {
-			let value = 0n;
-			let shift = 0n;
-			for (let offset = start; offset < bytes.length && offset < start + 10; offset++) {
+			let value = 0;
+			let scale = 1;
+			const end = Math.min(bytes.length, start + 10);
+			for (let offset = start; offset < end; offset++) {
 				const byte = bytes[offset];
-				value |= BigInt(byte & 127) << shift;
+				value += (byte & 127) * scale;
 				if ((byte & 128) === 0) return {
 					value,
 					next: offset + 1
 				};
-				shift += 7n;
+				scale *= 128;
 			}
 		};
-		const inspectSabrProto = (bytes) => {
-			const fields = [];
+		const hasSabrProtoField = (bytes, targetField) => {
 			let offset = 0;
-			let parseError;
-			while (offset < bytes.length && fields.length < 512) {
+			for (let parsed = 0; offset < bytes.length && parsed < 512; parsed++) {
+				const wireType = bytes[offset] & 7;
 				const tag = readSabrVarint(bytes, offset);
-				if (!tag) {
-					parseError = `invalid tag at ${offset}`;
-					break;
-				}
+				if (!tag || tag.value < 8) return false;
 				offset = tag.next;
-				const field = Number(tag.value >> 3n);
-				const wireType = Number(tag.value & 7n);
-				if (!field) {
-					parseError = `field 0 at ${offset}`;
-					break;
-				}
 				if (wireType === 0) {
 					const item = readSabrVarint(bytes, offset);
-					if (!item) {
-						parseError = `invalid varint field ${field}`;
-						break;
-					}
+					if (!item) return false;
 					offset = item.next;
-					fields.push({
-						field,
-						wireType,
-						value: item.value.toString()
-					});
-				} else if (wireType === 1) {
-					if (offset + 8 > bytes.length) {
-						parseError = `truncated fixed64 field ${field}`;
-						break;
-					}
-					fields.push({
-						field,
-						wireType,
-						length: 8
-					});
-					offset += 8;
+				} else if (wireType === 1 || wireType === 5) {
+					offset += wireType === 1 ? 8 : 4;
+					if (offset > bytes.length) return false;
 				} else if (wireType === 2) {
 					const length = readSabrVarint(bytes, offset);
-					if (!length) {
-						parseError = `invalid length field ${field}`;
-						break;
-					}
-					offset = length.next;
-					const size = Number(length.value);
-					if (!Number.isSafeInteger(size) || size < 0 || offset + size > bytes.length) {
-						parseError = `truncated bytes field ${field} length ${length.value}`;
-						break;
-					}
-					fields.push({
-						field,
-						wireType,
-						length: size
-					});
-					offset += size;
-				} else if (wireType === 5) {
-					if (offset + 4 > bytes.length) {
-						parseError = `truncated fixed32 field ${field}`;
-						break;
-					}
-					fields.push({
-						field,
-						wireType,
-						length: 4
-					});
-					offset += 4;
-				} else {
-					parseError = `unsupported wire type ${wireType} field ${field}`;
-					break;
-				}
+					if (!length || length.next + length.value > bytes.length) return false;
+					offset = length.next + length.value;
+				} else return false;
+				if (Math.floor(tag.value / 8) === targetField) return true;
 			}
-			const counts = {};
-			const lengths = {};
-			for (const item of fields) {
-				const key = String(item.field);
-				counts[key] = (counts[key] ?? 0) + 1;
-				if (item.length !== void 0) {
-					lengths[key] ??= [];
-					lengths[key].push(item.length);
-				}
-			}
-			return {
-				byteLength: bytes.byteLength,
-				fieldFingerprint: fields.map((item) => `${item.field}:${item.wireType}:${item.length ?? item.value ?? ""}`).join("|"),
-				fieldCounts: counts,
-				fieldLengths: lengths,
-				targetFields: Object.fromEntries([
-					1,
-					2,
-					3,
-					5,
-					16,
-					19
-				].map((field) => [String(field), {
-					count: counts[String(field)] ?? 0,
-					lengths: lengths[String(field)] ?? []
-				}])),
-				parseError: parseError ?? null,
-				parsedBytes: offset
-			};
+			return false;
 		};
 		let sabrRequestIndex = 0;
 		let consecutivePostBootstrapRequestsWithoutBufferedRanges = 0;
@@ -29288,7 +29477,6 @@ var vot = (function(exports) {
 			else requestUrl = input.url;
 			const url = new URL(requestUrl, targetWindow.location.href);
 			const isSabrRequest = url.hostname.endsWith("googlevideo.com") && url.pathname === "/videoplayback" && url.searchParams.get("sabr") === "1";
-			if (isSabrRequest) {}
 			const method = init?.method ?? requestInput?.method ?? "GET";
 			const body = init?.body ?? null;
 			const headers = new fetchRealm.Headers(init?.headers ?? requestInput?.headers);
@@ -29305,12 +29493,9 @@ var vot = (function(exports) {
 				if (typeof body === "string") bytes = new TextEncoder().encode(body);
 				else if (body instanceof ArrayBuffer) bytes = new Uint8Array(body);
 				else if (ArrayBuffer.isView(body)) bytes = new Uint8Array(body.buffer, body.byteOffset, body.byteLength);
-				if (bytes) {
-					const protobuf = inspectSabrProto(bytes);
-					if (index > 1) {
-						consecutivePostBootstrapRequestsWithoutBufferedRanges = (protobuf.targetFields?.["3"]?.count ?? 0) > 0 ? 0 : consecutivePostBootstrapRequestsWithoutBufferedRanges + 1;
-						if (consecutivePostBootstrapRequestsWithoutBufferedRanges >= 8) throw new Error("SABR state did not produce buffered ranges after bootstrap");
-					}
+				if (bytes && index > 1) {
+					consecutivePostBootstrapRequestsWithoutBufferedRanges = hasSabrProtoField(bytes, 3) ? 0 : consecutivePostBootstrapRequestsWithoutBufferedRanges + 1;
+					if (consecutivePostBootstrapRequestsWithoutBufferedRanges >= 8) throw new Error("SABR state did not produce buffered ranges after bootstrap");
 				}
 			}
 			const fetchWithGmFallback = async () => {
@@ -29446,24 +29631,6 @@ var vot = (function(exports) {
 			}
 			return response;
 		};
-		const sabrPrototype = SabrStream.prototype;
-		if (typeof sabrPrototype.buildRequestBody === "function" && !sabrPrototype.__votNativeAbrStatePatched) {
-			const originalBuildRequestBody = sabrPrototype.buildRequestBody;
-			sabrPrototype.buildRequestBody = function(abrState, selectedAudioFormat, selectedVideoFormat) {
-				const context = VOT_SABR_INSTANCE_CONTEXT.get(this);
-				const generated = originalBuildRequestBody.call(this, abrState, selectedAudioFormat, selectedVideoFormat);
-				if (!context) return generated;
-				context.buildIndex += 1;
-				try {
-					let selfBuilt = generated;
-					if (context.sabrAudioTrackId) selfBuilt = setGeneratedSabrAudioTrackId(selfBuilt, context.sabrAudioTrackId);
-					return selfBuilt;
-				} catch {
-					return generated;
-				}
-			};
-			sabrPrototype.__votNativeAbrStatePatched = true;
-		}
 		const stream = new SabrStream({
 			videoId,
 			fetchFunction: sabrDiagnosticFetch,
@@ -29471,13 +29638,7 @@ var vot = (function(exports) {
 			serverAbrStreamingUrl,
 			videoPlaybackUstreamerConfig,
 			clientInfo,
-			formats: sabrFormatsForStream
-		});
-		VOT_SABR_INSTANCE_CONTEXT.set(stream, {
-			videoId,
-			sabrAudioTrackId,
-			buildIndex: 0,
-			pageWindow
+			formats: [selectedSabr]
 		});
 		debug.log("[SABR][PURE_ONLY] SabrStream created", {
 			videoId,
@@ -29494,10 +29655,9 @@ var vot = (function(exports) {
 		const abort = () => stream.abort();
 		signal.addEventListener("abort", abort, { once: true });
 		try {
-			const started = await stream.start({
-				audioFormat: selectedSabr,
-				videoFormat: (formats) => formats.filter((format) => format.mimeType?.includes("video/")).sort((a, b) => a.bitrate - b.bitrate)[0],
-				enabledTrackTypes: 1,
+			const started = stream.start({
+				audioFormat: (formats) => formats.find((format) => format === selectedSabr),
+				enabledTrackTypes: EnabledTrackTypes.AUDIO_ONLY,
 				maxRetries: 3,
 				stallDetectionMs: 2e4,
 				isPostLiveDvr: false
@@ -29641,7 +29801,7 @@ var vot = (function(exports) {
 	var SABR_DOWNLOAD_QUEUE = new Map();
 	function isDeterministicSabrError(error) {
 		const message = toErrorMessage(error);
-		return message.includes("SABR could not resolve requested audio language") || message.includes("SABR found no VOT-supported audio track") || message.includes("SABR audio language") && message.includes("is ambiguous") || message.includes("refusing array[0] fallback");
+		return message.includes("SABR could not resolve requested audio language") || message.includes("SABR found no VOT-supported audio track") || message.includes("SABR audio language") && message.includes("is ambiguous") || message.includes("refusing array[0] fallback") || message.includes("SABR has no compatible available audio format");
 	}
 	async function* getSabrAudioChunksImpl(targetWindow, videoId, signal, sourceLanguage) {
 		let lastError;
@@ -29747,24 +29907,27 @@ var vot = (function(exports) {
 				cleanup();
 				reject(signal.reason);
 			};
-			const interval = setInterval(() => {
+			const check = () => {
 				try {
 					const value = getValue();
-					if (value) {
-						cleanup();
-						resolve(value);
-					}
+					if (!value) return false;
+					cleanup();
+					resolve(value);
 				} catch (error) {
 					cleanup();
 					reject(error);
 				}
-			}, 100);
+				return true;
+			};
+			const interval = setInterval(check, 100);
 			const timeout = setTimeout(() => {
+				if (check()) return;
 				cleanup();
 				reject(new Error(`Audio downloader. ${label} timed out`));
 			}, timeoutMs);
 			signal.addEventListener("abort", onAbort, { once: true });
 			if (signal.aborted) onAbort();
+			else check();
 		});
 	}
 	var CapturedMediaSource = class {
@@ -29873,7 +30036,10 @@ var vot = (function(exports) {
 		let cleanup = () => {};
 		let finished = false;
 		const cancellation = new AbortController();
-		signal = AbortSignal.any([signal, cancellation.signal]);
+		const forwardAbort = () => cancellation.abort(signal.reason);
+		if (signal.aborted) forwardAbort();
+		else signal.addEventListener("abort", forwardAbort, { once: true });
+		signal = cancellation.signal;
 		return new ReadableStream({
 			async start(controller) {
 				let stopMse = () => {};
@@ -30468,10 +30634,6 @@ var vot = (function(exports) {
 	var audioDownloadTails = new Map();
 	function waitForPreviousDownload(previous, signal) {
 		return new Promise((resolve, reject) => {
-			if (signal.aborted) {
-				reject(makeAbortError());
-				return;
-			}
 			const onAbort = () => reject(makeAbortError());
 			signal.addEventListener("abort", onAbort, { once: true });
 			const settled = () => {
@@ -30586,6 +30748,7 @@ var vot = (function(exports) {
 					WEB_MSE_PROXY_STRATEGY
 				] : [this.strategy];
 				const failures = [];
+				let signInSuggested = false;
 				for (const attemptedStrategy of attempts) try {
 					await handleCommonAudioDownloadRequest({
 						audioDownloader: this,
@@ -30610,10 +30773,7 @@ var vot = (function(exports) {
 						});
 						return;
 					}
-					if (attemptedStrategy === WEB_ABR_STRATEGY && error instanceof Error && error.message.includes("YOUTUBE_SIGN_IN_SUGGESTED")) {
-						this.onDownloadAudioError.dispatch(translationId, videoId, true);
-						return;
-					}
+					if (attemptedStrategy === WEB_ABR_STRATEGY && error instanceof Error && error.message.includes("YOUTUBE_SIGN_IN_SUGGESTED")) signInSuggested = true;
 					failures.push({
 						strategy: attemptedStrategy,
 						error
@@ -30637,7 +30797,7 @@ var vot = (function(exports) {
 						audio_strategies: attempts.join(",")
 					}
 				});
-				this.onDownloadAudioError.dispatch(translationId, videoId, false);
+				this.onDownloadAudioError.dispatch(translationId, videoId, signInSuggested);
 			} finally {
 				if (collecting && this.collectingChunks.get(videoId) === collecting) this.collectingChunks.delete(videoId);
 				release();
@@ -32082,6 +32242,18 @@ var vot = (function(exports) {
 	function isTranslationAuthError(value, context = {}) {
 		return getTranslationAuthErrorKind(value, context) !== null;
 	}
+	// src/core/translationClientError.ts
+	function mapVotClientErrorForUi(error, hasAccountToken = false) {
+		const authErrorKind = getTranslationAuthErrorKind(error, { hasAccountToken });
+		if (authErrorKind) return new VOTLocalizedError(authErrorKind === "session-expired" ? "VOTYandexTokenExpired" : "VOTAccountRequired");
+		if (!(error instanceof VOTJSError)) return error;
+		switch (error.message) {
+			case "Yandex couldn't translate video": return getTranslationServerErrorMessage(error) ? error : new VOTLocalizedError("requestTranslationFailed");
+			case "Failed to request video translation": return new VOTLocalizedError("requestTranslationFailed");
+			case "Audio link wasn't received from Yandex response": return new VOTLocalizedError("audioNotReceived");
+			default: return error;
+		}
+	}
 	// src/core/translationErrors.ts
 	function notifyTranslationFailureIfNeeded(options) {
 		if (options.aborted) return false;
@@ -32178,20 +32350,76 @@ var vot = (function(exports) {
 			}, COUNTDOWN_TICK_MS);
 		}
 	};
-	// src/core/translationHandler.ts
-	function mapVotClientErrorForUi(error, hasProvidedAccountToken = false) {
-		const authErrorKind = getTranslationAuthErrorKind(error, { hasAccountToken: hasProvidedAccountToken });
-		if (authErrorKind) return new VOTLocalizedError(authErrorKind === "session-expired" ? "VOTYandexTokenExpired" : "VOTAccountRequired");
-		if (!error || typeof error !== "object") return error;
-		if (safeNestedGet(error, ["name"]) !== "VOTJSError") return error;
-		const message = typeof safeNestedGet(error, ["message"]) === "string" ? safeNestedGet(error, ["message"]) : "";
-		const serverMessage = safeNestedGet(error, ["data", "message"]);
-		const hasServerMessage = typeof serverMessage === "string" && serverMessage.length > 0;
-		if (message === "Yandex couldn't translate video" && !hasServerMessage) return new VOTLocalizedError("requestTranslationFailed");
-		if (message === "Failed to request video translation") return new VOTLocalizedError("requestTranslationFailed");
-		if (message === "Audio link wasn't received" || message === "Audio link wasn't received from VOT response") return new VOTLocalizedError("audioNotReceived");
-		return error;
+	// src/core/translationPollScheduler.ts
+	var MIN_POLL_DELAY_MS = 1e4;
+	var MAX_ETA_POLL_DELAY_MS = 18e4;
+	var UNKNOWN_ETA_BASE_DELAY_MS = 15e3;
+	var UNKNOWN_ETA_MAX_DELAY_MS = 9e4;
+	var UNKNOWN_ETA_BACKOFF_FACTOR = 1.5;
+	var ETA_POLL_FRACTION = .8;
+	var JITTER_RATIO = .1;
+	var STALE_ETA_BACKOFF_FACTOR = 1.5;
+	var STALE_ETA_MAX_DELAY_MS = 6e4;
+	var ETA_PROGRESS_RATIO = .25;
+	function clamp$1(value, min, max) {
+		return Math.min(max, Math.max(min, value));
 	}
+	function toEtaSeconds(value) {
+		return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : 0;
+	}
+	function getTranslationPollDelayMs({ retryAttempt, remainingTimeSeconds, previousRemainingTimeSeconds, staleCount, staleMaxDelayMs = STALE_ETA_MAX_DELAY_MS, random = Math.random }) {
+		const eta = toEtaSeconds(remainingTimeSeconds);
+		const jitter = 1 + (random() * 2 - 1) * JITTER_RATIO;
+		if (eta <= 0) {
+			const baseDelayMs = UNKNOWN_ETA_BASE_DELAY_MS * UNKNOWN_ETA_BACKOFF_FACTOR ** Math.max(0, retryAttempt);
+			return Math.round(clamp$1(baseDelayMs * jitter, MIN_POLL_DELAY_MS, UNKNOWN_ETA_MAX_DELAY_MS));
+		}
+		const stale = Math.max(0, staleCount ?? (toEtaSeconds(previousRemainingTimeSeconds) === eta ? 1 : 0));
+		const etaDelayMs = eta * 1e3 * ETA_POLL_FRACTION;
+		const staleCapMs = Math.max(MIN_POLL_DELAY_MS, staleMaxDelayMs);
+		const backoffMs = stale > 0 ? Math.min(staleCapMs, MIN_POLL_DELAY_MS * STALE_ETA_BACKOFF_FACTOR ** stale) : 0;
+		if (etaDelayMs >= backoffMs) return Math.round(clamp$1(etaDelayMs * jitter, MIN_POLL_DELAY_MS, MAX_ETA_POLL_DELAY_MS));
+		return Math.round(clamp$1(backoffMs * jitter, MIN_POLL_DELAY_MS, staleCapMs));
+	}
+	function isTranslationEtaStale(previousEtaSeconds, etaSeconds, elapsedMs) {
+		if (etaSeconds > previousEtaSeconds) return false;
+		return previousEtaSeconds - etaSeconds < Math.max(1, elapsedMs / 1e3 * ETA_PROGRESS_RATIO);
+	}
+	function createTranslationPollState(options = {}) {
+		let previousEta = null;
+		let previousStatus;
+		let lastDelayMs = 0;
+		let staleCount = 0;
+		return {
+			get staleCount() {
+				return staleCount;
+			},
+			reset() {
+				previousEta = null;
+				previousStatus = void 0;
+				lastDelayMs = 0;
+				staleCount = 0;
+			},
+			nextDelayMs({ retryAttempt, remainingTimeSeconds, status, random }) {
+				const eta = toEtaSeconds(remainingTimeSeconds);
+				if (eta <= 0 || previousEta === null || previousStatus !== void 0 && status !== previousStatus) staleCount = 0;
+				else if (isTranslationEtaStale(previousEta, eta, lastDelayMs)) staleCount += 1;
+				else staleCount = 0;
+				const delayMs = getTranslationPollDelayMs({
+					retryAttempt,
+					remainingTimeSeconds,
+					staleCount,
+					staleMaxDelayMs: options.staleMaxDelayMs,
+					random
+				});
+				previousEta = eta > 0 ? eta : null;
+				previousStatus = status;
+				lastDelayMs = delayMs;
+				return delayMs;
+			}
+		};
+	}
+	// src/core/translationHandler.ts
 	function summarizeTranslationResponse(response) {
 		return {
 			status: response.status,
@@ -32206,6 +32434,7 @@ var vot = (function(exports) {
 		downloading;
 		downloadSettlers = new Set();
 		etaCountdown;
+		pollState = createTranslationPollState();
 		requestedFailAudio = new Set();
 		audioRunSeq = 0;
 		audioRunController = null;
@@ -32468,15 +32697,12 @@ var vot = (function(exports) {
 			} });
 			return await fn();
 		}
-		static MAX_INITIAL_WAIT_SEC = 180;
-		static LONG_WAIT_MS = 12e4;
-		static RETRY_INTERVAL_MS = 3e4;
-		getRetryDelayMs(retryAttempt, remainingTimeSeconds = 0) {
-			if (retryAttempt > 0) return VOTTranslationHandler.RETRY_INTERVAL_MS;
-			const eta = remainingTimeSeconds ?? 0;
-			if (eta <= 0) return VOTTranslationHandler.RETRY_INTERVAL_MS;
-			if (eta <= VOTTranslationHandler.MAX_INITIAL_WAIT_SEC) return eta * 1e3;
-			return VOTTranslationHandler.LONG_WAIT_MS;
+		getRetryDelayMs(retryAttempt, remainingTimeSeconds = 0, status) {
+			return this.pollState.nextDelayMs({
+				retryAttempt,
+				remainingTimeSeconds,
+				status
+			});
 		}
 		async handleTranslationUiError(uiError) {
 			if (!(uiError instanceof VOTLocalizedError)) return;
@@ -32487,31 +32713,30 @@ var vot = (function(exports) {
 		}
 		async translateVideoImpl(videoData, requestLang, responseLang, translationHelp = null, shouldSendFailedAudio = false, signal = NEVER_ABORTED_SIGNAL, options = {}) {
 			const { disableLivelyVoice = false, retryAttempt = 0 } = options;
+			if (retryAttempt === 0) this.pollState.reset();
 			clearTimeout(this.videoHandler.autoRetry);
 			this.finishDownloadSuccess();
-			const requestLangForApi = requestLang;
 			debug.log("[Translation] translateVideoImpl start", {
 				videoId: videoData.videoId,
 				duration: videoData.duration,
 				requestLang,
-				requestLangForApi,
 				responseLang,
 				retryAttempt,
 				disableLivelyVoice,
 				shouldSendFailedAudio,
 				translationHelpCount: translationHelp?.length ?? 0
 			});
-			logger_default.log(`Translate video (requestLang: ${requestLang}, requestLangForApi: ${requestLangForApi}, responseLang: ${responseLang})`, videoData);
+			logger_default.log(`Translate video (requestLang: ${requestLang}, responseLang: ${responseLang})`, videoData);
 			let livelyDisabled = disableLivelyVoice;
 			let translationResponse;
 			try {
 				throwIfAborted(signal);
 				await this.videoHandler.ensureProxySettingsResolved();
 				throwIfAborted(signal);
-				const livelyVoiceAllowed = this.videoHandler.isLivelyVoiceAllowed(requestLangForApi, responseLang);
+				const livelyVoiceAllowed = this.videoHandler.isLivelyVoiceAllowed(requestLang, responseLang);
 				const translationAttempt = await this.requestTranslationWithLivelyFallback({
 					videoData,
-					requestLangForApi,
+					requestLang,
 					responseLang,
 					translationHelp,
 					shouldSendFailedAudio,
@@ -32621,7 +32846,7 @@ var vot = (function(exports) {
 				return null;
 			}
 			this.videoHandler.hadAsyncWait = true;
-			const retryDelayMs = this.getRetryDelayMs(retryAttempt, translationResponse?.remainingTime ?? null);
+			const retryDelayMs = this.getRetryDelayMs(retryAttempt, translationResponse?.remainingTime ?? null, translationResponse?.status);
 			debug.log("[Translation] scheduling translation retry", {
 				videoId: videoData.videoId,
 				retryAttempt,
@@ -32637,11 +32862,11 @@ var vot = (function(exports) {
 		stopTranslationEtaCountdown() {
 			this.etaCountdown.stop();
 		}
-		async requestTranslationWithLivelyFallback({ videoData, requestLangForApi, responseLang, translationHelp, shouldSendFailedAudio, livelyDisabled, livelyVoiceAllowed }) {
+		async requestTranslationWithLivelyFallback({ videoData, requestLang, responseLang, translationHelp, shouldSendFailedAudio, livelyDisabled, livelyVoiceAllowed }) {
 			let useLivelyVoice = !livelyDisabled && livelyVoiceAllowed && this.videoHandler.data?.useLivelyVoice !== false;
 			debug.log("[Translation] requesting translation from VOT client", {
 				videoId: videoData.videoId,
-				requestLangForApi,
+				requestLang,
 				responseLang,
 				shouldSendFailedAudio,
 				livelyDisabled,
@@ -32653,7 +32878,7 @@ var vot = (function(exports) {
 				try {
 					debug.log("[Translation] votClient.translateVideo call", {
 						videoId: videoData.videoId,
-						requestLangForApi,
+						requestLang,
 						responseLang,
 						useLivelyVoice,
 						shouldSendFailedAudio,
@@ -32661,7 +32886,7 @@ var vot = (function(exports) {
 					});
 					const response = await this.videoHandler.votClient.translateVideo({
 						videoData,
-						requestLang: requestLangForApi,
+						requestLang,
 						responseLang,
 						translationHelp,
 						extraOpts: {
@@ -32699,7 +32924,7 @@ var vot = (function(exports) {
 				useLivelyVoice = false;
 				debug.log("[Translation] retrying translation without lively voice", {
 					videoId: videoData.videoId,
-					requestLangForApi,
+					requestLang,
 					responseLang
 				});
 			}
@@ -33128,9 +33353,6 @@ var vot = (function(exports) {
 	function volume01ToPercent(volume01) {
 		return Math.round(clamp(volume01, 0, 1) * 100);
 	}
-	function percentToVolume01(percent) {
-		return clampPercentInt(percent) / 100;
-	}
 	function quantizeToStep(value, step, direction) {
 		if (!Number.isFinite(value)) return value;
 		if (!Number.isFinite(step) || step <= 0) return value;
@@ -33258,7 +33480,6 @@ var vot = (function(exports) {
 		weibo: "zh",
 		zdf: "de"
 	};
-	var YT_VOLUME_NOW_SELECTOR = ".ytp-volume-panel [aria-valuenow]";
 	var YT_PLAYER_VOLUME_STORAGE_KEY = "yt-player-volume";
 	var MIN_DETECT_TEXT_LENGTH = 35;
 	var MAX_SHARED_LANGUAGE_STATES = 500;
@@ -33295,7 +33516,7 @@ var vot = (function(exports) {
 	}
 	function normalizeToRequestLang(value) {
 		if (typeof value !== "string") return void 0;
-		const normalized = value.toLowerCase().split(/[-_]/)[0];
+		const normalized = normalizeLang$1(value.toLowerCase());
 		return REQUEST_LANG_SET.has(normalized) ? normalized : void 0;
 	}
 	function isResolvedLanguage(value) {
@@ -33360,16 +33581,6 @@ var vot = (function(exports) {
 			detectedLanguage,
 			cacheLanguage: detectedLanguage
 		};
-	}
-	function getAriaValueNowPercent(selector) {
-		const el = document.querySelector(selector);
-		const rawNow = el?.getAttribute("aria-valuenow");
-		const rawMax = el?.getAttribute("aria-valuemax");
-		const now = rawNow == null ? NaN : Number.parseFloat(rawNow);
-		const max = rawMax == null ? NaN : Number.parseFloat(rawMax);
-		if (!Number.isFinite(now)) return null;
-		if (Number.isFinite(max) && max > 0) return clampPercentInt(now / max * 100);
-		return clampPercentInt(now);
 	}
 	var VOTVideoManager = class {
 		videoHandler;
@@ -33549,8 +33760,6 @@ var vot = (function(exports) {
 			const video = this.videoHandler.video;
 			if (!video) return void 0;
 			if (isExternalVolumeHost(this.videoHandler.site.host)) {
-				const ariaPercent = getAriaValueNowPercent(YT_VOLUME_NOW_SELECTOR);
-				if (ariaPercent != null) return percentToVolume01(ariaPercent);
 				const extVolume = YoutubeHelper.getVolume();
 				if (typeof extVolume === "number" && Number.isFinite(extVolume)) return snapVolume01(extVolume);
 			}
@@ -33581,8 +33790,7 @@ var vot = (function(exports) {
 		syncVideoVolumeSlider() {
 			const overlayViewControls = this.videoHandler.uiManager.votOverlayView?.overlayViewControls;
 			if (!overlayViewControls) return this;
-			const ariaPercent = isExternalVolumeHost(this.videoHandler.site.host) ? getAriaValueNowPercent(YT_VOLUME_NOW_SELECTOR) : null;
-			const volumePercent = this.isMuted() ? 0 : ariaPercent ?? volume01ToPercent(this.getVideoVolume() ?? 0);
+			const volumePercent = this.isMuted() ? 0 : volume01ToPercent(this.getVideoVolume() ?? 0);
 			overlayViewControls.setVideoVolume(volumePercent);
 			this.videoHandler.onVideoVolumeSliderSynced?.(volumePercent);
 			return this;
@@ -34217,7 +34425,10 @@ var vot = (function(exports) {
 		if (!(node instanceof Element)) return;
 		if (name === "innerHTML") throw new TypeError("[VOT] innerHTML is not supported by the CSP-safe renderer");
 		if (setSpecialProperty(node, name, value, previous)) return;
-		if (name.startsWith("attr:")) name = name.slice(5);
+		if (name.startsWith("attr:")) {
+			setAttributeValue(node, name.slice(5), value);
+			return;
+		}
 		if (name === "class" || name === "className") {
 			setAttributeValue(node, "class", value);
 			return;
@@ -34435,21 +34646,10 @@ var vot = (function(exports) {
 		});
 	}
 	function SolidSubtitlesWidget(props) {
-		let block;
-		const syncLang = () => {
-			const lang = props.lang;
-			if (!block) return;
-			if (lang) block.setAttribute("lang", lang);
-			else block.removeAttribute("lang");
-		};
-		effect(syncLang);
 		return (() => {
 			var _el$3 = createElement("vot-block");
-			use((element) => {
-				block = element;
-				props.ref(element);
-				syncLang();
-			}, _el$3);
+			var _ref$ = props.ref;
+			typeof _ref$ === "function" ? use(_ref$, _el$3) : props.ref = _el$3;
 			setProp(_el$3, "class", "vot-subtitles");
 			setProp(_el$3, "dir", "auto");
 			setProp(_el$3, "onKeyDown", (event) => {
@@ -34471,7 +34671,15 @@ var vot = (function(exports) {
 					}
 				})
 			}));
-			effect((_$p) => setProp(_el$3, "onClick", props.onClick, _$p));
+			effect((_p$) => {
+				var _v$0 = props.lang || void 0, _v$1 = props.onClick;
+				_v$0 !== _p$.e && (_p$.e = setProp(_el$3, "attr:lang", _v$0, _p$.e));
+				_v$1 !== _p$.t && (_p$.t = setProp(_el$3, "onClick", _v$1, _p$.t));
+				return _p$;
+			}, {
+				e: void 0,
+				t: void 0
+			});
 			return _el$3;
 		})();
 	}
@@ -35053,23 +35261,36 @@ var vot = (function(exports) {
 		"my",
 		"bo"
 	]);
-	var getBaseLanguage = (locale) => (locale ?? "").toLowerCase().split(/[-_]/u)[0] ?? "";
+	var baseLanguageCache = new Map();
+	var getBaseLanguage = (locale) => {
+		const key = locale ?? "";
+		let base = baseLanguageCache.get(key);
+		if (base === void 0) {
+			base = key.toLowerCase().split(/[-_]/u)[0] ?? "";
+			if (baseLanguageCache.size > 64) baseLanguageCache.clear();
+			baseLanguageCache.set(key, base);
+		}
+		return base;
+	};
 	var isScriptioContinua = (locale) => SCRIPTIO_CONTINUA.has(getBaseLanguage(locale));
-	var WORD_CHARS_RE = /[^\p{L}\p{N}'\u2019]+/gu;
-	var normalizeLexiconWord = (value) => value.replaceAll(WORD_CHARS_RE, " ").trim().toLowerCase();
+	var WORD_RUN_RE = /[\p{L}\p{N}'\u2019]+/gu;
+	var FIRST_WORD_RUN_RE = /[\p{L}\p{N}'\u2019]+/u;
 	var lastWordOf = (text) => {
-		return normalizeLexiconWord(text).split(" ").filter(Boolean).at(-1) ?? "";
+		const runs = text.match(WORD_RUN_RE);
+		return runs ? (runs.at(-1) ?? "").toLowerCase() : "";
 	};
 	var firstWordOf = (text) => {
-		return normalizeLexiconWord(text).split(" ").find(Boolean) ?? "";
+		const run = FIRST_WORD_RUN_RE.exec(text);
+		return run ? run[0].toLowerCase() : "";
 	};
 	var LINE_BREAK_PENALTY = {
 		bindsForward: 240,
 		prefersLineStart: -60
 	};
 	function getLinguisticBreakPenalty(beforeText, afterText, locale) {
-		if (isScriptioContinua(locale)) return 0;
-		const lexicon = LEXICONS[getBaseLanguage(locale)] ?? EN;
+		const baseLanguage = getBaseLanguage(locale);
+		if (SCRIPTIO_CONTINUA.has(baseLanguage)) return 0;
+		const lexicon = LEXICONS[baseLanguage] ?? EN;
 		const before = lastWordOf(beforeText);
 		const after = firstWordOf(afterText);
 		if (!before || !after) return 0;
@@ -35935,41 +36156,39 @@ var vot = (function(exports) {
 				updatePosition();
 			});
 		};
-		onMount(() => {
-			createRenderEffect(() => {
-				if (!options.isOpen()) return;
-				const popup = options.popup();
-				if (!popup) return;
-				const anchor = options.anchor();
-				const scrollTargets = getScrollTargets(anchor);
-				const handleScroll = (event) => {
-					if (event.composedPath().includes(popup)) return;
-					if (options.onOutsideScroll) {
-						options.onOutsideScroll();
-						return;
-					}
-					schedulePositionUpdate();
-				};
-				mountPopup(popup, anchor);
-				const resizeObserver = new ResizeObserver(schedulePositionUpdate);
-				const resizeTargets = new Set([popup, ...options.resizeTargets?.() ?? []]);
-				for (const target of resizeTargets) resizeObserver.observe(target);
+		createEffect(() => {
+			if (!options.isOpen()) return;
+			const popup = options.popup();
+			if (!popup) return;
+			const anchor = options.anchor();
+			const scrollTargets = getScrollTargets(anchor);
+			const handleScroll = (event) => {
+				if (event.composedPath().includes(popup)) return;
+				if (options.onOutsideScroll) {
+					options.onOutsideScroll();
+					return;
+				}
 				schedulePositionUpdate();
-				window.addEventListener("resize", schedulePositionUpdate);
-				for (const target of scrollTargets) target.addEventListener("scroll", handleScroll, true);
-				onCleanup(() => {
-					cancelPositionUpdate();
-					resizeObserver.disconnect();
-					stableOpensBelow = void 0;
-					popup.style.removeProperty(AVAILABLE_HEIGHT_PROPERTY);
-					window.removeEventListener("resize", schedulePositionUpdate);
-					for (const target of scrollTargets) target.removeEventListener("scroll", handleScroll, true);
-				});
-			});
+			};
+			mountPopup(popup, anchor);
+			const resizeObserver = new ResizeObserver(schedulePositionUpdate);
+			const resizeTargets = new Set([popup, ...options.resizeTargets?.() ?? []]);
+			for (const target of resizeTargets) resizeObserver.observe(target);
+			schedulePositionUpdate();
+			window.addEventListener("resize", schedulePositionUpdate);
+			for (const target of scrollTargets) target.addEventListener("scroll", handleScroll, true);
 			onCleanup(() => {
 				cancelPositionUpdate();
-				if (options.removeOnCleanup ?? true) mountedElement?.remove();
+				resizeObserver.disconnect();
+				stableOpensBelow = void 0;
+				popup.style.removeProperty(AVAILABLE_HEIGHT_PROPERTY);
+				window.removeEventListener("resize", schedulePositionUpdate);
+				for (const target of scrollTargets) target.removeEventListener("scroll", handleScroll, true);
 			});
+		});
+		onCleanup(() => {
+			cancelPositionUpdate();
+			if (options.removeOnCleanup ?? true) mountedElement?.remove();
 		});
 		return { update: schedulePositionUpdate };
 	}
@@ -36777,38 +36996,28 @@ var vot = (function(exports) {
 	}
 	// src/shims/rvfc-polyfill.ts
 	var VidProto = typeof HTMLVideoElement === "undefined" ? {} : HTMLVideoElement.prototype;
-	var hasQuality = "getVideoPlaybackQuality" in VidProto || "webkitDecodedFrameCount" in VidProto || "mozPresentedFrames" in VidProto || "mozPaintedFrames" in VidProto;
+	var hasQuality = "getVideoPlaybackQuality" in VidProto;
 	if (!("requestVideoFrameCallback" in VidProto) && hasQuality && typeof requestAnimationFrame === "function") {
 		VidProto._rvfcpolyfillmap = {};
-		const getPlaybackQuality = "getVideoPlaybackQuality" in VidProto ? (video) => {
+		const getPlaybackQuality = (video) => {
 			const quality = video.getVideoPlaybackQuality();
-			const totalFrameDelay = quality.totalFrameDelay ?? 0;
-			return {
-				presentedFrames: quality.totalVideoFrames - quality.droppedVideoFrames,
-				totalFrameDelay
-			};
-		} : (video) => ({
-			presentedFrames: video.mozPresentedFrames ?? video.mozPaintedFrames ?? (video.webkitDecodedFrameCount || 0) - (video.webkitDroppedFrameCount || 0),
-			totalFrameDelay: video.mozFrameDelay || 0
-		});
+			return { presentedFrames: quality.totalVideoFrames - quality.droppedVideoFrames };
+		};
 		VidProto.requestVideoFrameCallback = function(callback) {
 			const handle = performance.now();
-			const quality = getPlaybackQuality(this);
-			const baseline = quality.presentedFrames;
+			const baseline = getPlaybackQuality(this).presentedFrames;
 			const check = (old, now) => {
-				const newquality = getPlaybackQuality(this);
-				const presentedFrames = newquality.presentedFrames;
+				const presentedFrames = getPlaybackQuality(this).presentedFrames;
 				if (presentedFrames > baseline) {
-					const processingDuration = newquality.totalFrameDelay - quality.totalFrameDelay || 0;
 					const timediff = now - old;
 					callback(now, {
-						presentationTime: now + processingDuration * 1e3,
+						presentationTime: now,
 						expectedDisplayTime: now + timediff,
 						width: this.videoWidth,
 						height: this.videoHeight,
 						mediaTime: Math.max(0, this.currentTime || 0) + timediff / 1e3,
 						presentedFrames,
-						processingDuration
+						processingDuration: 0
 					});
 					delete this._rvfcpolyfillmap?.[handle];
 				} else {
@@ -38453,9 +38662,40 @@ var vot = (function(exports) {
 		const built = buildStyledSpans(segments);
 		return trimStyledDisplayResult(built.text, built.styledSpans);
 	};
+	var spanOrderCache = new WeakMap();
+	var areSpansSortedAndDisjoint = (spans) => {
+		const cached = spanOrderCache.get(spans);
+		if (cached?.length === spans.length) return cached.sorted;
+		let sorted = true;
+		let previousEnd = Number.NEGATIVE_INFINITY;
+		for (const span of spans) {
+			if (!(span.start < span.end) || !(previousEnd <= span.start)) {
+				sorted = false;
+				break;
+			}
+			previousEnd = span.end;
+		}
+		spanOrderCache.set(spans, {
+			length: spans.length,
+			sorted
+		});
+		return sorted;
+	};
 	var getStyleForRange = (styledSpans, start, end) => {
 		if (!styledSpans?.length || end <= start) return;
-		return styledSpans.find((span) => start < span.end && end > span.start && span.style)?.style;
+		if (styledSpans.length <= 16 || !areSpansSortedAndDisjoint(styledSpans)) return styledSpans.find((span) => start < span.end && end > span.start && span.style)?.style;
+		let low = 0;
+		let high = styledSpans.length;
+		while (low < high) {
+			const mid = low + high >>> 1;
+			if (styledSpans[mid].end > start) high = mid;
+			else low = mid + 1;
+		}
+		for (let index = low; index < styledSpans.length; index += 1) {
+			const span = styledSpans[index];
+			if (!(end > span.start)) break;
+			if (span.style) return span.style;
+		}
 	};
 	// src/subtitles/standards.ts
 	var BOM = "﻿";
@@ -39740,29 +39980,27 @@ var vot = (function(exports) {
 			onOutsideScroll: () => closeSelect(),
 			stablePlacementWhileOpen: Boolean(finalProps.search || finalProps.searchItemsProvider)
 		});
-		onMount(() => {
-			createRenderEffect(() => {
-				if (!isOpen()) return;
-				const handlePointerDown = (event) => {
-					const path = event.composedPath();
-					if (!path.includes(innerRef) && !path.includes(outerRef)) closeSelect();
-				};
-				const handleKeyDown = (event) => {
-					if (event.key !== "Escape" || !event.composedPath().some((element) => element === innerRef || element === outerRef)) return;
-					event.preventDefault();
-					event.stopPropagation();
-					closeSelect();
-					outerRef.focus();
-				};
-				window.addEventListener("pointerdown", handlePointerDown, {
-					capture: true,
-					passive: true
-				});
-				window.addEventListener("keydown", handleKeyDown, true);
-				onCleanup(() => {
-					window.removeEventListener("pointerdown", handlePointerDown, { capture: true });
-					window.removeEventListener("keydown", handleKeyDown, true);
-				});
+		createEffect(() => {
+			if (!isOpen()) return;
+			const handlePointerDown = (event) => {
+				const path = event.composedPath();
+				if (!path.includes(innerRef) && !path.includes(outerRef)) closeSelect();
+			};
+			const handleKeyDown = (event) => {
+				if (event.key !== "Escape" || !event.composedPath().some((element) => element === innerRef || element === outerRef)) return;
+				event.preventDefault();
+				event.stopPropagation();
+				closeSelect();
+				outerRef.focus();
+			};
+			window.addEventListener("pointerdown", handlePointerDown, {
+				capture: true,
+				passive: true
+			});
+			window.addEventListener("keydown", handleKeyDown, true);
+			onCleanup(() => {
+				window.removeEventListener("pointerdown", handlePointerDown, { capture: true });
+				window.removeEventListener("keydown", handleKeyDown, true);
 			});
 		});
 		function singleSelectHandle(option) {
@@ -40959,7 +41197,7 @@ var vot = (function(exports) {
 			if (status === "error") {
 				voicePopoverControls?.hideNow();
 				setSuppressVoiceTooltip(false);
-			} else if (previousStatus === "error") voicePopoverControls?.showNow();
+			} else if (previousStatus === "error" && translationButton()?.matches(":hover")) voicePopoverControls?.showNow();
 		}, { defer: true }));
 		return (() => {
 			var _el$ = createElement("vot-block"), _el$3 = createElement("vot-block"), _el$5 = createElement("vot-block");
@@ -42604,10 +42842,8 @@ var vot = (function(exports) {
 		}, props);
 		const textId = createUniqueId();
 		const [checked, setChecked] = createSignal(finalProps.checked);
-		const [disabled, setDisabled] = createSignal(finalProps.disabled);
 		createRenderEffect(() => {
 			setChecked(finalProps.checked);
-			setDisabled(finalProps.disabled);
 		});
 		return (() => {
 			var _el$ = createElement("label"), _el$2 = createElement("input"), _el$6 = createElement("vot-block"), _el$7 = createElement("vot-block");
@@ -42663,7 +42899,7 @@ var vot = (function(exports) {
 			setProp(_el$6, "class", "vot-switch-track");
 			setProp(_el$7, "class", "vot-switch-handle");
 			effect((_p$) => {
-				var _v$ = { "vot-switch_sub": finalProps.isSubSwitch }, _v$2 = finalProps.hidden, _v$3 = disabled(), _v$4 = checked(), _v$5 = finalProps.description ? `${textId}-description` : void 0, _v$6 = finalProps.heading ? `${textId}-heading` : void 0, _v$7 = checked(), _v$8 = disabled(), _v$9 = checked();
+				var _v$ = { "vot-switch_sub": finalProps.isSubSwitch }, _v$2 = finalProps.hidden, _v$3 = finalProps.disabled, _v$4 = checked(), _v$5 = finalProps.description ? `${textId}-description` : void 0, _v$6 = finalProps.heading ? `${textId}-heading` : void 0, _v$7 = checked(), _v$8 = finalProps.disabled, _v$9 = checked();
 				_v$ !== _p$.e && (_p$.e = setProp(_el$, "classList", _v$, _p$.e));
 				_v$2 !== _p$.t && (_p$.t = setProp(_el$, "hidden", _v$2, _p$.t));
 				_v$3 !== _p$.a && (_p$.a = setProp(_el$, "data-disabled", _v$3, _p$.a));
@@ -42936,6 +43172,7 @@ var vot = (function(exports) {
 			document.addEventListener("keyup", keyupOrBlurHandle, { capture: true });
 			globalThis.addEventListener("blur", keyupOrBlurHandle);
 		}
+		onCleanup(stopRecordingKeys);
 		return (() => {
 			var _el$ = createElement("vot-block");
 			setProp(_el$, "class", "vot-hotkey");
@@ -44921,6 +45158,7 @@ var vot = (function(exports) {
 	}
 	// src/videoHandler/modules/smartDuckingRuntime.ts
 	var SMART_DUCKING_TICK_MS = SMART_DUCKING_DEFAULT_CONFIG.tickMs;
+	var BYTE_RMS_SCALE = 1 / 16384;
 	var smartDuckingAnalyserState = new WeakMap();
 	function isAudioNode(node) {
 		if (!node || typeof node !== "object") return false;
@@ -45121,9 +45359,13 @@ var vot = (function(exports) {
 					state.analyserFloatData = floatData;
 				}
 				analyser.getFloatTimeDomainData(floatData);
+				const floatLength = floatData.length;
 				let sum = 0;
-				for (const value of floatData) sum += value * value;
-				const rms = Math.sqrt(sum / floatData.length);
+				for (let i = 0; i < floatLength; i++) {
+					const value = floatData[i];
+					sum += value * value;
+				}
+				const rms = Math.sqrt(sum / floatLength);
 				return Number.isNaN(rms) ? void 0 : clamp(rms, 0, 1);
 			}
 			let data = state.analyserData;
@@ -45132,12 +45374,13 @@ var vot = (function(exports) {
 				state.analyserData = data;
 			}
 			analyser.getByteTimeDomainData(data);
+			const byteLength = data.length;
 			let sum = 0;
-			for (const rawValue of data) {
-				const normalizedValue = (rawValue - 128) / 128;
-				sum += normalizedValue * normalizedValue;
+			for (let i = 0; i < byteLength; i++) {
+				const centered = data[i] - 128;
+				sum += centered * centered;
 			}
-			return clamp(Math.sqrt(sum / data.length), 0, 1);
+			return clamp(Math.sqrt(sum * BYTE_RMS_SCALE / byteLength), 0, 1);
 		} catch {
 			return;
 		}
@@ -47435,7 +47678,8 @@ var vot = (function(exports) {
 			}
 		}
 		get isAudioContextSupported() {
-			return globalThis.AudioContext !== void 0 || globalThis.webkitAudioContext !== void 0;
+			const webkitAudioContext = globalThis.webkitAudioContext;
+			return globalThis.AudioContext !== void 0 || webkitAudioContext !== void 0;
 		}
 		getPreferAudio() {
 			if (!this.getAudioContext()) return true;
@@ -47989,3 +48233,4 @@ var vot = (function(exports) {
 	exports.bootstrapContentScript = bootstrapContentScript;
 	return exports;
 })({});
+//# debugId=c3b4323a-20f0-4270-a59b-a5eb4e8e8634
