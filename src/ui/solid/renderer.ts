@@ -220,7 +220,10 @@ function setProperty<T>(
     );
   }
   if (setSpecialProperty(node, name, value, previous)) return;
-  if (name.startsWith("attr:")) name = name.slice(5);
+  if (name.startsWith("attr:")) {
+    setAttributeValue(node, name.slice(5), value);
+    return;
+  }
   if (name === "class" || name === "className") {
     setAttributeValue(node, "class", value);
     return;

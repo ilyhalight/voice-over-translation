@@ -6,6 +6,10 @@ export const SOURCE_DIR = path.resolve(ROOT_DIR, "src");
 
 export const DIST_DIR = path.resolve(ROOT_DIR, "dist");
 export const DIST_EXT_DIR = path.resolve(ROOT_DIR, "dist-ext");
+export const SOURCEMAP_DIR = "sourcemaps";
+export const EXT_SOURCEMAPS_DIR = path.resolve(DIST_EXT_DIR, SOURCEMAP_DIR);
+/** WXT `outDir` (wxt.config.ts): single folder for all release artifacts. */
+export const OUTPUT_DIR = path.resolve(ROOT_DIR, ".output");
 
 export const EXTENSION_NAME = "vot-extension";
 export const FIREFOX_EXTENSION_NAME = `${EXTENSION_NAME}-firefox`;

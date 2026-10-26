@@ -194,7 +194,7 @@ bun install
 bun run autobuild
 ```
 
-После завершения в папке `release-output` появятся артефакты сборки подготовленные для публикации в магазинах расширений Chrome и Firefox.
+После завершения в папке `.output` (единая папка вывода WXT) появятся все артефакты сборки, подготовленные для публикации в магазинах расширений Chrome и Firefox, включая архив исходников (`vot-extension-<version>-sources.zip`).
 
 В папке `dist-ext` будет находится non-store сборка для распространения в виде `.zip`-архива (для Chrome) и `.xpi`-архива (для Firefox).
 
@@ -220,7 +220,7 @@ Userscript (обе версии):
 npm run build:gm
 ```
 
-Нативные расширения Chrome/Firefox (WXT):
+Нативные расширения Chrome/Firefox :
 
 ```bash
 bun build:chrome     # Chrome
@@ -233,7 +233,7 @@ bun zip:ext          # упаковка в .zip
 Разработка:
 
 ```bash
-bun dev:ext      # расширение, Chrome (wxt): dev-режим, браузер откроется на YouTube
+bun dev          # расширение, Chrome : dev-режим, браузер откроется на YouTube
 bun dev:firefox  # расширение, Firefox (wxt -b firefox)
 bun dev:gm       # userscript (vite build --watch)
 ```
@@ -246,7 +246,7 @@ Dev-сборка userscript с sourcemap:
 npm run build:dev
 ```
 
-Артефакты userscript попадают в `dist/`, распакованные сборки расширений (WXT) — в `.output/chrome-mv3` и `.output/firefox-mv3`, упакованные `.zip`/`.xpi` — в `dist-ext/`.
+Артефакты userscript попадают в `dist/`, распакованные сборки расширений  — в `.output/chrome-mv3` и `.output/firefox-mv3`, упакованные `.zip`/`.xpi` — в `dist-ext/`.
 
 ## Кастомизация внешнего вида:
 

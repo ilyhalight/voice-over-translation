@@ -137,24 +137,29 @@ function waitFor<T>(
       cleanup();
       reject(signal.reason);
     };
-    const interval = setInterval(() => {
+    const check = (): boolean => {
       try {
         const value = getValue();
-        if (value) {
-          cleanup();
-          resolve(value);
-        }
+        if (!value) return false;
+        cleanup();
+        resolve(value);
       } catch (error) {
         cleanup();
         reject(error);
       }
-    }, 100);
+      return true;
+    };
+    const interval = setInterval(check, 100);
+    // Hidden tabs throttle the 100 ms interval to >=1 s (or 1/min under
+    // intensive throttling), so the timeout can fire before a single poll ran.
     const timeout = setTimeout(() => {
+      if (check()) return;
       cleanup();
       reject(new Error(`Audio downloader. ${label} timed out`));
     }, timeoutMs);
     signal.addEventListener("abort", onAbort, { once: true });
     if (signal.aborted) onAbort();
+    else check();
   });
 }
 
@@ -324,7 +329,11 @@ function createAudioChunkStream(
   let cleanup = () => {};
   let finished = false;
   const cancellation = new AbortController();
-  signal = AbortSignal.any([signal, cancellation.signal]);
+  // AbortSignal.any is unavailable in Firefox 106.
+  const forwardAbort = () => cancellation.abort(signal.reason);
+  if (signal.aborted) forwardAbort();
+  else signal.addEventListener("abort", forwardAbort, { once: true });
+  signal = cancellation.signal;
 
   return new ReadableStream({
     async start(controller) {

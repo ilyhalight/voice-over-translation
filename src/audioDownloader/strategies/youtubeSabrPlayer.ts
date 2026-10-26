@@ -2,7 +2,6 @@ import {
   findJsonValueEnd,
   getConfigValue,
   getPlayerUrl,
-  isDrcAudioFormat,
   solveYouTubeChallenges,
   validPageValue,
   type WebAbrWindow,
@@ -123,40 +122,6 @@ export function getNativePlayerResponse(
       return value;
     }
   }
-}
-
-export function selectEconomyAudioFormat(
-  formats: WebEmbeddedFormat[],
-): WebEmbeddedFormat | undefined {
-  const audioOnly = formats.filter(
-    (format) =>
-      typeof format.itag === "number" &&
-      format.mimeType?.includes("audio/") &&
-      !format.mimeType?.includes("video/"),
-  );
-  const nonDrc = audioOnly.filter((format) => !isDrcAudioFormat(format));
-  const candidates = nonDrc.length > 0 ? nonDrc : audioOnly;
-  const contentLength = (format: WebEmbeddedFormat) => {
-    const value = Number(format.contentLength);
-    return Number.isFinite(value) && value > 0
-      ? value
-      : Number.POSITIVE_INFINITY;
-  };
-  const bitrate = (format: WebEmbeddedFormat) => {
-    const value = Number(format.averageBitrate ?? format.bitrate);
-    return Number.isFinite(value) && value > 0
-      ? value
-      : Number.POSITIVE_INFINITY;
-  };
-  return [...candidates].sort((a, b) => {
-    const sizeDiff = contentLength(a) - contentLength(b);
-    if (Number.isFinite(sizeDiff) && sizeDiff !== 0) return sizeDiff;
-    const bitrateDiff = bitrate(a) - bitrate(b);
-    if (Number.isFinite(bitrateDiff) && bitrateDiff !== 0) return bitrateDiff;
-    return (
-      (a.itag ?? Number.MAX_SAFE_INTEGER) - (b.itag ?? Number.MAX_SAFE_INTEGER)
-    );
-  })[0];
 }
 
 const N_PATTERN = /^[A-Za-z0-9_-]{4,}$/;

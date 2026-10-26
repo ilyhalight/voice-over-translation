@@ -4,7 +4,7 @@
   "version": "1.12.2",
   "author": "Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng",
   "namespace": "vot",
-  "icon": "https://raw.githubusercontent.com/ilyhalight/voice-over-translation/dev/src/extension/icons/icon-128.png",
+  "icon": "https://raw.githubusercontent.com/ilyhalight/voice-over-translation/dev/src/public/icons/icon-128.png",
   "match": [
     "*://*.youtube.com/*",
     "*://*.youtube-nocookie.com/*",

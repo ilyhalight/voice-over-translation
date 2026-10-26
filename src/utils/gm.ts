@@ -111,8 +111,6 @@ export const IS_PROXY_ONLY_EXTENSION =
  * - WXT (Chrome and Firefox): the MAIN-world prelude content script installs
  *   GM globals synchronously at document_start, before this module evaluates
  *   at document_end.
- * - Non-WXT extension builds: the bridge injects prelude.module.js before
- *   content.module.js.
  * - Userscript managers inject GM before the script runs.
  */
 export const isGM4Supported: boolean = Boolean(getGMRuntime());

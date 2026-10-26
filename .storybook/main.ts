@@ -45,6 +45,7 @@ export default defineMain({
         ],
         define: {
           DEBUG_MODE: true,
+          IS_EXTENSION: false,
           GM_info: {},
           AVAILABLE_LOCALES: await getAvailableLocales(),
         },

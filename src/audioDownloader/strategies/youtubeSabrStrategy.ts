@@ -17,7 +17,8 @@ function isDeterministicSabrError(error: unknown): boolean {
     message.includes("SABR found no VOT-supported audio track") ||
     (message.includes("SABR audio language") &&
       message.includes("is ambiguous")) ||
-    message.includes("refusing array[0] fallback")
+    message.includes("refusing array[0] fallback") ||
+    message.includes("SABR has no compatible available audio format")
   );
 }
 

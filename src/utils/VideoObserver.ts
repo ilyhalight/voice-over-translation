@@ -1,9 +1,5 @@
 import debug from "./debug";
-import {
-  type ShadowTreeTraversalAdapter,
-  someComposedAncestor,
-  walkShadowIncludingSubtree,
-} from "./domTraversal";
+import { someComposedAncestor } from "./domTraversal";
 import { getNowMs } from "./environment";
 import { EventImpl } from "./eventImpl";
 import {
@@ -297,38 +293,52 @@ export class VideoObserver {
     this.observer.observe(root, { childList: true, subtree: true });
   }
 
-  private static readonly domAdapter: ShadowTreeTraversalAdapter<Node> = {
-    getChildren: (node) => Array.from((node as Element).children ?? []),
-    getShadowRoot: (node) => (node as HTMLElement).shadowRoot as Node | null,
-  };
-
+  // Same visit order as walkShadowIncludingSubtree (LIFO stack: shadow root
+  // first, then children last-to-first), but links element siblings directly
+  // instead of allocating an Array.from(children) copy for every visited node.
   private scan(root: Node): void {
     if (root instanceof HTMLVideoElement) {
       this.trackVideo(root);
       return;
     }
 
+    const type = root.nodeType;
     if (
-      root.nodeType !== Node.ELEMENT_NODE &&
-      root.nodeType !== Node.DOCUMENT_FRAGMENT_NODE &&
-      root.nodeType !== Node.DOCUMENT_NODE
+      type !== Node.ELEMENT_NODE &&
+      type !== Node.DOCUMENT_FRAGMENT_NODE &&
+      type !== Node.DOCUMENT_NODE
     ) {
       return;
     }
 
-    const elementRoot = root as Element;
-
-    walkShadowIncludingSubtree(elementRoot, VideoObserver.domAdapter, (el) => {
-      if (el instanceof HTMLVideoElement) {
-        this.trackVideo(el);
-        return;
+    const stack: Node[] = [root];
+    let size = 1;
+    while (size > 0) {
+      size -= 1;
+      const node = stack[size];
+      let shadowRoot: ShadowRoot | null | undefined;
+      if (node instanceof HTMLVideoElement) {
+        this.trackVideo(node);
+        shadowRoot = node.shadowRoot;
+      } else {
+        shadowRoot = (node as Element).shadowRoot;
+        if (shadowRoot) this.observeRoot(shadowRoot);
       }
 
-      const sr = (el as HTMLElement).shadowRoot;
-      if (sr) {
-        this.observeRoot(sr);
+      for (
+        let child = (node as ParentNode).firstElementChild;
+        child;
+        child = child.nextElementSibling
+      ) {
+        stack[size] = child;
+        size += 1;
       }
-    });
+
+      if (shadowRoot) {
+        stack[size] = shadowRoot;
+        size += 1;
+      }
+    }
   }
 
   private getVideoListenerSignal(video: HTMLVideoElement): AbortSignal {
@@ -411,30 +421,24 @@ export class VideoObserver {
     this.seenVideos.delete(video);
   }
 
-  private collectVideos(node: Node): HTMLVideoElement[] {
-    const set = new Set<HTMLVideoElement>();
-
-    if (node instanceof HTMLVideoElement) {
-      set.add(node);
-    }
-
-    if (
-      node.nodeType !== Node.ELEMENT_NODE &&
-      node.nodeType !== Node.DOCUMENT_FRAGMENT_NODE &&
-      node.nodeType !== Node.DOCUMENT_NODE
-    ) {
-      return Array.from(set);
-    }
-
-    const elementNode = node as Element;
-
-    walkShadowIncludingSubtree(elementNode, VideoObserver.domAdapter, (el) => {
-      if (el instanceof HTMLVideoElement) {
-        set.add(el);
+  // Inverse of walkShadowIncludingSubtree: only open shadow roots lead back to
+  // their host, so closed-root videos stay out of scope exactly as before.
+  private static isWithinRemoved(
+    video: HTMLVideoElement,
+    removed: Set<Node>,
+  ): boolean {
+    let node: Node | null = video;
+    while (node) {
+      if (removed.has(node)) return true;
+      const parent: Node | null = node.parentNode;
+      if (parent) {
+        node = parent;
+        continue;
       }
-    });
-
-    return Array.from(set);
+      const host = (node as ShadowRoot).host as Element | undefined;
+      node = host?.shadowRoot === node ? host : null;
+    }
+    return false;
   }
 
   private isSliceBudgetReached(startMs: number, processed: number): boolean {
@@ -445,12 +449,12 @@ export class VideoObserver {
   private processPendingAdded(startMs: number): number {
     let processed = 0;
 
-    while (this.pendingAdded.size > 0) {
-      const next = this.pendingAdded.values().next();
-      if (next.done) break;
-
-      this.pendingAdded.delete(next.value);
-      this.scan(next.value);
+    // One live iterator per slice: Set iteration still visits nodes enqueued
+    // during scan, and avoids re-creating an iterator (and re-skipping deleted
+    // hash-table holes) for every node.
+    for (const node of this.pendingAdded) {
+      this.pendingAdded.delete(node);
+      this.scan(node);
       processed += 1;
 
       if (this.isSliceBudgetReached(startMs, processed)) {
@@ -462,24 +466,26 @@ export class VideoObserver {
   }
 
   private processPendingRemoved(startMs: number, processed: number): number {
-    let processedCount = processed;
+    const removedCount = this.pendingRemoved.size;
+    if (removedCount === 0) return processed;
+    if (this.isSliceBudgetReached(startMs, processed)) return processed;
 
-    while (this.pendingRemoved.size > 0) {
-      if (this.isSliceBudgetReached(startMs, processedCount)) {
-        break;
+    // Tracked videos are few, removed subtrees can be huge: test each
+    // disconnected tracked video against the removed set instead of walking
+    // every removed subtree.
+    if (this.videoListenerControllers.size > 0) {
+      for (const video of Array.from(this.videoListenerControllers.keys())) {
+        if (
+          !video.isConnected &&
+          VideoObserver.isWithinRemoved(video, this.pendingRemoved)
+        ) {
+          this.untrackVideo(video);
+        }
       }
-
-      const next = this.pendingRemoved.values().next();
-      if (next.done) break;
-
-      this.pendingRemoved.delete(next.value);
-      for (const video of this.collectVideos(next.value)) {
-        if (!video.isConnected) this.untrackVideo(video);
-      }
-      processedCount += 1;
     }
+    this.pendingRemoved.clear();
 
-    return processedCount;
+    return processed + removedCount;
   }
 
   private readonly flushSlice = () => {
@@ -507,6 +513,8 @@ export class VideoObserver {
     if (!this.flushPending) return;
     this.flushSlice();
   };
+
+  private readonly hasPendingFlush = () => this.flushPending;
 
   private readonly scheduleFlush = () => {
     if (!this.enabled) return;
@@ -545,12 +553,13 @@ export class VideoObserver {
   }
 
   private enqueueMutation(mutation: MutationRecord): void {
+    // Text/comment nodes can't contain videos or shadow roots.
     for (const node of mutation.addedNodes) {
-      this.enqueueAddedNode(node);
+      if (node.nodeType === Node.ELEMENT_NODE) this.enqueueAddedNode(node);
     }
 
     for (const node of mutation.removedNodes) {
-      this.pendingRemoved.add(node);
+      if (node.nodeType === Node.ELEMENT_NODE) this.pendingRemoved.add(node);
     }
   }
 
@@ -570,6 +579,7 @@ export class VideoObserver {
     this.checkerUnsubscribe?.();
     this.checkerUnsubscribe = this.intervalIdleChecker.subscribe(
       this.onCheckerTick,
+      { hasPendingWork: this.hasPendingFlush },
     );
     this.intervalIdleChecker.start();
     this.intervalIdleChecker.markActivity("video-observer-enable");

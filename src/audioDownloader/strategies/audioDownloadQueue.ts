@@ -8,17 +8,15 @@ export async function* getQueuedAudioChunks(
   signal: AbortSignal,
   download: () => AsyncGenerator<AudioChunk>,
 ): AsyncGenerator<AudioChunk> {
-  const queueKey = String(videoId);
-  const previous = queue.get(queueKey) ?? Promise.resolve();
-  const hadPrevious = queue.has(queueKey);
+  const previous = queue.get(videoId);
   let releaseCurrent!: () => void;
   const current = new Promise<void>((resolve) => {
     releaseCurrent = resolve;
   });
-  queue.set(queueKey, current);
+  queue.set(videoId, current);
   debug.log(`Audio downloader. ${strategy} queued`, {
     videoId,
-    hasPrevious: hadPrevious,
+    hasPrevious: previous !== undefined,
   });
   try {
     await previous;
@@ -26,7 +24,7 @@ export async function* getQueuedAudioChunks(
     yield* download();
   } finally {
     releaseCurrent();
-    if (queue.get(queueKey) === current) queue.delete(queueKey);
+    if (queue.get(videoId) === current) queue.delete(videoId);
     debug.log(`Audio downloader. ${strategy} queue released`, { videoId });
   }
 }

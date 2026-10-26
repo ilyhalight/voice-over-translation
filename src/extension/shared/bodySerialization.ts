@@ -33,12 +33,54 @@ function normalizeBase64Input(input: string): string {
   return withoutWhitespace + "=".repeat(4 - remainder);
 }
 
-function bytesToBinaryString(bytes: Uint8Array): string {
-  let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCodePoint(byte);
+// Multiple of 3 so every chunk encodes to padding-free base64 that can be
+// concatenated, and small enough to stay below Function#apply argument limits.
+const BASE64_ENCODE_CHUNK_SIZE = 0x8000 - (0x8000 % 3);
+
+function bytesToBase64WithBtoa(
+  bytes: Uint8Array,
+  btoaFn: (data: string) => string,
+): string {
+  // Encode per chunk instead of building one huge binary string first:
+  // avoids a full-size intermediate string + flatten and stays cache-friendly.
+  const len = bytes.length;
+  if (len <= BASE64_ENCODE_CHUNK_SIZE) {
+    return btoaFn(String.fromCharCode.apply(null, bytes as unknown as number[]));
   }
-  return binary;
+  const parts: string[] = [];
+  for (let i = 0; i < len; i += BASE64_ENCODE_CHUNK_SIZE) {
+    const chunk = bytes.subarray(i, i + BASE64_ENCODE_CHUNK_SIZE);
+    parts.push(btoaFn(String.fromCharCode.apply(null, chunk as unknown as number[])));
+  }
+  return parts.join("");
+}
+
+function binaryStringToBytes(binary: string): Uint8Array {
+  const len = binary.length;
+  const out = new Uint8Array(len);
+  for (let i = 0; i < len; i += 1) {
+    out[i] = binary.charCodeAt(i);
+  }
+  return out;
+}
+
+/**
+ * Fast path: native `Uint8Array.fromBase64` and `atob` (forgiving-base64)
+ * already skip ASCII whitespace and accept missing padding, so well-formed
+ * input can be decoded without the normalization passes (regex strip, alphabet
+ * scan, padding). Returns null when the input needs normalization.
+ */
+function tryDecodeBase64Direct(input: string): Uint8Array | null {
+  try {
+    if (typeof nativeFromBase64 === "function") {
+      return nativeFromBase64(input);
+    }
+    const atobFn = globalThis.atob;
+    if (typeof atobFn !== "function") return null;
+    return binaryStringToBytes(atobFn(input));
+  } catch {
+    return null;
+  }
 }
 
 function bytesViewToArrayBuffer(bytes: Uint8Array): ArrayBuffer {
@@ -63,7 +105,7 @@ export function bytesToBase64(bytes: Uint8Array): string {
   if (typeof btoaFn !== "function") {
     throw new TypeError("Base64 encoder is not available in this environment.");
   }
-  return btoaFn(bytesToBinaryString(bytes));
+  return bytesToBase64WithBtoa(bytes, btoaFn);
 }
 
 export function arrayBufferToBase64(ab: ArrayBuffer): string {
@@ -71,17 +113,18 @@ export function arrayBufferToBase64(ab: ArrayBuffer): string {
 }
 
 export function base64ToBytes(input: string): Uint8Array {
+  if (typeof input === "string") {
+    const direct = tryDecodeBase64Direct(input);
+    if (direct) return direct;
+  }
+
   const normalized = normalizeBase64Input(input);
-  const normalizedStandard = normalized
-    .replaceAll("-", "+")
-    .replaceAll("_", "/");
+  const standard = BASE64_URL_ALPHABET_RE.test(normalized)
+    ? normalized.replaceAll("-", "+").replaceAll("_", "/")
+    : normalized;
 
   if (typeof nativeFromBase64 === "function") {
-    const hasUrlAlphabet = BASE64_URL_ALPHABET_RE.test(normalized);
-    return nativeFromBase64(
-      hasUrlAlphabet ? normalizedStandard : normalized,
-      hasUrlAlphabet ? { alphabet: "base64" } : undefined,
-    );
+    return nativeFromBase64(standard);
   }
 
   const atobFn = globalThis.atob;
@@ -89,12 +132,7 @@ export function base64ToBytes(input: string): Uint8Array {
     throw new TypeError("Base64 decoder is not available in this environment.");
   }
 
-  const binary = atobFn(normalizedStandard);
-  const out = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) {
-    out[i] = binary.codePointAt(i) ?? 0;
-  }
-  return out;
+  return binaryStringToBytes(atobFn(standard));
 }
 
 export function base64ToArrayBuffer(b64: string): ArrayBuffer {

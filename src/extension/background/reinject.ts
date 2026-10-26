@@ -1,6 +1,7 @@
+import { browser, type Browser } from "wxt/browser";
+import type { ScriptPublicPath } from "wxt/utils/inject-script";
 import debug from "../../utils/debug";
 import { LIFECYCLE_PORT_NAME } from "../shared/constants";
-import { ext, lastErrorMessage } from "../shared/webext";
 
 /**
  * Chromium does not inject manifest content scripts into tabs that were
@@ -10,45 +11,11 @@ import { ext, lastErrorMessage } from "../shared/webext";
  * prelude before the ISOLATED bridge) into matching tabs.
  */
 
-type ManifestContentScript = {
-  matches?: string[];
-  exclude_matches?: string[];
-  js?: string[];
-  all_frames?: boolean;
-  world?: "MAIN" | "ISOLATED";
-};
+type ManifestContentScript = NonNullable<
+  Browser.runtime.Manifest["content_scripts"]
+>[number] & { world?: "MAIN" | "ISOLATED" };
 
-type TabLike = {
-  id?: number;
-  url?: string;
-  active?: boolean;
-  discarded?: boolean;
-};
-
-type PortLike = {
-  name?: string;
-  onDisconnect?: { addListener?: (fn: () => void) => void };
-};
-
-type ReinjectApi = {
-  runtime?: {
-    getManifest?: () => { content_scripts?: ManifestContentScript[] };
-    onInstalled?: {
-      addListener?: (fn: (details: { reason?: string }) => void) => void;
-    };
-    onConnect?: { addListener?: (fn: (port: unknown) => void) => void };
-    getBrowserInfo?: unknown;
-  };
-  tabs?: { query?: (info: { url?: string[] }) => Promise<TabLike[]> };
-  scripting?: {
-    executeScript?: (injection: {
-      target: { tabId: number; allFrames?: boolean };
-      files: string[];
-      world?: "MAIN" | "ISOLATED";
-      injectImmediately?: boolean;
-    }) => Promise<unknown>;
-  };
-};
+type InjectableTab = Browser.tabs.Tab & { id: number };
 
 const LOG = "[VOT EXT][background][reinject]";
 
@@ -56,10 +23,9 @@ const RESTRICTED_URL_RE =
   /^(?:chrome|edge|brave|opera|vivaldi|devtools|view-source|chrome-extension|moz-extension|about):|^https?:\/\/(?:chrome\.google\.com\/webstore|chromewebstore\.google\.com|microsoftedge\.microsoft\.com\/addons)(?:[/?#]|$)/i;
 
 /** Ports exist only so content scripts can detect extension unload. */
-const lifecyclePorts = new Set<PortLike>();
-const api = ext as unknown as ReinjectApi | null;
+const lifecyclePorts = new Set<Browser.runtime.Port>();
 
-function isInjectableTab(tab: TabLike): tab is TabLike & { id: number } {
+function isInjectableTab(tab: Browser.tabs.Tab): tab is InjectableTab {
   if (typeof tab.id !== "number" || tab.id < 0) return false;
   if (tab.discarded) return false;
   const url = tab.url ?? "";
@@ -67,27 +33,25 @@ function isInjectableTab(tab: TabLike): tab is TabLike & { id: number } {
   return !RESTRICTED_URL_RE.test(url);
 }
 
-async function queryTabs(api: ReinjectApi, patterns?: string[]) {
-  if (!patterns?.length || typeof api.tabs?.query !== "function") return [];
+async function queryTabs(patterns?: string[]): Promise<Browser.tabs.Tab[]> {
+  if (!patterns?.length) return [];
   try {
-    return (await api.tabs.query({ url: patterns })) ?? [];
+    return await browser.tabs.query({ url: patterns });
   } catch (error) {
     debug.warn(`${LOG} tabs.query failed`, patterns, error);
     return [];
   }
 }
 
-async function injectIntoTab(
-  api: ReinjectApi,
-  tabId: number,
-  entries: ManifestContentScript[],
-) {
+async function injectIntoTab(tabId: number, entries: ManifestContentScript[]) {
   // Sequential on purpose: keeps manifest order (prelude before bridge).
   for (const entry of entries) {
     try {
-      await api.scripting!.executeScript!({
+      await browser.scripting.executeScript({
         target: { tabId, allFrames: !!entry.all_frames },
-        files: entry.js!,
+        files: (entry.js ?? []).map(
+          (file) => `/${file.replace(/^\//, "")}` as ScriptPublicPath,
+        ),
         world: entry.world ?? "ISOLATED",
         injectImmediately: true,
       });
@@ -101,30 +65,20 @@ async function injectIntoTab(
   }
 }
 
-export async function reinjectContentScripts(): Promise<void> {
-  if (typeof api?.scripting?.executeScript !== "function") {
-    debug.warn(`${LOG} scripting API unavailable, skipping re-injection`);
-    return;
-  }
-
-  let contentScripts: ManifestContentScript[] = [];
-  try {
-    contentScripts = api.runtime?.getManifest?.()?.content_scripts ?? [];
-  } catch (error) {
-    debug.warn(`${LOG} getManifest failed`, error);
-    return;
-  }
+async function reinjectContentScripts(): Promise<void> {
+  const contentScripts: ManifestContentScript[] =
+    browser.runtime.getManifest().content_scripts ?? [];
 
   const plan = new Map<
     number,
-    { tab: TabLike & { id: number }; entries: ManifestContentScript[] }
+    { tab: InjectableTab; entries: ManifestContentScript[] }
   >();
   const queries = contentScripts
-    .filter((entry) => entry?.js?.length)
+    .filter((entry) => entry.js?.length)
     .map(async (entry) => {
       const [tabs, excludedTabs] = await Promise.all([
-        queryTabs(api, entry.matches),
-        queryTabs(api, entry.exclude_matches),
+        queryTabs(entry.matches),
+        queryTabs(entry.exclude_matches),
       ]);
       return { entry, tabs, excludedTabs };
     });
@@ -144,35 +98,30 @@ export async function reinjectContentScripts(): Promise<void> {
 
   // Active tabs first (the user is most likely looking at them).
   await Promise.all(
-    active.map(({ tab, entries }) => injectIntoTab(api, tab.id, entries)),
+    active.map(({ tab, entries }) => injectIntoTab(tab.id, entries)),
   );
   await Promise.allSettled(
-    rest.map(({ tab, entries }) => injectIntoTab(api, tab.id, entries)),
+    rest.map(({ tab, entries }) => injectIntoTab(tab.id, entries)),
   );
 
   debug.log(`${LOG} re-injected content scripts`, { tabs: items.length });
 }
 
 export function registerContentScriptReinjection(): void {
-  if (!api?.runtime) return;
-
-  api.runtime.onConnect?.addListener?.((port: unknown) => {
-    if (!port || typeof port !== "object") return;
-    const typedPort = port as PortLike;
-    if (typedPort.name !== LIFECYCLE_PORT_NAME) return;
-    lifecyclePorts.add(typedPort);
-    typedPort.onDisconnect?.addListener?.(() => {
-      lastErrorMessage(); // silence "Unchecked runtime.lastError"
-      lifecyclePorts.delete(typedPort);
+  browser.runtime.onConnect.addListener((port) => {
+    if (port.name !== LIFECYCLE_PORT_NAME) return;
+    lifecyclePorts.add(port);
+    port.onDisconnect.addListener(() => {
+      void browser.runtime.lastError; // silence "Unchecked runtime.lastError"
+      lifecyclePorts.delete(port);
     });
   });
 
   // Firefox already injects manifest content scripts into open tabs on
   // install/update; re-injecting there would duplicate them.
-  if (typeof api.runtime.getBrowserInfo === "function") return;
+  if (import.meta.env.FIREFOX) return;
 
-  api.runtime.onInstalled?.addListener?.((details) => {
-    const reason = details?.reason;
+  browser.runtime.onInstalled.addListener(({ reason }) => {
     if (reason !== "install" && reason !== "update") return;
     reinjectContentScripts().catch((error) => {
       debug.warn(`${LOG} re-injection failed`, error);

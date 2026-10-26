@@ -3,7 +3,8 @@ import {
   BG_MSG_STORAGE,
   BG_MSG_TELEMETRY_CONSENT,
 } from "../shared/constants";
-import { ext, runtimeSendMessage } from "../shared/webext";
+import { browser } from "wxt/browser";
+import { runtimeSendMessage } from "../shared/webext";
 
 export async function handleBridgeRequest(
   action: string,
@@ -18,8 +19,8 @@ export async function handleBridgeRequest(
       return response?.ok === true && response.result === true;
     }
     case "handshake": {
-      const manifest = ext?.runtime?.getManifest?.() ?? {};
-      const id = ext?.runtime?.id ?? null;
+      const manifest = browser.runtime.getManifest();
+      const id = browser.runtime.id ?? null;
       return { manifest, id };
     }
     case "gm_getValue":

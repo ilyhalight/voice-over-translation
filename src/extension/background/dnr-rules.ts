@@ -1,5 +1,5 @@
+import { browser, type Browser } from "wxt/browser";
 import debug from "../../utils/debug";
-import { dnrUpdateSessionRules, ext } from "../shared/webext";
 import {
   filterYandexHeadersForDnr,
   isYandexApiHostname,
@@ -26,23 +26,22 @@ const GOOGLEVIDEO_BASE_HEADERS: DnrRequestHeader[] = [
   { header: "x-client-data", operation: "remove" },
 ];
 
-function hasDnr(): boolean {
-  return Boolean(ext?.declarativeNetRequest?.updateSessionRules);
-}
-
 const FORBIDDEN_HEADERS = new Set(["user-agent", "origin", "referer"]);
 
 function createHeaderRule(
   id: number,
   requestHeaders: readonly DnrRequestHeader[],
   urlFilter: string,
-) {
+): Browser.declarativeNetRequest.Rule {
   return {
     id,
     priority: 1,
-    action: { type: "modifyHeaders", requestHeaders },
+    action: {
+      type: "modifyHeaders",
+      requestHeaders: [...requestHeaders],
+    },
     condition: { urlFilter, resourceTypes: ["xmlhttprequest"] },
-  };
+  } as Browser.declarativeNetRequest.Rule;
 }
 
 export function isForbiddenToSetViaFetch(headerName: string): boolean {
@@ -70,7 +69,7 @@ function signatureFromDnrRequestHeaders(
 async function queueDnrSessionRuleUpdate(
   ruleId: number,
   signature: string,
-  rule: unknown,
+  rule: Browser.declarativeNetRequest.Rule,
 ): Promise<boolean> {
   if (signature === dnrAppliedSignatures.get(ruleId)) {
     return false;
@@ -78,7 +77,7 @@ async function queueDnrSessionRuleUpdate(
 
   const update = dnrRuleUpdateQueue.then(async () => {
     if (signature !== dnrAppliedSignatures.get(ruleId)) {
-      await dnrUpdateSessionRules({
+      await browser.declarativeNetRequest.updateSessionRules({
         removeRuleIds: [ruleId],
         addRules: [rule],
       });
@@ -98,8 +97,6 @@ export async function ensureDnrHeaderRuleForYandex(
   url: string,
   forbiddenHeaders: Record<string, string>,
 ): Promise<void> {
-  if (!hasDnr()) return;
-
   let hostname = "";
   try {
     hostname = new URL(url).hostname;
@@ -163,8 +160,6 @@ async function ensureDnrHeaderStripRule(
   requestHeaders: DnrRequestHeader[],
   urlFilter: string,
 ): Promise<boolean> {
-  if (!hasDnr()) return false;
-
   const signature = signatureFromDnrRequestHeaders(requestHeaders);
   const rule = createHeaderRule(ruleId, requestHeaders, urlFilter);
 
@@ -232,10 +227,8 @@ export async function ensureDnrStripRuleForGooglevideo(
 }
 
 export async function preseedDnrRules(): Promise<void> {
-  if (!hasDnr()) return;
-
   try {
-    await dnrUpdateSessionRules({
+    await browser.declarativeNetRequest.updateSessionRules({
       removeRuleIds: [
         DNR_RULE_ID_YOUTUBEI_ORIGIN,
         DNR_RULE_ID_GOOGLEVIDEO_HEADERS,

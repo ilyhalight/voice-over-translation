@@ -38,6 +38,8 @@ type SmartDuckingAnalyserState = {
 };
 
 const SMART_DUCKING_TICK_MS = SMART_DUCKING_DEFAULT_CONFIG.tickMs;
+// 1 / 128^2: converts summed squared byte deviations to normalized [-1, 1] power.
+const BYTE_RMS_SCALE = 1 / (128 * 128);
 
 const smartDuckingAnalyserState = new WeakMap<
   VideoHandler,
@@ -401,11 +403,15 @@ function getTranslatedAudioRms(
 
       analyser.getFloatTimeDomainData(floatData);
 
+      // Indexed loop (no iterator protocol); same summation order as before,
+      // so the result is bit-identical.
+      const floatLength = floatData.length;
       let sum = 0;
-      for (const value of floatData) {
+      for (let i = 0; i < floatLength; i++) {
+        const value = floatData[i];
         sum += value * value;
       }
-      const rms = Math.sqrt(sum / floatData.length);
+      const rms = Math.sqrt(sum / floatLength);
       // NaN (corrupt samples) means "no measurement", not silence.
       return Number.isNaN(rms) ? undefined : clamp(rms, 0, 1);
     }
@@ -418,12 +424,16 @@ function getTranslatedAudioRms(
 
     analyser.getByteTimeDomainData(data);
 
+    // Accumulate centered integer squares and scale once by 1/128^2.
+    // Exact in float64 (sum <= 128^2 * fftSize), so bit-identical to the
+    // previous per-sample `(v - 128) / 128` normalization.
+    const byteLength = data.length;
     let sum = 0;
-    for (const rawValue of data) {
-      const normalizedValue = (rawValue - 128) / 128;
-      sum += normalizedValue * normalizedValue;
+    for (let i = 0; i < byteLength; i++) {
+      const centered = data[i] - 128;
+      sum += centered * centered;
     }
-    return clamp(Math.sqrt(sum / data.length), 0, 1);
+    return clamp(Math.sqrt((sum * BYTE_RMS_SCALE) / byteLength), 0, 1);
   } catch {
     return undefined;
   }

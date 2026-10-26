@@ -15,6 +15,7 @@ import {
 import {
   buildEvent,
   collectCauses,
+  type DebugIdRegistry,
   type EventLevel,
   INGEST_HOST,
   type SentryEvent,
@@ -77,6 +78,7 @@ export type RuntimeInfo = {
   version: string;
   environment: string;
   env: EnvironmentInfo;
+  debugIds?: DebugIdRegistry;
 };
 
 type ReporterDeps = {
@@ -171,7 +173,7 @@ export function createReporter({
     // Checked first so that errors while disabled do not consume the budget.
     if (!(await isEnabled())) return;
 
-    const { version, environment, env } = getRuntimeInfo();
+    const { version, environment, env, debugIds } = getRuntimeInfo();
     if (isIgnoredForHandler(error, env.scriptHandler)) return;
 
     const normalized = toError(error);
@@ -194,6 +196,7 @@ export function createReporter({
       buildEvent(reported, {
         version,
         environment,
+        debugIds,
         level: options.level ?? classifyLevel(error),
         tags: compactTags({
           ...buildEnvironmentTags(env),

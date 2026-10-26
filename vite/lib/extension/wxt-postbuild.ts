@@ -8,6 +8,7 @@ import {
   getExtensionHeaders,
   writeFirefoxUpdatesManifest,
 } from "./firefox-pipeline";
+import { stashSourcemaps } from "./sourcemaps";
 
 /**
  * Packages a finished WXT build (`.output/<browser>-mv3`) into dist-ext and
@@ -22,6 +23,7 @@ export async function finalizeWxtBuild(
   const config = getBuildConfig(mode);
   const headers = await getExtensionHeaders();
   const sourceDir = path.resolve(outDir);
+  await stashSourcemaps(browser, sourceDir);
 
   if (browser === "chrome") {
     await finalizeChromeBuild(sourceDir, config, headers);

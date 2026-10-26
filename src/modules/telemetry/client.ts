@@ -5,6 +5,7 @@ import { isIframe } from "../../utils/iframeConnector";
 import { votStorage } from "../../utils/storage";
 import { getDefaultSendErrorReports } from "./consent";
 import type { EnvironmentInfo } from "./context";
+import { readDebugIdRegistry } from "./debug-ids";
 import {
   buildAuthHeader,
   buildEnvelope,
@@ -49,6 +50,7 @@ function getRuntimeInfo(): RuntimeInfo {
     version: VOT_VERSION,
     environment: REPO_BRANCH,
     env: getEnvironmentInfo(),
+    debugIds: readDebugIdRegistry(),
   };
 }
 

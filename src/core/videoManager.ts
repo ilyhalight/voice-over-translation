@@ -3,6 +3,7 @@ import { getVideoData } from "@vot.js/ext/utils/videoData";
 import votConfig from "@vot.js/shared/config";
 import { availableLangs } from "@vot.js/shared/consts";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
+import { normalizeLang } from "@vot.js/shared/utils/utils";
 import { detectMusicYT } from "#modules/detectMusic/service.ts";
 import { detect } from "#modules/translateText/service.ts";
 
@@ -17,12 +18,7 @@ import type { VideoData as RuntimeVideoData } from "../types/videoHandler";
 import debug from "../utils/debug";
 import { GM_fetch } from "../utils/gm";
 import { cleanText } from "../utils/text";
-import {
-  clampPercentInt,
-  percentToVolume01,
-  snapVolume01,
-  volume01ToPercent,
-} from "../utils/volume";
+import { snapVolume01, volume01ToPercent } from "../utils/volume";
 import type { VideoHandler } from "../VideoHandler";
 import VOTLocalizedError from "../VOTLocalizedError";
 import { normalizeMediaProxyHost } from "../videoHandler/modules/proxyShared";
@@ -40,7 +36,6 @@ const FORCED_DETECTED_LANGUAGE_BY_HOST: Record<string, RequestLang> = {
   zdf: "de",
 };
 
-const YT_VOLUME_NOW_SELECTOR = ".ytp-volume-panel [aria-valuenow]";
 const YT_PLAYER_VOLUME_STORAGE_KEY = "yt-player-volume";
 const MIN_DETECT_TEXT_LENGTH = 35;
 const MAX_SHARED_LANGUAGE_STATES = 500;
@@ -169,7 +164,7 @@ function getSharedLanguageState(videoId: string): SharedLanguageState {
 
 function normalizeToRequestLang(value: unknown): RequestLang | undefined {
   if (typeof value !== "string") return undefined;
-  const normalized = value.toLowerCase().split(/[-_]/)[0] as RequestLang;
+  const normalized = normalizeLang(value.toLowerCase()) as RequestLang;
   return REQUEST_LANG_SET.has(normalized) ? normalized : undefined;
 }
 
@@ -331,21 +326,6 @@ async function resolveDetectedLanguageForVideo(
     detectedLanguage,
     cacheLanguage: detectedLanguage,
   };
-}
-
-function getAriaValueNowPercent(selector: string): number | null {
-  const el = document.querySelector(selector);
-  const rawNow = el?.getAttribute("aria-valuenow");
-  const rawMax = el?.getAttribute("aria-valuemax");
-  const now = rawNow == null ? Number.NaN : Number.parseFloat(rawNow);
-  const max = rawMax == null ? Number.NaN : Number.parseFloat(rawMax);
-
-  if (!Number.isFinite(now)) return null;
-  if (Number.isFinite(max) && max > 0) {
-    return clampPercentInt((now / max) * 100);
-  }
-
-  return clampPercentInt(now);
 }
 
 export class VOTVideoManager {
@@ -645,14 +625,7 @@ export class VOTVideoManager {
     const video = this.videoHandler.video;
     if (!video) return undefined;
 
-    // For external players (YouTube / Google Drive), prefer the UI's aria values
-    // when available. This avoids float drift and off-by-one issues like 100% -> 99%.
     if (isExternalVolumeHost(this.videoHandler.site.host)) {
-      const ariaPercent = getAriaValueNowPercent(YT_VOLUME_NOW_SELECTOR);
-      if (ariaPercent != null) {
-        return percentToVolume01(ariaPercent);
-      }
-
       const extVolume = YoutubeHelper.getVolume();
       if (typeof extVolume === "number" && Number.isFinite(extVolume)) {
         return snapVolume01(extVolume);
@@ -673,9 +646,6 @@ export class VOTVideoManager {
       return this;
     }
 
-    // YoutubeHelper.setVolume() historically returned either a boolean or a number.
-    // Do NOT use a truthy check here, or setting volume to 0 (0%) will be treated
-    // as a failure.
     try {
       const setExternalVolume = () =>
         YoutubeHelper.setVolume(snapped) as unknown;
@@ -723,13 +693,9 @@ export class VOTVideoManager {
       return this;
     }
 
-    const ariaPercent = isExternalVolumeHost(this.videoHandler.site.host)
-      ? getAriaValueNowPercent(YT_VOLUME_NOW_SELECTOR)
-      : null;
-
     const volumePercent = this.isMuted()
       ? 0
-      : (ariaPercent ?? volume01ToPercent(this.getVideoVolume() ?? 0));
+      : volume01ToPercent(this.getVideoVolume() ?? 0);
 
     overlayViewControls.setVideoVolume(volumePercent);
 

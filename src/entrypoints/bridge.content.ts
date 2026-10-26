@@ -3,9 +3,8 @@ import { defineContentScript } from "wxt/utils/define-content-script";
 import headers from "../headers.json";
 import { splitMatchesForOriginFallback } from "../../vite/lib/extension/manifest-helpers";
 
-// Mirrors buildManifestChrome: origin-fallback group (path "/*").
-// Direct-path matches need a second manifest entry without
-// match_origin_as_fallback (added via a wxt.config.ts manifest hook).
+// Path-specific matches are added in wxt.config.ts (build:manifestGenerated)
+// because Chrome rejects them with match_origin_as_fallback.
 const { originFallbackMatches } = splitMatchesForOriginFallback(
   headers.match ?? [],
 );

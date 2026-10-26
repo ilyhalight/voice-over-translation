@@ -150,10 +150,6 @@ function waitForPreviousDownload(
   signal: AbortSignal,
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-    if (signal.aborted) {
-      reject(makeAbortError());
-      return;
-    }
     const onAbort = () => reject(makeAbortError());
     signal.addEventListener("abort", onAbort, { once: true });
     const settled = () => {
@@ -346,6 +342,7 @@ export class AudioDownloader {
           ? [SABR_STRATEGY, WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY]
           : [this.strategy];
       const failures: StrategyFailure[] = [];
+      let signInSuggested = false;
       for (const attemptedStrategy of attempts) {
         try {
           await handleCommonAudioDownloadRequest({
@@ -376,8 +373,8 @@ export class AudioDownloader {
             error instanceof Error &&
             error.message.includes("YOUTUBE_SIGN_IN_SUGGESTED")
           ) {
-            this.onDownloadAudioError.dispatch(translationId, videoId, true);
-            return;
+            // A client-level login hint must not suppress the native MSE fallback.
+            signInSuggested = true;
           }
           failures.push({ strategy: attemptedStrategy, error });
           logger.error("Audio downloader. Strategy failed", {
@@ -404,7 +401,11 @@ export class AudioDownloader {
           audio_strategies: attempts.join(","),
         },
       });
-      this.onDownloadAudioError.dispatch(translationId, videoId, false);
+      this.onDownloadAudioError.dispatch(
+        translationId,
+        videoId,
+        signInSuggested,
+      );
     } finally {
       if (collecting && this.collectingChunks.get(videoId) === collecting) {
         this.collectingChunks.delete(videoId);

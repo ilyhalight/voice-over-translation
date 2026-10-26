@@ -11,11 +11,8 @@ import {
   TYPE_BRIDGE_READY,
 } from "../shared/constants";
 import { isSameWindowBridgeEvent, postToPage } from "../shared/transport";
-import {
-  ext,
-  isContextInvalidatedError,
-  lastErrorMessage,
-} from "../shared/webext";
+import { browser } from "wxt/browser";
+import { isContextInvalidatedError, lastErrorMessage } from "../shared/webext";
 
 export type BridgeRetireReason =
   | "context-invalidated"
@@ -145,7 +142,7 @@ export function createBridgeLifecycle(): BridgeLifecycle {
 
     let connected: unknown;
     try {
-      connected = ext?.runtime?.connect?.({ name: LIFECYCLE_PORT_NAME });
+      connected = browser.runtime.connect({ name: LIFECYCLE_PORT_NAME });
     } catch (error) {
       if (retireIfContextLost(error)) return;
       debug.warn("[VOT EXT][bridge] lifecycle port connect failed", error);
