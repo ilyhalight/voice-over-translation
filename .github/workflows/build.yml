@@ -36,22 +36,25 @@ jobs:
 
   extension:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22.x]
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v7
-      - name: Setup Bun.sh 🛎️
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js ${{ matrix.node-version }} 🛎️
+        uses: actions/setup-node@v7
         with:
-          bun-version: latest
+          node-version: ${{ matrix.node-version }}
       - name: Install 🔧
         shell: bash
-        run: bun install
-      - name: Build extension (WXT) 🔧
-        run: bun build:ext
+        run: npm install
+      - name: Build extension 🔧
+        run: npm run build:ext
       - name: Upload extension artifacts 🚀
         uses: actions/upload-artifact@v7
         with:
-          name: vot-extension
+          name: vot-extension-${{ matrix.node-version }}
           path: |
             dist-ext/vot-extension-chrome*.zip
             dist-ext/vot-extension-firefox*.xpi
