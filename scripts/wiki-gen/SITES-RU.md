@@ -1187,9 +1187,13 @@
 
 - `watch.dropout.tv`
 
-Ограничения:
+## edX
 
-- Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `courses.edx.org`
 
 ## Wistia
 
@@ -1198,6 +1202,301 @@
 Доступные (под)домены:
 
 - `fast.wistia.net`
+
+## BFMTV
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `bfmtv.com`
+- `www.bfmtv.com`
+- `rmc.bfmtv.com`
+
+## VideoPress
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `videopress.com`
+- `video.wordpress.com`
+
+Доступные пути:
+
+- /embed/VIDEO_ID
+
+## VidLii
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `vidlii.com`
+- `www.vidlii.com`
+
+Доступные пути:
+
+- /watch?v=VIDEO_ID
+
+## NYTimes
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `nytimes.com`
+- `www.nytimes.com`
+- `graphics8.nytimes.com`
+
+Доступные пути:
+
+- /video/video/VIDEO_ID
+
+## WSJ / Barron's
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `wsj.com`
+- `barrons.com`
+- `www.wsj.com`
+- `www.barrons.com`
+
+Доступные пути:
+
+- /video/x/VIDEO_ID
+
+Ограничения:
+
+- Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
+
+## AcFun
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `acfun.cn`
+- `www.acfun.cn`
+
+Доступные пути:
+
+- /v/acVIDEO_ID
+
+Ограничения:
+
+- Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
+
+## GETTR
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `gettr.com`
+- `www.gettr.com`
+
+Доступные пути:
+
+- /post/POST_ID
+
+## Huya
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `huya.com`
+- `www.huya.com`
+- `v.huya.com`
+
+Доступные пути:
+
+- /video/play/VIDEO_ID
+
+## Medal.tv
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `medal.tv`
+- `www.medal.tv`
+
+## RedGIFs
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `redgifs.com`
+- `www.redgifs.com`
+- `thumbs2.redgifs.com`
+
+Доступные пути:
+
+- /watch/VIDEO_ID
+
+Ограничения:
+
+- Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
+
+## Naver TV
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `m.naver.com`
+- `tv.naver.com`
+
+Доступные пути:
+
+- /shorts (m.naver.com)
+- /v/VIDEO_ID (tv.naver.com)
+- /embed/VIDEO_ID (tv.naver.com)
+
+## CHZZK
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `chzzk.naver.com`
+
+Доступные пути:
+
+- /video/VIDEO_ID
+
+## Zhihu
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `zhihu.com`
+- `www.zhihu.com`
+
+Доступные пути:
+
+- /zvideo/VIDEO_ID
+
+Ограничения:
+
+- Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
+
+## Snapchat
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `snapchat.com`
+- `www.snapchat.com`
+
+Доступные пути:
+
+- /spotlight/VIDEO_ID
+
+Ограничения:
+
+- Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
+
+## Beacon
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `beacon.tv`
+- `www.beacon.tv`
+
+Доступные пути:
+
+- /content/CONTENT_ID
+
+## Brightcove
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `players.brightcove.net`
+
+Ограничения:
+
+- Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
+
+## Craftsy
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `craftsy.com`
+- `www.craftsy.com`
+
+Доступные пути:
+
+- /class/CLASS_NAME
+
+## JW Platform
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `content.jwplatform.com`
+- `cdn.jwplayer.com`
+
+Доступные пути:
+
+- /players/PLAYER_ID
+
+Ограничения:
+
+- Для гарантированной работы скрипта необходимо [включить настройку "Обход Media CSP"](https://github.com/ilyhalight/voice-over-translation/wiki/%5BRU%5D-FAQ) в расширение или удалить CSP другим способом
+
+## NZ Herald
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `nzherald.co.nz`
+- `www.nzherald.co.nz`
+
+## OneFootball
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `onefootball.com`
+- `www.onefootball.com`
+
+## Vid.ly
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `vid.ly`
+- `s.vid.ly`
+
+## Bluesky
+
+Статус: [✅] Работает
+
+Доступные (под)домены:
+
+- `bsky.app`
+
+Доступные пути:
+
+- /profile/USER/post/POST_ID
 
 ## Direct link to MP4/WEBM
 

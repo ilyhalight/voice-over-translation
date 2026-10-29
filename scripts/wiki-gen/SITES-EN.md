@@ -1187,9 +1187,13 @@ Available (sub)domains:
 
 - `watch.dropout.tv`
 
-Limitations:
+## edX
 
-- To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `courses.edx.org`
 
 ## Wistia
 
@@ -1198,6 +1202,301 @@ Status: [✅] Working
 Available (sub)domains:
 
 - `fast.wistia.net`
+
+## BFMTV
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `bfmtv.com`
+- `www.bfmtv.com`
+- `rmc.bfmtv.com`
+
+## VideoPress
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `videopress.com`
+- `video.wordpress.com`
+
+Available paths:
+
+- /embed/VIDEO_ID
+
+## VidLii
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `vidlii.com`
+- `www.vidlii.com`
+
+Available paths:
+
+- /watch?v=VIDEO_ID
+
+## NYTimes
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `nytimes.com`
+- `www.nytimes.com`
+- `graphics8.nytimes.com`
+
+Available paths:
+
+- /video/video/VIDEO_ID
+
+## WSJ / Barron's
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `wsj.com`
+- `barrons.com`
+- `www.wsj.com`
+- `www.barrons.com`
+
+Available paths:
+
+- /video/x/VIDEO_ID
+
+Limitations:
+
+- To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
+
+## AcFun
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `acfun.cn`
+- `www.acfun.cn`
+
+Available paths:
+
+- /v/acVIDEO_ID
+
+Limitations:
+
+- To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
+
+## GETTR
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `gettr.com`
+- `www.gettr.com`
+
+Available paths:
+
+- /post/POST_ID
+
+## Huya
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `huya.com`
+- `www.huya.com`
+- `v.huya.com`
+
+Available paths:
+
+- /video/play/VIDEO_ID
+
+## Medal.tv
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `medal.tv`
+- `www.medal.tv`
+
+## RedGIFs
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `redgifs.com`
+- `www.redgifs.com`
+- `thumbs2.redgifs.com`
+
+Available paths:
+
+- /watch/VIDEO_ID
+
+Limitations:
+
+- To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
+
+## Naver TV
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `m.naver.com`
+- `tv.naver.com`
+
+Available paths:
+
+- /shorts (m.naver.com)
+- /v/VIDEO_ID (tv.naver.com)
+- /embed/VIDEO_ID (tv.naver.com)
+
+## CHZZK
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `chzzk.naver.com`
+
+Available paths:
+
+- /video/VIDEO_ID
+
+## Zhihu
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `zhihu.com`
+- `www.zhihu.com`
+
+Available paths:
+
+- /zvideo/VIDEO_ID
+
+Limitations:
+
+- To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
+
+## Snapchat
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `snapchat.com`
+- `www.snapchat.com`
+
+Available paths:
+
+- /spotlight/VIDEO_ID
+
+Limitations:
+
+- To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
+
+## Beacon
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `beacon.tv`
+- `www.beacon.tv`
+
+Available paths:
+
+- /content/CONTENT_ID
+
+## Brightcove
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `players.brightcove.net`
+
+Limitations:
+
+- To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
+
+## Craftsy
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `craftsy.com`
+- `www.craftsy.com`
+
+Available paths:
+
+- /class/CLASS_NAME
+
+## JW Platform
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `content.jwplatform.com`
+- `cdn.jwplayer.com`
+
+Available paths:
+
+- /players/PLAYER_ID
+
+Limitations:
+
+- To ensure that the script works, you need to [enable the "Bypass Media CSP" setting](https://github.com/ilyhalight/voice-over-translation/wiki/%5BEN%5D-FAQ) in the extension or delete the CSP in another way
+
+## NZ Herald
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `nzherald.co.nz`
+- `www.nzherald.co.nz`
+
+## OneFootball
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `onefootball.com`
+- `www.onefootball.com`
+
+## Vid.ly
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `vid.ly`
+- `s.vid.ly`
+
+## Bluesky
+
+Status: [✅] Working
+
+Available (sub)domains:
+
+- `bsky.app`
+
+Available paths:
+
+- /profile/USER/post/POST_ID
 
 ## Direct link to MP4/WEBM
 
