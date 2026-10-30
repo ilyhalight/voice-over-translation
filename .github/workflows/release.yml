@@ -40,6 +40,8 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: vot-extension-output
+          # `.output` is a dot-directory: hidden paths are skipped unless opted in.
+          include-hidden-files: true
           if-no-files-found: error
           path: |
             .output/*.zip
