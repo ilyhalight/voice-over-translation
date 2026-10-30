@@ -2,7 +2,8 @@ name: Release
 
 on:
   push:
-    tags: ["*"]
+    # Release tags start with a digit. The service tag `latest-prerelease` must not start a build.
+    tags: ["[0-9]*"]
 
 permissions:
   contents: write
