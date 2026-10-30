@@ -2,9 +2,18 @@
  * Pure manifest-building helpers shared between:
  * - wxt.config.ts (manifest fields WXT does not derive from entrypoints)
  * - src/entrypoints/*.content.ts (origin-fallback match splitting)
+ * - vite/lib/userscript/headers.ts (userscript @match list)
  *
  * No fs/build dependencies — only string/array transforms.
  */
+
+import {
+  sitesCoursehunterLike,
+  sitesInvidious,
+  sitesPeertube,
+  sitesPiped,
+  sitesProxiTok,
+} from "@vot.js/shared/alternativeUrls";
 
 export const EXTENSION_ICON_SIZES = [16, 32, 48, 64, 96, 128, 256] as const;
 
@@ -21,6 +30,40 @@ export interface ExtensionHeaders {
   match?: string[];
   exclude?: string[];
   connect?: string[];
+}
+
+// ----------------------------------------------------------------
+// Match patterns
+// ----------------------------------------------------------------
+
+let cachedAltMatchPatterns: string[] | null = null;
+
+/** Match patterns for alternative frontends (Invidious, Piped, PeerTube...). */
+export function getAltMatchPatterns(): string[] {
+  if (cachedAltMatchPatterns) return cachedAltMatchPatterns;
+
+  cachedAltMatchPatterns = [
+    sitesInvidious,
+    sitesPiped,
+    sitesProxiTok,
+    sitesPeertube,
+    sitesCoursehunterLike,
+  ].flatMap((sites) =>
+    sites.map((site) => {
+      const dotCount = site.match(/\./g)?.length ?? 0;
+      const isSubdomain = dotCount > 1;
+      return `*://${isSubdomain ? "" : "*."}${site}/*`;
+    }),
+  );
+
+  return cachedAltMatchPatterns;
+}
+
+/** `headers.match` plus generated alternative-frontend patterns, deduplicated. */
+export function getAllMatches(
+  headers: Pick<ExtensionHeaders, "match">,
+): string[] {
+  return [...new Set([...(headers.match ?? []), ...getAltMatchPatterns()])];
 }
 
 // ----------------------------------------------------------------
@@ -181,7 +224,7 @@ export function buildExtensionManifest({
   const name = headers.name || DEFAULT_EXTENSION_NAME;
   const description = headers.description || DEFAULT_EXTENSION_DESCRIPTION;
   const version = headers.version || DEFAULT_EXTENSION_VERSION;
-  const matches = headers.match || [];
+  const matches = getAllMatches(headers);
   const hostPermissions = normalizeHostPermissions(headers.connect || []);
   const iconSizes16and32 = [16, 32];
   const war = createWebAccessibleResources(matches);

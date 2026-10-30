@@ -9,13 +9,14 @@ import {
 import {
   buildExtensionManifest,
   type ExtensionHeaders,
+  getAllMatches,
   getDevContentScriptMatches,
   iconPathFn,
   splitMatchesForOriginFallback,
 } from "./vite/lib/extension/manifest-helpers";
 import {
-  SOURCEMAP_DIR,
   getReleaseDownloadBase,
+  SOURCEMAP_DIR,
   sharedCssOptions,
   sharedResolveAlias,
   viteCacheDir,
@@ -150,7 +151,9 @@ export default defineConfig({
     // reach dev. Give dev the full production list + direct video files + Udemy.
     "entrypoints:resolved": (wxt, entrypoints) => {
       if (wxt.config.command !== "serve") return;
-      const devMatches = getDevContentScriptMatches(extensionHeaders.match);
+      const devMatches = getDevContentScriptMatches(
+        getAllMatches(extensionHeaders),
+      );
       for (const entry of entrypoints) {
         if (entry.type !== "content-script") continue;
         entry.options.matches = [...devMatches];
@@ -164,7 +167,7 @@ export default defineConfig({
       // Chrome rejects match_origin_as_fallback on patterns with a non-"/*"
       // path, so path-specific matches get duplicated entries without it.
       const { directMatches } = splitMatchesForOriginFallback(
-        extensionHeaders.match,
+        getAllMatches(extensionHeaders),
       );
       if (!directMatches.length) return;
 

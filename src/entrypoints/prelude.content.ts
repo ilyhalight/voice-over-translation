@@ -1,12 +1,15 @@
 import { defineContentScript } from "wxt/utils/define-content-script";
+import {
+  getAllMatches,
+  splitMatchesForOriginFallback,
+} from "../../vite/lib/extension/manifest-helpers";
 import { bootstrapExtensionPrelude } from "../extension/prelude/index";
 import headers from "../headers.json";
-import { splitMatchesForOriginFallback } from "../../vite/lib/extension/manifest-helpers";
 
 // Path-specific matches are added in wxt.config.ts (build:manifestGenerated)
 // because Chrome rejects them with match_origin_as_fallback.
 const { originFallbackMatches } = splitMatchesForOriginFallback(
-  headers.match ?? [],
+  getAllMatches(headers),
 );
 
 export default defineContentScript({

@@ -85,7 +85,6 @@
 // @match          *://disk.360.yandex.ru/*
 // @match          *://youtube.googleapis.com/embed/*
 // @match          *://*.banned.video/*
-// @match          *://*.madmaxworld.tv/*
 // @match          *://*.weverse.io/*
 // @match          *://*.newgrounds.com/*
 // @match          *://*.egghead.io/*
@@ -97,7 +96,6 @@
 // @match          *://*.kick.com/*
 // @match          *://developer.apple.com/*
 // @match          *://dev.epicgames.com/*
-// @match          *://*.rapid-cloud.co/*
 // @match          *://odysee.com/*
 // @match          *://learning.sap.com/*
 // @match          *://*.watchporn.to/*
@@ -150,7 +148,6 @@
 // @match          *://*.preservetube.com/*
 // @match          *://*.mediafile.cc/*
 // @match          *://*.skilljar.com/*
-// @match          *://projector.datacamp.com/*
 // @match          *://hot.noodlemagazine.com/*
 // @match          *://fast.wistia.net/*
 // @match          *://oauth.yandex.ru/verification_code*
@@ -158,48 +155,16 @@
 // @match          *://*.vhx.tv/*
 // @match          *://*.boomio-cdn.com/*
 // @match          *://*.kinopoisk.ru/*
-// @match          *://youtu.be/*
-// @match          *://yadi.sk/*
-// @match          *://yewtu.be/*
-// @match          *://inv.nadeko.net/*
-// @match          *://invidious.nerdvpn.de/*
-// @match          *://invidious.protokolla.fi/*
-// @match          *://invidious.materialio.us/*
-// @match          *://piped.video/*
-// @match          *://piped.kavin.rocks/*
-// @match          *://piped.private.coffee/*
-// @match          *://proxitok.pabloferreiro.es/*
-// @match          *://peertube.tmp.rcp.tf/*
-// @match          *://dalek.zone/*
-// @match          *://video.sadmin.io/*
-// @match          *://videos.viorsan.com/*
-// @match          *://peertube.1312.media/*
-// @match          *://tube.shanti.cafe/*
-// @match          *://bee-tube.fr/*
-// @match          *://video.blender.org/*
-// @match          *://beetoons.tv/*
-// @match          *://makertube.net/*
-// @match          *://peertube.tv/*
-// @match          *://framatube.org/*
-// @match          *://tilvids.com/*
-// @match          *://diode.zone/*
-// @match          *://fedimovie.com/*
-// @match          *://video.hardlimit.com/*
-// @match          *://share.tube/*
-// @match          *://peervideo.club/*
-// @match          *://*.coursehunter.net/*
-// @match          *://*.coursetrain.net/*
+// @match          *://courses.edx.org/*
+// @match          *://nico.ms/*
+// @match          *://*.barrons.com/*
+// @match          *://content.jwplatform.com/*
 // @match          *://*.b-cdn.net/*
 // @match          *://*.datacamp.com/*
-// @match          *://t.me/*
-// @match          *://*.abcnews.go.com/*
-// @match          *://*.abcnews.com/*
 // @match          *://*.bfmtv.com/*
-// @match          *://rmc.bfmtv.com/*
 // @match          *://videopress.com/*
 // @match          *://video.wordpress.com/*
 // @match          *://*.vidlii.com/*
-// @match          *://*.cbsnews.com/*
 // @match          *://*.nytimes.com/*
 // @match          *://*.wsj.com/*
 // @match          *://*.acfun.cn/*
@@ -207,31 +172,39 @@
 // @match          *://*.huya.com/*
 // @match          *://*.medal.tv/*
 // @match          *://*.redgifs.com/*
-// @match          *://*.pinterest.com/*
-// @match          *://m.naver.com/*
 // @match          *://tv.naver.com/*
 // @match          *://chzzk.naver.com/*
 // @match          *://*.zhihu.com/*
 // @match          *://*.snapchat.com/*
-// @match          *://streamable.com/*
 // @match          *://beacon.tv/*
 // @match          *://players.brightcove.net/*
 // @match          *://*.craftsy.com/*
 // @match          *://cdn.jwplayer.com/*
 // @match          *://*.nzherald.co.nz/*
 // @match          *://onefootball.com/*
-// @match          *://*.spiegel.de/*
 // @match          *://vid.ly/*
 // @match          *://s.vid.ly/*
-// @match          *://*.cnn.com/*
 // @match          *://bsky.app/*
 // @match          *://dai.ly/*
 // @match          *://*/*.mp4*
 // @match          *://*/*.webm*
 // @match          *://*.yewtu.be/*
+// @match          *://inv.nadeko.net/*
+// @match          *://invidious.nerdvpn.de/*
+// @match          *://invidious.protokolla.fi/*
+// @match          *://invidious.materialio.us/*
 // @match          *://*.piped.video/*
+// @match          *://piped.kavin.rocks/*
+// @match          *://piped.private.coffee/*
+// @match          *://proxitok.pabloferreiro.es/*
+// @match          *://peertube.tmp.rcp.tf/*
 // @match          *://*.dalek.zone/*
+// @match          *://video.sadmin.io/*
+// @match          *://videos.viorsan.com/*
+// @match          *://peertube.1312.media/*
+// @match          *://tube.shanti.cafe/*
 // @match          *://*.bee-tube.fr/*
+// @match          *://video.blender.org/*
 // @match          *://*.beetoons.tv/*
 // @match          *://*.makertube.net/*
 // @match          *://*.peertube.tv/*
@@ -239,8 +212,11 @@
 // @match          *://*.tilvids.com/*
 // @match          *://*.diode.zone/*
 // @match          *://*.fedimovie.com/*
+// @match          *://video.hardlimit.com/*
 // @match          *://*.share.tube/*
 // @match          *://*.peervideo.club/*
+// @match          *://*.coursehunter.net/*
+// @match          *://*.coursetrain.net/*
 // @exclude        file://*/*.mp4*
 // @exclude        file://*/*.webm*
 // @exclude        *://accounts.youtube.com/*
@@ -301,7 +277,7 @@
 // @grant          GM.xmlHttpRequest
 // @grant          window.focus
 // ==/UserScript==
-(function(){try{var g=globalThis,k=Symbol.for("vot.debugIds"),s=(new Error().stack||"").replace(/(extension:\/\/)[^\/\s]+/g,"$1extension");if(s){g[k]||Object.defineProperty(g,k,{value:{}});g[k][s]={d:"7358c432-2648-4a21-a252-84a62f3e8005",l:304}}}catch(e){}})();
+(function(){try{var g=globalThis,k=Symbol.for("vot.debugIds"),s=(new Error().stack||"").replace(/(extension:\/\/)[^\/\s]+/g,"$1extension");if(s){g[k]||Object.defineProperty(g,k,{value:{}});g[k][s]={d:"aebf3fc5-bde7-4442-910e-5c1d2a7997d7",l:280}}}catch(e){}})();
 
 var vot = (function(exports) {
 	Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
@@ -344,7 +320,7 @@ var vot = (function(exports) {
 		value: mod,
 		enumerable: true
 	}) : target, mod));
-	// node_modules/@vot.js/core/dist/types/service.js
+	// ../vot.js/packages/core/dist/types/service.js
 	var VideoService$1;
 	(function(VideoService) {
 		VideoService["custom"] = "custom";
@@ -423,11 +399,9 @@ var vot = (function(exports) {
 		VideoService["kinopoisk"] = "kinopoisk";
 		VideoService["telegram"] = "telegram";
 		VideoService["wistia"] = "wistia";
-		VideoService["abcnews"] = "abcnews";
 		VideoService["bfmtv"] = "bfmtv";
 		VideoService["videopress"] = "videopress";
 		VideoService["vidlii"] = "vidlii";
-		VideoService["cbsnews"] = "cbsnews";
 		VideoService["nytimes"] = "nytimes";
 		VideoService["wsj"] = "wsj";
 		VideoService["acfun"] = "acfun";
@@ -435,24 +409,20 @@ var vot = (function(exports) {
 		VideoService["huya"] = "huya";
 		VideoService["medaltv"] = "medaltv";
 		VideoService["redgifs"] = "redgifs";
-		VideoService["pinterest"] = "pinterest";
 		VideoService["navertv"] = "navertv";
 		VideoService["chzzk"] = "chzzk";
 		VideoService["zhihu"] = "zhihu";
 		VideoService["snapchat"] = "snapchat";
-		VideoService["streamable"] = "streamable";
 		VideoService["beacon"] = "beacon";
 		VideoService["brightcove"] = "brightcove";
 		VideoService["craftsy"] = "craftsy";
 		VideoService["jwplatform"] = "jwplatform";
 		VideoService["nzherald"] = "nzherald";
 		VideoService["onefootball"] = "onefootball";
-		VideoService["spiegel"] = "spiegel";
 		VideoService["vidly"] = "vidly";
-		VideoService["cnn"] = "cnn";
 		VideoService["bluesky"] = "bluesky";
 	})(VideoService$1 || (VideoService$1 = {}));
-	// node_modules/@vot.js/core/dist/utils/videoData.js
+	// ../vot.js/packages/core/dist/utils/videoData.js
 	var VideoDataError = class extends Error {
 		constructor(message) {
 			super(message);
@@ -463,7 +433,7 @@ var vot = (function(exports) {
 	var isCustomLink = (url) => {
 		return !!/\.(m3u8|m4(a|v)|mpd)/.exec(url);
 	};
-	// node_modules/@vot.js/shared/dist/data/alternativeUrls.js
+	// ../vot.js/packages/shared/dist/data/alternativeUrls.js
 	var sitesInvidious = [
 		"yewtu.be",
 		"inv.nadeko.net",
@@ -498,7 +468,7 @@ var vot = (function(exports) {
 		"peervideo.club"
 	];
 	var sitesCoursehunterLike = ["coursehunter.net", "coursetrain.net"];
-	// node_modules/@vot.js/shared/dist/utils/kinopoisk.js
+	// ../vot.js/packages/shared/dist/utils/kinopoisk.js
 	var KinopoiskError = class extends Error {
 		constructor(message) {
 			super(message);
@@ -612,7 +582,7 @@ var vot = (function(exports) {
 		const { trailerId } = getKinopoiskVideoRef(videoId);
 		return toKinopoiskVideoData(videoId, getKinopoiskTrailer(await loadState(videoId), trailerId), duration);
 	}
-	// node_modules/@vot.js/ext/dist/types/service.js
+	// ../vot.js/packages/ext/dist/types/service.js
 	var ExtVideoService;
 	(function(ExtVideoService) {
 		ExtVideoService["udemy"] = "udemy";
@@ -627,12 +597,13 @@ var vot = (function(exports) {
 		ExtVideoService["mediafile"] = "mediafile";
 		ExtVideoService["skilljar"] = "skilljar";
 		ExtVideoService["dropout"] = "dropout";
+		ExtVideoService["edx"] = "edx";
 	})(ExtVideoService || (ExtVideoService = {}));
 	({
 		...VideoService$1,
 		...ExtVideoService
 	});
-	// node_modules/@vot.js/ext/dist/data/sites.js
+	// ../vot.js/packages/ext/dist/data/sites.js
 	var sharedSelectors = {
 		bilibiliPlayer: ".bpx-player-video-wrap, div.player-mobile-box.player-mobile-autoplay",
 		flowplayer: ".fp-player, div.flowplayer",
@@ -694,7 +665,8 @@ var vot = (function(exports) {
 			host: VideoService$1.piped,
 			url: "https://youtu.be/",
 			match: sitesPiped,
-			selector: sharedSelectors.shakaPlayer
+			selector: sharedSelectors.shakaPlayer,
+			needBypassCSP: true
 		},
 		{
 			host: VideoService$1.preservetube,
@@ -776,7 +748,8 @@ var vot = (function(exports) {
 			url: "https://www.douyin.com/",
 			match: /^(www.)?douyin.com/,
 			selector: ".xg-video-container",
-			needExtraData: true
+			needExtraData: true,
+			needBypassCSP: true
 		},
 		{
 			host: VideoService$1.vimeo,
@@ -961,6 +934,7 @@ var vot = (function(exports) {
 			url: "https://yadi.sk/",
 			match: /^disk.yandex.(ru|kz|com(\.(am|ge|tr))?|by|az|co\.il|ee|lt|lv|md|net|tj|tm|uz)$/,
 			selector: ".video-player__player > div:nth-child(1)",
+			needBypassCSP: true,
 			needExtraData: true
 		},
 		{
@@ -1243,6 +1217,7 @@ var vot = (function(exports) {
 			url: "https://widgets.kinopoisk.ru/discovery/",
 			match: (url) => !!(parseKinopoiskUrl(url) || parseKinopoiskFilmId(url)),
 			needExtraData: true,
+			needBypassCSP: true,
 			selector: sharedSelectors.idPlayer
 		},
 		{
@@ -1302,18 +1277,17 @@ var vot = (function(exports) {
 			needExtraData: true
 		},
 		{
+			host: ExtVideoService.edx,
+			url: "https://courses.edx.org/",
+			match: /^courses\.edx\.org$/,
+			selector: ".video-wrapper",
+			needExtraData: true
+		},
+		{
 			host: VideoService$1.wistia,
 			url: "https://fast.wistia.net/embed/iframe/",
 			match: /^fast.wistia.net$/,
 			selector: ".w-video-wrapper"
-		},
-		{
-			host: VideoService$1.abcnews,
-			url: "https://abcnews.go.com/video/embed?id=",
-			match: /^(?:(?:www\.)?abcnews\.(?:com|go\.com)|fivethirtyeight\.abcnews\.go\.com)$/,
-			selector: ".SingleVideo",
-			shadowRoot: true,
-			needExtraData: true
 		},
 		{
 			host: VideoService$1.bfmtv,
@@ -1337,19 +1311,10 @@ var vot = (function(exports) {
 			rawResult: true
 		},
 		{
-			host: VideoService$1.cbsnews,
-			url: "https://www.cbsnews.com/video/",
-			match: /^(?:www\.)?cbsnews\.com$/,
-			selector: "div.player, [data-role=\"aviaPlayerContainer\"]",
-			shadowRoot: true,
-			rawResult: true
-		},
-		{
 			host: VideoService$1.nytimes,
 			url: "https://www.nytimes.com/video/video/",
 			match: /^(?:(?:www\.)?nytimes\.com|graphics8\.nytimes\.com)$/,
 			selector: "[data-testid=\"betamax-player\"]",
-			shadowRoot: true,
 			rawResult: true
 		},
 		{
@@ -1398,14 +1363,6 @@ var vot = (function(exports) {
 			rawResult: true
 		},
 		{
-			host: VideoService$1.pinterest,
-			needBypassCSP: true,
-			url: "https://www.pinterest.com/pin/",
-			match: /^(?:www\.)?pinterest\.(?:com|co\.uk|de|fr|es|it|ca|com\.au)$/,
-			selector: "[data-test-id=\"closeup-video-with-visibility\"], [data-test-id=\"story-pin-video-block\"], [data-test-id=\"gated-pin-video\"], [data-test-id=\"video-container\"], [data-test-id=\"pin\"], [data-test-id=\"pinWrapper\"]",
-			rawResult: true
-		},
-		{
 			host: VideoService$1.navertv,
 			url: "https://m.naver.com/shorts/",
 			match: (url) => url.hostname === "m.naver.com" && /^\/shorts(?:\/|$)/.test(url.pathname) || url.hostname === "tv.naver.com" && /^\/(?:v|embed)\/\d+/.test(url.pathname),
@@ -1433,14 +1390,6 @@ var vot = (function(exports) {
 			url: "https://www.snapchat.com/spotlight/",
 			match: /^(?:www\.)?snapchat\.com$/,
 			selector: "[class*=\"SpotlightWebPlayer_spotlightPlayerMediaContainer\"]",
-			rawResult: true
-		},
-		{
-			host: VideoService$1.streamable,
-			needBypassCSP: true,
-			url: "https://streamable.com/",
-			match: /^streamable\.com$/,
-			selector: "div.player, [id^=\"player-\"][id$=\"-wrapper\"]",
 			rawResult: true
 		},
 		{
@@ -1488,24 +1437,10 @@ var vot = (function(exports) {
 			rawResult: true
 		},
 		{
-			host: VideoService$1.spiegel,
-			url: "https://www.spiegel.de/",
-			match: /^(?:www\.)?spiegel\.de$/,
-			selector: ".jwplayer, [data-component=\"JWPlayer\"]",
-			rawResult: true
-		},
-		{
 			host: VideoService$1.vidly,
 			url: "https://vid.ly/",
 			match: /^(?:s\.)?vid\.ly$/,
 			selector: sharedSelectors.jwPlayer,
-			rawResult: true
-		},
-		{
-			host: VideoService$1.cnn,
-			url: "stub",
-			match: /^(?:www\.|edition\.)?cnn\.com$/,
-			selector: ".video-player, .video-player__wrapper, [data-component-name=\"video-resource\"], .fave-player-container",
 			rawResult: true
 		},
 		{
@@ -1522,21 +1457,21 @@ var vot = (function(exports) {
 			rawResult: true
 		}
 	];
-	// node_modules/@vot.js/shared/dist/data/config.js
+	// ../vot.js/packages/shared/dist/data/config.js
 	var config_default$1 = {
 		host: "api.browser.yandex.ru",
 		hostWorker: "vot-worker.toil.cc",
 		mediaProxy: "media-proxy.toil.cc",
-		userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 YaBrowser/26.8.0.0 Safari/537.36",
+		userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 YaBrowser/26.10.0.0 Safari/537.36",
 		componentVersion: "26.10.0.1854",
 		chromiumRevision: "1854",
 		hmac: "bt8xH3VOlb4mqf0nqAibnDOoiPlXsisf",
 		defaultDuration: 310,
 		minChunkSize: 5295308,
 		loggerLevel: 1,
-		version: "3.2.0"
+		version: "3.2.1"
 	};
-	// node_modules/@vot.js/shared/dist/types/logger.js
+	// ../vot.js/packages/shared/dist/types/logger.js
 	var LoggerLevel;
 	(function(LoggerLevel) {
 		LoggerLevel[LoggerLevel["DEBUG"] = 0] = "DEBUG";
@@ -1545,7 +1480,7 @@ var vot = (function(exports) {
 		LoggerLevel[LoggerLevel["ERROR"] = 3] = "ERROR";
 		LoggerLevel[LoggerLevel["SILENCE"] = 4] = "SILENCE";
 	})(LoggerLevel || (LoggerLevel = {}));
-	// node_modules/@vot.js/shared/dist/utils/logger.js
+	// ../vot.js/packages/shared/dist/utils/logger.js
 	var prefix = `[vot.js v${config_default$1.version}]`;
 	function canLog(level) {
 		return config_default$1.loggerLevel <= level;
@@ -1573,7 +1508,7 @@ var vot = (function(exports) {
 		warn,
 		error
 	};
-	// node_modules/@vot.js/shared/dist/utils/utils.js
+	// ../vot.js/packages/shared/dist/utils/utils.js
 	var iso6392to6391 = {
 		afr: "af",
 		aka: "ak",
@@ -1713,7 +1648,7 @@ var vot = (function(exports) {
 		if (!(url instanceof URL)) return `${generalUrl}&url=${encodeURIComponent(btoa(url))}`;
 		return `${generalUrl}&url=${encodeURIComponent(btoa(url.href))}&origin=${url.origin}&referer=${url.origin}`;
 	}
-	// node_modules/@vot.js/ext/dist/helpers/base.js
+	// ../vot.js/packages/ext/dist/helpers/base.js
 	var VideoHelperError = class extends Error {
 		constructor(message) {
 			super(message);
@@ -1756,7 +1691,7 @@ var vot = (function(exports) {
 			};
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/appledeveloper.js
+	// ../vot.js/packages/ext/dist/helpers/appledeveloper.js
 	var AppleDeveloperHelper = class extends BaseHelper {
 		API_ORIGIN = "https://developer.apple.com";
 		async getVideoData(videoId) {
@@ -1773,7 +1708,7 @@ var vot = (function(exports) {
 			return /videos\/play\/([^/]+)\/([\d]+)/.exec(url.pathname)?.[0];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/archive.js
+	// ../vot.js/packages/ext/dist/helpers/archive.js
 	var ArchiveHelper = class extends BaseHelper {
 		async getVideoData(videoId) {
 			const baseData = this.returnBaseData(videoId);
@@ -1788,7 +1723,7 @@ var vot = (function(exports) {
 			return /(?:details|embed)\/(.+)/.exec(url.pathname)?.[1]?.replace(/\/$/, "") || void 0;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/artstation.js
+	// ../vot.js/packages/ext/dist/helpers/artstation.js
 	var ArtstationHelper = class extends BaseHelper {
 		API_ORIGIN = "https://www.artstation.com/api/v2/learning";
 		getCSRFToken() {
@@ -1839,13 +1774,13 @@ var vot = (function(exports) {
 			return /courses\/(\w{3,5})\/([^/]+)\/chapters\/(\w{3,5})/.exec(url.pathname)?.[0];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/bannedvideo.js
+	// ../vot.js/packages/ext/dist/helpers/bannedvideo.js
 	var BannedVideoHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /\/(?:embed\/|v\/)([a-zA-Z0-9]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/bilibili.js
+	// ../vot.js/packages/ext/dist/helpers/bilibili.js
 	var BilibiliHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			const playId = /(?:bangumi|cheese)\/play\/[^/]+/.exec(url.pathname)?.[0];
@@ -1861,13 +1796,13 @@ var vot = (function(exports) {
 			}
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/bitchute.js
+	// ../vot.js/packages/ext/dist/helpers/bitchute.js
 	var BitchuteHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /(video|embed)\/([^/]+)/.exec(url.pathname)?.[2];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/bitview.js
+	// ../vot.js/packages/ext/dist/helpers/bitview.js
 	var BitviewHelper = class extends BaseHelper {
 		async getVideoData(videoId) {
 			try {
@@ -1883,7 +1818,7 @@ var vot = (function(exports) {
 			return url.searchParams.get("v");
 		}
 	};
-	// node_modules/@vot.js/ext/dist/utils/dom.js
+	// ../vot.js/packages/ext/dist/utils/dom.js
 	function querySelectorDeep(selector, root = document) {
 		const match = root.querySelector(selector);
 		if (match) return match;
@@ -1896,7 +1831,7 @@ var vot = (function(exports) {
 	function getVideoSrc(videoEl) {
 		return videoEl?.src || videoEl?.currentSrc || videoEl?.querySelector("source[src]")?.src;
 	}
-	// node_modules/@vot.js/ext/dist/players/plyr.js
+	// ../vot.js/packages/ext/dist/players/plyr.js
 	var PlyrHelper = class {
 		SUBTITLE_SOURCE = "plyr";
 		SUBTITLE_FORMAT = "vtt";
@@ -1971,7 +1906,7 @@ var vot = (function(exports) {
 			return subtitles;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/bunkr.js
+	// ../vot.js/packages/ext/dist/helpers/bunkr.js
 	var BunkrHelper = class extends BaseHelper {
 		async getVideoData(videoId) {
 			return new PlyrHelper().getVideoData(videoId);
@@ -1980,19 +1915,19 @@ var vot = (function(exports) {
 			return /\/(?:f|v)\/([^/]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/bunnystream.js
+	// ../vot.js/packages/ext/dist/helpers/bunnystream.js
 	var BunnyStreamHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.pathname + url.search;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/cloudflarestream.js
+	// ../vot.js/packages/ext/dist/helpers/cloudflarestream.js
 	var CloudflareStreamHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.pathname + url.search;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/coursehunterLike.js
+	// ../vot.js/packages/ext/dist/helpers/coursehunterLike.js
 	var CoursehunterLikeHelper = class extends BaseHelper {
 		API_ORIGIN = this.origin ?? "https://coursehunter.net";
 		async getCourseId() {
@@ -2040,7 +1975,7 @@ var vot = (function(exports) {
 			return url.href;
 		}
 	};
-	// node_modules/@vot.js/shared/dist/data/consts.js
+	// ../vot.js/packages/shared/dist/data/consts.js
 	var availableLangs = [
 		"auto",
 		"ru",
@@ -2064,7 +1999,7 @@ var vot = (function(exports) {
 		"vtt",
 		"json"
 	];
-	// node_modules/@vot.js/ext/dist/players/videojs.js
+	// ../vot.js/packages/ext/dist/players/videojs.js
 	var VIDEOJS_SELECTOR = "video.vjs-tech, video[id$='_html5_api'], video[src], video";
 	function isPreferredMedia(source) {
 		const type = source.type?.toLowerCase().split(";")[0].trim();
@@ -2147,7 +2082,7 @@ var vot = (function(exports) {
 			});
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/coursera.js
+	// ../vot.js/packages/ext/dist/helpers/coursera.js
 	var CourseraHelper = class CourseraHelper extends VideoJSHelper {
 		API_ORIGIN = "https://www.coursera.org/api";
 		SUBTITLE_SOURCE = "coursera";
@@ -2235,7 +2170,7 @@ var vot = (function(exports) {
 			return CourseraHelper.LEARN_ITEM_RE.exec(url.pathname)?.[0] ?? CourseraHelper.PREVIEW_LECTURE_RE.exec(url.pathname)?.[0];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/dailymotion.js
+	// ../vot.js/packages/ext/dist/helpers/dailymotion.js
 	var DailymotionHelper = class extends BaseHelper {
 		getVideoIdFromUrl(url) {
 			const videoIdFromQuery = url.searchParams.get("video");
@@ -2266,7 +2201,7 @@ var vot = (function(exports) {
 			return url.hostname === "dai.ly" ? url.pathname.slice(1) : /video\/([^/]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/datacamp.js
+	// ../vot.js/packages/ext/dist/helpers/datacamp.js
 	var DataCampHelper = class extends VideoJSHelper {
 		SUBTITLE_SOURCE = "datacamp";
 		getVideoUrlFromInput(input) {
@@ -2321,7 +2256,7 @@ var vot = (function(exports) {
 			return url.href;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/deeplearningai.js
+	// ../vot.js/packages/ext/dist/helpers/deeplearningai.js
 	var DeeplearningAIHelper = class extends BaseHelper {
 		async getVideoData(_videoId) {
 			if (!this.video) return;
@@ -2333,7 +2268,7 @@ var vot = (function(exports) {
 			return /courses\/(([^/]+)\/lesson\/([^/]+)\/([^/]+))/.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/douyin.js
+	// ../vot.js/packages/ext/dist/helpers/douyin.js
 	var DouyinHelper = class DouyinHelper extends BaseHelper {
 		static getPlayer() {
 			if (typeof player === "undefined") return;
@@ -2359,7 +2294,7 @@ var vot = (function(exports) {
 			return DouyinHelper.getPlayer()?.config.vid;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/vimeo.js
+	// ../vot.js/packages/ext/dist/helpers/vimeo.js
 	var VimeoHelper = class extends BaseHelper {
 		API_KEY = "";
 		DEFAULT_SITE_ORIGIN = "https://vimeo.com";
@@ -2539,7 +2474,7 @@ var vot = (function(exports) {
 			return /([^/]+\/)?[^/]+$/.exec(normalizedPathname)?.[0];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/dropout.js
+	// ../vot.js/packages/ext/dist/helpers/dropout.js
 	var CONFIG_URL_RE = /^https:\/\/player\.vimeo\.com\/video\/[a-z0-9_-]+\/config/i;
 	var CONFIG_WAIT_TIMEOUT = 1e4;
 	var CONFIG_WAIT_INTERVAL = 500;
@@ -2685,19 +2620,71 @@ var vot = (function(exports) {
 			return /videos\/([^/?#]+)/.exec(url.pathname)?.[1] ?? url.pathname;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/dzen.js
+	// ../vot.js/packages/ext/dist/helpers/dzen.js
 	var DzenHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /video\/watch\/([^/]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/egghead.js
+	// ../vot.js/packages/ext/dist/helpers/edx.js
+	var VIDEO_BLOCK_SELECTOR = ".xblock[data-block-type=\"video\"]";
+	function parseMp4Url(source) {
+		try {
+			const url = new URL(source);
+			return url.pathname.toLowerCase().endsWith(".mp4") ? url : void 0;
+		} catch {
+			return;
+		}
+	}
+	var EdxHelper = class extends BaseHelper {
+		getSourceUrl(sources = []) {
+			const url = sources.map(parseMp4Url).find(Boolean);
+			if (url) return proxyMedia(url, "mp4", this.mediaProxy);
+			throw new VideoHelperError("Failed to find video source");
+		}
+		getVideoBlock() {
+			if (this.video) return this.video.closest(VIDEO_BLOCK_SELECTOR) ?? void 0;
+			return Array.from(document.querySelectorAll(VIDEO_BLOCK_SELECTOR)).find((block) => block.querySelector("video"));
+		}
+		getBlockId(block) {
+			const usageId = block.getAttribute("data-usage-id");
+			if (usageId) return usageId;
+			const player = block.querySelector("div.video");
+			const blockId = player?.getAttribute("data-block-id");
+			if (blockId) return blockId;
+			const courseId = player?.getAttribute("data-course-id");
+			const playerId = player?.id.replace(/^video_/, "");
+			return courseId && playerId ? `${courseId}:${playerId}` : void 0;
+		}
+		async getVideoId(_url) {
+			const block = this.getVideoBlock();
+			return block ? this.getBlockId(block) : void 0;
+		}
+		async getVideoData(videoId) {
+			const rawMetadata = Array.from(document.querySelectorAll(VIDEO_BLOCK_SELECTOR)).find((item) => this.getBlockId(item) === videoId)?.querySelector("div.video[data-metadata]")?.getAttribute("data-metadata");
+			if (!rawMetadata) return;
+			let metadata;
+			try {
+				metadata = JSON.parse(rawMetadata);
+			} catch (err) {
+				Logger$1.error(`Failed to parse edX video metadata: ${videoId}`, err.message);
+				return;
+			}
+			const url = this.getSourceUrl(metadata.sources);
+			const { duration } = metadata;
+			return typeof duration === "number" && Number.isFinite(duration) && duration > 0 ? {
+				url,
+				duration
+			} : { url };
+		}
+	};
+	// ../vot.js/packages/ext/dist/helpers/egghead.js
 	var EggheadHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.pathname.slice(1);
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/epicgames.js
+	// ../vot.js/packages/ext/dist/helpers/epicgames.js
 	var EpicGamesHelper = class extends BaseHelper {
 		API_ORIGIN = "https://dev.epicgames.com/community/api/learning";
 		async getPostInfo(videoId) {
@@ -2766,7 +2753,7 @@ var vot = (function(exports) {
 			});
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/eporner.js
+	// ../vot.js/packages/ext/dist/helpers/eporner.js
 	var getPlayerHash = () => {
 		if (typeof EP === "undefined") return;
 		return EP?.video?.player?.hash;
@@ -2825,7 +2812,7 @@ var vot = (function(exports) {
 			return /\/(?:video-|embed\/)([a-zA-Z0-9]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/facebook.js
+	// ../vot.js/packages/ext/dist/helpers/facebook.js
 	function extractAudioUrl(text) {
 		const stack = [];
 		for (const match of text.matchAll(/"(?:\\.|[^"\\])*"|\{|\}/g)) if (match[0] === "{") stack.push(match.index);
@@ -2854,7 +2841,7 @@ var vot = (function(exports) {
 			return url.pathname.slice(1);
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/googledrive.js
+	// ../vot.js/packages/ext/dist/helpers/googledrive.js
 	var GoogleDriveHelper = class extends BaseHelper {
 		getPlayerData() {
 			return document.querySelector("#movie_player")?.getVideoData?.() ?? void 0;
@@ -2863,7 +2850,7 @@ var vot = (function(exports) {
 			return this.getPlayerData()?.video_id;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/ign.js
+	// ../vot.js/packages/ext/dist/helpers/ign.js
 	var IgnHelper = class extends BaseHelper {
 		getVideoDataBySource(videoId) {
 			const url = document.querySelector(".icms.video > source[type=\"video/mp4\"][data-quality=\"360\"]")?.src;
@@ -2896,13 +2883,13 @@ var vot = (function(exports) {
 			return /([^/]+)\/([\d]+)\/video\/([^/]+)/.exec(url.pathname)?.[0] ?? /\/videos\/([^/]+)/.exec(url.pathname)?.[0];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/imdb.js
+	// ../vot.js/packages/ext/dist/helpers/imdb.js
 	var IMDbHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /video\/([^/]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/kinopoisk.js
+	// ../vot.js/packages/ext/dist/helpers/kinopoisk.js
 	function parseKinopoiskWidgetDocument(doc) {
 		const raw = doc.querySelector("script[data-state]")?.textContent;
 		return raw ? decodeKinopoiskState(raw) : void 0;
@@ -2951,7 +2938,7 @@ var vot = (function(exports) {
 			return iframe ? getKinopoiskVideoId(new URL(iframe.src, url)) : void 0;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/joidatabase.js
+	// ../vot.js/packages/ext/dist/helpers/joidatabase.js
 	var JOIDatabaseHelper = class extends BaseHelper {
 		async getVideoData(videoId) {
 			const baseData = this.returnBaseData(videoId);
@@ -2974,7 +2961,7 @@ var vot = (function(exports) {
 			return /\/(?:watch|embed)\/([0-9a-f]+)\/?$/.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/jove.js
+	// ../vot.js/packages/ext/dist/helpers/jove.js
 	var JoveHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			const match = /^\/(?:[a-z]{2}\/)?v\/(\d+)\/([^/?#]+)/i.exec(url.pathname);
@@ -3034,7 +3021,7 @@ var vot = (function(exports) {
 			};
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/kick.js
+	// ../vot.js/packages/ext/dist/helpers/kick.js
 	var KickHelper = class extends BaseHelper {
 		API_ORIGIN = "https://kick.com/api";
 		async getClipInfo(clipId) {
@@ -3071,7 +3058,7 @@ var vot = (function(exports) {
 			return /([^/]+)\/((videos|clips)\/([^/]+))/.exec(url.pathname)?.[2];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/kickstarter.js
+	// ../vot.js/packages/ext/dist/helpers/kickstarter.js
 	var KickstarterHelper = class extends BaseHelper {
 		async getVideoData(videoId) {
 			try {
@@ -3103,7 +3090,7 @@ var vot = (function(exports) {
 			return url.pathname.slice(1);
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/kodik.js
+	// ../vot.js/packages/ext/dist/helpers/kodik.js
 	var KodikHelper = class extends BaseHelper {
 		API_ORIGIN = window.location.origin;
 		getSecureData(videoPath) {
@@ -3199,7 +3186,7 @@ var vot = (function(exports) {
 			return /\/(uv|video|seria|episode|season|serial)\/([^/]+)\/([^/]+)\/([\d]+)p/.exec(url.pathname)?.[0];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/linkedin.js
+	// ../vot.js/packages/ext/dist/helpers/linkedin.js
 	var LinkedinHelper = class extends VideoJSHelper {
 		SUBTITLE_SOURCE = "linkedin";
 		async getVideoData(videoId) {
@@ -3216,8 +3203,8 @@ var vot = (function(exports) {
 			return /\/learning\/(([^/]+)\/([^/]+))/.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@bufbuild/protobuf/dist/esm/wire/varint.js
-	function varint64read() {
+	// ../vot.js/node_modules/@bufbuild/protobuf/dist/esm/wire/varint.js
+	function varint64read$1() {
 		const buf = this.buf;
 		let pos = this.pos;
 		let lo = 0;
@@ -3256,8 +3243,8 @@ var vot = (function(exports) {
 		}
 		throw new Error("invalid varint");
 	}
-	var TWO_PWR_32_DBL = 4294967296;
-	function int64FromString(dec) {
+	var TWO_PWR_32_DBL$1 = 4294967296;
+	function int64FromString$1(dec) {
 		const minus = dec[0] === "-";
 		if (minus) dec = dec.slice(1);
 		const base = 1e6;
@@ -3267,27 +3254,27 @@ var vot = (function(exports) {
 			const digit1e6 = Number(dec.slice(begin, end));
 			highBits *= base;
 			lowBits = lowBits * base + digit1e6;
-			if (lowBits >= TWO_PWR_32_DBL) {
-				highBits = highBits + (lowBits / TWO_PWR_32_DBL | 0);
-				lowBits = lowBits % TWO_PWR_32_DBL;
+			if (lowBits >= TWO_PWR_32_DBL$1) {
+				highBits = highBits + (lowBits / TWO_PWR_32_DBL$1 | 0);
+				lowBits = lowBits % TWO_PWR_32_DBL$1;
 			}
 		}
 		add1e6digit(-24, -18);
 		add1e6digit(-18, -12);
 		add1e6digit(-12, -6);
 		add1e6digit(-6);
-		return minus ? negate(lowBits, highBits) : newBits(lowBits, highBits);
+		return minus ? negate$1(lowBits, highBits) : newBits$1(lowBits, highBits);
 	}
-	function int64ToString(lo, hi) {
-		let bits = newBits(lo, hi);
+	function int64ToString$1(lo, hi) {
+		let bits = newBits$1(lo, hi);
 		const negative = bits.hi & 2147483648;
-		if (negative) bits = negate(bits.lo, bits.hi);
-		const result = uInt64ToString(bits.lo, bits.hi);
+		if (negative) bits = negate$1(bits.lo, bits.hi);
+		const result = uInt64ToString$1(bits.lo, bits.hi);
 		return negative ? "-" + result : result;
 	}
-	function uInt64ToString(lo, hi) {
-		({lo, hi} = toUnsigned(lo, hi));
-		if (hi <= 2097151) return String(TWO_PWR_32_DBL * hi + lo);
+	function uInt64ToString$1(lo, hi) {
+		({lo, hi} = toUnsigned$1(lo, hi));
+		if (hi <= 2097151) return String(TWO_PWR_32_DBL$1 * hi + lo);
 		const low = lo & 16777215;
 		const mid = (lo >>> 24 | hi << 8) & 16777215;
 		const high = hi >> 16 & 65535;
@@ -3303,31 +3290,31 @@ var vot = (function(exports) {
 			digitC += Math.floor(digitB / base);
 			digitB %= base;
 		}
-		return digitC.toString() + decimalFrom1e7WithLeadingZeros(digitB) + decimalFrom1e7WithLeadingZeros(digitA);
+		return digitC.toString() + decimalFrom1e7WithLeadingZeros$1(digitB) + decimalFrom1e7WithLeadingZeros$1(digitA);
 	}
-	function toUnsigned(lo, hi) {
+	function toUnsigned$1(lo, hi) {
 		return {
 			lo: lo >>> 0,
 			hi: hi >>> 0
 		};
 	}
-	function newBits(lo, hi) {
+	function newBits$1(lo, hi) {
 		return {
 			lo: lo | 0,
 			hi: hi | 0
 		};
 	}
-	function negate(lowBits, highBits) {
+	function negate$1(lowBits, highBits) {
 		highBits = ~highBits;
 		if (lowBits) lowBits = ~lowBits + 1;
 		else highBits += 1;
-		return newBits(lowBits, highBits);
+		return newBits$1(lowBits, highBits);
 	}
-	var decimalFrom1e7WithLeadingZeros = (digit1e7) => {
+	var decimalFrom1e7WithLeadingZeros$1 = (digit1e7) => {
 		const partial = String(digit1e7);
 		return "0000000".slice(partial.length) + partial;
 	};
-	function varint32read() {
+	function varint32read$1() {
 		let b = this.buf[this.pos++];
 		if ((b & 128) === 0) {
 			this.assertBounds();
@@ -3359,9 +3346,9 @@ var vot = (function(exports) {
 		this.assertBounds();
 		return result >>> 0;
 	}
-	// node_modules/@bufbuild/protobuf/dist/esm/proto-int64.js
-	var protoInt64 = makeInt64Support();
-	function makeInt64Support() {
+	// ../vot.js/node_modules/@bufbuild/protobuf/dist/esm/proto-int64.js
+	var protoInt64$1 = makeInt64Support$1();
+	function makeInt64Support$1() {
 		const dv = new DataView(new ArrayBuffer(8));
 		if (typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (!!globalThis.Deno || !!globalThis.Bun || typeof process != "object" || typeof process.env != "object" || process.env.BUF_BIGINT_DISABLE !== "1")) {
 			const MIN = BigInt("-9223372036854775808");
@@ -3412,46 +3399,46 @@ var vot = (function(exports) {
 			supported: false,
 			parse(value) {
 				if (typeof value != "string") value = value.toString();
-				assertInt64String(value);
+				assertInt64String$1(value);
 				return value;
 			},
 			uParse(value) {
 				if (typeof value != "string") value = value.toString();
-				assertUInt64String(value);
+				assertUInt64String$1(value);
 				return value;
 			},
 			enc(value) {
 				if (typeof value != "string") value = value.toString();
-				assertInt64String(value);
-				return int64FromString(value);
+				assertInt64String$1(value);
+				return int64FromString$1(value);
 			},
 			uEnc(value) {
 				if (typeof value != "string") value = value.toString();
-				assertUInt64String(value);
-				return int64FromString(value);
+				assertUInt64String$1(value);
+				return int64FromString$1(value);
 			},
 			dec(lo, hi) {
-				return int64ToString(lo, hi);
+				return int64ToString$1(lo, hi);
 			},
 			uDec(lo, hi) {
-				return uInt64ToString(lo, hi);
+				return uInt64ToString$1(lo, hi);
 			}
 		};
 	}
-	function assertInt64String(value) {
+	function assertInt64String$1(value) {
 		if (!/^-?[0-9]+$/.test(value)) throw new Error("invalid int64: " + value);
 	}
-	function assertUInt64String(value) {
+	function assertUInt64String$1(value) {
 		if (!/^[0-9]+$/.test(value)) throw new Error("invalid uint64: " + value);
 	}
-	// node_modules/@bufbuild/protobuf/dist/esm/wire/text-encoding.js
-	var te$1;
-	function configureTextEncoding(textEncoding) {
+	// ../vot.js/node_modules/@bufbuild/protobuf/dist/esm/wire/text-encoding.js
+	var te$2;
+	function configureTextEncoding$1(textEncoding) {
 		var _a;
-		te$1 = Object.assign(Object.assign({}, textEncoding), { encodeUtf8Into: (_a = textEncoding.encodeUtf8Into) !== null && _a !== void 0 ? _a : emulateEncodeInto(textEncoding.encodeUtf8.bind(textEncoding)) });
+		te$2 = Object.assign(Object.assign({}, textEncoding), { encodeUtf8Into: (_a = textEncoding.encodeUtf8Into) !== null && _a !== void 0 ? _a : emulateEncodeInto$1(textEncoding.encodeUtf8.bind(textEncoding)) });
 	}
-	function getTextEncoding() {
-		if (!te$1) {
+	function getTextEncoding$1() {
+		if (!te$2) {
 			const globals = globalThis;
 			if (!globals.TextEncoder || !globals.TextDecoder) throw new Error("encoding API missing: install TextEncoder and TextDecoder on globalThis");
 			const textEncoder = new globals.TextEncoder();
@@ -3481,19 +3468,19 @@ var vot = (function(exports) {
 			if (nativeStringIsWellFormed) config.checkUtf8 = (text) => {
 				return nativeStringIsWellFormed.call(text);
 			};
-			configureTextEncoding(config);
+			configureTextEncoding$1(config);
 		}
-		return te$1;
+		return te$2;
 	}
-	function emulateEncodeInto(encodeUtf8) {
+	function emulateEncodeInto$1(encodeUtf8) {
 		return (text, dest) => {
 			const bytes = encodeUtf8(text);
 			dest.set(bytes);
 			return { written: bytes.byteLength };
 		};
 	}
-	// node_modules/@bufbuild/protobuf/dist/esm/wire/binary-encoding.js
-	var WireType;
+	// ../vot.js/node_modules/@bufbuild/protobuf/dist/esm/wire/binary-encoding.js
+	var WireType$1;
 	(function(WireType) {
 		WireType[WireType["Varint"] = 0] = "Varint";
 		WireType[WireType["Bit64"] = 1] = "Bit64";
@@ -3501,19 +3488,19 @@ var vot = (function(exports) {
 		WireType[WireType["StartGroup"] = 3] = "StartGroup";
 		WireType[WireType["EndGroup"] = 4] = "EndGroup";
 		WireType[WireType["Bit32"] = 5] = "Bit32";
-	})(WireType || (WireType = {}));
-	var BinaryWriter = class {
+	})(WireType$1 || (WireType$1 = {}));
+	var BinaryWriter$1 = class {
 		constructor(encodeUtf8) {
 			this.stackPos = [];
-			this.encodeUtf8Into = encodeUtf8 ? emulateEncodeInto(encodeUtf8) : getTextEncoding().encodeUtf8Into;
-			this.buffer = EMPTY_BUFFER;
-			this.viewCache = EMPTY_VIEW;
+			this.encodeUtf8Into = encodeUtf8 ? emulateEncodeInto$1(encodeUtf8) : getTextEncoding$1().encodeUtf8Into;
+			this.buffer = EMPTY_BUFFER$1;
+			this.viewCache = EMPTY_VIEW$1;
 			this.pos = 0;
 		}
 		ensureCapacity(size) {
 			const required = this.pos + size;
 			if (required > this.buffer.length) {
-				let newLen = this.buffer.length || INITIAL_SIZE;
+				let newLen = this.buffer.length || INITIAL_SIZE$1;
 				while (newLen < required) newLen *= 2;
 				const newBuf = new Uint8Array(newLen);
 				if (this.pos > 0) newBuf.set(this.buffer);
@@ -3536,18 +3523,18 @@ var vot = (function(exports) {
 		}
 		fork() {
 			this.stackPos.push(this.pos);
-			this.ensureCapacity(DEFAULT_LEN_PREFIX_SIZE);
+			this.ensureCapacity(DEFAULT_LEN_PREFIX_SIZE$1);
 			this.buffer[this.pos++] = 0;
 			return this;
 		}
 		join() {
 			const forkPos = this.stackPos.pop();
 			if (forkPos === void 0) throw new Error("invalid state, fork stack empty");
-			const len = this.pos - forkPos - DEFAULT_LEN_PREFIX_SIZE;
-			const lenPrefixSize = varint32Size(len);
-			if (lenPrefixSize > DEFAULT_LEN_PREFIX_SIZE) {
-				this.ensureCapacity(lenPrefixSize - DEFAULT_LEN_PREFIX_SIZE);
-				this.buffer.copyWithin(forkPos + lenPrefixSize, forkPos + DEFAULT_LEN_PREFIX_SIZE, this.pos);
+			const len = this.pos - forkPos - DEFAULT_LEN_PREFIX_SIZE$1;
+			const lenPrefixSize = varint32Size$1(len);
+			if (lenPrefixSize > DEFAULT_LEN_PREFIX_SIZE$1) {
+				this.ensureCapacity(lenPrefixSize - DEFAULT_LEN_PREFIX_SIZE$1);
+				this.buffer.copyWithin(forkPos + lenPrefixSize, forkPos + DEFAULT_LEN_PREFIX_SIZE$1, this.pos);
 			}
 			this.pos = forkPos;
 			this.uint32(len);
@@ -3564,7 +3551,7 @@ var vot = (function(exports) {
 			return this;
 		}
 		uint32(value) {
-			assertUInt32(value);
+			assertUInt32$1(value);
 			this.ensureCapacity(5);
 			if (value < 128) {
 				this.buffer[this.pos++] = value;
@@ -3578,7 +3565,7 @@ var vot = (function(exports) {
 			return this;
 		}
 		int32(value) {
-			assertInt32(value);
+			assertInt32$1(value);
 			if (value >= 0) return this.uint32(value);
 			this.ensureCapacity(10);
 			for (let i = 0; i < 9; i++) {
@@ -3600,7 +3587,7 @@ var vot = (function(exports) {
 		string(value) {
 			if (typeof value !== "string") value = String(value);
 			const len = value.length;
-			if (len <= ASCII_MAX_LENGTH) {
+			if (len <= ASCII_MAX_LENGTH$1) {
 				this.ensureCapacity(len + 1);
 				const ascii = this.buffer;
 				let pos = this.pos;
@@ -3617,18 +3604,18 @@ var vot = (function(exports) {
 				}
 			}
 			this.ensureCapacity(len * 3 + 5);
-			const lenPrefixSizeGuess = varint32Size(len);
+			const lenPrefixSizeGuess = varint32Size$1(len);
 			const buf = this.buffer;
 			const start = this.pos;
 			const { written } = this.encodeUtf8Into(value, buf.subarray(start + lenPrefixSizeGuess));
-			const lenPrefixSize = varint32Size(written);
+			const lenPrefixSize = varint32Size$1(written);
 			if (lenPrefixSize != lenPrefixSizeGuess) buf.copyWithin(start + lenPrefixSize, start + lenPrefixSizeGuess, start + lenPrefixSizeGuess + written);
 			this.uint32(written);
 			this.pos += written;
 			return this;
 		}
 		float(value) {
-			assertFloat32(value);
+			assertFloat32$1(value);
 			this.ensureCapacity(4);
 			this.view().setFloat32(this.pos, value, true);
 			this.pos += 4;
@@ -3641,25 +3628,25 @@ var vot = (function(exports) {
 			return this;
 		}
 		fixed32(value) {
-			assertUInt32(value);
+			assertUInt32$1(value);
 			this.ensureCapacity(4);
 			this.view().setUint32(this.pos, value, true);
 			this.pos += 4;
 			return this;
 		}
 		sfixed32(value) {
-			assertInt32(value);
+			assertInt32$1(value);
 			this.ensureCapacity(4);
 			this.view().setInt32(this.pos, value, true);
 			this.pos += 4;
 			return this;
 		}
 		sint32(value) {
-			assertInt32(value);
+			assertInt32$1(value);
 			return this.uint32((value << 1 ^ value >> 31) >>> 0);
 		}
 		sfixed64(value) {
-			const tc = protoInt64.enc(value);
+			const tc = protoInt64$1.enc(value);
 			this.ensureCapacity(8);
 			const view = this.view();
 			view.setInt32(this.pos, tc.lo, true);
@@ -3668,7 +3655,7 @@ var vot = (function(exports) {
 			return this;
 		}
 		fixed64(value) {
-			const tc = protoInt64.uEnc(value);
+			const tc = protoInt64$1.uEnc(value);
 			this.ensureCapacity(8);
 			const view = this.view();
 			view.setInt32(this.pos, tc.lo, true);
@@ -3677,15 +3664,15 @@ var vot = (function(exports) {
 			return this;
 		}
 		int64(value) {
-			const tc = protoInt64.enc(value);
+			const tc = protoInt64$1.enc(value);
 			return this.writeVarint64(tc.lo, tc.hi);
 		}
 		sint64(value) {
-			const tc = protoInt64.enc(value), sign = tc.hi >> 31, lo = tc.lo << 1 ^ sign, hi = (tc.hi << 1 | tc.lo >>> 31) ^ sign;
+			const tc = protoInt64$1.enc(value), sign = tc.hi >> 31, lo = tc.lo << 1 ^ sign, hi = (tc.hi << 1 | tc.lo >>> 31) ^ sign;
 			return this.writeVarint64(lo, hi);
 		}
 		uint64(value) {
-			const tc = protoInt64.uEnc(value);
+			const tc = protoInt64$1.uEnc(value);
 			return this.writeVarint64(tc.lo, tc.hi);
 		}
 		writeVarint64(lo, hi) {
@@ -3722,25 +3709,25 @@ var vot = (function(exports) {
 			return this;
 		}
 	};
-	var INITIAL_SIZE = 128;
-	var DEFAULT_LEN_PREFIX_SIZE = 1;
-	var EMPTY_BUFFER = new Uint8Array(0);
-	var EMPTY_VIEW = new DataView(EMPTY_BUFFER.buffer);
-	var ASCII_MAX_LENGTH = 32;
-	function varint32Size(value) {
+	var INITIAL_SIZE$1 = 128;
+	var DEFAULT_LEN_PREFIX_SIZE$1 = 1;
+	var EMPTY_BUFFER$1 = new Uint8Array(0);
+	var EMPTY_VIEW$1 = new DataView(EMPTY_BUFFER$1.buffer);
+	var ASCII_MAX_LENGTH$1 = 32;
+	function varint32Size$1(value) {
 		if (value < 128) return 1;
 		if (value < 16384) return 2;
 		if (value < 2097152) return 3;
 		if (value < 268435456) return 4;
 		return 5;
 	}
-	var BinaryReader = class {
-		constructor(buf, decodeUtf8 = getTextEncoding().decodeUtf8) {
+	var BinaryReader$1 = class {
+		constructor(buf, decodeUtf8 = getTextEncoding$1().decodeUtf8) {
 			this.decodeUtf8 = decodeUtf8;
 			this.varint64Lo = 0;
 			this.varint64Hi = 0;
-			this.varint64 = varint64read;
-			this.uint32 = varint32read;
+			this.varint64 = varint64read$1;
+			this.uint32 = varint32read$1;
 			this.buf = buf;
 			this.len = buf.length;
 			this.pos = 0;
@@ -3759,22 +3746,22 @@ var vot = (function(exports) {
 		skip(wireType, fieldNo, recursionLimit = 100) {
 			let start = this.pos;
 			switch (wireType) {
-				case WireType.Varint:
+				case WireType$1.Varint:
 					while (this.buf[this.pos++] & 128);
 					break;
-				case WireType.Bit64: this.pos += 4;
-				case WireType.Bit32:
+				case WireType$1.Bit64: this.pos += 4;
+				case WireType$1.Bit32:
 					this.pos += 4;
 					break;
-				case WireType.LengthDelimited:
+				case WireType$1.LengthDelimited:
 					let len = this.uint32();
 					this.pos += len;
 					break;
-				case WireType.StartGroup:
+				case WireType$1.StartGroup:
 					if (recursionLimit <= 0) throw new Error("maximum recursion depth reached");
 					for (;;) {
 						const [fn, wt] = this.tag();
-						if (wt === WireType.EndGroup) {
+						if (wt === WireType$1.EndGroup) {
 							if (fieldNo !== void 0 && fn !== fieldNo) throw new Error("invalid end group tag");
 							break;
 						}
@@ -3798,11 +3785,11 @@ var vot = (function(exports) {
 		}
 		int64() {
 			this.varint64();
-			return protoInt64.dec(this.varint64Lo, this.varint64Hi);
+			return protoInt64$1.dec(this.varint64Lo, this.varint64Hi);
 		}
 		uint64() {
 			this.varint64();
-			return protoInt64.uDec(this.varint64Lo, this.varint64Hi);
+			return protoInt64$1.uDec(this.varint64Lo, this.varint64Hi);
 		}
 		sint64() {
 			this.varint64();
@@ -3811,7 +3798,7 @@ var vot = (function(exports) {
 			let s = -(lo & 1);
 			lo = (lo >>> 1 | (hi & 1) << 31) ^ s;
 			hi = hi >>> 1 ^ s;
-			return protoInt64.dec(lo, hi);
+			return protoInt64$1.dec(lo, hi);
 		}
 		bool() {
 			const b = this.buf[this.pos];
@@ -3829,10 +3816,10 @@ var vot = (function(exports) {
 			return this.view.getInt32((this.pos += 4) - 4, true);
 		}
 		fixed64() {
-			return protoInt64.uDec(this.sfixed32(), this.sfixed32());
+			return protoInt64$1.uDec(this.sfixed32(), this.sfixed32());
 		}
 		sfixed64() {
-			return protoInt64.dec(this.sfixed32(), this.sfixed32());
+			return protoInt64$1.dec(this.sfixed32(), this.sfixed32());
 		}
 		float() {
 			return this.view.getFloat32((this.pos += 4) - 4, true);
@@ -3849,7 +3836,7 @@ var vot = (function(exports) {
 		string(strict) {
 			const bytes = this.bytes();
 			const len = bytes.length;
-			if (len <= ASCII_MAX_LENGTH) {
+			if (len <= ASCII_MAX_LENGTH$1) {
 				const codes = new Array(len);
 				for (let i = 0; i < len; i++) {
 					const byte = bytes[i];
@@ -3861,17 +3848,17 @@ var vot = (function(exports) {
 			return this.decodeUtf8(bytes, strict);
 		}
 	};
-	function assertInt32(arg) {
+	function assertInt32$1(arg) {
 		if (typeof arg == "string") arg = Number(arg);
 		else if (typeof arg != "number") throw new Error("invalid int32: " + typeof arg);
 		if (!Number.isInteger(arg) || arg > 2147483647 || arg < -2147483648) throw new Error("invalid int32: " + arg);
 	}
-	function assertUInt32(arg) {
+	function assertUInt32$1(arg) {
 		if (typeof arg == "string") arg = Number(arg);
 		else if (typeof arg != "number") throw new Error("invalid uint32: " + typeof arg);
 		if (!Number.isInteger(arg) || arg > 4294967295 || arg < 0) throw new Error("invalid uint32: " + arg);
 	}
-	function assertFloat32(arg) {
+	function assertFloat32$1(arg) {
 		if (typeof arg == "string") {
 			const o = arg;
 			arg = Number(arg);
@@ -3879,7 +3866,7 @@ var vot = (function(exports) {
 		} else if (typeof arg != "number") throw new Error("invalid float32: " + typeof arg);
 		if (!Number.isFinite(Math.fround(arg)) && Number.isFinite(arg)) throw new Error("invalid float32: " + arg);
 	}
-	// node_modules/@vot.js/shared/dist/protos/yandex.js
+	// ../vot.js/packages/shared/dist/protos/yandex.js
 	var StreamInterval;
 	(function(StreamInterval) {
 		StreamInterval[StreamInterval["NO_CONNECTION"] = 0] = "NO_CONNECTION";
@@ -3914,13 +3901,13 @@ var vot = (function(exports) {
 		};
 	}
 	var VideoTranslationHelpObject = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.target !== "") writer.uint32(10).string(message.target);
 			if (message.targetUrl !== "") writer.uint32(18).string(message.targetUrl);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseVideoTranslationHelpObject();
 			while (reader.pos < end) {
@@ -3983,7 +3970,7 @@ var vot = (function(exports) {
 		};
 	}
 	var VideoTranslationRequest = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.url !== "") writer.uint32(26).string(message.url);
 			if (message.deviceId !== void 0) writer.uint32(34).string(message.deviceId);
 			if (message.firstRequest !== false) writer.uint32(40).bool(message.firstRequest);
@@ -4003,7 +3990,7 @@ var vot = (function(exports) {
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseVideoTranslationRequest();
 			while (reader.pos < end) {
@@ -4160,7 +4147,7 @@ var vot = (function(exports) {
 		};
 	}
 	var VideoTranslationResponse = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.url !== void 0) writer.uint32(10).string(message.url);
 			if (message.duration !== void 0) writer.uint32(17).double(message.duration);
 			if (message.status !== 0) writer.uint32(32).int32(message.status);
@@ -4176,7 +4163,7 @@ var vot = (function(exports) {
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseVideoTranslationResponse();
 			while (reader.pos < end) {
@@ -4298,7 +4285,7 @@ var vot = (function(exports) {
 		};
 	}
 	var VideoTranslationCacheItem = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.status !== 0) writer.uint32(8).int32(message.status);
 			if (message.remainingTime !== void 0) writer.uint32(16).int32(message.remainingTime);
 			if (message.message !== void 0) writer.uint32(26).string(message.message);
@@ -4309,7 +4296,7 @@ var vot = (function(exports) {
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseVideoTranslationCacheItem();
 			while (reader.pos < end) {
@@ -4387,7 +4374,7 @@ var vot = (function(exports) {
 		};
 	}
 	var VideoTranslationCacheRequest = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.url !== "") writer.uint32(10).string(message.url);
 			if (message.duration !== 0) writer.uint32(17).double(message.duration);
 			if (message.language !== "") writer.uint32(26).string(message.language);
@@ -4395,7 +4382,7 @@ var vot = (function(exports) {
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseVideoTranslationCacheRequest();
 			while (reader.pos < end) {
@@ -4458,13 +4445,13 @@ var vot = (function(exports) {
 		};
 	}
 	var VideoTranslationCacheResponse = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.default !== void 0) VideoTranslationCacheItem.encode(message.default, writer.uint32(10).fork()).join();
 			if (message.cloning !== void 0) VideoTranslationCacheItem.encode(message.cloning, writer.uint32(18).fork()).join();
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseVideoTranslationCacheResponse();
 			while (reader.pos < end) {
@@ -4513,13 +4500,13 @@ var vot = (function(exports) {
 		};
 	}
 	var VideoLangCacheRequest = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.url !== "") writer.uint32(10).string(message.url);
 			if (message.title !== "") writer.uint32(18).string(message.title);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseVideoLangCacheRequest();
 			while (reader.pos < end) {
@@ -4569,14 +4556,14 @@ var vot = (function(exports) {
 		};
 	}
 	var VideoLangCacheResponse = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.url !== "") writer.uint32(10).string(message.url);
 			if (message.status !== 0) writer.uint32(24).int32(message.status);
 			if (message.unknown1 !== 0) writer.uint32(40).int32(message.unknown1);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseVideoLangCacheResponse();
 			while (reader.pos < end) {
@@ -4632,13 +4619,13 @@ var vot = (function(exports) {
 		};
 	}
 	var AudioBufferObject = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.audioFile.length !== 0) writer.uint32(18).bytes(message.audioFile);
 			if (message.fileId !== "") writer.uint32(10).string(message.fileId);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseAudioBufferObject();
 			while (reader.pos < end) {
@@ -4687,13 +4674,13 @@ var vot = (function(exports) {
 		};
 	}
 	var PartialAudioBufferObject = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.audioFile.length !== 0) writer.uint32(18).bytes(message.audioFile);
 			if (message.chunkId !== 0) writer.uint32(8).int32(message.chunkId);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBasePartialAudioBufferObject();
 			while (reader.pos < end) {
@@ -4744,7 +4731,7 @@ var vot = (function(exports) {
 		};
 	}
 	var ChunkAudioObject = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.audioBuffer !== void 0) PartialAudioBufferObject.encode(message.audioBuffer, writer.uint32(10).fork()).join();
 			if (message.audioPartsLength !== 0) writer.uint32(16).int32(message.audioPartsLength);
 			if (message.fileId !== "") writer.uint32(26).string(message.fileId);
@@ -4752,7 +4739,7 @@ var vot = (function(exports) {
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseChunkAudioObject();
 			while (reader.pos < end) {
@@ -4817,7 +4804,7 @@ var vot = (function(exports) {
 		};
 	}
 	var VideoTranslationAudioRequest = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.translationId !== "") writer.uint32(10).string(message.translationId);
 			if (message.url !== "") writer.uint32(18).string(message.url);
 			if (message.partialAudioInfo !== void 0) ChunkAudioObject.encode(message.partialAudioInfo, writer.uint32(34).fork()).join();
@@ -4825,7 +4812,7 @@ var vot = (function(exports) {
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseVideoTranslationAudioRequest();
 			while (reader.pos < end) {
@@ -4888,13 +4875,13 @@ var vot = (function(exports) {
 		};
 	}
 	var VideoTranslationAudioResponse = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.status !== 0) writer.uint32(8).int32(message.status);
 			for (const v of message.remainingChunks) writer.uint32(18).string(v);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseVideoTranslationAudioResponse();
 			while (reader.pos < end) {
@@ -4948,7 +4935,7 @@ var vot = (function(exports) {
 		};
 	}
 	var SubtitlesObject = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.language !== "") writer.uint32(10).string(message.language);
 			if (message.url !== "") writer.uint32(18).string(message.url);
 			if (message.hasTranslation !== false) writer.uint32(24).bool(message.hasTranslation);
@@ -4959,7 +4946,7 @@ var vot = (function(exports) {
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseSubtitlesObject();
 			while (reader.pos < end) {
@@ -5043,13 +5030,13 @@ var vot = (function(exports) {
 		};
 	}
 	var SubtitlesRequest = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.url !== "") writer.uint32(10).string(message.url);
 			if (message.language !== "") writer.uint32(18).string(message.language);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseSubtitlesRequest();
 			while (reader.pos < end) {
@@ -5098,13 +5085,13 @@ var vot = (function(exports) {
 		};
 	}
 	var SubtitlesResponse = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.waiting !== false) writer.uint32(8).bool(message.waiting);
 			for (const v of message.subtitles) SubtitlesObject.encode(v, writer.uint32(18).fork()).join();
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseSubtitlesResponse();
 			while (reader.pos < end) {
@@ -5153,13 +5140,13 @@ var vot = (function(exports) {
 		};
 	}
 	var StreamTranslationObject = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.url !== "") writer.uint32(10).string(message.url);
 			if (message.timestamp !== "") writer.uint32(18).string(message.timestamp);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseStreamTranslationObject();
 			while (reader.pos < end) {
@@ -5211,7 +5198,7 @@ var vot = (function(exports) {
 		};
 	}
 	var StreamTranslationRequest = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.url !== "") writer.uint32(10).string(message.url);
 			if (message.language !== "") writer.uint32(18).string(message.language);
 			if (message.responseLanguage !== "") writer.uint32(26).string(message.responseLanguage);
@@ -5220,7 +5207,7 @@ var vot = (function(exports) {
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseStreamTranslationRequest();
 			while (reader.pos < end) {
@@ -5291,14 +5278,14 @@ var vot = (function(exports) {
 		};
 	}
 	var StreamTranslationResponse = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.interval !== 0) writer.uint32(8).int32(message.interval);
 			if (message.translatedInfo !== void 0) StreamTranslationObject.encode(message.translatedInfo, writer.uint32(18).fork()).join();
 			if (message.pingId !== void 0) writer.uint32(24).int32(message.pingId);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseStreamTranslationResponse();
 			while (reader.pos < end) {
@@ -5351,12 +5338,12 @@ var vot = (function(exports) {
 		return { pingId: 0 };
 	}
 	var StreamPingRequest = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.pingId !== 0) writer.uint32(8).int32(message.pingId);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseStreamPingRequest();
 			while (reader.pos < end) {
@@ -5396,13 +5383,13 @@ var vot = (function(exports) {
 		};
 	}
 	var YandexSessionRequest = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.uuid !== "") writer.uint32(10).string(message.uuid);
 			if (message.module !== "") writer.uint32(18).string(message.module);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseYandexSessionRequest();
 			while (reader.pos < end) {
@@ -5451,13 +5438,13 @@ var vot = (function(exports) {
 		};
 	}
 	var YandexSessionResponse = {
-		encode(message, writer = new BinaryWriter()) {
+		encode(message, writer = new BinaryWriter$1()) {
 			if (message.secretKey !== "") writer.uint32(10).string(message.secretKey);
 			if (message.expires !== 0) writer.uint32(16).int32(message.expires);
 			return writer;
 		},
 		decode(input, length) {
-			const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+			const reader = input instanceof BinaryReader$1 ? input : new BinaryReader$1(input);
 			const end = length === void 0 ? reader.len : reader.pos + length;
 			const message = createBaseYandexSessionResponse();
 			while (reader.pos < end) {
@@ -5521,13 +5508,13 @@ var vot = (function(exports) {
 	function isSet(value) {
 		return value !== null && value !== void 0;
 	}
-	// node_modules/@vot.js/shared/dist/types/helpers/bannedvideo.js
+	// ../vot.js/packages/shared/dist/types/helpers/bannedvideo.js
 	var TypeName;
 	(function(TypeName) {
 		TypeName["Channel"] = "Channel";
 		TypeName["Video"] = "Video";
 	})(TypeName || (TypeName = {}));
-	// node_modules/@vot.js/ext/dist/helpers/loom.js
+	// ../vot.js/packages/ext/dist/helpers/loom.js
 	var LoomHelper = class extends BaseHelper {
 		getClientVersion() {
 			if (typeof SENTRY_RELEASE === "undefined") return;
@@ -5570,7 +5557,7 @@ var vot = (function(exports) {
 			return /(embed|share)\/([^/]+)?/.exec(url.pathname)?.[2];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/mailru.js
+	// ../vot.js/packages/ext/dist/helpers/mailru.js
 	var MailRuHelper = class extends BaseHelper {
 		API_ORIGIN = "https://my.mail.ru";
 		async getVideoMeta(videoId) {
@@ -5591,7 +5578,7 @@ var vot = (function(exports) {
 			return videoData.meta.url.replace("//my.mail.ru/", "");
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/mediafile.js
+	// ../vot.js/packages/ext/dist/helpers/mediafile.js
 	var MediafileHelper = class extends BaseHelper {
 		DEFAULT_SITE_ORIGIN = "https://mediafile.cc";
 		SITE_ORIGIN = this.service?.url?.slice(0, -1) ?? this.DEFAULT_SITE_ORIGIN;
@@ -5611,7 +5598,7 @@ var vot = (function(exports) {
 			return url.pathname.replace(/^\/+/, "") || void 0;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/netacad.js
+	// ../vot.js/packages/ext/dist/helpers/netacad.js
 	var NetacadHelper = class extends VideoJSHelper {
 		SUBTITLE_SOURCE = "netacad";
 		async getVideoData(videoId) {
@@ -5623,20 +5610,20 @@ var vot = (function(exports) {
 			return url.pathname + url.search;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/newgrounds.js
+	// ../vot.js/packages/ext/dist/helpers/newgrounds.js
 	var NewgroundsHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /([^/]+)\/(view)\/([^/]+)/.exec(url.pathname)?.[0];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/niconico.js
+	// ../vot.js/packages/ext/dist/helpers/niconico.js
 	var NicoNicoHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			if (url.hostname === "nico.ms") return url.pathname.replace(/^\//, "").split("/")[0] || void 0;
 			return /\/watch\/([^/?#]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/nine_gag.js
+	// ../vot.js/packages/ext/dist/helpers/nine_gag.js
 	var NineGAGHelper = class extends BaseHelper {
 		async getVideoData(videoId) {
 			const data = this.returnBaseData(videoId);
@@ -5660,7 +5647,7 @@ var vot = (function(exports) {
 			return /gag\/([^/]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/players/jwplayer.js
+	// ../vot.js/packages/ext/dist/players/jwplayer.js
 	function isVideoFile(source) {
 		const mimeType = source.mimeType || source.type;
 		const type = typeof mimeType === "string" ? mimeType.toLowerCase().split(";")[0].trim() : "";
@@ -5796,7 +5783,7 @@ var vot = (function(exports) {
 			return subtitles;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/noodlemagazine.js
+	// ../vot.js/packages/ext/dist/helpers/noodlemagazine.js
 	var NoodleMagazineHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.pathname.slice(1);
@@ -5805,7 +5792,7 @@ var vot = (function(exports) {
 			return new JWPlayerHelper().getVideoData(videoId);
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/odysee.js
+	// ../vot.js/packages/ext/dist/helpers/odysee.js
 	var OdyseeHelper = class extends BaseHelper {
 		API_ORIGIN = "https://odysee.com";
 		async getVideoData(videoId) {
@@ -5815,19 +5802,19 @@ var vot = (function(exports) {
 			return url.pathname.slice(1);
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/okru.js
+	// ../vot.js/packages/ext/dist/helpers/okru.js
 	var OKRuHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /\/video\/(\d+)/.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/olympicsreplay.js
+	// ../vot.js/packages/ext/dist/helpers/olympicsreplay.js
 	var OlympicsReplayHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /\/([a-z]{2}\/(?:[a-z0-9-]+\/)?(?:replay|videos?|original-series\/episode)\/[\w-]+)\/?$/i.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/oraclelearn.js
+	// ../vot.js/packages/ext/dist/helpers/oraclelearn.js
 	var OracleLearnHelper = class extends VideoJSHelper {
 		SUBTITLE_SOURCE = "oraclelearn";
 		async getVideoData(videoId) {
@@ -5855,7 +5842,7 @@ var vot = (function(exports) {
 			return /\/ou\/course\/(([^/]+)\/(\d+)\/(\d+))/.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/patreon.js
+	// ../vot.js/packages/ext/dist/helpers/patreon.js
 	var PatreonHelper = class extends BaseHelper {
 		API_ORIGIN = "https://www.patreon.com/api";
 		async getPosts(postId) {
@@ -5879,7 +5866,7 @@ var vot = (function(exports) {
 			return fullPostId.replace(/[^\d.]/g, "");
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/peertube.js
+	// ../vot.js/packages/ext/dist/helpers/peertube.js
 	var PeertubeHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			const normalizedPathname = url.pathname.replace(/\/+$/, "");
@@ -5889,19 +5876,19 @@ var vot = (function(exports) {
 			if (shortVideoId) return `/videos/watch/${shortVideoId}`;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/picarto.js
+	// ../vot.js/packages/ext/dist/helpers/picarto.js
 	var PicartoHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /\/((?:videopopout|[^/]+(?:\/profile)?\/videos)\/[^/?#&/]+)\/?$/.exec(url.pathname)?.[1] ?? /^\/([^/#?]+)\/?$/.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/pornhub.js
+	// ../vot.js/packages/ext/dist/helpers/pornhub.js
 	var PornhubHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.searchParams.get("viewkey") ?? /embed\/([^/]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/porntn.js
+	// ../vot.js/packages/ext/dist/helpers/porntn.js
 	var PornTNHelper = class extends BaseHelper {
 		async getVideoData(videoId) {
 			try {
@@ -5927,7 +5914,7 @@ var vot = (function(exports) {
 			return /\/videos\/(([^/]+)\/([^/]+))/.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/preservetube.js
+	// ../vot.js/packages/ext/dist/helpers/preservetube.js
 	var PreserveTubeHelper = class extends BaseHelper {
 		async getVideoData(videoId) {
 			try {
@@ -5943,7 +5930,7 @@ var vot = (function(exports) {
 			return url.searchParams.get("v") ?? void 0;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/reddit.js
+	// ../vot.js/packages/ext/dist/helpers/reddit.js
 	var RedditHelper = class extends BaseHelper {
 		API_ORIGIN = "https://www.reddit.com";
 		async getDashAudioUrl(dashUrl) {
@@ -5977,7 +5964,7 @@ var vot = (function(exports) {
 			return /\/r\/(([^/]+)\/([^/]+)\/([^/]+)\/([^/]+))/.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/rtnews.js
+	// ../vot.js/packages/ext/dist/helpers/rtnews.js
 	var RtNewsHelper = class extends BaseHelper {
 		async getVideoData(videoId) {
 			const videoEl = document.querySelector(".jw-video, .media__video_noscript");
@@ -5994,7 +5981,7 @@ var vot = (function(exports) {
 			return url.pathname.slice(1);
 		}
 	};
-	// node_modules/@vot.js/ext/dist/players/flowplayer.js
+	// ../vot.js/packages/ext/dist/players/flowplayer.js
 	var FlowplayerHelper = class {
 		SUBTITLE_SOURCE = "flowplayer";
 		SUBTITLE_FORMAT = "vtt";
@@ -6037,7 +6024,7 @@ var vot = (function(exports) {
 			return [];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/rule34video.js
+	// ../vot.js/packages/ext/dist/helpers/rule34video.js
 	var Rule34VideoHelper = class extends BaseHelper {
 		resolveVideoIdViaPostMessage(url) {
 			return new Promise((resolve) => {
@@ -6086,19 +6073,19 @@ var vot = (function(exports) {
 			return tail ? `${id}/${tail.replace(/\/+$/, "")}/` : id;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/rumble.js
+	// ../vot.js/packages/ext/dist/helpers/rumble.js
 	var RumbleHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.pathname.slice(1);
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/rutube.js
+	// ../vot.js/packages/ext/dist/helpers/rutube.js
 	var RutubeHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /(?:video|embed)\/([^/]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/sap.js
+	// ../vot.js/packages/ext/dist/helpers/sap.js
 	var SapHelper = class extends BaseHelper {
 		API_ORIGIN = "https://learning.sap.com/";
 		async requestKaltura(kalturaDomain, partnerId, entryId) {
@@ -6190,7 +6177,7 @@ var vot = (function(exports) {
 			return /((courses|learning-journeys)\/([^/]+)(\/[^/]+)?)/.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/skilljar.js
+	// ../vot.js/packages/ext/dist/helpers/skilljar.js
 	var SkilljarHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.pathname.slice(1);
@@ -6199,7 +6186,7 @@ var vot = (function(exports) {
 			return new JWPlayerHelper().getVideoData(videoId);
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/spankbang.js
+	// ../vot.js/packages/ext/dist/helpers/spankbang.js
 	var SpankBangHelper = class extends VideoJSHelper {
 		SUBTITLE_SOURCE = "spankbang";
 		TECH_EL_SELECTOR = "video.vjs-tech, video[id$=\"_html5_api\"], video[src]:not([id^=\"video_dropdown_\"]), video:not([id^=\"video_dropdown_\"])";
@@ -6223,7 +6210,7 @@ var vot = (function(exports) {
 			return /\/([\da-z]+\/(?:video|play|embed)(?:\/[^/]+)?)\/?$/i.exec(url.pathname)?.[1] ?? /\/([\da-z]+-[\da-z]+\/playlist\/[^/]+)\/?$/i.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/telegram.js
+	// ../vot.js/packages/ext/dist/helpers/telegram.js
 	var TelegramHelper = class TelegramHelper extends BaseHelper {
 		static getMediaViewer() {
 			if (typeof appMediaViewer === "undefined") return;
@@ -6242,13 +6229,13 @@ var vot = (function(exports) {
 			return `${await mediaViewer.managers.appPeersManager.getPeerUsername(message.peerId)}/${postId}`;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/thisvid.js
+	// ../vot.js/packages/ext/dist/helpers/thisvid.js
 	var ThisVidHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /(videos|embed)\/[^/]+/.exec(url.pathname)?.[0];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/tiktok.js
+	// ../vot.js/packages/ext/dist/helpers/tiktok.js
 	var TikTokHelper = class TikTokHelper extends BaseHelper {
 		static PLAYER_CLASS = ".tiktok-web-player";
 		static getPlayer(video) {
@@ -6293,7 +6280,7 @@ var vot = (function(exports) {
 			return `${authorUsername}/video/${parsedVideoId}`;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/trovo.js
+	// ../vot.js/packages/ext/dist/helpers/trovo.js
 	var TrovoHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			const vid = url.searchParams.get("vid");
@@ -6302,7 +6289,7 @@ var vot = (function(exports) {
 			return `${path}?vid=${vid}`;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/twitch.js
+	// ../vot.js/packages/ext/dist/helpers/twitch.js
 	var TwitchHelper = class extends BaseHelper {
 		API_ORIGIN = "https://clips.twitch.tv";
 		async getClipLink(pathname, clipId) {
@@ -6344,7 +6331,7 @@ var vot = (function(exports) {
 			return document.querySelector(".persistent-player") ? pathname : void 0;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/twitter.js
+	// ../vot.js/packages/ext/dist/helpers/twitter.js
 	var TwitterHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			const videoId = /status\/([^/]+)/.exec(url.pathname)?.[1];
@@ -6353,7 +6340,7 @@ var vot = (function(exports) {
 			return newLink ? /status\/([^/]+)/.exec(newLink)?.[1] : void 0;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/udemy.js
+	// ../vot.js/packages/ext/dist/helpers/udemy.js
 	function isObject$1(value) {
 		return typeof value === "object" && value !== null;
 	}
@@ -6595,7 +6582,7 @@ var vot = (function(exports) {
 			return url.pathname.slice(1);
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/vk.js
+	// ../vot.js/packages/ext/dist/helpers/vk.js
 	var VKHelper = class VKHelper extends BaseHelper {
 		static getPlayer() {
 			if (typeof Videoview === "undefined") return;
@@ -6640,13 +6627,13 @@ var vot = (function(exports) {
 			if (paramOID && paramID) return `video-${Math.abs(parseInt(paramOID, 10))}_${paramID}`;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/watchpornto.js
+	// ../vot.js/packages/ext/dist/helpers/watchpornto.js
 	var WatchPornToHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /(video|embed)\/(\d+)(\/[^/]+\/)?/.exec(url.pathname)?.[0];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/weibo.js
+	// ../vot.js/packages/ext/dist/helpers/weibo.js
 	var weiboVideoIdRe = /^\d+:(?:[\da-f]{32}|\d{16,})$/i;
 	var weiboLayerIdRe = /^[A-Za-z0-9]+$/;
 	var weiboHostRe = /^(?:www\.)?weibo\.com$/;
@@ -6689,7 +6676,7 @@ var vot = (function(exports) {
 		getRandomValues = webCrypto.getRandomValues.bind(webCrypto);
 		randomUUID = typeof webCrypto.randomUUID === "function" ? webCrypto.randomUUID.bind(webCrypto) : void 0;
 	}));
-	// node_modules/@vot.js/shared/dist/secure.js
+	// ../vot.js/packages/shared/dist/secure.js
 	var { componentVersion, chromiumRevision } = config_default$1;
 	async function getCrypto() {
 		if (typeof window !== "undefined" && window.crypto) return window.crypto;
@@ -6743,11 +6730,11 @@ var vot = (function(exports) {
 		}
 	}
 	var browserSecHeaders = {
-		"sec-ch-ua": `"Not;A=Brand";v="8", "Chromium";v="150", "YaBrowser";v="${componentVersion.slice(0, 5)}", "Yowser";v="2.5"`,
-		"sec-ch-ua-full-version-list": `"Not;A=Brand";v="8.0.0.0", "Chromium";v="150.0.7871.${chromiumRevision}", "YaBrowser";v="${componentVersion}", "Yowser";v="2.5"`,
+		"sec-ch-ua": `"Chromium";v="152", "Not?A_Brand";v="24", "YaBrowser";v="${componentVersion.slice(0, 5)}", "Yowser";v="2.5"`,
+		"sec-ch-ua-full-version-list": `"Chromium";v="152.0.7977.${chromiumRevision}", "Not?A_Brand";v="24.0.0.0", "YaBrowser";v="${componentVersion}", "Yowser";v="2.5"`,
 		"Sec-Fetch-Mode": "no-cors"
 	};
-	// node_modules/@vot.js/ext/dist/helpers/weverse.js
+	// ../vot.js/packages/ext/dist/helpers/weverse.js
 	var WeverseHelper = class extends BaseHelper {
 		API_ORIGIN = "https://global.apis.naver.com/weverse/wevweb";
 		API_APP_ID = "be4d79eb8fc7bd008ee82c8ec4ff6fd4";
@@ -6855,7 +6842,7 @@ var vot = (function(exports) {
 			return /([^/]+)\/(live|media)\/([^/]+)/.exec(url.pathname)?.[3];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/xhamster.js
+	// ../vot.js/packages/ext/dist/helpers/xhamster.js
 	var XHamsterHelper = class extends BaseHelper {
 		SUBTITLE_SOURCE = "xhamster";
 		SUBTITLE_FORMAT = "vtt";
@@ -6882,13 +6869,13 @@ var vot = (function(exports) {
 			return /\/(videos\/[^/]+-[\dA-Za-z]+)\/?$/.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/xvideos.js
+	// ../vot.js/packages/ext/dist/helpers/xvideos.js
 	var XVideosHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /[^/]+\/[^/]+$/.exec(url.pathname)?.[0];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/yandexdisk.js
+	// ../vot.js/packages/ext/dist/helpers/yandexdisk.js
 	var YandexDiskHelper = class extends BaseHelper {
 		API_ORIGIN = window.location.origin;
 		CLIENT_PREFIX = "/client/disk";
@@ -7044,13 +7031,13 @@ var vot = (function(exports) {
 			return /\/d\/([^/]+)/.exec(url.pathname) ? url.pathname : void 0;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/youku.js
+	// ../vot.js/packages/ext/dist/helpers/youku.js
 	var YoukuHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /v_show\/id_[\w=]+/.exec(url.pathname)?.[0];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/youtube.js
+	// ../vot.js/packages/ext/dist/helpers/youtube.js
 	var YoutubeHelper = class YoutubeHelper extends BaseHelper {
 		static isMobile() {
 			return /^m\.youtube\.com$/.test(window.location.hostname);
@@ -7200,7 +7187,7 @@ var vot = (function(exports) {
 			return YoutubeHelper.extractVideoId(url);
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/zdf.js
+	// ../vot.js/packages/ext/dist/helpers/zdf.js
 	var zdfPlayPathRe = /^\/play\/([^/?#]+)\/([^/?#]+)\/([^/?#]+)\/?$/i;
 	var ZDFHelper = class extends BaseHelper {
 		async getVideoId(url) {
@@ -7210,41 +7197,19 @@ var vot = (function(exports) {
 			return `${publicationForm}/${collectionCanonical}/${videoCanonical}`;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/wistia.js
+	// ../vot.js/packages/ext/dist/helpers/wistia.js
 	var WistiaHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return /\/embed\/iframe\/([^/]+)/.exec(url.pathname)?.[1];
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/abcnews.js
-	var AbcNewsHelper = class extends BaseHelper {
-		async getVideoId(url) {
-			return url.href;
-		}
-		async getVideoData(videoId) {
-			const articleId = /\/video\/(\d+)/.exec(videoId)?.[1];
-			if (!articleId) return { url: videoId };
-			try {
-				const html = await (await this.fetch(videoId)).text();
-				const match = new RegExp(`"link":"[^"]*/video/${articleId}/?","duration":"[^"]*","durationISO":"PT(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)S)?"`).exec(html);
-				if (!match) return { url: videoId };
-				const [, hours = 0, minutes = 0, seconds = 0] = match;
-				return {
-					url: videoId,
-					duration: Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds) || void 0
-				};
-			} catch {
-				return { url: videoId };
-			}
-		}
-	};
-	// node_modules/@vot.js/ext/dist/helpers/bfmtv.js
+	// ../vot.js/packages/ext/dist/helpers/bfmtv.js
 	var BfmTvHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.href;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/videopress.js
+	// ../vot.js/packages/ext/dist/helpers/videopress.js
 	var VideoPressHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			const source = getVideoSrc(this.video ?? querySelectorDeep("video"));
@@ -7264,67 +7229,55 @@ var vot = (function(exports) {
 			}
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/vidlii.js
+	// ../vot.js/packages/ext/dist/helpers/vidlii.js
 	var VidliiHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.href;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/cbsnews.js
-	var CBSNewsHelper = class extends BaseHelper {
-		async getVideoId(url) {
-			return url.href;
-		}
-	};
-	// node_modules/@vot.js/ext/dist/helpers/nytimes.js
+	// ../vot.js/packages/ext/dist/helpers/nytimes.js
 	var NYTimesHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.href;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/wsj.js
+	// ../vot.js/packages/ext/dist/helpers/wsj.js
 	var WSJHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.href;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/acfun.js
+	// ../vot.js/packages/ext/dist/helpers/acfun.js
 	var AcFunHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.href;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/gettr.js
+	// ../vot.js/packages/ext/dist/helpers/gettr.js
 	var GettrHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.href;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/huya.js
+	// ../vot.js/packages/ext/dist/helpers/huya.js
 	var HuyaHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.href;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/medaltv.js
+	// ../vot.js/packages/ext/dist/helpers/medaltv.js
 	var MedalTvHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.href;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/redgifs.js
+	// ../vot.js/packages/ext/dist/helpers/redgifs.js
 	var RedgifsHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.href;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/pinterest.js
-	var PinterestHelper = class extends BaseHelper {
-		async getVideoId(url) {
-			return url.href;
-		}
-	};
-	// node_modules/@vot.js/ext/dist/helpers/navertv.js
+	// ../vot.js/packages/ext/dist/helpers/navertv.js
 	var NaverTVHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			if (!/^\/shorts\/?$/.test(url.pathname)) return url.href;
@@ -7350,31 +7303,25 @@ var vot = (function(exports) {
 			return playback?.MPD?.flatMap((mpd) => mpd.Period ?? []).flatMap((period) => period.AdaptationSet ?? []).flatMap((set) => set.Representation ?? []).filter((video) => !video.SegmentTemplate).flatMap((video) => video.BaseURL ?? []).find((stream) => /^https?:\/\/.*\.mp4(?:[?#]|$)/i.test(stream));
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/chzzk.js
+	// ../vot.js/packages/ext/dist/helpers/chzzk.js
 	var CHZZKHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.href;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/zhihu.js
+	// ../vot.js/packages/ext/dist/helpers/zhihu.js
 	var ZhihuHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.href;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/snapchat.js
+	// ../vot.js/packages/ext/dist/helpers/snapchat.js
 	var SnapchatSpotlightHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.href;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/streamable.js
-	var StreamableHelper = class extends BaseHelper {
-		async getVideoId(url) {
-			return url.href;
-		}
-	};
-	// node_modules/@vot.js/ext/dist/helpers/beacon.js
+	// ../vot.js/packages/ext/dist/helpers/beacon.js
 	var BeaconHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.href;
@@ -7383,67 +7330,53 @@ var vot = (function(exports) {
 			return new JWPlayerHelper().getVideoData(videoId);
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/brightcove.js
+	// ../vot.js/packages/ext/dist/helpers/brightcove.js
 	var BrightcoveHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.href;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/craftsy.js
+	// ../vot.js/packages/ext/dist/helpers/craftsy.js
 	var CraftsyHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.href;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/jwplatform.js
+	// ../vot.js/packages/ext/dist/helpers/jwplatform.js
 	var JWPlatformHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.href;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/nzherald.js
+	// ../vot.js/packages/ext/dist/helpers/nzherald.js
 	var NZHeraldHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.href;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/onefootball.js
+	// ../vot.js/packages/ext/dist/helpers/onefootball.js
 	var OneFootballHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.href;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/spiegel.js
-	var SpiegelHelper = class extends BaseHelper {
-		async getVideoId(url) {
-			return url.href;
-		}
-	};
-	// node_modules/@vot.js/ext/dist/helpers/vidly.js
+	// ../vot.js/packages/ext/dist/helpers/vidly.js
 	var VidlyHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.href;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/cnn.js
-	var CNNHelper = class extends BaseHelper {
-		async getVideoId(url) {
-			return url.href;
-		}
-	};
-	// node_modules/@vot.js/ext/dist/helpers/bluesky.js
+	// ../vot.js/packages/ext/dist/helpers/bluesky.js
 	var BlueskyHelper = class extends BaseHelper {
 		async getVideoId(url) {
 			return url.href;
 		}
 	};
-	// node_modules/@vot.js/ext/dist/helpers/index.js
+	// ../vot.js/packages/ext/dist/helpers/index.js
 	var availableHelpers = {
-		[VideoService$1.abcnews]: AbcNewsHelper,
 		[VideoService$1.bfmtv]: BfmTvHelper,
 		[VideoService$1.videopress]: VideoPressHelper,
 		[VideoService$1.vidlii]: VidliiHelper,
-		[VideoService$1.cbsnews]: CBSNewsHelper,
 		[VideoService$1.nytimes]: NYTimesHelper,
 		[VideoService$1.wsj]: WSJHelper,
 		[VideoService$1.acfun]: AcFunHelper,
@@ -7451,21 +7384,17 @@ var vot = (function(exports) {
 		[VideoService$1.huya]: HuyaHelper,
 		[VideoService$1.medaltv]: MedalTvHelper,
 		[VideoService$1.redgifs]: RedgifsHelper,
-		[VideoService$1.pinterest]: PinterestHelper,
 		[VideoService$1.navertv]: NaverTVHelper,
 		[VideoService$1.chzzk]: CHZZKHelper,
 		[VideoService$1.zhihu]: ZhihuHelper,
 		[VideoService$1.snapchat]: SnapchatSpotlightHelper,
-		[VideoService$1.streamable]: StreamableHelper,
 		[VideoService$1.beacon]: BeaconHelper,
 		[VideoService$1.brightcove]: BrightcoveHelper,
 		[VideoService$1.craftsy]: CraftsyHelper,
 		[VideoService$1.jwplatform]: JWPlatformHelper,
 		[VideoService$1.nzherald]: NZHeraldHelper,
 		[VideoService$1.onefootball]: OneFootballHelper,
-		[VideoService$1.spiegel]: SpiegelHelper,
 		[VideoService$1.vidly]: VidlyHelper,
-		[VideoService$1.cnn]: CNNHelper,
 		[VideoService$1.bluesky]: BlueskyHelper,
 		[VideoService$1.mailru]: MailRuHelper,
 		[VideoService$1.weverse]: WeverseHelper,
@@ -7546,7 +7475,8 @@ var vot = (function(exports) {
 		[ExtVideoService.netacad]: NetacadHelper,
 		[ExtVideoService.mediafile]: MediafileHelper,
 		[ExtVideoService.skilljar]: SkilljarHelper,
-		[ExtVideoService.dropout]: DropoutHelper
+		[ExtVideoService.dropout]: DropoutHelper,
+		[ExtVideoService.edx]: EdxHelper
 	};
 	var VideoHelper = class {
 		helpersData;
@@ -7557,7 +7487,7 @@ var vot = (function(exports) {
 			return new availableHelpers[service](this.helpersData);
 		}
 	};
-	// node_modules/@vot.js/ext/dist/utils/videoData.js
+	// ../vot.js/packages/ext/dist/utils/videoData.js
 	function hasHelper(host) {
 		return host in availableHelpers;
 	}
@@ -12507,7 +12437,7 @@ var vot = (function(exports) {
 			this.observedRoots = new WeakSet();
 		}
 	};
-	// node_modules/@vot.js/core/dist/providers/base.js
+	// ../vot.js/packages/core/dist/providers/base.js
 	var BaseProvider = class {
 		host;
 		schema;
@@ -12585,7 +12515,7 @@ var vot = (function(exports) {
 			};
 		}
 	};
-	// node_modules/@vot.js/core/dist/client.js
+	// ../vot.js/packages/core/dist/client.js
 	var VOTJSError = class extends Error {
 		data;
 		constructor(message, data = void 0) {
@@ -12630,7 +12560,7 @@ var vot = (function(exports) {
 			this.provider.responseLang = lang;
 		}
 	};
-	// node_modules/@vot.js/core/dist/protobuf.js
+	// ../vot.js/packages/core/dist/protobuf.js
 	function encodeTranslationRequest(url, duration, requestLang, responseLang, translationHelp, { forceSourceLang = false, wasStream = false, videoTitle = "", bypassCache = false, useLivelyVoice = false, firstRequest = true } = {}) {
 		return VideoTranslationRequest.encode({
 			url,
@@ -12747,7 +12677,7 @@ var vot = (function(exports) {
 		encodeSessionRequest,
 		decodeSessionResponse
 	};
-	// node_modules/@vot.js/core/dist/types/providers/yandex.js
+	// ../vot.js/packages/core/dist/types/providers/yandex.js
 	var VideoTranslationStatus;
 	(function(VideoTranslationStatus) {
 		VideoTranslationStatus[VideoTranslationStatus["FAILED"] = 0] = "FAILED";
@@ -12774,7 +12704,7 @@ var vot = (function(exports) {
 		AudioDownloadType["WEB_MSE_PROXY"] = "web_mse_proxy";
 		AudioDownloadType["EMPTY_PLUG"] = "empty_plug";
 	})(AudioDownloadType || (AudioDownloadType = {}));
-	// node_modules/@vot.js/core/dist/providers/yandex.js
+	// ../vot.js/packages/core/dist/providers/yandex.js
 	var YandexProvider = class extends BaseProvider {
 		headers = {
 			"User-Agent": this.userAgent,
@@ -12983,7 +12913,7 @@ var vot = (function(exports) {
 			return YandexVOTProtobuf.decodeTranslationCacheResponse(res.data);
 		}
 	};
-	// node_modules/@vot.js/core/dist/providers/votworker.js
+	// ../vot.js/packages/core/dist/providers/votworker.js
 	var VOTNextWorkerProvider = class extends YandexProvider {
 		constructor(opts = {}) {
 			opts.host = opts.host ?? config_default$1.hostWorker;
@@ -13001,7 +12931,7 @@ var vot = (function(exports) {
 			}
 		}
 	};
-	// node_modules/@vot.js/ext/dist/client.js
+	// ../vot.js/packages/ext/dist/client.js
 	var VOTClient = class extends VOTClient$1 {
 		constructor(opts) {
 			super(opts);
@@ -14851,6 +14781,669 @@ var vot = (function(exports) {
 			audioFormatCapabilities: audio ? [audio] : [],
 			hdrModeBitmask: 3
 		};
+	}
+	// node_modules/@bufbuild/protobuf/dist/esm/wire/varint.js
+	function varint64read() {
+		const buf = this.buf;
+		let pos = this.pos;
+		let lo = 0;
+		let hi = 0;
+		for (let shift = 0; shift < 28; shift += 7) {
+			const b = buf[pos++];
+			lo |= (b & 127) << shift;
+			if ((b & 128) == 0) {
+				this.pos = pos;
+				this.assertBounds();
+				this.varint64Lo = lo;
+				this.varint64Hi = hi;
+				return;
+			}
+		}
+		const middleByte = buf[pos++];
+		lo |= (middleByte & 15) << 28;
+		hi = (middleByte & 112) >> 4;
+		if ((middleByte & 128) == 0) {
+			this.pos = pos;
+			this.assertBounds();
+			this.varint64Lo = lo;
+			this.varint64Hi = hi;
+			return;
+		}
+		for (let shift = 3; shift <= 31; shift += 7) {
+			const b = buf[pos++];
+			hi |= (b & 127) << shift;
+			if ((b & 128) == 0) {
+				this.pos = pos;
+				this.assertBounds();
+				this.varint64Lo = lo;
+				this.varint64Hi = hi;
+				return;
+			}
+		}
+		throw new Error("invalid varint");
+	}
+	var TWO_PWR_32_DBL = 4294967296;
+	function int64FromString(dec) {
+		const minus = dec[0] === "-";
+		if (minus) dec = dec.slice(1);
+		const base = 1e6;
+		let lowBits = 0;
+		let highBits = 0;
+		function add1e6digit(begin, end) {
+			const digit1e6 = Number(dec.slice(begin, end));
+			highBits *= base;
+			lowBits = lowBits * base + digit1e6;
+			if (lowBits >= TWO_PWR_32_DBL) {
+				highBits = highBits + (lowBits / TWO_PWR_32_DBL | 0);
+				lowBits = lowBits % TWO_PWR_32_DBL;
+			}
+		}
+		add1e6digit(-24, -18);
+		add1e6digit(-18, -12);
+		add1e6digit(-12, -6);
+		add1e6digit(-6);
+		return minus ? negate(lowBits, highBits) : newBits(lowBits, highBits);
+	}
+	function int64ToString(lo, hi) {
+		let bits = newBits(lo, hi);
+		const negative = bits.hi & 2147483648;
+		if (negative) bits = negate(bits.lo, bits.hi);
+		const result = uInt64ToString(bits.lo, bits.hi);
+		return negative ? "-" + result : result;
+	}
+	function uInt64ToString(lo, hi) {
+		({lo, hi} = toUnsigned(lo, hi));
+		if (hi <= 2097151) return String(TWO_PWR_32_DBL * hi + lo);
+		const low = lo & 16777215;
+		const mid = (lo >>> 24 | hi << 8) & 16777215;
+		const high = hi >> 16 & 65535;
+		let digitA = low + mid * 6777216 + high * 6710656;
+		let digitB = mid + high * 8147497;
+		let digitC = high * 2;
+		const base = 1e7;
+		if (digitA >= base) {
+			digitB += Math.floor(digitA / base);
+			digitA %= base;
+		}
+		if (digitB >= base) {
+			digitC += Math.floor(digitB / base);
+			digitB %= base;
+		}
+		return digitC.toString() + decimalFrom1e7WithLeadingZeros(digitB) + decimalFrom1e7WithLeadingZeros(digitA);
+	}
+	function toUnsigned(lo, hi) {
+		return {
+			lo: lo >>> 0,
+			hi: hi >>> 0
+		};
+	}
+	function newBits(lo, hi) {
+		return {
+			lo: lo | 0,
+			hi: hi | 0
+		};
+	}
+	function negate(lowBits, highBits) {
+		highBits = ~highBits;
+		if (lowBits) lowBits = ~lowBits + 1;
+		else highBits += 1;
+		return newBits(lowBits, highBits);
+	}
+	var decimalFrom1e7WithLeadingZeros = (digit1e7) => {
+		const partial = String(digit1e7);
+		return "0000000".slice(partial.length) + partial;
+	};
+	function varint32read() {
+		let b = this.buf[this.pos++];
+		if ((b & 128) === 0) {
+			this.assertBounds();
+			return b;
+		}
+		let result = b & 127;
+		b = this.buf[this.pos++];
+		result |= (b & 127) << 7;
+		if ((b & 128) === 0) {
+			this.assertBounds();
+			return result;
+		}
+		b = this.buf[this.pos++];
+		result |= (b & 127) << 14;
+		if ((b & 128) === 0) {
+			this.assertBounds();
+			return result;
+		}
+		b = this.buf[this.pos++];
+		result |= (b & 127) << 21;
+		if ((b & 128) === 0) {
+			this.assertBounds();
+			return result;
+		}
+		b = this.buf[this.pos++];
+		result |= (b & 15) << 28;
+		for (let readBytes = 5; (b & 128) !== 0 && readBytes < 10; readBytes++) b = this.buf[this.pos++];
+		if ((b & 128) !== 0) throw new Error("invalid varint");
+		this.assertBounds();
+		return result >>> 0;
+	}
+	// node_modules/@bufbuild/protobuf/dist/esm/proto-int64.js
+	var protoInt64 = makeInt64Support();
+	function makeInt64Support() {
+		const dv = new DataView(new ArrayBuffer(8));
+		if (typeof BigInt === "function" && typeof dv.getBigInt64 === "function" && typeof dv.getBigUint64 === "function" && typeof dv.setBigInt64 === "function" && typeof dv.setBigUint64 === "function" && (!!globalThis.Deno || !!globalThis.Bun || typeof process != "object" || typeof process.env != "object" || process.env.BUF_BIGINT_DISABLE !== "1")) {
+			const MIN = BigInt("-9223372036854775808");
+			const MAX = BigInt("9223372036854775807");
+			const UMIN = BigInt("0");
+			const UMAX = BigInt("18446744073709551615");
+			return {
+				zero: BigInt(0),
+				supported: true,
+				parse(value) {
+					const bi = typeof value == "bigint" ? value : BigInt(value);
+					if (bi > MAX || bi < MIN) throw new Error(`invalid int64: ${value}`);
+					return bi;
+				},
+				uParse(value) {
+					const bi = typeof value == "bigint" ? value : BigInt(value);
+					if (bi > UMAX || bi < UMIN) throw new Error(`invalid uint64: ${value}`);
+					return bi;
+				},
+				enc(value) {
+					dv.setBigInt64(0, this.parse(value), true);
+					return {
+						lo: dv.getInt32(0, true),
+						hi: dv.getInt32(4, true)
+					};
+				},
+				uEnc(value) {
+					dv.setBigInt64(0, this.uParse(value), true);
+					return {
+						lo: dv.getInt32(0, true),
+						hi: dv.getInt32(4, true)
+					};
+				},
+				dec(lo, hi) {
+					dv.setInt32(0, lo, true);
+					dv.setInt32(4, hi, true);
+					return dv.getBigInt64(0, true);
+				},
+				uDec(lo, hi) {
+					dv.setInt32(0, lo, true);
+					dv.setInt32(4, hi, true);
+					return dv.getBigUint64(0, true);
+				}
+			};
+		}
+		return {
+			zero: "0",
+			supported: false,
+			parse(value) {
+				if (typeof value != "string") value = value.toString();
+				assertInt64String(value);
+				return value;
+			},
+			uParse(value) {
+				if (typeof value != "string") value = value.toString();
+				assertUInt64String(value);
+				return value;
+			},
+			enc(value) {
+				if (typeof value != "string") value = value.toString();
+				assertInt64String(value);
+				return int64FromString(value);
+			},
+			uEnc(value) {
+				if (typeof value != "string") value = value.toString();
+				assertUInt64String(value);
+				return int64FromString(value);
+			},
+			dec(lo, hi) {
+				return int64ToString(lo, hi);
+			},
+			uDec(lo, hi) {
+				return uInt64ToString(lo, hi);
+			}
+		};
+	}
+	function assertInt64String(value) {
+		if (!/^-?[0-9]+$/.test(value)) throw new Error("invalid int64: " + value);
+	}
+	function assertUInt64String(value) {
+		if (!/^[0-9]+$/.test(value)) throw new Error("invalid uint64: " + value);
+	}
+	// node_modules/@bufbuild/protobuf/dist/esm/wire/text-encoding.js
+	var te$1;
+	function configureTextEncoding(textEncoding) {
+		var _a;
+		te$1 = Object.assign(Object.assign({}, textEncoding), { encodeUtf8Into: (_a = textEncoding.encodeUtf8Into) !== null && _a !== void 0 ? _a : emulateEncodeInto(textEncoding.encodeUtf8.bind(textEncoding)) });
+	}
+	function getTextEncoding() {
+		if (!te$1) {
+			const globals = globalThis;
+			if (!globals.TextEncoder || !globals.TextDecoder) throw new Error("encoding API missing: install TextEncoder and TextDecoder on globalThis");
+			const textEncoder = new globals.TextEncoder();
+			const textDecoder = new globals.TextDecoder();
+			let textDecoderStrict;
+			const config = {
+				encodeUtf8(text) {
+					return textEncoder.encode(text);
+				},
+				decodeUtf8(bytes, strict) {
+					if (strict) {
+						if (!textDecoderStrict) textDecoderStrict = new globals.TextDecoder("utf-8", { fatal: true });
+						return textDecoderStrict.decode(bytes);
+					}
+					return textDecoder.decode(bytes);
+				},
+				checkUtf8(text) {
+					try {
+						return true;
+					} catch (_) {
+						return false;
+					}
+				}
+			};
+			if (textEncoder.encodeInto) config.encodeUtf8Into = textEncoder.encodeInto.bind(textEncoder);
+			const nativeStringIsWellFormed = String.prototype.isWellFormed;
+			if (nativeStringIsWellFormed) config.checkUtf8 = (text) => {
+				return nativeStringIsWellFormed.call(text);
+			};
+			configureTextEncoding(config);
+		}
+		return te$1;
+	}
+	function emulateEncodeInto(encodeUtf8) {
+		return (text, dest) => {
+			const bytes = encodeUtf8(text);
+			dest.set(bytes);
+			return { written: bytes.byteLength };
+		};
+	}
+	// node_modules/@bufbuild/protobuf/dist/esm/wire/binary-encoding.js
+	var WireType;
+	(function(WireType) {
+		WireType[WireType["Varint"] = 0] = "Varint";
+		WireType[WireType["Bit64"] = 1] = "Bit64";
+		WireType[WireType["LengthDelimited"] = 2] = "LengthDelimited";
+		WireType[WireType["StartGroup"] = 3] = "StartGroup";
+		WireType[WireType["EndGroup"] = 4] = "EndGroup";
+		WireType[WireType["Bit32"] = 5] = "Bit32";
+	})(WireType || (WireType = {}));
+	var BinaryWriter = class {
+		constructor(encodeUtf8) {
+			this.stackPos = [];
+			this.encodeUtf8Into = encodeUtf8 ? emulateEncodeInto(encodeUtf8) : getTextEncoding().encodeUtf8Into;
+			this.buffer = EMPTY_BUFFER;
+			this.viewCache = EMPTY_VIEW;
+			this.pos = 0;
+		}
+		ensureCapacity(size) {
+			const required = this.pos + size;
+			if (required > this.buffer.length) {
+				let newLen = this.buffer.length || INITIAL_SIZE;
+				while (newLen < required) newLen *= 2;
+				const newBuf = new Uint8Array(newLen);
+				if (this.pos > 0) newBuf.set(this.buffer);
+				this.buffer = newBuf;
+			}
+		}
+		view() {
+			const bytes = this.buffer;
+			const view = this.viewCache;
+			if (view.byteLength === bytes.byteLength) return view;
+			const newView = new DataView(bytes.buffer);
+			this.viewCache = newView;
+			return newView;
+		}
+		finish() {
+			const result = this.buffer.slice(0, this.pos);
+			this.pos = 0;
+			this.stackPos = [];
+			return result;
+		}
+		fork() {
+			this.stackPos.push(this.pos);
+			this.ensureCapacity(DEFAULT_LEN_PREFIX_SIZE);
+			this.buffer[this.pos++] = 0;
+			return this;
+		}
+		join() {
+			const forkPos = this.stackPos.pop();
+			if (forkPos === void 0) throw new Error("invalid state, fork stack empty");
+			const len = this.pos - forkPos - DEFAULT_LEN_PREFIX_SIZE;
+			const lenPrefixSize = varint32Size(len);
+			if (lenPrefixSize > DEFAULT_LEN_PREFIX_SIZE) {
+				this.ensureCapacity(lenPrefixSize - DEFAULT_LEN_PREFIX_SIZE);
+				this.buffer.copyWithin(forkPos + lenPrefixSize, forkPos + DEFAULT_LEN_PREFIX_SIZE, this.pos);
+			}
+			this.pos = forkPos;
+			this.uint32(len);
+			this.pos += len;
+			return this;
+		}
+		tag(fieldNo, type) {
+			return this.uint32((fieldNo << 3 | type) >>> 0);
+		}
+		raw(chunk) {
+			this.ensureCapacity(chunk.length);
+			this.buffer.set(chunk, this.pos);
+			this.pos += chunk.length;
+			return this;
+		}
+		uint32(value) {
+			assertUInt32(value);
+			this.ensureCapacity(5);
+			if (value < 128) {
+				this.buffer[this.pos++] = value;
+				return this;
+			}
+			while (value > 127) {
+				this.buffer[this.pos++] = value & 127 | 128;
+				value >>>= 7;
+			}
+			this.buffer[this.pos++] = value;
+			return this;
+		}
+		int32(value) {
+			assertInt32(value);
+			if (value >= 0) return this.uint32(value);
+			this.ensureCapacity(10);
+			for (let i = 0; i < 9; i++) {
+				this.buffer[this.pos++] = value & 127 | 128;
+				value >>= 7;
+			}
+			this.buffer[this.pos++] = 1;
+			return this;
+		}
+		bool(value) {
+			this.ensureCapacity(1);
+			this.buffer[this.pos++] = value ? 1 : 0;
+			return this;
+		}
+		bytes(value) {
+			this.uint32(value.byteLength);
+			return this.raw(value);
+		}
+		string(value) {
+			if (typeof value !== "string") value = String(value);
+			const len = value.length;
+			if (len <= ASCII_MAX_LENGTH) {
+				this.ensureCapacity(len + 1);
+				const ascii = this.buffer;
+				let pos = this.pos;
+				ascii[pos++] = len;
+				let i = 0;
+				for (; i < len; i++) {
+					const code = value.charCodeAt(i);
+					if (code > 127) break;
+					ascii[pos++] = code;
+				}
+				if (i == len) {
+					this.pos = pos;
+					return this;
+				}
+			}
+			this.ensureCapacity(len * 3 + 5);
+			const lenPrefixSizeGuess = varint32Size(len);
+			const buf = this.buffer;
+			const start = this.pos;
+			const { written } = this.encodeUtf8Into(value, buf.subarray(start + lenPrefixSizeGuess));
+			const lenPrefixSize = varint32Size(written);
+			if (lenPrefixSize != lenPrefixSizeGuess) buf.copyWithin(start + lenPrefixSize, start + lenPrefixSizeGuess, start + lenPrefixSizeGuess + written);
+			this.uint32(written);
+			this.pos += written;
+			return this;
+		}
+		float(value) {
+			assertFloat32(value);
+			this.ensureCapacity(4);
+			this.view().setFloat32(this.pos, value, true);
+			this.pos += 4;
+			return this;
+		}
+		double(value) {
+			this.ensureCapacity(8);
+			this.view().setFloat64(this.pos, value, true);
+			this.pos += 8;
+			return this;
+		}
+		fixed32(value) {
+			assertUInt32(value);
+			this.ensureCapacity(4);
+			this.view().setUint32(this.pos, value, true);
+			this.pos += 4;
+			return this;
+		}
+		sfixed32(value) {
+			assertInt32(value);
+			this.ensureCapacity(4);
+			this.view().setInt32(this.pos, value, true);
+			this.pos += 4;
+			return this;
+		}
+		sint32(value) {
+			assertInt32(value);
+			return this.uint32((value << 1 ^ value >> 31) >>> 0);
+		}
+		sfixed64(value) {
+			const tc = protoInt64.enc(value);
+			this.ensureCapacity(8);
+			const view = this.view();
+			view.setInt32(this.pos, tc.lo, true);
+			view.setInt32(this.pos + 4, tc.hi, true);
+			this.pos += 8;
+			return this;
+		}
+		fixed64(value) {
+			const tc = protoInt64.uEnc(value);
+			this.ensureCapacity(8);
+			const view = this.view();
+			view.setInt32(this.pos, tc.lo, true);
+			view.setInt32(this.pos + 4, tc.hi, true);
+			this.pos += 8;
+			return this;
+		}
+		int64(value) {
+			const tc = protoInt64.enc(value);
+			return this.writeVarint64(tc.lo, tc.hi);
+		}
+		sint64(value) {
+			const tc = protoInt64.enc(value), sign = tc.hi >> 31, lo = tc.lo << 1 ^ sign, hi = (tc.hi << 1 | tc.lo >>> 31) ^ sign;
+			return this.writeVarint64(lo, hi);
+		}
+		uint64(value) {
+			const tc = protoInt64.uEnc(value);
+			return this.writeVarint64(tc.lo, tc.hi);
+		}
+		writeVarint64(lo, hi) {
+			this.ensureCapacity(10);
+			const buf = this.buffer;
+			let pos = this.pos;
+			for (let i = 0; i < 28; i = i + 7) {
+				const shift = lo >>> i;
+				const hasNext = !(shift >>> 7 == 0 && hi == 0);
+				buf[pos++] = (hasNext ? shift | 128 : shift) & 255;
+				if (!hasNext) {
+					this.pos = pos;
+					return this;
+				}
+			}
+			const splitBits = lo >>> 28 & 15 | (hi & 7) << 4;
+			const hasMoreBits = !(hi >> 3 == 0);
+			buf[pos++] = (hasMoreBits ? splitBits | 128 : splitBits) & 255;
+			if (!hasMoreBits) {
+				this.pos = pos;
+				return this;
+			}
+			for (let i = 3; i < 31; i = i + 7) {
+				const shift = hi >>> i;
+				const hasNext = !(shift >>> 7 == 0);
+				buf[pos++] = (hasNext ? shift | 128 : shift) & 255;
+				if (!hasNext) {
+					this.pos = pos;
+					return this;
+				}
+			}
+			buf[pos++] = hi >>> 31 & 1;
+			this.pos = pos;
+			return this;
+		}
+	};
+	var INITIAL_SIZE = 128;
+	var DEFAULT_LEN_PREFIX_SIZE = 1;
+	var EMPTY_BUFFER = new Uint8Array(0);
+	var EMPTY_VIEW = new DataView(EMPTY_BUFFER.buffer);
+	var ASCII_MAX_LENGTH = 32;
+	function varint32Size(value) {
+		if (value < 128) return 1;
+		if (value < 16384) return 2;
+		if (value < 2097152) return 3;
+		if (value < 268435456) return 4;
+		return 5;
+	}
+	var BinaryReader = class {
+		constructor(buf, decodeUtf8 = getTextEncoding().decodeUtf8) {
+			this.decodeUtf8 = decodeUtf8;
+			this.varint64Lo = 0;
+			this.varint64Hi = 0;
+			this.varint64 = varint64read;
+			this.uint32 = varint32read;
+			this.buf = buf;
+			this.len = buf.length;
+			this.pos = 0;
+			this.view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+		}
+		tag() {
+			const start = this.pos;
+			const tag = this.uint32();
+			const bytesRead = this.pos - start;
+			if (bytesRead > 5 || bytesRead == 5 && this.buf[this.pos - 1] > 15) throw new Error("illegal tag: varint overflows uint32");
+			const fieldNo = tag >>> 3;
+			const wireType = tag & 7;
+			if (fieldNo <= 0 || wireType > 5) throw new Error("illegal tag: field no " + fieldNo + " wire type " + wireType);
+			return [fieldNo, wireType];
+		}
+		skip(wireType, fieldNo, recursionLimit = 100) {
+			let start = this.pos;
+			switch (wireType) {
+				case WireType.Varint:
+					while (this.buf[this.pos++] & 128);
+					break;
+				case WireType.Bit64: this.pos += 4;
+				case WireType.Bit32:
+					this.pos += 4;
+					break;
+				case WireType.LengthDelimited:
+					let len = this.uint32();
+					this.pos += len;
+					break;
+				case WireType.StartGroup:
+					if (recursionLimit <= 0) throw new Error("maximum recursion depth reached");
+					for (;;) {
+						const [fn, wt] = this.tag();
+						if (wt === WireType.EndGroup) {
+							if (fieldNo !== void 0 && fn !== fieldNo) throw new Error("invalid end group tag");
+							break;
+						}
+						this.skip(wt, fn, recursionLimit - 1);
+					}
+					break;
+				default: throw new Error("cant skip wire type " + wireType);
+			}
+			this.assertBounds();
+			return this.buf.subarray(start, this.pos);
+		}
+		assertBounds() {
+			if (this.pos > this.len) throw new RangeError("premature EOF");
+		}
+		int32() {
+			return this.uint32() | 0;
+		}
+		sint32() {
+			let zze = this.uint32();
+			return zze >>> 1 ^ -(zze & 1);
+		}
+		int64() {
+			this.varint64();
+			return protoInt64.dec(this.varint64Lo, this.varint64Hi);
+		}
+		uint64() {
+			this.varint64();
+			return protoInt64.uDec(this.varint64Lo, this.varint64Hi);
+		}
+		sint64() {
+			this.varint64();
+			let lo = this.varint64Lo;
+			let hi = this.varint64Hi;
+			let s = -(lo & 1);
+			lo = (lo >>> 1 | (hi & 1) << 31) ^ s;
+			hi = hi >>> 1 ^ s;
+			return protoInt64.dec(lo, hi);
+		}
+		bool() {
+			const b = this.buf[this.pos];
+			if (b < 128) {
+				this.pos++;
+				return b !== 0;
+			}
+			this.varint64();
+			return this.varint64Lo !== 0 || this.varint64Hi !== 0;
+		}
+		fixed32() {
+			return this.view.getUint32((this.pos += 4) - 4, true);
+		}
+		sfixed32() {
+			return this.view.getInt32((this.pos += 4) - 4, true);
+		}
+		fixed64() {
+			return protoInt64.uDec(this.sfixed32(), this.sfixed32());
+		}
+		sfixed64() {
+			return protoInt64.dec(this.sfixed32(), this.sfixed32());
+		}
+		float() {
+			return this.view.getFloat32((this.pos += 4) - 4, true);
+		}
+		double() {
+			return this.view.getFloat64((this.pos += 8) - 8, true);
+		}
+		bytes() {
+			let len = this.uint32(), start = this.pos;
+			this.pos += len;
+			this.assertBounds();
+			return this.buf.subarray(start, start + len);
+		}
+		string(strict) {
+			const bytes = this.bytes();
+			const len = bytes.length;
+			if (len <= ASCII_MAX_LENGTH) {
+				const codes = new Array(len);
+				for (let i = 0; i < len; i++) {
+					const byte = bytes[i];
+					if (byte > 127) return this.decodeUtf8(bytes, strict);
+					codes[i] = byte;
+				}
+				return String.fromCharCode.apply(String, codes);
+			}
+			return this.decodeUtf8(bytes, strict);
+		}
+	};
+	function assertInt32(arg) {
+		if (typeof arg == "string") arg = Number(arg);
+		else if (typeof arg != "number") throw new Error("invalid int32: " + typeof arg);
+		if (!Number.isInteger(arg) || arg > 2147483647 || arg < -2147483648) throw new Error("invalid int32: " + arg);
+	}
+	function assertUInt32(arg) {
+		if (typeof arg == "string") arg = Number(arg);
+		else if (typeof arg != "number") throw new Error("invalid uint32: " + typeof arg);
+		if (!Number.isInteger(arg) || arg > 4294967295 || arg < 0) throw new Error("invalid uint32: " + arg);
+	}
+	function assertFloat32(arg) {
+		if (typeof arg == "string") {
+			const o = arg;
+			arg = Number(arg);
+			if (Number.isNaN(arg) && o !== "NaN") throw new Error("invalid float32: " + o);
+		} else if (typeof arg != "number") throw new Error("invalid float32: " + typeof arg);
+		if (!Number.isFinite(Math.fround(arg)) && Number.isFinite(arg)) throw new Error("invalid float32: " + arg);
 	}
 	// node_modules/googlevideo/dist/protos/generated/misc/common.js
 	var SeekSource = {
@@ -48278,4 +48871,4 @@ var vot = (function(exports) {
 	exports.bootstrapContentScript = bootstrapContentScript;
 	return exports;
 })({});
-//# debugId=7358c432-2648-4a21-a252-84a62f3e8005
+//# debugId=aebf3fc5-bde7-4442-910e-5c1d2a7997d7
