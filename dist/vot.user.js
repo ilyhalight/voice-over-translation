@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 配音翻译
 // @namespace      vot
-// @version        1.12.2
+// @version        1.12.4
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    Watch videos in other languages with voice-over translation and subtitles in any browser
 // @description:de Sieh dir Videos in anderen Sprachen mit Voice-over-Übersetzung und Untertiteln in jedem Browser an
@@ -277,7 +277,7 @@
 // @grant          GM.xmlHttpRequest
 // @grant          window.focus
 // ==/UserScript==
-(function(){try{var g=globalThis,k=Symbol.for("vot.debugIds"),s=(new Error().stack||"").replace(/(extension:\/\/)[^\/\s]+/g,"$1extension");if(s){g[k]||Object.defineProperty(g,k,{value:{}});g[k][s]={d:"aebf3fc5-bde7-4442-910e-5c1d2a7997d7",l:280}}}catch(e){}})();
+(function(){try{var g=globalThis,k=Symbol.for("vot.debugIds"),s=(new Error().stack||"").replace(/(extension:\/\/)[^\/\s]+/g,"$1extension");if(s){g[k]||Object.defineProperty(g,k,{value:{}});g[k][s]={d:"143ffc32-8e46-4f6c-82cb-b81e6d22a8dc",l:280}}}catch(e){}})();
 
 var vot = (function(exports) {
 	Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
@@ -9364,17 +9364,27 @@ var vot = (function(exports) {
 		return typeof DOMException !== "undefined" && anyErr instanceof DOMException && anyErr.name === "AbortError" || anyErr instanceof Error && anyErr.name === "AbortError" || anyErr?.message === "AbortError";
 	}
 	function categorizeFailure(error) {
-		const { status, error: nested } = error ?? {};
-		if (typeof status === "number" && status > 0) return `status:${status}`;
-		let text = "";
-		if (typeof error === "string") text = error;
-		else if (error instanceof Error) text = error.message;
-		else if (typeof nested === "string") text = nested;
-		const httpStatus = /\bHTTP (\d{3})\b/.exec(text);
-		if (httpStatus) return `status:${httpStatus[1]}`;
-		if (/time.?out/i.test(text)) return "timeout";
-		if (/abort/i.test(text)) return "abort";
-		if (/network|failed to fetch|connect|refused|offline|dns/i.test(text)) return "network";
+		if (!error) return "unknown";
+		const err = error;
+		const status = err.status ?? err.statusCode ?? err.response?.status ?? err.data?.status;
+		if (typeof status === "number" && Number.isInteger(status) && status >= 400 && status <= 599) return `status:${status}`;
+		const text = [
+			typeof error === "string" ? error : "",
+			err.message,
+			typeof err.error === "string" ? err.error : err.error?.message,
+			err.cause?.message,
+			typeof err.data?.data === "string" ? err.data.data : ""
+		].filter(Boolean).join(" ");
+		const statusMatch = /(?:\b(?:HTTP\s*|status\s*:?\s*)([1-5]\d{2})\b|\(([45]\d{2})\))/i.exec(text);
+		if (statusMatch) return `status:${statusMatch[1] ?? statusMatch[2]}`;
+		if (/time[-_\s]?out|timed\s*out|\bstall(?:s|ed|ing)?\b/i.test(text) || err.name === "TimeoutError") return "timeout";
+		if (/abort/i.test(text) || err.name === "AbortError" || err.code === 1 && (err.constructor?.name === "MediaError" || err.name === "MediaError")) return "abort";
+		if (/network|failed to fetch|connect|refused|offline|dns|load failed|terminated/i.test(text) || err.name === "NetworkError") return "network";
+		if (/decode|no audio context|no blob url|audio element is missing/i.test(text) || err.name === "EncodingError") return "decode";
+		if (/no\s+(?:[\w-]+\s+){0,3}audio\s+track|could\s+not\s+resolve\s+[\w-]+\s+audio\s+language|no\s+compatible\s+[\w-]+\s+format/i.test(text)) return "no_audio_track";
+		if (/config is unavailable|metadata is unavailable|client context is unavailable/i.test(text)) return "config_unavailable";
+		if (/empty (?:audio|mse stream)|without audio chunks/i.test(text)) return "empty_audio";
+		if (typeof err.name === "string" && err.name !== "Error" && err.name !== "Object" && /^[A-Za-z0-9_$]{1,40}$/.test(err.name)) return err.name;
 		return "unknown";
 	}
 	function makeAbortError(reason = "Aborted") {
@@ -10707,8 +10717,8 @@ var vot = (function(exports) {
 			session_failure: failure
 		});
 	}
-	function selectStrategyFailuresToReport(failures, downloadSucceeded) {
-		return (downloadSucceeded ? failures : failures.slice(0, -1)).filter(({ error }) => categorizeFailure(error) !== "abort").map((failure) => ({
+	function selectStrategyFailuresToReport(failures, downloadSucceeded, representativeError) {
+		return (downloadSucceeded ? failures : representativeError !== void 0 ? failures.filter((f) => f.error !== representativeError) : failures.slice(0, -1)).filter(({ error }) => categorizeFailure(error) !== "abort").map((failure) => ({
 			...failure,
 			recovered: downloadSucceeded
 		}));
@@ -10824,7 +10834,7 @@ var vot = (function(exports) {
 	}
 	function getRuntimeInfo() {
 		return {
-			version: "1.12.2",
+			version: "1.12.4",
 			environment: "master",
 			env: getEnvironmentInfo$1(),
 			debugIds: readDebugIdRegistry()
@@ -10835,7 +10845,7 @@ var vot = (function(exports) {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/x-sentry-envelope",
-				"X-Sentry-Auth": buildAuthHeader("1.12.2")
+				"X-Sentry-Auth": buildAuthHeader("1.12.4")
 			},
 			body: buildEnvelope(event),
 			forceGmXhr: true,
@@ -11342,7 +11352,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.12.2"), String(getGMInfo()?.script?.version || ""));
+		return resolveRuntimeLocaleVersion(String("1.12.4"), String(getGMInfo()?.script?.version || ""));
 	}
 	var LocalizationProvider = class {
 		lang;
@@ -31178,8 +31188,9 @@ var vot = (function(exports) {
 		[WEB_MSE_PROXY_STRATEGY]: (options) => getAudioFromBridge(options, WEB_MSE_PROXY_STRATEGY)
 	};
 	// src/audioDownloader/index.ts
-	function reportStrategyFailures(failures, downloadSucceeded) {
-		for (const { strategy, error, recovered } of selectStrategyFailuresToReport(failures, downloadSucceeded)) captureException(error, {
+	function reportStrategyFailure(failure) {
+		const { strategy, error, recovered } = failure;
+		captureException(error, {
 			source: "audio",
 			operation: "audioStrategy",
 			level: "warning",
@@ -31191,6 +31202,10 @@ var vot = (function(exports) {
 				audio_recovered: String(recovered)
 			}
 		});
+	}
+	function reportStrategyFailures(failures, downloadSucceeded, representativeError) {
+		const toReport = selectStrategyFailuresToReport(failures, downloadSucceeded, representativeError);
+		for (const failure of toReport) reportStrategyFailure(failure);
 	}
 	async function handleCommonAudioDownloadRequest({ audioDownloader, attemptedStrategy, translationId, videoId, signal, sourceLanguage }) {
 		const audioData = await strategies[attemptedStrategy]({
@@ -31402,15 +31417,18 @@ var vot = (function(exports) {
 					});
 				}
 				logger_default.error("Audio downloader. All audio download strategies failed", { videoId });
-				const lastError = failures.at(-1)?.error;
-				reportStrategyFailures(failures, false);
-				captureException(lastError, {
+				const representativeError = failures.findLast(({ error }) => {
+					const cat = categorizeFailure(error);
+					return cat !== "abort" && cat !== "unknown";
+				})?.error ?? failures.findLast(({ error }) => categorizeFailure(error) !== "abort")?.error ?? failures.at(-1)?.error;
+				reportStrategyFailures(failures, false, representativeError);
+				captureException(representativeError, {
 					source: "audio",
 					operation: "downloadSourceAudio",
 					dedupeKey: videoId,
 					redactedMessage: "All audio download strategies failed",
 					tags: {
-						...getAudioFailureTags(lastError, "download"),
+						...getAudioFailureTags(representativeError, "download"),
 						audio_strategies: attempts.join(",")
 					}
 				});
@@ -48871,4 +48889,4 @@ var vot = (function(exports) {
 	exports.bootstrapContentScript = bootstrapContentScript;
 	return exports;
 })({});
-//# debugId=aebf3fc5-bde7-4442-910e-5c1d2a7997d7
+//# debugId=143ffc32-8e46-4f6c-82cb-b81e6d22a8dc

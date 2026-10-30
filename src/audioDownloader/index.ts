@@ -1,4 +1,9 @@
-import { isAbortError, makeAbortError, toErrorMessage } from "#utils/errors.ts";
+import {
+  categorizeFailure,
+  isAbortError,
+  makeAbortError,
+  toErrorMessage,
+} from "#utils/errors.ts";
 import logger from "#utils/logger.ts";
 import { captureException } from "../modules/telemetry/client";
 import {
@@ -26,27 +31,37 @@ import type { AudioChunk } from "./strategies/audioChunks";
 
 // Not keyed by video: a broken strategy affects every video, and one warning
 // per strategy and outcome keeps the session event budget for other errors.
+function reportStrategyFailure(
+  failure: StrategyFailure & { recovered: boolean },
+): void {
+  const { strategy, error, recovered } = failure;
+  captureException(error, {
+    source: "audio",
+    operation: "audioStrategy",
+    level: "warning",
+    dedupeKey: `${strategy}:${recovered}`,
+    // Strategy errors can embed media urls and ids.
+    redactedMessage: `Audio strategy failed: ${strategy}`,
+    tags: {
+      ...getAudioFailureTags(error, "download"),
+      audio_strategy: strategy,
+      audio_recovered: String(recovered),
+    },
+  });
+}
+
 function reportStrategyFailures(
   failures: StrategyFailure[],
   downloadSucceeded: boolean,
+  representativeError?: unknown,
 ): void {
-  for (const { strategy, error, recovered } of selectStrategyFailuresToReport(
+  const toReport = selectStrategyFailuresToReport(
     failures,
     downloadSucceeded,
-  )) {
-    captureException(error, {
-      source: "audio",
-      operation: "audioStrategy",
-      level: "warning",
-      dedupeKey: `${strategy}:${recovered}`,
-      // Strategy errors can embed media urls and ids.
-      redactedMessage: `Audio strategy failed: ${strategy}`,
-      tags: {
-        ...getAudioFailureTags(error, "download"),
-        audio_strategy: strategy,
-        audio_recovered: String(recovered),
-      },
-    });
+    representativeError,
+  );
+  for (const failure of toReport) {
+    reportStrategyFailure(failure);
   }
 }
 
@@ -405,16 +420,23 @@ export class AudioDownloader {
       logger.error("Audio downloader. All audio download strategies failed", {
         videoId,
       });
-      const lastError = failures.at(-1)?.error;
-      reportStrategyFailures(failures, false);
-      captureException(lastError, {
+      const representativeError =
+        failures.findLast(({ error }) => {
+          const cat = categorizeFailure(error);
+          return cat !== "abort" && cat !== "unknown";
+        })?.error ??
+        failures.findLast(({ error }) => categorizeFailure(error) !== "abort")
+          ?.error ??
+        failures.at(-1)?.error;
+      reportStrategyFailures(failures, false, representativeError);
+      captureException(representativeError, {
         source: "audio",
         operation: "downloadSourceAudio",
         dedupeKey: videoId,
         // Strategy errors can embed media urls and ids.
         redactedMessage: "All audio download strategies failed",
         tags: {
-          ...getAudioFailureTags(lastError, "download"),
+          ...getAudioFailureTags(representativeError, "download"),
           audio_strategies: attempts.join(","),
         },
       });

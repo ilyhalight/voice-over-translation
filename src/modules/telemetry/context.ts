@@ -134,13 +134,22 @@ export type StrategyFailure = { strategy: string; error: unknown };
 
 /**
  * Failed download strategies worth a warning. When the whole download failed,
- * the last failure is excluded: the final download event already carries it.
+ * the representative failure is excluded: the final download event already
+ * carries it. Falls back to dropping the last failure when no representative
+ * is known.
  */
 export function selectStrategyFailuresToReport(
   failures: StrategyFailure[],
   downloadSucceeded: boolean,
+  representativeError?: unknown,
 ): (StrategyFailure & { recovered: boolean })[] {
-  return (downloadSucceeded ? failures : failures.slice(0, -1))
+  const filtered = downloadSucceeded
+    ? failures
+    : representativeError !== undefined
+      ? failures.filter((f) => f.error !== representativeError)
+      : failures.slice(0, -1);
+
+  return filtered
     .filter(({ error }) => categorizeFailure(error) !== "abort")
     .map((failure) => ({ ...failure, recovered: downloadSucceeded }));
 }
