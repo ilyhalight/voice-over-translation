@@ -68,6 +68,7 @@
     "autobuild": "bun run ./scripts/autobuild.ts",
     "autobuild:signed": "SIGN_FIREFOX=true bun run ./scripts/autobuild.ts",
     "sign:firefox": "bun run ./scripts/output/sign-firefox.ts",
+    "download:signed-xpi": "bun run ./scripts/output/download-signed-xpi.ts",
     "localize": "bunx \"@toil/localize-tui\"",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",

@@ -4,16 +4,48 @@ on:
   push:
     # Release tags start with a digit. The service tag `latest-prerelease` must not start a build.
     tags: ["[0-9]*"]
+  # Rebuild an already pushed tag by hand. Signing is off by default: AMO
+  # rejects a version that was already signed (e.g. after a failed release run),
+  # so a manual run must be able to publish unsigned artifacts.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build and publish (e.g. 1.12.4)"
+        required: true
+        type: string
+      sign_firefox:
+        description: "Sign the Firefox build with AMO (unlisted)"
+        required: false
+        type: boolean
+        default: false
+      use_amo_signed_xpi:
+        description: "Reuse the XPI already signed on AMO for this version"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
+
+env:
+  # Tag pushes build their own tag, manual runs build the tag from the input.
+  # The tag also selects the update channel in getReleaseDownloadBase.
+  RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      - name: Validate release tag
+        run: |
+          if [[ ! "${RELEASE_TAG}" =~ ^[0-9] ]]; then
+            echo "::error::Release tag must start with a digit, got '${RELEASE_TAG}'"
+            exit 1
+          fi
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_TAG }}
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -21,11 +53,27 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
       - name: Build and sign
+        if: ${{ github.event_name == 'push' || github.event.inputs.sign_firefox == 'true' }}
         run: bun run autobuild:signed
         env:
+          GITHUB_REF_NAME: ${{ env.RELEASE_TAG }}
           AMO_API_KEY: ${{ secrets.AMO_API_KEY }}
           AMO_API_SECRET: ${{ secrets.AMO_API_SECRET }}
           CHROME_EXTENSION_ID: dnioaagdjgpcokckfpokpndoblenmfcg
+      - name: Build
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.sign_firefox != 'true' }}
+        run: bun run autobuild
+        env:
+          GITHUB_REF_NAME: ${{ env.RELEASE_TAG }}
+          CHROME_EXTENSION_ID: dnioaagdjgpcokckfpokpndoblenmfcg
+      # Signing uploads a new version to AMO, which fails for a version that was
+      # already signed. Reuse the signed file AMO keeps for this version instead.
+      - name: Download signed XPI from AMO
+        if: ${{ github.event.inputs.use_amo_signed_xpi == 'true' && github.event.inputs.sign_firefox != 'true' }}
+        run: bun run download:signed-xpi
+        env:
+          AMO_API_KEY: ${{ secrets.AMO_API_KEY }}
+          AMO_API_SECRET: ${{ secrets.AMO_API_SECRET }}
       - name: Upload sourcemaps to Bugsink
         continue-on-error: true
         run: >-
@@ -50,10 +98,10 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_TAG }}
           draft: true
-          prerelease: ${{ contains(github.ref_name, 'beta') }}
+          prerelease: ${{ contains(env.RELEASE_TAG, 'beta') }}
           fail_on_unmatched_files: true
           files: &release-files |
             dist/vot.user.js
@@ -63,12 +111,12 @@ jobs:
             dist-ext/update.xml
             dist-ext/vot-extension-firefox-updates.json
       - name: Update latest prerelease
-        if: contains(github.ref_name, 'beta')
+        if: contains(env.RELEASE_TAG, 'beta')
         uses: softprops/action-gh-release@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: latest-prerelease
-          name: ${{ github.ref_name }}
+          name: ${{ env.RELEASE_TAG }}
           draft: false
           prerelease: true
           fail_on_unmatched_files: true
