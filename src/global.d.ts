@@ -3,21 +3,10 @@ import { JSX } from "solid-js";
 declare global {
   // Build-time globals injected by Vite define config.
   const DEBUG_MODE: boolean;
-  /**
-   * Defined only in the extension build (see vite/vite.extension.config.ts).
-   * Use `typeof IS_EXTENSION !== "undefined"` checks before reading.
-   */
+  /** `true` in the WXT extension build, `false` in the userscript build. */
   const IS_EXTENSION: boolean;
   const AVAILABLE_LOCALES: import("./types/localization").LangOverride[];
   const REPO_BRANCH: "master" | "dev";
-
-  /**
-   * Build-time injected CRXJS Chrome build flag.
-   * "true" in Chrome CRXJS builds, "false" in Firefox/userscript.
-   */
-  interface ImportMetaEnv {
-    readonly VITE_CRXJS_BUILD: string;
-  }
 
   /**
    * Build-time injected comma-separated author list (from `src/headers.json`).
@@ -49,11 +38,6 @@ declare global {
   // We intentionally keep these as `any` to avoid pulling in the huge
   // @types/chrome dependency for the core build.
   const chrome: any;
-
-  interface Window {
-    /** Safari legacy prefix for AudioContext */
-    webkitAudioContext?: typeof AudioContext;
-  }
 }
 
 // Allow style imports in TS files, including Vite's inline CSS string mode.
@@ -65,6 +49,9 @@ declare module "*.scss?inline" {
 
 declare module "solid-js" {
   namespace JSX {
+    interface ExplicitAttributes {
+      lang: string;
+    }
     interface IntrinsicElements {
       "vot-block": JSX.HTMLAttributes<HTMLElement>;
     }

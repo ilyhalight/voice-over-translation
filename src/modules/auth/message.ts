@@ -25,7 +25,7 @@ export function isAuthDataMessage(value: unknown): value is AuthDataMessage {
   );
 }
 
-export async function handleAuthCallbackPage() {
+function postAuthCallbackData(): void {
   if (globalThis.location.pathname !== "/verification_code") {
     return;
   }
@@ -50,4 +50,11 @@ export async function handleAuthCallbackPage() {
     "*",
   );
   globalThis.close();
+}
+
+export function handleAuthCallbackPage(): Promise<void> {
+  return new Promise<void>((resolve) => {
+    postAuthCallbackData();
+    resolve();
+  });
 }

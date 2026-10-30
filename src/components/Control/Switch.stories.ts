@@ -1,4 +1,7 @@
+import { createComponent, createSignal } from "solid-js";
+import { expect } from "storybook/test";
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
+import { render } from "../../ui/solid/renderer";
 
 import { Switch } from "./Switch";
 
@@ -65,5 +68,40 @@ export const SwitchWithDescriptionDisabled: Story = {
     heading: "Translate videos automatically",
     description: "Start translation when a supported video begins playing",
     disabled: true,
+  },
+};
+
+export const DisabledPreservesSelection: Story = {
+  play: async ({ canvasElement }) => {
+    const host = document.createElement("vot-block");
+    canvasElement.append(host);
+    const [disabled, setDisabled] = createSignal(false);
+    const dispose = render(
+      () =>
+        createComponent(Switch, {
+          get disabled() {
+            return disabled();
+          },
+        }) as Node,
+      host,
+    );
+    try {
+      const control = host.querySelector<HTMLInputElement>("input");
+      control?.click();
+      await expect(control).toBeChecked();
+      setDisabled(true);
+      await expect(control).toBeDisabled();
+      await expect(control).toBeChecked();
+      await expect(host.querySelector(".vot-switch-track")).toHaveAttribute(
+        "data-checked",
+        "true",
+      );
+      setDisabled(false);
+      await expect(control).toBeEnabled();
+      await expect(control).toBeChecked();
+    } finally {
+      dispose();
+      host.remove();
+    }
   },
 };

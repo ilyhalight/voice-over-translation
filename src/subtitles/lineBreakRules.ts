@@ -392,25 +392,38 @@ const SCRIPTIO_CONTINUA = new Set([
   "bo",
 ]);
 
-const getBaseLanguage = (locale?: string): string =>
-  (locale ?? "").toLowerCase().split(/[-_]/u)[0] ?? "";
+// Locale -> base language is resolved on every break candidate; memoize it so
+// the hot loop does not re-run toLowerCase()/split() per candidate.
+const baseLanguageCache = new Map<string, string>();
+
+const getBaseLanguage = (locale?: string): string => {
+  const key = locale ?? "";
+  let base = baseLanguageCache.get(key);
+  if (base === undefined) {
+    base = key.toLowerCase().split(/[-_]/u)[0] ?? "";
+    if (baseLanguageCache.size > 64) baseLanguageCache.clear();
+    baseLanguageCache.set(key, base);
+  }
+  return base;
+};
 
 export const isScriptioContinua = (locale?: string): boolean =>
   SCRIPTIO_CONTINUA.has(getBaseLanguage(locale));
 
-const WORD_CHARS_RE = /[^\p{L}\p{N}'\u2019]+/gu;
-
-const normalizeLexiconWord = (value: string): string =>
-  value.replaceAll(WORD_CHARS_RE, " ").trim().toLowerCase();
+// One pass over the text collecting runs of word characters. Equivalent to the
+// previous "replace non-word runs with spaces, trim, lowercase, split" chain
+// but without the intermediate strings/arrays.
+const WORD_RUN_RE = /[\p{L}\p{N}'\u2019]+/gu;
+const FIRST_WORD_RUN_RE = /[\p{L}\p{N}'\u2019]+/u;
 
 const lastWordOf = (text: string): string => {
-  const parts = normalizeLexiconWord(text).split(" ").filter(Boolean);
-  return parts.at(-1) ?? "";
+  const runs = text.match(WORD_RUN_RE);
+  return runs ? (runs.at(-1) ?? "").toLowerCase() : "";
 };
 
 const firstWordOf = (text: string): string => {
-  const parts = normalizeLexiconWord(text).split(" ").filter(Boolean);
-  return parts[0] ?? "";
+  const run = FIRST_WORD_RUN_RE.exec(text);
+  return run ? run[0].toLowerCase() : "";
 };
 
 const LINE_BREAK_PENALTY = {
@@ -428,9 +441,10 @@ export function getLinguisticBreakPenalty(
   afterText: string,
   locale?: string,
 ): number {
-  if (isScriptioContinua(locale)) return 0;
+  const baseLanguage = getBaseLanguage(locale);
+  if (SCRIPTIO_CONTINUA.has(baseLanguage)) return 0;
 
-  const lexicon = LEXICONS[getBaseLanguage(locale)] ?? EN;
+  const lexicon = LEXICONS[baseLanguage] ?? EN;
   const before = lastWordOf(beforeText);
   const after = firstWordOf(afterText);
   if (!before || !after) return 0;

@@ -1,6 +1,5 @@
 import { type JSX, splitProps } from "solid-js";
 
-import "./DetailsButton.scss";
 import { RawButton, type RawButtonProps } from "../Button/RawButton";
 import { ChevronIcon } from "../Icons/ChevronIcon";
 

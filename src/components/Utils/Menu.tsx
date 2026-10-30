@@ -1,6 +1,4 @@
-import { createUniqueId, type JSX, mergeProps, Show } from "solid-js";
-
-import "./Menu.scss";
+import { createUniqueId, type JSX, Show } from "solid-js";
 
 export type MenuProps = {
   title: JSX.Element;
@@ -10,8 +8,6 @@ export type MenuProps = {
 };
 
 export function Menu(props: MenuProps): JSX.Element {
-  const finalProps = mergeProps({} as Partial<MenuProps>, props);
-
   const menuId = `vot-menu-${createUniqueId()}`;
   const titleId = `vot-menu-title-${createUniqueId()}`;
 
@@ -31,18 +27,14 @@ export function Menu(props: MenuProps): JSX.Element {
       <vot-block class="vot-menu__header">
         <vot-block class="vot-menu__title-container">
           <vot-block class="vot-menu-title" id={titleId}>
-            {finalProps.title}
+            {props.title}
           </vot-block>
         </vot-block>
-        <Show when={finalProps.headerChildren}>
-          {finalProps.headerChildren}
-        </Show>
+        <Show when={props.headerChildren}>{props.headerChildren}</Show>
       </vot-block>
-      <vot-block class="vot-menu__body">{finalProps.children}</vot-block>
+      <vot-block class="vot-menu__body">{props.children}</vot-block>
       <vot-block class="vot-menu__footer">
-        <Show when={finalProps.footerChildren}>
-          {finalProps.footerChildren}
-        </Show>
+        <Show when={props.footerChildren}>{props.footerChildren}</Show>
       </vot-block>
     </vot-block>
   );

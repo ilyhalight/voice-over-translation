@@ -1,7 +1,5 @@
 import type { JSX } from "solid-js";
 
-import "./SliderWrapper.scss";
-
 export type SliderWrapperProps = {
   children: JSX.Element;
   ref?: (element: HTMLElement) => void;

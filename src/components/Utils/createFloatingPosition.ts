@@ -1,5 +1,4 @@
-import { type Accessor, onCleanup, onMount } from "solid-js";
-import { effect } from "solid-js/web";
+import { type Accessor, createEffect, onCleanup } from "solid-js";
 import { clamp } from "#utils/number.ts";
 
 const DEFAULT_GAP = 8;
@@ -188,63 +187,61 @@ export function createFloatingPosition(
     });
   };
 
-  onMount(() => {
-    effect(() => {
-      if (!options.isOpen()) {
+  createEffect(() => {
+    if (!options.isOpen()) {
+      return;
+    }
+
+    const popup = options.popup();
+    if (!popup) {
+      return;
+    }
+    const anchor = options.anchor();
+    const scrollTargets = getScrollTargets(anchor);
+    const handleScroll = (event: Event) => {
+      if (event.composedPath().includes(popup)) {
+        return;
+      }
+      if (options.onOutsideScroll) {
+        options.onOutsideScroll();
         return;
       }
 
-      const popup = options.popup();
-      if (!popup) {
-        return;
-      }
-      const anchor = options.anchor();
-      const scrollTargets = getScrollTargets(anchor);
-      const handleScroll = (event: Event) => {
-        if (event.composedPath().includes(popup)) {
-          return;
-        }
-        if (options.onOutsideScroll) {
-          options.onOutsideScroll();
-          return;
-        }
-
-        schedulePositionUpdate();
-      };
-
-      mountPopup(popup, anchor);
-      const resizeObserver = new ResizeObserver(schedulePositionUpdate);
-      const resizeTargets = new Set([
-        popup,
-        ...(options.resizeTargets?.() ?? []),
-      ]);
-      for (const target of resizeTargets) {
-        resizeObserver.observe(target);
-      }
       schedulePositionUpdate();
-      window.addEventListener("resize", schedulePositionUpdate);
-      for (const target of scrollTargets) {
-        target.addEventListener("scroll", handleScroll, true);
-      }
+    };
 
-      onCleanup(() => {
-        cancelPositionUpdate();
-        resizeObserver.disconnect();
-        stableOpensBelow = undefined;
-        popup.style.removeProperty(AVAILABLE_HEIGHT_PROPERTY);
-        window.removeEventListener("resize", schedulePositionUpdate);
-        for (const target of scrollTargets) {
-          target.removeEventListener("scroll", handleScroll, true);
-        }
-      });
-    });
+    mountPopup(popup, anchor);
+    const resizeObserver = new ResizeObserver(schedulePositionUpdate);
+    const resizeTargets = new Set([
+      popup,
+      ...(options.resizeTargets?.() ?? []),
+    ]);
+    for (const target of resizeTargets) {
+      resizeObserver.observe(target);
+    }
+    schedulePositionUpdate();
+    window.addEventListener("resize", schedulePositionUpdate);
+    for (const target of scrollTargets) {
+      target.addEventListener("scroll", handleScroll, true);
+    }
 
     onCleanup(() => {
       cancelPositionUpdate();
-      if (options.removeOnCleanup ?? true) {
-        mountedElement?.remove();
+      resizeObserver.disconnect();
+      stableOpensBelow = undefined;
+      popup.style.removeProperty(AVAILABLE_HEIGHT_PROPERTY);
+      window.removeEventListener("resize", schedulePositionUpdate);
+      for (const target of scrollTargets) {
+        target.removeEventListener("scroll", handleScroll, true);
       }
     });
+  });
+
+  onCleanup(() => {
+    cancelPositionUpdate();
+    if (options.removeOnCleanup ?? true) {
+      mountedElement?.remove();
+    }
   });
 
   return { update: schedulePositionUpdate };

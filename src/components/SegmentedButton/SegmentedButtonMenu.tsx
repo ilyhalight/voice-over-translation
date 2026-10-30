@@ -1,6 +1,5 @@
 import { createSignal, type JSX, mergeProps, Show } from "solid-js";
 
-import "./SegmentedButtonMenu.scss";
 import { VideoService } from "@vot.js/ext/types/service";
 import { getVideoID } from "@vot.js/ext/utils/videoData";
 import { availableLangs, availableTTS } from "@vot.js/shared/consts";

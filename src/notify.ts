@@ -11,7 +11,7 @@ type NotifySendOpts = {
    * If omitted, uses details.tag or details.title+details.text.
    */
   key?: string;
-  /** Cooldown globalThis in ms for notifications with the same key */
+  /** Cooldown window in ms for notifications with the same key */
   cooldownMs?: number;
 };
 
@@ -68,8 +68,8 @@ function resolveLocalizedErrorMessage(message: unknown): string {
 
 function trySendViaUserscriptApi(details: GMNotificationOptions): boolean {
   try {
-    // Important: many userscript managers expose GM_* as sandbox globals,
-    // not as properties on globalThis/globalThis.
+    // Many userscript managers expose GM_* as sandbox globals, not as
+    // properties on globalThis.
     if (typeof GM_notification === "function") {
       GM_notification(details);
       return true;
@@ -77,14 +77,7 @@ function trySendViaUserscriptApi(details: GMNotificationOptions): boolean {
 
     const gmApi = globalThis.GM;
     if (gmApi !== undefined && typeof gmApi.notification === "function") {
-      const gmDetails: GMNotificationOptions = {
-        text: details.text,
-        title: details.title,
-        image: details.image,
-        onclick: details.onclick,
-        ondone: details.ondone,
-      };
-      gmApi.notification(gmDetails);
+      gmApi.notification(details);
       return true;
     }
   } catch (err) {
@@ -166,8 +159,7 @@ export class Notifier {
         text: msg,
         timeout: 8000,
         silent: true,
-        // Keep legacy tag casing so existing notification replacement/dedupe continues to work.
-        tag: `VOTtranslationFailed_${videoId || "unknown"}`,
+        tag: `VOTTranslationFailed_${videoId || "unknown"}`,
         onclick: () => focusWindowSafely(),
       },
       // Errors can loop while polling; keep these non-spammy.

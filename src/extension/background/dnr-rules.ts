@@ -1,5 +1,5 @@
+import { browser, type Browser } from "wxt/browser";
 import debug from "../../utils/debug";
-import { dnrUpdateSessionRules, ext } from "../shared/webext";
 import {
   filterYandexHeadersForDnr,
   isYandexApiHostname,
@@ -26,18 +26,23 @@ const GOOGLEVIDEO_BASE_HEADERS: DnrRequestHeader[] = [
   { header: "x-client-data", operation: "remove" },
 ];
 
-function hasDnr(): boolean {
-  return Boolean(ext?.declarativeNetRequest?.updateSessionRules);
-}
-
-async function updateSessionRules(args: {
-  addRules?: unknown[];
-  removeRuleIds?: number[];
-}): Promise<void> {
-  await dnrUpdateSessionRules(args);
-}
-
 const FORBIDDEN_HEADERS = new Set(["user-agent", "origin", "referer"]);
+
+function createHeaderRule(
+  id: number,
+  requestHeaders: readonly DnrRequestHeader[],
+  urlFilter: string,
+): Browser.declarativeNetRequest.Rule {
+  return {
+    id,
+    priority: 1,
+    action: {
+      type: "modifyHeaders",
+      requestHeaders: [...requestHeaders],
+    },
+    condition: { urlFilter, resourceTypes: ["xmlhttprequest"] },
+  } as Browser.declarativeNetRequest.Rule;
+}
 
 export function isForbiddenToSetViaFetch(headerName: string): boolean {
   const n = headerName.trim().toLowerCase();
@@ -64,41 +69,34 @@ function signatureFromDnrRequestHeaders(
 async function queueDnrSessionRuleUpdate(
   ruleId: number,
   signature: string,
-  rule: unknown,
+  rule: Browser.declarativeNetRequest.Rule,
 ): Promise<boolean> {
   if (signature === dnrAppliedSignatures.get(ruleId)) {
     return false;
   }
 
-  const prev = dnrRuleUpdateQueue;
-  let releaseNext!: () => void;
-  dnrRuleUpdateQueue = new Promise<void>((resolve) => {
-    releaseNext = resolve;
-  });
-
-  try {
-    await prev;
-  } catch {
-    // Previous update failed; continue with next in queue.
-  }
-
-  try {
+  const update = dnrRuleUpdateQueue.then(async () => {
     if (signature !== dnrAppliedSignatures.get(ruleId)) {
-      await updateSessionRules({ removeRuleIds: [ruleId], addRules: [rule] });
+      await browser.declarativeNetRequest.updateSessionRules({
+        removeRuleIds: [ruleId],
+        addRules: [rule],
+      });
       dnrAppliedSignatures.set(ruleId, signature);
     }
     return true;
-  } finally {
-    releaseNext();
-  }
+  });
+  // A failed update still rejects its caller, but must not poison the queue.
+  dnrRuleUpdateQueue = update.then(
+    () => {},
+    () => {},
+  );
+  return update;
 }
 
 export async function ensureDnrHeaderRuleForYandex(
   url: string,
   forbiddenHeaders: Record<string, string>,
 ): Promise<void> {
-  if (!hasDnr()) return;
-
   let hostname = "";
   try {
     hostname = new URL(url).hostname;
@@ -126,15 +124,11 @@ export async function ensureDnrHeaderRuleForYandex(
   }
 
   const signature = signatureFromDnrRequestHeaders(requestHeaders);
-  const rule = {
-    id: DNR_RULE_ID_YANDEX_HEADERS,
-    priority: 1,
-    action: { type: "modifyHeaders", requestHeaders },
-    condition: {
-      urlFilter: "|https://api.browser.yandex.ru/",
-      resourceTypes: ["xmlhttprequest"],
-    },
-  };
+  const rule = createHeaderRule(
+    DNR_RULE_ID_YANDEX_HEADERS,
+    requestHeaders,
+    "|https://api.browser.yandex.ru/",
+  );
 
   await queueDnrSessionRuleUpdate(DNR_RULE_ID_YANDEX_HEADERS, signature, rule);
 }
@@ -162,21 +156,12 @@ function isGooglevideoUrl(url: string): boolean {
 }
 
 async function ensureDnrHeaderStripRule(
-  url: string,
-  isTargetUrl: (url: string) => boolean,
   ruleId: number,
   requestHeaders: DnrRequestHeader[],
   urlFilter: string,
 ): Promise<boolean> {
-  if (!hasDnr() || !isTargetUrl(url)) return false;
-
   const signature = signatureFromDnrRequestHeaders(requestHeaders);
-  const rule = {
-    id: ruleId,
-    priority: 1,
-    action: { type: "modifyHeaders", requestHeaders },
-    condition: { urlFilter, resourceTypes: ["xmlhttprequest"] },
-  };
+  const rule = createHeaderRule(ruleId, requestHeaders, urlFilter);
 
   debug.log("[VOT EXT][background][dnr] applying rule", {
     ruleId,
@@ -218,8 +203,6 @@ export async function ensureDnrOriginStripRuleForYoutubei(
   );
 
   return ensureDnrHeaderStripRule(
-    url,
-    isYoutubeMobileUrl,
     DNR_RULE_ID_YOUTUBEI_ORIGIN,
     requestHeaders,
     "||m.youtube.com/",
@@ -237,8 +220,6 @@ export async function ensureDnrStripRuleForGooglevideo(
   );
 
   return ensureDnrHeaderStripRule(
-    url,
-    isGooglevideoUrl,
     DNR_RULE_ID_GOOGLEVIDEO_HEADERS,
     requestHeaders,
     "||googlevideo.com/",
@@ -246,49 +227,37 @@ export async function ensureDnrStripRuleForGooglevideo(
 }
 
 export async function preseedDnrRules(): Promise<void> {
-  if (!hasDnr()) return;
-
-  try {
-    await updateSessionRules({
-      removeRuleIds: [
-        DNR_RULE_ID_YOUTUBEI_ORIGIN,
-        DNR_RULE_ID_GOOGLEVIDEO_HEADERS,
-      ],
-      addRules: [
-        {
-          id: DNR_RULE_ID_YOUTUBEI_ORIGIN,
-          priority: 1,
-          action: {
-            type: "modifyHeaders",
-            requestHeaders: YOUTUBEI_BASE_HEADERS,
-          },
-          condition: {
-            urlFilter: "||m.youtube.com/",
-            resourceTypes: ["xmlhttprequest"],
-          },
-        },
-        {
-          id: DNR_RULE_ID_GOOGLEVIDEO_HEADERS,
-          priority: 1,
-          action: {
-            type: "modifyHeaders",
-            requestHeaders: GOOGLEVIDEO_BASE_HEADERS,
-          },
-          condition: {
-            urlFilter: "||googlevideo.com/",
-            resourceTypes: ["xmlhttprequest"],
-          },
-        },
-      ],
-    });
-    dnrAppliedSignatures.set(
-      DNR_RULE_ID_YOUTUBEI_ORIGIN,
-      signatureFromDnrRequestHeaders(YOUTUBEI_BASE_HEADERS),
-    );
-    dnrAppliedSignatures.set(
+  const seeds = [
+    [DNR_RULE_ID_YOUTUBEI_ORIGIN, YOUTUBEI_BASE_HEADERS, "||m.youtube.com/"],
+    [
       DNR_RULE_ID_GOOGLEVIDEO_HEADERS,
-      signatureFromDnrRequestHeaders(GOOGLEVIDEO_BASE_HEADERS),
-    );
+      GOOGLEVIDEO_BASE_HEADERS,
+      "||googlevideo.com/",
+    ],
+  ] as const;
+  // Serialized through the shared queue: running outside it races with
+  // queueDnrSessionRuleUpdate (a request-specific rule could be clobbered and
+  // dnrAppliedSignatures would stop matching the installed session rules).
+  const update = dnrRuleUpdateQueue.then(async () => {
+    // Never overwrite a rule a request already installed via the queue.
+    const pending = seeds.filter(([id]) => !dnrAppliedSignatures.has(id));
+    if (!pending.length) return;
+    await browser.declarativeNetRequest.updateSessionRules({
+      removeRuleIds: pending.map(([id]) => id),
+      addRules: pending.map(([id, headers, urlFilter]) =>
+        createHeaderRule(id, headers, urlFilter),
+      ),
+    });
+    for (const [id, headers] of pending) {
+      dnrAppliedSignatures.set(id, signatureFromDnrRequestHeaders(headers));
+    }
+  });
+  dnrRuleUpdateQueue = update.then(
+    () => {},
+    () => {},
+  );
+  try {
+    await update;
     debug.log("[VOT EXT][background] DNR rules pre-seeded");
   } catch (e) {
     debug.warn("[VOT EXT][background] Failed to pre-seed DNR rules:", e);

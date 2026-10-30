@@ -9,7 +9,6 @@ import type { VideoObserver } from "../utils/VideoObserver";
 type VideoHandlerLike = {
   init(): Promise<void>;
   setCanPlay(): Promise<void>;
-  getVideoData(): Promise<unknown>;
   hasActiveSource(): boolean;
   replaceVideo(video: HTMLVideoElement): Promise<void>;
   site: ServiceConf;
@@ -81,6 +80,9 @@ export function bindObserverListeners(
   const videoContainers = new WeakMap<HTMLVideoElement, HTMLElement>();
   const pendingVideoByContainer = new WeakMap<HTMLElement, HTMLVideoElement>();
 
+  const canInitializeVideo = (video: HTMLVideoElement): boolean =>
+    video.isConnected && !videosWrappers.has(video);
+
   const clearContainerOwner = (
     video: HTMLVideoElement,
   ): HTMLElement | undefined => {
@@ -126,12 +128,6 @@ export function bindObserverListeners(
     return null;
   };
 
-  const withRuntimeSiteUrl = (site: ServiceConf): ServiceConf => {
-    return RUNTIME_URL_HOSTS.has(String(site.host))
-      ? { ...site, url: globalThis.location.origin }
-      : site;
-  };
-
   const tryReplaceVideo = async (
     oldVideo: HTMLVideoElement,
     newVideo: HTMLVideoElement,
@@ -145,7 +141,13 @@ export function bindObserverListeners(
 
     try {
       const nextVideoId = await resolveVideoId(videoHandler.site, newVideo);
-      if (nextVideoId !== previousVideoId) return false;
+      if (
+        nextVideoId !== previousVideoId ||
+        !newVideo.isConnected ||
+        videosWrappers.get(oldVideo) !== videoHandler
+      ) {
+        return false;
+      }
       await videoHandler.replaceVideo(newVideo);
     } catch (error) {
       logger.error("Failed to replace video element", error);
@@ -187,8 +189,14 @@ export function bindObserverListeners(
     initializingVideos.add(video);
 
     try {
-      const runtimeReady = await ensureRuntimeReady();
-      if (!runtimeReady) return;
+      try {
+        await ensureRuntimeActivated("video-detected");
+      } catch (err) {
+        logger.error("Failed to activate runtime", err);
+        reportInitError(err, "activateRuntime");
+        return;
+      }
+      if (!canInitializeVideo(video)) return;
 
       const match = getMatchedSiteAndContainer(video);
       if (!match) {
@@ -211,10 +219,13 @@ export function bindObserverListeners(
         clearContainerOwner(activeVideoForContainer);
       }
 
+      if (!canInitializeVideo(video)) return;
       const videoHandler = createVideoHandler(
         video,
         container,
-        withRuntimeSiteUrl(site),
+        RUNTIME_URL_HOSTS.has(String(site.host))
+          ? { ...site, url: globalThis.location.origin }
+          : site,
       );
       // Register before async init to prevent duplicate in-flight handlers.
       videosWrappers.set(video, videoHandler);
@@ -236,9 +247,6 @@ export function bindObserverListeners(
         if (videosWrappers.get(video) === videoHandler) {
           await releaseVideoHandler(video, "init failed");
           const container = clearContainerOwner(video);
-          if (container) {
-            pendingVideoByContainer.delete(container);
-          }
           await promotePendingVideo(container);
         }
         logger.error("Failed to initialize videoHandler", err);
@@ -246,17 +254,6 @@ export function bindObserverListeners(
       }
     } finally {
       initializingVideos.delete(video);
-    }
-  };
-
-  const ensureRuntimeReady = async (): Promise<boolean> => {
-    try {
-      await ensureRuntimeActivated("video-detected");
-      return true;
-    } catch (err) {
-      logger.error("Failed to activate runtime", err);
-      reportInitError(err, "activateRuntime");
-      return false;
     }
   };
 

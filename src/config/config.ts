@@ -1,7 +1,7 @@
 // CONFIGURATION
 
 import votConfig from "@vot.js/shared/config";
-import type { CompatibilityVersion } from "../types/storage";
+import type { CompatibilityVersion } from "../types/storage.ts";
 
 export const EXT_NAME_FALLBACK = "VOT";
 

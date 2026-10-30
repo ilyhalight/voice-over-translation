@@ -9,25 +9,34 @@ import {
 } from "../shared/bodySerialization";
 import type { AnyObject } from "../shared/constants";
 import { PORT_NAME, TYPE_XHR_ACK, TYPE_XHR_EVENT } from "../shared/constants";
+import { browser } from "wxt/browser";
 import { postToPage } from "../shared/transport";
-import { ext, runtimeMessagesUseStructuredClone } from "../shared/webext";
+import {
+  ExtensionContextInvalidatedError,
+  isContextInvalidatedError,
+  isExtensionContextValid,
+  lastErrorMessage,
+  runtimeMessagesUseStructuredClone,
+} from "../shared/webext";
 import {
   isYandexApiHostname,
   shouldStripYandexHeader,
 } from "../shared/yandexHeaders";
+import { formatBridgeRestartError } from "./lifecycle";
 
 type UaBrandVersion = { brand: string; version: string };
 type XhrPortState = {
+  readonly requestId: string;
   port: {
     onMessage: { addListener: (fn: (msg: AnyObject) => void) => void };
     onDisconnect: { addListener: (fn: () => void) => void };
     postMessage: (msg: AnyObject) => void;
     disconnect: () => void;
   };
+  url: string;
   responseType: string;
   chunks: ArrayBuffer[];
   totalBytes: number;
-  settled: boolean;
 };
 
 const UA_CH_CACHE_TTL_MS = 10 * 60 * 1000;
@@ -130,13 +139,8 @@ async function getCachedUaChHeaders(): Promise<
 
 function ensureHeadersObject(details: AnyObject): Record<string, string> {
   const raw = details?.headers;
-  if (!raw || typeof raw !== "object") {
-    const headers: Record<string, string> = {};
-    details.headers = headers;
-    return headers;
-  }
-
-  const headers = raw as Record<string, unknown>;
+  const headers: Record<string, unknown> =
+    raw && typeof raw === "object" ? raw : {};
   for (const [name, value] of Object.entries(headers)) {
     if (typeof value === "string") continue;
     if (typeof value === "number" || typeof value === "boolean") {
@@ -162,10 +166,9 @@ function mergeHeadersIfMissing(
   headers: Record<string, string>,
   additions: Readonly<Record<string, string>>,
 ): void {
-  const existingNames = new Set<string>();
-  for (const name of Object.keys(headers)) {
-    existingNames.add(name.toLowerCase());
-  }
+  const existingNames = new Set(
+    Object.keys(headers).map((name) => name.toLowerCase()),
+  );
 
   for (const [name, value] of Object.entries(additions)) {
     if (!value) continue;
@@ -176,22 +179,57 @@ function mergeHeadersIfMissing(
   }
 }
 
-function settleXhrPort(requestId: string, state: XhrPortState): void {
-  state.settled = true;
+function settleXhrPort(state: XhrPortState, abort = false): void {
+  if (!isRequestStateActive(state)) return;
+  xhrPorts.delete(state.requestId);
+  state.chunks.length = 0;
+  state.totalBytes = 0;
+
+  if (abort) {
+    try {
+      state.port.postMessage({ type: "abort" });
+    } catch {
+      // The port may already be disconnected.
+    }
+  }
   try {
     state.port.disconnect();
   } catch {
-    // ignore
+    // The extension context may already be invalidated.
   }
-  xhrPorts.delete(requestId);
 }
 
-function isRequestStateActive(
+/**
+ * Settles the request (if still tracked) and posts a terminal error. A context
+ * invalidation is tagged with BRIDGE_RESTART_ERROR_CODE so the page retries
+ * through the next bridge instead of failing for good.
+ */
+function failBridgeXhr(requestId: string, url: string, error: unknown): void {
+  const message = toErrorMessage(error);
+  postBridgeXhrError(
+    requestId,
+    url,
+    isContextInvalidatedError(error)
+      ? formatBridgeRestartError(message)
+      : message,
+  );
+}
+
+function postBridgeXhrError(
   requestId: string,
-  expectedState: XhrPortState,
-): boolean {
-  const currentState = xhrPorts.get(requestId);
-  return currentState === expectedState && !currentState.settled;
+  url: string,
+  message: string,
+): void {
+  const st = xhrPorts.get(requestId);
+  if (st) settleXhrPort(st);
+  postXhrEvent(requestId, {
+    type: "error",
+    error: createTerminalXhrError(url, message),
+  });
+}
+
+function isRequestStateActive(state: XhrPortState): boolean {
+  return xhrPorts.get(state.requestId) === state;
 }
 
 function postXhrEvent(requestId: string, payload: AnyObject): void {
@@ -273,24 +311,19 @@ function applyBridgeProgressChunk(st: XhrPortState, msg: AnyObject): void {
     return;
   }
 
-  if (msg.progress.chunk instanceof ArrayBuffer) {
-    const aggregateCopy = msg.progress.chunk.slice(0);
-    st.chunks.push(aggregateCopy);
-    st.totalBytes += aggregateCopy.byteLength;
-    return;
+  let chunk = msg.progress.chunk;
+  if (!(chunk instanceof ArrayBuffer)) {
+    const b64 = msg.progress.chunkB64;
+    if (typeof b64 !== "string" || !b64.length) return;
+    chunk = base64ToArrayBuffer(b64);
+    msg.progress.chunk = chunk;
+    delete msg.progress.chunkB64;
   }
 
-  const b64 = msg.progress.chunkB64;
-  if (typeof b64 !== "string" || !b64.length) {
-    return;
-  }
-
-  const ab = base64ToArrayBuffer(b64);
-  const aggregateCopy = ab.slice(0);
+  // postToPage transfers the original buffer, so retain an independent copy.
+  const aggregateCopy = chunk.slice(0);
   st.chunks.push(aggregateCopy);
   st.totalBytes += aggregateCopy.byteLength;
-  msg.progress.chunk = ab;
-  delete msg.progress.chunkB64;
 }
 
 function applyBridgeBinaryLoadResponse(st: XhrPortState, msg: AnyObject): void {
@@ -326,84 +359,49 @@ function applyBridgeBinaryLoadResponse(st: XhrPortState, msg: AnyObject): void {
   msg.response.response = ab;
 }
 
-function settleBridgePortOnTerminalEvent(
-  requestId: string,
-  st: XhrPortState,
-  msg: AnyObject,
-): void {
-  if (!TERMINAL_XHR_EVENT_TYPES.has(String(msg.type ?? ""))) {
-    return;
-  }
-
-  debug.log("[VOT EXT][bridge] terminal event", {
-    requestId,
-    kind: msg.type,
-    status: msg.response?.status ?? msg.error?.status ?? null,
-  });
-  settleXhrPort(requestId, st);
-}
-
-function handleBridgePortMessage(requestId: string, msg: AnyObject): void {
-  const st = xhrPorts.get(requestId);
-  if (!st || st.settled) return;
+function handleBridgePortMessage(state: XhrPortState, msg: AnyObject): void {
+  if (!isRequestStateActive(state)) return;
+  const { requestId } = state;
   if (!msg || typeof msg !== "object") return;
 
   logBridgePortMessage(requestId, msg);
-  applyBridgeProgressChunk(st, msg);
-  applyBridgeBinaryLoadResponse(st, msg);
+  applyBridgeProgressChunk(state, msg);
+  applyBridgeBinaryLoadResponse(state, msg);
   postXhrEvent(requestId, msg);
-  settleBridgePortOnTerminalEvent(requestId, st, msg);
+  if (TERMINAL_XHR_EVENT_TYPES.has(String(msg.type ?? ""))) {
+    settleXhrPort(state);
+  }
 }
 
 function handleBridgePortDisconnect(
-  requestId: string,
-  safeDetails: AnyObject,
+  st: XhrPortState,
+  lastError: string | null,
 ): void {
-  const st = xhrPorts.get(requestId);
-  if (!st || st.settled) return;
+  if (!isRequestStateActive(st)) return;
+  const { requestId } = st;
 
+  // runtime.id is the only reliable invalidation signal. With it still
+  // present the background worker merely restarted mid-request (transient).
+  const error = isExtensionContextValid()
+    ? new Error("Bridge port disconnected before response")
+    : new ExtensionContextInvalidatedError();
   debug.warn("[VOT EXT][bridge] port disconnected before terminal event", {
     requestId,
-    url: safeDetails?.url ?? null,
+    url: st.url,
+    lastError,
+    contextLost: error instanceof ExtensionContextInvalidatedError,
   });
-  settleXhrPort(requestId, st);
-  postXhrEvent(requestId, {
-    type: "error",
-    error: createTerminalXhrError(
-      String(safeDetails?.url || ""),
-      "Bridge port disconnected before response",
-    ),
-  });
-}
-
-function attachBridgePortListeners(
-  requestId: string,
-  port: XhrPortState["port"],
-  safeDetails: AnyObject,
-): void {
-  port.onMessage.addListener((msg: AnyObject) => {
-    handleBridgePortMessage(requestId, msg);
-  });
-  port.onDisconnect.addListener(() => {
-    handleBridgePortDisconnect(requestId, safeDetails);
-  });
+  failBridgeXhr(requestId, st.url, error);
 }
 
 async function normalizeYandexBridgeHeaders(
-  requestId: string,
   safeDetails: AnyObject,
   state: XhrPortState,
 ): Promise<void> {
   const urlStr = String(safeDetails?.url ?? "");
-  let hostname = "";
-  if (urlStr) {
-    try {
-      hostname = new URL(urlStr).hostname;
-    } catch {
-      // ignore
-    }
-  }
-  if (!isYandexApiHostname(hostname)) {
+  try {
+    if (!isYandexApiHostname(new URL(urlStr).hostname)) return;
+  } catch {
     return;
   }
 
@@ -411,59 +409,15 @@ async function normalizeYandexBridgeHeaders(
   stripYandexHeaders(headers);
 
   const uaCh = await getCachedUaChHeaders();
-  if (!isRequestStateActive(requestId, state)) return;
+  if (!isRequestStateActive(state)) return;
   mergeHeadersIfMissing(headers, uaCh);
 
   debug.log("[VOT EXT][bridge] yandex header normalization", {
-    requestId,
+    requestId: state.requestId,
     url: urlStr,
     headerCount: Object.keys(headers).length,
     headerNames: Object.keys(headers),
   });
-}
-
-async function serializeBridgeRequestData(
-  safeDetails: AnyObject,
-): Promise<AnyObject["data"]> {
-  if (isBodySerializedForPort(safeDetails?.data)) {
-    return safeDetails.data;
-  }
-
-  if (runtimeMessagesUseStructuredClone) {
-    return safeDetails?.data;
-  }
-
-  return await serializeBodyForPort(safeDetails?.data);
-}
-
-function handleStartXhrError(
-  requestId: string,
-  normalizedRequestId: string,
-  safeDetails: AnyObject,
-  error: unknown,
-): void {
-  const requestKey = normalizedRequestId || requestId;
-  const st = xhrPorts.get(requestKey);
-  if (st && !st.settled) {
-    settleXhrPort(requestKey, st);
-  }
-
-  const errorMessage = toErrorMessage(error);
-  debug.log("[VOT EXT][bridge] startXhr error", {
-    requestId: requestKey,
-    error: errorMessage,
-    lastError: ext?.runtime?.lastError ?? null,
-  });
-
-  if (requestKey) {
-    postXhrEvent(requestKey, {
-      type: "error",
-      error: createTerminalXhrError(
-        String(safeDetails?.url || ""),
-        errorMessage,
-      ),
-    });
-  }
 }
 
 export async function startBridgeXhr(
@@ -472,6 +426,7 @@ export async function startBridgeXhr(
 ): Promise<void> {
   const normalizedRequestId = String(requestId || "");
   const safeDetails: AnyObject = details ?? {};
+  let state: XhrPortState | undefined;
 
   try {
     if (!normalizedRequestId) {
@@ -488,21 +443,21 @@ export async function startBridgeXhr(
 
     logBridgeXhrStart(requestId, safeDetails);
 
-    const connected = ext?.runtime?.connect?.({ name: PORT_NAME });
-    if (!connected || typeof connected !== "object") {
-      throw new Error("Bridge port is not available");
-    }
-    const port = connected as XhrPortState["port"];
+    const port = browser.runtime.connect({
+      name: PORT_NAME,
+    }) as unknown as XhrPortState["port"];
     const responseType = String(
       safeDetails?.responseType || "text",
     ).toLowerCase();
-    const state: XhrPortState = {
+    const nextState: XhrPortState = {
+      requestId,
       port,
+      url: String(safeDetails?.url || ""),
       responseType,
       chunks: [],
       totalBytes: 0,
-      settled: false,
     };
+    state = nextState;
     xhrPorts.set(requestId, state);
     postToPage({
       type: TYPE_XHR_ACK,
@@ -514,12 +469,24 @@ export async function startBridgeXhr(
         ts: Date.now(),
       },
     });
-    attachBridgePortListeners(requestId, port, safeDetails);
-    await normalizeYandexBridgeHeaders(requestId, safeDetails, state);
+    // Capture the state, not just the ID: a replaced port can still deliver
+    // queued messages or disconnect after its successor has started.
+    port.onMessage.addListener((msg: AnyObject) => {
+      handleBridgePortMessage(nextState, msg);
+    });
+    port.onDisconnect.addListener(() => {
+      // Always consume lastError, including callbacks from obsolete ports.
+      handleBridgePortDisconnect(nextState, lastErrorMessage());
+    });
+    await normalizeYandexBridgeHeaders(safeDetails, state);
 
-    if (!isRequestStateActive(requestId, state)) return;
+    if (!isRequestStateActive(state)) return;
 
-    const data = await serializeBridgeRequestData(safeDetails);
+    const data =
+      isBodySerializedForPort(safeDetails.data) ||
+      runtimeMessagesUseStructuredClone
+        ? safeDetails.data
+        : await serializeBodyForPort(safeDetails.data);
     debug.log("[VOT EXT][bridge] serialized body", {
       requestId,
       url: safeDetails?.url ?? null,
@@ -527,7 +494,7 @@ export async function startBridgeXhr(
       to: summarizeBodyForDebug(data),
     });
 
-    if (!isRequestStateActive(requestId, state)) return;
+    if (!isRequestStateActive(state)) return;
 
     const serializedDetails: AnyObject = {
       ...safeDetails,
@@ -543,27 +510,47 @@ export async function startBridgeXhr(
     });
     state.port.postMessage({ type: "start", details: serializedDetails });
   } catch (error: unknown) {
-    handleStartXhrError(requestId, normalizedRequestId, safeDetails, error);
+    if (state && !isRequestStateActive(state)) return;
+    debug.log("[VOT EXT][bridge] startXhr error", {
+      requestId: normalizedRequestId,
+      error: toErrorMessage(error),
+      contextLost: isContextInvalidatedError(error),
+    });
+    if (normalizedRequestId) {
+      failBridgeXhr(normalizedRequestId, String(safeDetails?.url || ""), error);
+    }
   }
 }
 
 export function abortBridgeXhr(requestId: string): void {
   const st = xhrPorts.get(requestId);
-  if (!st || st.settled) return;
-  st.settled = true;
-
+  if (!st) return;
   debug.warn("[VOT EXT][bridge] abortXhr", { requestId });
+  settleXhrPort(st, true);
+}
 
-  try {
-    st.port.postMessage({ type: "abort" });
-  } catch {
-    // ignore
-  }
+/**
+ * Terminates a request that never reached the background (e.g. the bridge
+ * found its extension context dead before starting it).
+ */
+export function rejectBridgeXhr(
+  requestId: string,
+  details: AnyObject,
+  message: string,
+): void {
+  if (!requestId) return;
+  postBridgeXhrError(requestId, String(details?.url || ""), message);
+}
 
-  try {
-    st.port.disconnect();
-  } catch {
-    // ignore
+/**
+ * Settles every in-flight request with a terminal error tagged with
+ * BRIDGE_RESTART_ERROR_CODE (so the page retries via the next bridge) and
+ * disconnects their ports. Called when the bridge lifecycle retires.
+ */
+export function failAllBridgeXhrs(reason = "bridge retired"): void {
+  if (!xhrPorts.size) return;
+  const message = formatBridgeRestartError(`Bridge retired (${reason})`);
+  for (const [requestId, st] of xhrPorts) {
+    postBridgeXhrError(requestId, st.url, message);
   }
-  xhrPorts.delete(requestId);
 }

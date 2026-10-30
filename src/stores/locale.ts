@@ -5,13 +5,7 @@ type LocaleStore = {
   hash: string;
 };
 
-function createInitialState(): LocaleStore {
-  return {
-    updatedAt: 0,
-    hash: "",
-  };
-}
-
-export const [locale, setLocale] = createStore<LocaleStore>(
-  createInitialState(),
-);
+export const [locale, setLocale] = createStore<LocaleStore>({
+  updatedAt: 0,
+  hash: "",
+});

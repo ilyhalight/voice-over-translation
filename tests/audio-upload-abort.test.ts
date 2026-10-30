@@ -100,7 +100,6 @@ describe("fatal audio upload failure keeps preparing source", () => {
           requestVtransFailAudio: async () => undefined,
         },
       },
-      getRequestLangForTranslation: () => "en",
       isLivelyVoiceAllowed: () => false,
       isYouTubeHosts: () => true,
       ensureProxySettingsResolved: async () => undefined,
@@ -286,7 +285,6 @@ describe("fatal audio upload failure keeps preparing source", () => {
           requestVtransFailAudio: async () => undefined,
         },
       },
-      getRequestLangForTranslation: () => "en",
       isLivelyVoiceAllowed: () => false,
       isYouTubeHosts: () => true,
       ensureProxySettingsResolved: async () => undefined,
@@ -391,7 +389,7 @@ describe("fatal audio upload failure keeps preparing source", () => {
             };
           }
           return {
-            status: VideoTranslationStatus.TRANSLATED,
+            status: VideoTranslationStatus.FINISHED,
             translated: true,
             remainingTime: 0,
             translationId: "tr-2",
@@ -419,7 +417,6 @@ describe("fatal audio upload failure keeps preparing source", () => {
           requestVtransFailAudio: async () => undefined,
         },
       },
-      getRequestLangForTranslation: () => "en",
       isLivelyVoiceAllowed: () => false,
       isYouTubeHosts: () => true,
       ensureProxySettingsResolved: async () => undefined,

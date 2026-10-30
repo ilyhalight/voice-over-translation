@@ -1,7 +1,7 @@
+import { browser } from "wxt/browser";
 import { toErrorMessage } from "#utils/errors.ts";
 import { BG_MSG_STORAGE } from "../shared/constants";
 import { sendBridgeResponse } from "../shared/utils";
-import { ext, storageGet, storageRemove, storageSet } from "../shared/webext";
 
 type GmStorageMessage = {
   type: string;
@@ -35,30 +35,30 @@ async function handleStorageRequest(
     case "gm_getValue": {
       const key = normalizeStorageRequestKey(payload?.key);
       const def = payload?.def;
-      const items = await storageGet<Record<string, unknown>>(key);
+      const items = await browser.storage.local.get(key);
       return Object.hasOwn(items, key) ? items[key] : def;
     }
 
     case "gm_setValue": {
       const key = normalizeStorageRequestKey(payload?.key);
-      await storageSet({ [key]: payload?.value });
+      await browser.storage.local.set({ [key]: payload?.value });
       return true;
     }
 
     case "gm_deleteValue": {
       const key = normalizeStorageRequestKey(payload?.key);
-      await storageRemove(key);
+      await browser.storage.local.remove(key);
       return true;
     }
 
     case "gm_listValues": {
-      const items = await storageGet<Record<string, unknown>>(null);
-      return Object.keys(items ?? {});
+      const items = await browser.storage.local.get(null);
+      return Object.keys(items);
     }
 
     case "gm_getValues": {
       const defaults = (payload?.defaults ?? {}) as Record<string, unknown>;
-      return await storageGet(defaults);
+      return await browser.storage.local.get(defaults);
     }
 
     default:
@@ -67,30 +67,24 @@ async function handleStorageRequest(
 }
 
 export function registerBackgroundStorageBridge(): void {
-  ext?.runtime?.onMessage?.addListener?.(
-    (
-      msg: unknown,
-      _sender: unknown,
-      sendResponse: ((value: unknown) => void) | undefined,
-    ) => {
-      if (!isGmStorageMessage(msg)) return;
+  browser.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (!isGmStorageMessage(msg)) return;
 
-      void (async () => {
-        try {
-          const result = await handleStorageRequest(
-            String(msg.action ?? ""),
-            msg.payload,
-          );
-          sendBridgeResponse(sendResponse, { ok: true, result });
-        } catch (error) {
-          sendBridgeResponse(sendResponse, {
-            ok: false,
-            error: toErrorMessage(error),
-          });
-        }
-      })();
+    void (async () => {
+      try {
+        const result = await handleStorageRequest(
+          String(msg.action ?? ""),
+          msg.payload,
+        );
+        sendBridgeResponse(sendResponse, { ok: true, result });
+      } catch (error) {
+        sendBridgeResponse(sendResponse, {
+          ok: false,
+          error: toErrorMessage(error),
+        });
+      }
+    })();
 
-      return true;
-    },
-  );
+    return true;
+  });
 }

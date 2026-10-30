@@ -1,7 +1,5 @@
 import { type JSX, mergeProps, Show } from "solid-js";
 
-import "./SegmentedButton.scss";
-
 import type { Direction, Status } from "../../types/components/votButton";
 import { RawButton } from "../Button/RawButton";
 import { ChevronIcon } from "../Icons/ChevronIcon";

@@ -283,6 +283,58 @@ const siteData = {
   niconico: {
     paths: ["/watch/VIDEO_ID"],
   },
+  nytimes: {
+    paths: ["/video/video/VIDEO_ID"],
+  },
+  wsj: {
+    paths: ["/video/x/VIDEO_ID"],
+  },
+  acfun: {
+    paths: ["/v/acVIDEO_ID"],
+  },
+  gettr: {
+    paths: ["/post/POST_ID"],
+  },
+  huya: {
+    paths: ["/video/play/VIDEO_ID"],
+  },
+  redgifs: {
+    paths: ["/watch/VIDEO_ID"],
+  },
+  navertv: {
+    paths: [
+      "/shorts (m.naver.com)",
+      "/v/VIDEO_ID (tv.naver.com)",
+      "/embed/VIDEO_ID (tv.naver.com)",
+    ],
+  },
+  chzzk: {
+    paths: ["/video/VIDEO_ID"],
+  },
+  zhihu: {
+    paths: ["/zvideo/VIDEO_ID"],
+  },
+  snapchat: {
+    paths: ["/spotlight/VIDEO_ID"],
+  },
+  beacon: {
+    paths: ["/content/CONTENT_ID"],
+  },
+  vidlii: {
+    paths: ["/watch?v=VIDEO_ID"],
+  },
+  videopress: {
+    paths: ["/embed/VIDEO_ID"],
+  },
+  craftsy: {
+    paths: ["/class/CLASS_NAME"],
+  },
+  jwplatform: {
+    paths: ["/players/PLAYER_ID"],
+  },
+  bluesky: {
+    paths: ["/profile/USER/post/POST_ID"],
+  },
   dropout: {
     domains: ["watch.dropout.tv"],
   },

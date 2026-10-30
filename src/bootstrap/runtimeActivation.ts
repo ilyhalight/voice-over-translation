@@ -12,7 +12,6 @@ type LogBootstrap = (
   details?: Record<string, unknown>,
 ) => void;
 
-let runtimeActivated = false;
 let runtimeActivationPromise: Promise<void> | null = null;
 
 async function activateRuntime(
@@ -23,7 +22,6 @@ async function activateRuntime(
 
   if (globalThis.location.origin === YANDEX_AUTH_ORIGIN) {
     await handleAuthCallbackPage();
-    runtimeActivated = true;
     return;
   }
 
@@ -32,20 +30,17 @@ async function activateRuntime(
     await localizationProvider.update();
   }
   debug.log(`Selected menu language: ${localizationProvider.lang}`);
-
-  runtimeActivated = true;
 }
 
-export async function ensureRuntimeActivated(
+export function ensureRuntimeActivated(
   reason: string,
   logBootstrap: LogBootstrap,
 ): Promise<void> {
-  if (runtimeActivated) return;
-  runtimeActivationPromise ??= activateRuntime(reason, logBootstrap).finally(
-    () => {
+  runtimeActivationPromise ??= activateRuntime(reason, logBootstrap).catch(
+    (error) => {
       runtimeActivationPromise = null;
+      throw error;
     },
   );
-
-  await runtimeActivationPromise;
+  return runtimeActivationPromise;
 }

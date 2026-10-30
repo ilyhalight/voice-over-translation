@@ -348,7 +348,7 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
 
   const requestButtonDragFrame = () => {
     const state = dragState;
-    if (!isDragging() || !state || state.frameId !== null) {
+    if (!isDragging() || state?.frameId !== null) {
       return;
     }
 

@@ -1,6 +1,12 @@
-import { createSignal, type JSX, mergeProps, Show, splitProps } from "solid-js";
+import {
+  createSignal,
+  type JSX,
+  mergeProps,
+  onCleanup,
+  Show,
+  splitProps,
+} from "solid-js";
 
-import "./HotkeyButton.scss";
 import { effect } from "solid-js/web";
 import {
   formatKeysCombo,
@@ -128,6 +134,8 @@ export function HotkeyButton(props: HotkeyButtonProps): JSX.Element {
     document.addEventListener("keyup", keyupOrBlurHandle, { capture: true });
     globalThis.addEventListener("blur", keyupOrBlurHandle);
   }
+
+  onCleanup(stopRecordingKeys);
 
   return (
     <vot-block class="vot-hotkey">

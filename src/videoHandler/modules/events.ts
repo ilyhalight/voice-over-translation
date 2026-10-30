@@ -289,11 +289,12 @@ function bindGlobalDismiss(ctx: ExtraEventsContext): void {
   const eventContainer = self.getEventContainer();
   if (eventContainer) {
     const useWindowEvents = isIframe() && globalThis.window !== undefined;
+    const defaultInteractionTarget = platformConfig.useDocumentInteractionTarget
+      ? document
+      : eventContainer;
     const interactionTarget = useWindowEvents
       ? globalThis.window
-      : platformConfig.useDocumentInteractionTarget
-        ? document
-        : eventContainer;
+      : defaultInteractionTarget;
 
     if (useWindowEvents) {
       addMany(
@@ -339,11 +340,15 @@ function bindPlaybackRefreshOnResume(ctx: ExtraEventsContext): void {
   };
 
   add(self.video, "pause", () => {
+    // Pauses made by autoPauseOnTranslate must not trigger a refresh on resume.
+    if (self.pausedByTranslation) return;
     wasPausedSinceLastPlay = true;
   });
 
   add(self.video, "playing", () => {
-    if (!wasPausedSinceLastPlay) return;
+    if (!wasPausedSinceLastPlay || document.visibilityState === "hidden") {
+      return;
+    }
     wasPausedSinceLastPlay = false;
     handlePlaybackResumedTranslationRefresh.call(self).catch((error) => {
       debug.log("Failed to refresh translation after playback resumed", error);

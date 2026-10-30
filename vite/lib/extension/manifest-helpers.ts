@@ -1,10 +1,19 @@
 /**
  * Pure manifest-building helpers shared between:
- * - vite/lib/extension/firefox-pipeline.ts (Firefox build pipeline)
- * - vite/lib/extension/manifest.config.ts (CRXJS Chrome manifest)
+ * - wxt.config.ts (manifest fields WXT does not derive from entrypoints)
+ * - src/entrypoints/*.content.ts (origin-fallback match splitting)
+ * - vite/lib/userscript/headers.ts (userscript @match list)
  *
  * No fs/build dependencies — only string/array transforms.
  */
+
+import {
+  sitesCoursehunterLike,
+  sitesInvidious,
+  sitesPeertube,
+  sitesPiped,
+  sitesProxiTok,
+} from "@vot.js/shared/alternativeUrls";
 
 export const EXTENSION_ICON_SIZES = [16, 32, 48, 64, 96, 128, 256] as const;
 
@@ -21,6 +30,40 @@ export interface ExtensionHeaders {
   match?: string[];
   exclude?: string[];
   connect?: string[];
+}
+
+// ----------------------------------------------------------------
+// Match patterns
+// ----------------------------------------------------------------
+
+let cachedAltMatchPatterns: string[] | null = null;
+
+/** Match patterns for alternative frontends (Invidious, Piped, PeerTube...). */
+export function getAltMatchPatterns(): string[] {
+  if (cachedAltMatchPatterns) return cachedAltMatchPatterns;
+
+  cachedAltMatchPatterns = [
+    sitesInvidious,
+    sitesPiped,
+    sitesProxiTok,
+    sitesPeertube,
+    sitesCoursehunterLike,
+  ].flatMap((sites) =>
+    sites.map((site) => {
+      const dotCount = site.match(/\./g)?.length ?? 0;
+      const isSubdomain = dotCount > 1;
+      return `*://${isSubdomain ? "" : "*."}${site}/*`;
+    }),
+  );
+
+  return cachedAltMatchPatterns;
+}
+
+/** `headers.match` plus generated alternative-frontend patterns, deduplicated. */
+export function getAllMatches(
+  headers: Pick<ExtensionHeaders, "match">,
+): string[] {
+  return [...new Set([...(headers.match ?? []), ...getAltMatchPatterns()])];
 }
 
 // ----------------------------------------------------------------
@@ -107,7 +150,7 @@ function createWebAccessibleResources(
 // Match splitting (origin-fallback vs direct)
 // ----------------------------------------------------------------
 
-function splitMatchesForOriginFallback(matches: string[] = []): {
+export function splitMatchesForOriginFallback(matches: string[] = []): {
   originFallbackMatches: string[];
   directMatches: string[];
 } {
@@ -130,130 +173,70 @@ function splitMatchesForOriginFallback(matches: string[] = []): {
 }
 
 // ----------------------------------------------------------------
-// Content scripts
+// Dev-mode matches
 // ----------------------------------------------------------------
 
-export interface ManifestPathStrategy {
-  iconPathFn?: (size: number) => string;
-  scriptPathFn?: (distJs: string) => string;
-  background?: Record<string, unknown>;
-}
+/** Direct video/stream file extensions matched in dev (`*://*\/*.<ext>*`). */
+export const DEV_DIRECT_VIDEO_EXTENSIONS = [
+  "mp4",
+  "m4v",
+  "webm",
+  "mkv",
+  "mov",
+  "ogv",
+  "avi",
+  "flv",
+  "3gp",
+  "m3u8",
+  "mpd",
+] as const;
 
-function createContentScriptEntries({
-  matches,
-  excludeMatches,
-  includeWorld,
-  matchOriginAsFallback = false,
-  scriptPathFn,
-}: {
-  matches: string[];
-  excludeMatches: string[];
-  includeWorld: boolean;
-  matchOriginAsFallback?: boolean;
-  scriptPathFn?: (distJs: string) => string;
-}): Record<string, unknown>[] {
-  if (!matches.length) return [];
+/** Extra platforms forced in dev (whole-site, not only path-specific). */
+export const DEV_EXTRA_SITE_MATCHES = ["*://*.udemy.com/*"] as const;
 
-  const resolveScript = scriptPathFn ?? ((s: string) => s);
-  const fallbackConfig = matchOriginAsFallback
-    ? { match_origin_as_fallback: true }
-    : {};
-
+/**
+ * Full content-script match list for `wxt` dev: every production match
+ * (origin-fallback + path-specific) + direct video files + extra platforms.
+ */
+export function getDevContentScriptMatches(matches: string[] = []): string[] {
   return [
-    {
-      matches,
-      exclude_matches: excludeMatches,
-      js: [resolveScript("bridge.js")],
-      all_frames: true,
-      match_about_blank: true,
-      run_at: "document_start",
-      ...fallbackConfig,
-    },
-    {
-      matches,
-      exclude_matches: excludeMatches,
-      js: [resolveScript("prelude.js")],
-      all_frames: true,
-      match_about_blank: true,
-      run_at: "document_start",
-      ...(includeWorld ? { world: "MAIN" } : {}),
-      ...fallbackConfig,
-    },
-    {
-      matches,
-      exclude_matches: excludeMatches,
-      js: [resolveScript("content.js")],
-      all_frames: true,
-      match_about_blank: true,
-      run_at: "document_end",
-      ...(includeWorld ? { world: "MAIN" } : {}),
-      ...fallbackConfig,
-    },
+    ...new Set([
+      ...matches.map(String),
+      ...DEV_EXTRA_SITE_MATCHES,
+      ...DEV_DIRECT_VIDEO_EXTENSIONS.map((ext) => `*://*/*.${ext}*`),
+    ]),
   ];
 }
 
 // ----------------------------------------------------------------
-// Full manifest builders
+// Manifest
 // ----------------------------------------------------------------
 
-export interface ChromeManifestOptions {
-  versionName?: string;
-}
+export const iconPathFn = (size: number) => `icons/icon-${size}.png`;
 
-export function buildManifestChrome({
+export function buildExtensionManifest({
   headers,
-  includeWorld,
-  pathStrategy,
-  chromeOptions,
+  versionName,
 }: {
   headers: ExtensionHeaders;
-  includeWorld: boolean;
-  pathStrategy?: ManifestPathStrategy;
-  chromeOptions?: ChromeManifestOptions;
-}): Record<string, unknown> {
-  const iconPathFn =
-    pathStrategy?.iconPathFn ?? ((size: number) => `icons/icon-${size}.png`);
-  const scriptPathFn = pathStrategy?.scriptPathFn ?? ((s: string) => s);
-
+  versionName?: string;
+}) {
   const name = headers.name || DEFAULT_EXTENSION_NAME;
   const description = headers.description || DEFAULT_EXTENSION_DESCRIPTION;
   const version = headers.version || DEFAULT_EXTENSION_VERSION;
-  const matches = headers.match || [];
-  const excludeMatches = headers.exclude || [];
-  const { originFallbackMatches, directMatches } =
-    splitMatchesForOriginFallback(matches);
+  const matches = getAllMatches(headers);
   const hostPermissions = normalizeHostPermissions(headers.connect || []);
-  const contentScripts = [
-    ...createContentScriptEntries({
-      matches: originFallbackMatches,
-      excludeMatches,
-      includeWorld,
-      matchOriginAsFallback: true,
-      scriptPathFn,
-    }),
-    ...createContentScriptEntries({
-      matches: directMatches,
-      excludeMatches,
-      includeWorld,
-      scriptPathFn,
-    }),
-  ];
-
   const iconSizes16and32 = [16, 32];
-
   const war = createWebAccessibleResources(matches);
 
   return {
-    manifest_version: 3,
     name,
     description,
     version,
-    ...(chromeOptions?.versionName && {
-      version_name: chromeOptions.versionName,
-    }),
+    ...(versionName && { version_name: versionName }),
     action: {
       default_title: name,
-      default_icon: Object.fromEntries(
+      default_icon: Object.fromEntries<string>(
         iconSizes16and32.map((size) => [size, iconPathFn(size)]),
       ),
     },
@@ -262,16 +245,12 @@ export function buildManifestChrome({
       "notifications",
       "activeTab",
       "declarativeNetRequestWithHostAccess",
+      "scripting",
     ],
     host_permissions: hostPermissions,
-    background: pathStrategy?.background ?? {
-      service_worker: "background.js",
-      type: "module",
-    },
     icons: Object.fromEntries(
       EXTENSION_ICON_SIZES.map((size) => [size, iconPathFn(size)]),
     ),
-    content_scripts: contentScripts,
     web_accessible_resources: war,
   };
 }

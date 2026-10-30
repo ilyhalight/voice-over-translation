@@ -108,9 +108,9 @@ export const IS_PROXY_ONLY_EXTENSION =
  * Returns true when the GM4 promise-based API is available.
  *
  * Safe to read as a module-level const because:
- * - CRXJS Chrome: the IIFE prelude installs GM globals synchronously at
- *   document_start, before this module evaluates at document_end.
- * - Firefox: the bridge injects prelude.module.js before content.module.js.
+ * - WXT (Chrome and Firefox): the MAIN-world prelude content script installs
+ *   GM globals synchronously at document_start, before this module evaluates
+ *   at document_end.
  * - Userscript managers inject GM before the script runs.
  */
 export const isGM4Supported: boolean = Boolean(getGMRuntime());
@@ -337,7 +337,6 @@ async function executeCallbackGmXhr(
       fetchOptions.signal.addEventListener("abort", onAbort, { once: true });
       if (fetchOptions.signal.aborted) {
         onAbort();
-        return;
       }
     }
   });
@@ -402,6 +401,27 @@ async function executePromiseGmXhr(
   }
 }
 
+function throwGmFetchFailure(
+  urlStr: string,
+  method: string,
+  attempts: GmFetchAttempt[],
+): never {
+  debug.warn("[GM_fetch] none of the GM approaches worked");
+  const lastCategory = attempts.at(-1)?.category;
+  const failure = new Error("All GM approaches failed", {
+    cause: lastCategory ? new Error(lastCategory) : undefined,
+  });
+  try {
+    gmFetchFailureHandler?.({
+      error: failure,
+      host: getRequestHost(urlStr),
+      method,
+      attempts,
+    });
+  } catch {}
+  throw failure;
+}
+
 async function gmXhrFetch(
   urlStr: string,
   timeout: number,
@@ -442,16 +462,11 @@ async function gmXhrFetch(
         error: getGmXhrErrorMessage(error),
       });
     }
-  }
-
-  if (!callbackGmXhr) {
+  } else {
     attempts.push({ approach: "GM_xmlhttpRequest", category: "unavailable" });
   }
 
   const promiseGmXhr = getPromiseGmXhr();
-  if (!promiseGmXhr) {
-    attempts.push({ approach: "GM.xmlHttpRequest", category: "unavailable" });
-  }
   if (promiseGmXhr) {
     debug.log("[GM_fetch] attempting promise-style GM.xmlHttpRequest");
     try {
@@ -475,22 +490,11 @@ async function gmXhrFetch(
         error: getGmXhrErrorMessage(error),
       });
     }
+  } else {
+    attempts.push({ approach: "GM.xmlHttpRequest", category: "unavailable" });
   }
 
-  debug.warn("[GM_fetch] none of the GM approaches worked");
-  const lastCategory = attempts.at(-1)?.category;
-  const failure = new Error("All GM approaches failed", {
-    cause: lastCategory ? new Error(lastCategory) : undefined,
-  });
-  try {
-    gmFetchFailureHandler?.({
-      error: failure,
-      host: getRequestHost(urlStr),
-      method,
-      attempts,
-    });
-  } catch {}
-  throw failure;
+  throwGmFetchFailure(urlStr, method, attempts);
 }
 
 export async function GM_fetch(
@@ -534,33 +538,7 @@ export async function GM_fetch(
         host: host ?? "unknown",
         reason: forceGmXhr ? "forced" : "host-policy",
       });
-      try {
-        return await gmXhrFetch(urlStr, timeout, fetchOptions);
-      } catch (err) {
-        if (isAbortError(err)) throw err;
-        if (forceGmXhr || shouldUseGmXhr(host, urlStr)) throw err;
-        debug.warn(
-          "[GM_fetch] all GM approaches failed, falling back to native fetch",
-          {
-            url: urlStr,
-            method,
-            host: host ?? "unknown",
-            error: getErrorMessage(err) || "Unknown error",
-          },
-        );
-        const { signal, cleanup } = createTimeoutSignal(
-          timeout,
-          fetchOptions.signal,
-        );
-        try {
-          return await fetch(url, {
-            ...fetchOptions,
-            signal,
-          });
-        } finally {
-          cleanup();
-        }
-      }
+      return await gmXhrFetch(urlStr, timeout, fetchOptions);
     }
 
     const { signal, cleanup } = createTimeoutSignal(

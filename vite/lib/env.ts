@@ -9,12 +9,12 @@ export interface BuildEnvMeta {
   repoBranch: string;
   version: string;
   authors: string;
-  crxjsBuild: boolean;
+  browser?: "chrome" | "firefox";
   minified?: boolean;
 }
 
 function getBuildVariant(env: BuildEnvMeta): string {
-  if (env.isExtension) return env.crxjsBuild ? "chrome" : "firefox";
+  if (env.isExtension) return env.browser ?? "chrome";
   return env.minified ? "userscript-min" : "userscript";
 }
 
@@ -40,6 +40,19 @@ export function getBuildConfig(mode: string) {
 
 export type BuildConfig = ReturnType<typeof getBuildConfig>;
 
+/**
+ * DEBUG_MODE resolution: an explicit `DEBUG_MODE` env var (process.env or
+ * .env.[mode] files) overrides the command/mode-based default.
+ */
+export function resolveDebugMode(mode: string, fallback: boolean): boolean {
+  const raw = (process.env.DEBUG_MODE ?? loadEnv(mode, ROOT_DIR, "").DEBUG_MODE)
+    ?.trim()
+    .toLowerCase();
+  if (raw === "true" || raw === "1") return true;
+  if (raw === "false" || raw === "0") return false;
+  return fallback;
+}
+
 export function buildDefine(env: BuildEnvMeta): ViteDefine {
   return {
     ...defineConstants({
@@ -51,6 +64,5 @@ export function buildDefine(env: BuildEnvMeta): ViteDefine {
       VOT_VERSION: env.version,
       VOT_AUTHORS: env.authors,
     }),
-    "import.meta.env.VITE_CRXJS_BUILD": env.crxjsBuild ? '"true"' : '"false"',
   };
 }

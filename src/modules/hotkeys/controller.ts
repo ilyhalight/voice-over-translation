@@ -5,8 +5,8 @@ import type { HotkeyActionItem, ParsedHotkey, RawHotkey } from "./types";
 import { normalizeHotkeyPart } from "./utils";
 
 export class HotkeyController {
-  private userPressedKeys = new Set<string>();
-  private hotkeyCache = new Map<string, ParsedHotkey>();
+  private readonly userPressedKeys = new Set<string>();
+  private readonly hotkeyCache = new Map<string, ParsedHotkey>();
   actions: HotkeyActionItem[];
 
   constructor(actions: HotkeyActionItem[] = []) {

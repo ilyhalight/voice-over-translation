@@ -8,8 +8,6 @@ import {
   Switch,
 } from "solid-js";
 
-import "./SubtitlesWidget.scss";
-
 import { buildSubtitleInlineStyleCssText } from "../../subtitles/inlineStyle";
 import type {
   SubtitleRenderPlanPart,
@@ -17,6 +15,14 @@ import type {
 } from "../../subtitles/renderPlan";
 import { effect, render } from "../../ui/solid/renderer";
 import { Overlay } from "../Utils/Overlay";
+
+declare module "solid-js" {
+  namespace JSX {
+    interface ExplicitAttributes {
+      lang: string | undefined;
+    }
+  }
+}
 
 export type SubtitlesWidgetProps = {
   parts: SubtitleRenderPlanPart[];
@@ -96,24 +102,11 @@ function SubtitlePart(props: {
 }
 
 export function SolidSubtitlesWidget(props: SubtitlesWidgetProps): JSX.Element {
-  let block: HTMLElement | undefined;
-  const syncLang = () => {
-    const lang = props.lang;
-    if (!block) return;
-    if (lang) block.setAttribute("lang", lang);
-    else block.removeAttribute("lang");
-  };
-
-  effect(syncLang);
-
   return (
     <vot-block
-      ref={(element) => {
-        block = element;
-        props.ref(element);
-        syncLang();
-      }}
+      ref={props.ref}
       class="vot-subtitles"
+      attr:lang={props.lang || undefined}
       dir="auto"
       onClick={props.onClick}
       onKeyDown={(event) => {

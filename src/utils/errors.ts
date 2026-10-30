@@ -109,24 +109,94 @@ export function isAbortError(err: unknown): boolean {
  * may carry response data, so only fixed labels are ever derived from them.
  */
 export function categorizeFailure(error: unknown): string {
-  const { status, error: nested } = (error ?? {}) as {
-    status?: unknown;
-    error?: unknown;
-  };
-  if (typeof status === "number" && status > 0) return `status:${status}`;
+  if (!error) return "unknown";
 
-  let text = "";
-  if (typeof error === "string") text = error;
-  else if (error instanceof Error) text = error.message;
-  else if (typeof nested === "string") text = nested;
+  const err = error as any;
+  const status =
+    err.status ?? err.statusCode ?? err.response?.status ?? err.data?.status;
+  if (
+    typeof status === "number" &&
+    Number.isInteger(status) &&
+    status >= 400 &&
+    status <= 599
+  ) {
+    return `status:${status}`;
+  }
 
-  const httpStatus = /\bHTTP (\d{3})\b/.exec(text);
-  if (httpStatus) return `status:${httpStatus[1]}`;
-  if (/time.?out/i.test(text)) return "timeout";
-  if (/abort/i.test(text)) return "abort";
-  if (/network|failed to fetch|connect|refused|offline|dns/i.test(text)) {
+  const text = [
+    typeof error === "string" ? error : "",
+    err.message,
+    typeof err.error === "string" ? err.error : err.error?.message,
+    err.cause?.message,
+    typeof err.data?.data === "string" ? err.data.data : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  // Bare parenthesized numbers only match error codes (4xx/5xx): "(140)" is
+  // often an audio format id, not an HTTP status.
+  const statusMatch =
+    /(?:\b(?:HTTP\s*|status\s*:?\s*)([1-5]\d{2})\b|\(([45]\d{2})\))/i.exec(
+      text,
+    );
+  if (statusMatch) return `status:${statusMatch[1] ?? statusMatch[2]}`;
+
+  if (
+    /time[-_\s]?out|timed\s*out|\bstall(?:s|ed|ing)?\b/i.test(text) ||
+    err.name === "TimeoutError"
+  ) {
+    return "timeout";
+  }
+  if (
+    /abort/i.test(text) ||
+    err.name === "AbortError" ||
+    (err.code === 1 &&
+      (err.constructor?.name === "MediaError" || err.name === "MediaError"))
+  ) {
+    return "abort";
+  }
+  if (
+    /network|failed to fetch|connect|refused|offline|dns|load failed|terminated/i.test(
+      text,
+    ) ||
+    err.name === "NetworkError"
+  ) {
     return "network";
   }
+  if (
+    /decode|no audio context|no blob url|audio element is missing/i.test(
+      text,
+    ) ||
+    err.name === "EncodingError"
+  ) {
+    return "decode";
+  }
+  if (
+    /no\s+(?:[\w-]+\s+){0,3}audio\s+track|could\s+not\s+resolve\s+[\w-]+\s+audio\s+language|no\s+compatible\s+[\w-]+\s+format/i.test(
+      text,
+    )
+  ) {
+    return "no_audio_track";
+  }
+  if (
+    /config is unavailable|metadata is unavailable|client context is unavailable/i.test(
+      text,
+    )
+  ) {
+    return "config_unavailable";
+  }
+  if (/empty (?:audio|mse stream)|without audio chunks/i.test(text))
+    return "empty_audio";
+
+  if (
+    typeof err.name === "string" &&
+    err.name !== "Error" &&
+    err.name !== "Object" &&
+    /^[A-Za-z0-9_$]{1,40}$/.test(err.name)
+  ) {
+    return err.name;
+  }
+
   return "unknown";
 }
 
@@ -138,8 +208,14 @@ export function categorizeFailure(error: unknown): string {
  */
 export function makeAbortError(reason: unknown = "Aborted"): Error {
   if (reason instanceof Error && isAbortError(reason)) return reason;
-  const message =
-    reason instanceof Error ? reason.message : String(reason ?? "Aborted");
+  let message: string;
+  if (reason instanceof Error) {
+    message = reason.message;
+  } else if (typeof reason === "object" && reason !== null) {
+    message = toErrorMessage(reason, "Aborted");
+  } else {
+    message = String(reason ?? "Aborted");
+  }
   try {
     return new DOMException(message, "AbortError");
   } catch {

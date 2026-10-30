@@ -2,18 +2,14 @@ import {
   findJsonValueEnd,
   getConfigValue,
   getPlayerUrl,
-  isDrcAudioFormat,
   solveYouTubeChallenges,
   validPageValue,
   type WebAbrWindow,
-  type WebEmbeddedFormat,
   type WebEmbeddedPlayerResponse,
   type YouTubeConfig,
 } from "./webAbr";
 
 import { getTopPageWindow } from "./youtubePage";
-
-export { getTopPageWindow } from "./youtubePage";
 
 function readInitialPlayerResponseFromDocument(
   targetWindow: WebAbrWindow,
@@ -42,32 +38,51 @@ function readInitialPlayerResponseFromDocument(
     if (!source.includes("ytInitialPlayerResponse")) continue;
 
     for (const marker of markers) {
-      let cursor = 0;
-      while (cursor < source.length) {
-        const markerIndex = source.indexOf(marker, cursor);
-        if (markerIndex < 0) break;
-        let start = markerIndex + marker.length;
-        while (start < source.length && /\s/.test(source[start] ?? "")) start++;
-        if (source[start] !== "{") {
-          cursor = start + 1;
-          continue;
-        }
-        const end = findJsonValueEnd(source, start);
-        if (end < 0) break;
-        try {
-          const value = JSON.parse(
-            source.slice(start, end),
-          ) as WebEmbeddedPlayerResponse;
-          if (value && typeof value === "object") return value;
-        } catch {
-          // Keep looking: pages can contain stale/non-JSON occurrences too.
-        }
-        cursor = end;
-      }
+      const response = readPlayerResponseMarker(source, marker);
+      if (response) return response;
     }
   }
 
   return undefined;
+}
+
+function readPlayerResponseMarker(
+  source: string,
+  marker: string,
+): WebEmbeddedPlayerResponse | undefined {
+  let cursor = 0;
+  while (cursor < source.length) {
+    const markerIndex = source.indexOf(marker, cursor);
+    if (markerIndex < 0) break;
+    const afterMarker = markerIndex + marker.length;
+    const rest = source.slice(afterMarker);
+    const start = afterMarker + rest.length - rest.trimStart().length;
+    if (source[start] !== "{") {
+      cursor = start + 1;
+      continue;
+    }
+    const end = findJsonValueEnd(source, start);
+    if (end < 0) break;
+    try {
+      const value = JSON.parse(
+        source.slice(start, end),
+      ) as WebEmbeddedPlayerResponse;
+      if (value && typeof value === "object") return value;
+    } catch {
+      // Stale or non-JSON occurrences must not hide later valid responses.
+    }
+    cursor = end;
+  }
+  return undefined;
+}
+
+function hasNativeStreamingData(value: WebEmbeddedPlayerResponse): boolean {
+  return Boolean(
+    value.streamingData?.serverAbrStreamingUrl &&
+      value.playerConfig?.mediaCommonConfig?.mediaUstreamerRequestConfig
+        ?.videoPlaybackUstreamerConfig &&
+      value.streamingData?.adaptiveFormats?.length,
+  );
 }
 
 export function getNativePlayerResponse(
@@ -100,49 +115,10 @@ export function getNativePlayerResponse(
   for (const value of candidates) {
     const responseVideoId = value.videoDetails?.videoId;
     if (responseVideoId && responseVideoId !== videoId) continue;
-    if (
-      value.streamingData?.serverAbrStreamingUrl &&
-      value.playerConfig?.mediaCommonConfig?.mediaUstreamerRequestConfig
-        ?.videoPlaybackUstreamerConfig &&
-      value.streamingData?.adaptiveFormats?.length
-    ) {
+    if (hasNativeStreamingData(value)) {
       return value;
     }
   }
-}
-
-export function selectEconomyAudioFormat(
-  formats: WebEmbeddedFormat[],
-): WebEmbeddedFormat | undefined {
-  const audioOnly = formats.filter(
-    (format) =>
-      typeof format.itag === "number" &&
-      format.mimeType?.includes("audio/") &&
-      !format.mimeType?.includes("video/"),
-  );
-  const nonDrc = audioOnly.filter((format) => !isDrcAudioFormat(format));
-  const candidates = nonDrc.length > 0 ? nonDrc : audioOnly;
-  const contentLength = (format: WebEmbeddedFormat) => {
-    const value = Number(format.contentLength);
-    return Number.isFinite(value) && value > 0
-      ? value
-      : Number.POSITIVE_INFINITY;
-  };
-  const bitrate = (format: WebEmbeddedFormat) => {
-    const value = Number(format.averageBitrate ?? format.bitrate);
-    return Number.isFinite(value) && value > 0
-      ? value
-      : Number.POSITIVE_INFINITY;
-  };
-  return [...candidates].sort((a, b) => {
-    const sizeDiff = contentLength(a) - contentLength(b);
-    if (Number.isFinite(sizeDiff) && sizeDiff !== 0) return sizeDiff;
-    const bitrateDiff = bitrate(a) - bitrate(b);
-    if (Number.isFinite(bitrateDiff) && bitrateDiff !== 0) return bitrateDiff;
-    return (
-      (a.itag ?? Number.MAX_SAFE_INTEGER) - (b.itag ?? Number.MAX_SAFE_INTEGER)
-    );
-  })[0];
 }
 
 const N_PATTERN = /^[A-Za-z0-9_-]{4,}$/;

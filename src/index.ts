@@ -152,11 +152,9 @@ export async function bootstrapContentScript(): Promise<void> {
 }
 
 // Auto-init: always bootstrap directly.
-// In CRXJS (Chrome) builds the IIFE prelude runs synchronously at
-// document_start (via prelude.iife.ts), so GM polyfills are guaranteed
-// to exist by the time this MAIN-world content script evaluates at
-// document_end.  In Firefox builds the bridge injects prelude.module.js
-// before content.module.js.  No polling or readiness check needed.
-void (async () => {
-  await bootstrapContentScript();
-})();
+// In WXT builds (Chrome and Firefox) the prelude runs synchronously as a
+// MAIN-world manifest content script at document_start, so GM polyfills are
+// guaranteed to exist by the time this MAIN-world content script evaluates
+// at document_end.  In non-WXT extension builds the bridge injects
+// prelude.module.js before content.module.js.  No polling or readiness check needed.
+void bootstrapContentScript();

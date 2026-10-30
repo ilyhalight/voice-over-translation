@@ -68,4 +68,27 @@ describe("VOTVideoManager YouTube volume writes", () => {
       });
     }
   });
+
+  test("treats a numeric zero from YouTube as a successful volume write", async () => {
+    (globalThis as unknown as { DEBUG_MODE: boolean }).DEBUG_MODE = false;
+    const { VOTVideoManager } = await import("../src/core/videoManager.ts");
+    const { default: YoutubeHelper } = await import(
+      "@vot.js/ext/helpers/youtube"
+    );
+    const originalSetVolume = YoutubeHelper.setVolume;
+    const video = { volume: 0.75, muted: false };
+
+    try {
+      YoutubeHelper.setVolume = (() => 0) as unknown as typeof YoutubeHelper.setVolume;
+      const manager = new VOTVideoManager({
+        site: { host: "youtube" },
+        video,
+      } as any);
+
+      manager.setVideoVolume(0);
+      expect(video.volume).toBe(0.75);
+    } finally {
+      YoutubeHelper.setVolume = originalSetVolume;
+    }
+  });
 });

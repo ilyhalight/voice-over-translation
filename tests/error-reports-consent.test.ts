@@ -24,6 +24,7 @@ let backgroundListener: BackgroundListener;
 globals.browser = {
   permissions: { getAll: () => getAll() },
   runtime: {
+    id: "test-extension",
     onMessage: {
       addListener: (listener: BackgroundListener) => {
         backgroundListener = listener;
@@ -44,11 +45,13 @@ delete globals.browser;
 
 afterEach(() => {
   delete globals.VOT_BUILD_VARIANT;
+  // Bun aliases `import.meta.env` to `process.env`; WXT defines FIREFOX at build time.
+  delete process.env.FIREFOX;
 });
 
 describe("background telemetry guard", () => {
   test("firefox: allows the telemetry host with technicalAndInteraction", async () => {
-    globals.VOT_BUILD_VARIANT = "firefox";
+    process.env.FIREFOX = "true";
     getAll = async () => ({ data_collection: ["technicalAndInteraction"] });
 
     expect(await isTelemetryBlocked(INGEST_URL)).toBe(false);
@@ -58,7 +61,7 @@ describe("background telemetry guard", () => {
   });
 
   test("firefox: blocks the telemetry host without consent", async () => {
-    globals.VOT_BUILD_VARIANT = "firefox";
+    process.env.FIREFOX = "true";
 
     for (const answer of [
       { data_collection: [] },
@@ -71,7 +74,7 @@ describe("background telemetry guard", () => {
   });
 
   test("firefox: blocks the telemetry host when permissions.getAll fails", async () => {
-    globals.VOT_BUILD_VARIANT = "firefox";
+    process.env.FIREFOX = "true";
     getAll = async () => {
       throw new Error("unavailable");
     };
@@ -80,7 +83,7 @@ describe("background telemetry guard", () => {
   });
 
   test("firefox: leaves other hosts alone", async () => {
-    globals.VOT_BUILD_VARIANT = "firefox";
+    process.env.FIREFOX = "true";
     getAll = async () => ({ data_collection: [] });
 
     expect(await isTelemetryBlocked("https://api.browser.yandex.ru/x")).toBe(
@@ -94,14 +97,10 @@ describe("background telemetry guard", () => {
     );
   });
 
-  test("other builds are untouched", async () => {
+  test("non-Firefox builds are untouched", async () => {
     getAll = async () => ({ data_collection: [] });
 
     expect(await isTelemetryBlocked(INGEST_URL)).toBe(false);
-    for (const variant of ["chrome", "userscript", "userscript-min"]) {
-      globals.VOT_BUILD_VARIANT = variant;
-      expect(await isTelemetryBlocked(INGEST_URL)).toBe(false);
-    }
   });
 });
 

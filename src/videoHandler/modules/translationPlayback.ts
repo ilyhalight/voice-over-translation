@@ -73,13 +73,17 @@ async function resumePlayerAudioContextIfNeeded(
   return result;
 }
 
+const translationSourceOwners = new WeakMap<object, ActionContext | undefined>();
+
 async function rollbackStaleAppliedSourceIfStillCurrent(
   handler: VideoHandler,
   appliedSourceUrl: string | null,
+  actionContext?: ActionContext,
 ): Promise<void> {
   if (!appliedSourceUrl || !handler.audioPlayer) return;
 
   const player = handler.audioPlayer.player;
+  if (translationSourceOwners.get(player) !== actionContext) return;
   const currentSource = String(player.currentSrc || player.src || "");
   const normalizedCurrentUrl = handler.proxifyAudio(
     handler.unproxifyAudio(currentSource),
@@ -98,32 +102,17 @@ async function rollbackStaleAppliedSourceIfStillCurrent(
   }
 }
 
-export async function validateAudioUrl(
-  this: VideoHandler,
-  audioUrl: string,
-  actionContext?: ActionContext,
-): Promise<string> {
-  if (this.isActionStale(actionContext)) return audioUrl;
-  return audioUrl;
-}
-
-export function scheduleTranslationRefresh(this: VideoHandler): void {
-  if (!this.videoData || this.videoData.isStream) {
-    return;
-  }
-  if (!this.hasActiveSource()) return;
-  void this.refreshTranslationAudio().catch((error) => {
-    debug.log("[scheduleTranslationRefresh] refresh failed", error);
-  });
-}
-
 export async function handlePlaybackResumedTranslationRefresh(
   this: VideoHandler,
 ): Promise<void> {
   if (!this.videoData || this.videoData.isStream) {
     return;
   }
-  if (!this.hasActiveSource()) {
+  if (
+    !this.hasActiveSource() ||
+    this.activeTranslation ||
+    this.isRefreshingTranslation
+  ) {
     return;
   }
 
@@ -145,7 +134,7 @@ export async function handlePlaybackResumedTranslationRefresh(
 
   if (!cachedEntry?.url) {
     debug.log(
-      "[scheduleTranslationRefresh] translation cache expired after resume, refreshing now",
+      "[handlePlaybackResumedTranslationRefresh] translation cache expired after resume, refreshing now",
     );
     await this.refreshTranslationAudio();
   }
@@ -324,7 +313,7 @@ export async function refreshTranslationAudio(
     this.videoData.translationHelp,
   );
   try {
-    const translateRes = await requestApplyAndCacheTranslation(this, {
+    await requestApplyAndCacheTranslation(this, {
       videoData: this.videoData,
       requestLang: this.translateFromLang,
       responseLang: this.translateToLang,
@@ -340,7 +329,6 @@ export async function refreshTranslationAudio(
       cacheRequestLang: this.translateFromLang,
       cacheResponseLang: this.translateToLang,
     });
-    if (!translateRes) return;
   } finally {
     this.isRefreshingTranslation = false;
   }
@@ -399,6 +387,7 @@ async function applyTranslationSource(
 ): Promise<ApplyTranslationSourceResult> {
   const currentSrc = handler.audioPlayer.player.src;
   const didSetSource = currentSrc !== sourceUrl;
+  translationSourceOwners.set(handler.audioPlayer.player, actionContext);
   let appliedSourceUrl: string | null = null;
 
   if (didSetSource) {
@@ -411,7 +400,11 @@ async function applyTranslationSource(
       await handler.audioPlayer.init();
     }
     if (handler.isActionStale(actionContext)) {
-      await rollbackStaleAppliedSourceIfStillCurrent(handler, appliedSourceUrl);
+      await rollbackStaleAppliedSourceIfStillCurrent(
+        handler,
+        appliedSourceUrl,
+        actionContext,
+      );
       return {
         status: "stale",
         didSetSource,
@@ -431,7 +424,11 @@ async function applyTranslationSource(
     }
 
     if (handler.isActionStale(actionContext)) {
-      await rollbackStaleAppliedSourceIfStillCurrent(handler, appliedSourceUrl);
+      await rollbackStaleAppliedSourceIfStillCurrent(
+        handler,
+        appliedSourceUrl,
+        actionContext,
+      );
       return {
         status: "stale",
         didSetSource,
@@ -493,7 +490,11 @@ export async function updateTranslation(
 
   if (applyResult.status === "error") {
     debug.log("this.audioPlayer.init() error", applyResult.error);
-    await rollbackStaleAppliedSourceIfStillCurrent(this, appliedSourceUrl);
+    await rollbackStaleAppliedSourceIfStillCurrent(
+      this,
+      appliedSourceUrl,
+      actionContext,
+    );
     captureException(applyResult.error, {
       source: "audio",
       operation: "loadTranslationAudio",
@@ -597,7 +598,11 @@ async function retryTranslationWithDirectSource(
 
   try {
     if (handler.isActionStale(actionContext)) {
-      await rollbackStaleAppliedSourceIfStillCurrent(handler, appliedSourceUrl);
+      await rollbackStaleAppliedSourceIfStillCurrent(
+        handler,
+        appliedSourceUrl,
+        actionContext,
+      );
       return {
         nextAudioUrl: directUrl,
         applyResult: {
@@ -650,7 +655,6 @@ export async function translateFunc(
     return;
   }
   overlayView.overlayViewControls.setIsLoading(true);
-  this.hadAsyncWait = false;
   this.volumeOnStart = this.getVideoVolume();
   if (!VIDEO_ID) {
     debug.log("Skip translation - no VIDEO_ID resolved yet");
@@ -682,6 +686,10 @@ export async function translateFunc(
     await this.activeTranslation.promise;
     return;
   }
+
+  // Reset only for a new request: a re-entry that joins the in-flight one
+  // (e.g. after returning to the tab) must keep its wait state for the notification.
+  this.hadAsyncWait = false;
 
   const actionContext: ActionContext = {
     gen: this.actionsGeneration,
@@ -728,7 +736,7 @@ export async function translateFunc(
       onTranslationWaiting: () => {
         cleanupPauseListener = pauseVideoForTranslation(this);
       },
-      onBeforeCache: async () => {
+      onBeforeCache: () => {
         const preferredSubtitleLanguage = this.getPreferredSubtitlesLanguage(
           videoData.detectedLanguage,
           videoData.responseLanguage,

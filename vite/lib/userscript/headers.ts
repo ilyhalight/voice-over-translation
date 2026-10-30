@@ -1,6 +1,6 @@
 import { repositoryUrl } from "../../../src/config/config.ts";
+import { getAllMatches } from "../extension/manifest-helpers.ts";
 import { getReleaseDownloadBase } from "../paths.ts";
-import { getAltMatchPatterns } from "./alt-urls.ts";
 import { getHeaders, type UserscriptHeader } from "./grants.ts";
 import type { LocaleHeadersFile } from "./locales.ts";
 
@@ -18,7 +18,7 @@ function buildUserscriptMeta(
   const baseMatch = Array.isArray(baseMeta.match)
     ? baseMeta.match
     : [baseMeta.match];
-  const match = Array.from(new Set([...baseMatch, ...getAltMatchPatterns()]));
+  const match = getAllMatches({ match: baseMatch });
   const userscript: UserscriptHeader = {
     ...baseMeta,
     match,

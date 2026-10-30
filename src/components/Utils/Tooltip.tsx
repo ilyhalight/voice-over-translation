@@ -4,12 +4,11 @@ import {
   createUniqueId,
   type JSX,
   mergeProps,
+  on,
   onCleanup,
   Show,
   untrack,
 } from "solid-js";
-
-import "./Tooltip.scss";
 
 import { getHostElement } from "#utils/dom.ts";
 import { clamp } from "#utils/number.ts";
@@ -507,12 +506,7 @@ export function Tooltip(props: TooltipProps): JSX.Element {
       }
     };
     const handlePointerEnter = () => show();
-    const handlePointerLeave = (event: PointerEvent) => {
-      if (!isInTooltipContext(event.relatedTarget)) {
-        hide();
-      }
-    };
-    const handleFocusOut = (event: FocusEvent) => {
+    const handleContextLeave = (event: PointerEvent | FocusEvent) => {
       if (!isInTooltipContext(event.relatedTarget)) {
         hide();
       }
@@ -533,22 +527,22 @@ export function Tooltip(props: TooltipProps): JSX.Element {
       currentTarget.addEventListener("pointerdown", handleClick);
     } else {
       currentTarget.addEventListener("pointerenter", handlePointerEnter);
-      currentTarget.addEventListener("pointerleave", handlePointerLeave);
+      currentTarget.addEventListener("pointerleave", handleContextLeave);
       currentTarget.addEventListener("pointerdown", handleTouchPointerDown);
       currentTarget.addEventListener("pointerup", handleTouchPointerUp);
       currentTarget.addEventListener("focusin", handlePointerEnter);
-      currentTarget.addEventListener("focusout", handleFocusOut);
+      currentTarget.addEventListener("focusout", handleContextLeave);
     }
 
     onCleanup(() => {
       currentTarget.removeEventListener("keydown", handleKeyDown);
       currentTarget.removeEventListener("pointerdown", handleClick);
       currentTarget.removeEventListener("pointerenter", handlePointerEnter);
-      currentTarget.removeEventListener("pointerleave", handlePointerLeave);
+      currentTarget.removeEventListener("pointerleave", handleContextLeave);
       currentTarget.removeEventListener("pointerdown", handleTouchPointerDown);
       currentTarget.removeEventListener("pointerup", handleTouchPointerUp);
       currentTarget.removeEventListener("focusin", handlePointerEnter);
-      currentTarget.removeEventListener("focusout", handleFocusOut);
+      currentTarget.removeEventListener("focusout", handleContextLeave);
     });
   });
 
@@ -596,21 +590,27 @@ export function Tooltip(props: TooltipProps): JSX.Element {
     });
   });
 
-  createEffect(() => {
-    // Reading these props makes Solid rerun positioning when any of them changes.
-    normalizePosition(finalProps.position);
-    finalProps.content;
-    finalProps.maxWidth;
-    finalProps.autoLayout;
-    finalProps.offset;
-    finalProps.parentElement;
-    finalProps.anchor;
-    finalProps.edgeAnchor;
-    finalProps.mode;
-    if (isMounted()) {
-      floatingPosition.update();
-    }
-  });
+  createEffect(
+    on(
+      () => [
+        normalizePosition(finalProps.position),
+        finalProps.content,
+        finalProps.maxWidth,
+        finalProps.autoLayout,
+        finalProps.offset,
+        finalProps.parentElement,
+        finalProps.anchor,
+        finalProps.edgeAnchor,
+        finalProps.mode,
+        isMounted(),
+      ],
+      () => {
+        if (isMounted()) {
+          floatingPosition.update();
+        }
+      },
+    ),
+  );
 
   createEffect(() => {
     if (isMounted()) {

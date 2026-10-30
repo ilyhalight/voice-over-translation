@@ -29,80 +29,17 @@ import {
 } from "../utils/abort";
 import { hasAccountToken } from "../utils/account";
 import debug from "../utils/debug";
-import {
-  getErrorMessage,
-  isAbortError,
-  makeAbortError,
-  safeNestedGet,
-} from "../utils/errors";
+import { getErrorMessage, isAbortError, makeAbortError } from "../utils/errors";
 import type { VideoHandler } from "../VideoHandler";
 import VOTLocalizedError from "../VOTLocalizedError";
 import {
-  getTranslationAuthErrorKind,
   getTranslationServerErrorMessage,
   isTranslationAuthError,
 } from "./translationAuthError";
+import { mapVotClientErrorForUi } from "./translationClientError";
 import { notifyTranslationFailureIfNeeded } from "./translationErrors";
 import { TranslationEtaCountdown } from "./translationEtaCountdown";
-
-/**
- * Historically we used `patch-package` to make `@vot.js/core` throw
- * `VOTLocalizedError` for a few common failure cases.
- *
- * We now keep the dependency unpatched and instead map known error messages
- * coming from the VOT client to the corresponding localized UI errors.
- */
-function mapVotClientErrorForUi(
-  error: unknown,
-  hasProvidedAccountToken = false,
-): unknown {
-  const authErrorKind = getTranslationAuthErrorKind(error, {
-    hasAccountToken: hasProvidedAccountToken,
-  });
-  if (authErrorKind) {
-    return new VOTLocalizedError(
-      authErrorKind === "session-expired"
-        ? "VOTYandexTokenExpired"
-        : "VOTAccountRequired",
-    );
-  }
-
-  // Only VOT client errors (objects with name === "VOTJSError") need mapping.
-  if (!error || typeof error !== "object") {
-    return error;
-  }
-
-  const errName = safeNestedGet(error, ["name"]);
-  if (errName !== "VOTJSError") {
-    return error;
-  }
-
-  const message =
-    typeof safeNestedGet(error, ["message"]) === "string"
-      ? (safeNestedGet(error, ["message"]) as string)
-      : "";
-  const serverMessage = safeNestedGet(error, ["data", "message"]);
-  const hasServerMessage =
-    typeof serverMessage === "string" && serverMessage.length > 0;
-
-  // Keep server-provided messages when available.
-  if (message === "Yandex couldn't translate video" && !hasServerMessage) {
-    return new VOTLocalizedError("requestTranslationFailed");
-  }
-
-  if (message === "Failed to request video translation") {
-    return new VOTLocalizedError("requestTranslationFailed");
-  }
-
-  if (
-    message === "Audio link wasn't received" ||
-    message === "Audio link wasn't received from VOT response"
-  ) {
-    return new VOTLocalizedError("audioNotReceived");
-  }
-
-  return error;
-}
+import { createTranslationPollState } from "./translationPollScheduler";
 
 type TranslateVideoImplOptions = {
   disableLivelyVoice?: boolean;
@@ -131,6 +68,8 @@ export class VOTTranslationHandler {
     reject: (error: Error) => void;
   }>();
   private readonly etaCountdown: TranslationEtaCountdown;
+  // Per-translation poll state (stale-ETA backoff); reset on a new translation.
+  private readonly pollState = createTranslationPollState();
 
   // Avoid spamming the fail-audio-js fallback for the same video URL.
   // In normal operation we should upload audio through the MSE proxy path.
@@ -567,28 +506,16 @@ export class VOTTranslationHandler {
     return await fn();
   }
 
-  private static readonly MAX_INITIAL_WAIT_SEC = 180;
-  private static readonly LONG_WAIT_MS = 120_000;
-  private static readonly RETRY_INTERVAL_MS = 30_000;
-
   private getRetryDelayMs(
     retryAttempt: number,
     remainingTimeSeconds: number | null = 0,
+    status?: unknown,
   ): number {
-    if (retryAttempt > 0) {
-      return VOTTranslationHandler.RETRY_INTERVAL_MS;
-    }
-
-    const eta = remainingTimeSeconds ?? 0;
-    if (eta <= 0) {
-      return VOTTranslationHandler.RETRY_INTERVAL_MS;
-    }
-
-    if (eta <= VOTTranslationHandler.MAX_INITIAL_WAIT_SEC) {
-      return eta * 1000;
-    }
-
-    return VOTTranslationHandler.LONG_WAIT_MS;
+    return this.pollState.nextDelayMs({
+      retryAttempt,
+      remainingTimeSeconds,
+      status,
+    });
   }
 
   private async handleTranslationUiError(uiError: unknown): Promise<void> {
@@ -614,17 +541,14 @@ export class VOTTranslationHandler {
     (TranslatedVideoTranslationResponse & { usedLivelyVoice: boolean }) | null
   > {
     const { disableLivelyVoice = false, retryAttempt = 0 } = options;
+    // A new translation (not a scheduled retry) starts with a clean poll state.
+    if (retryAttempt === 0) this.pollState.reset();
     clearTimeout(this.videoHandler.autoRetry);
     this.finishDownloadSuccess();
-    const requestLangForApi = this.videoHandler.getRequestLangForTranslation(
-      requestLang,
-      responseLang,
-    );
     debug.log("[Translation] translateVideoImpl start", {
       videoId: videoData.videoId,
       duration: videoData.duration,
       requestLang,
-      requestLangForApi,
       responseLang,
       retryAttempt,
       disableLivelyVoice,
@@ -632,7 +556,7 @@ export class VOTTranslationHandler {
       translationHelpCount: translationHelp?.length ?? 0,
     });
     logger.log(
-      `Translate video (requestLang: ${requestLang}, requestLangForApi: ${requestLangForApi}, responseLang: ${responseLang})`,
+      `Translate video (requestLang: ${requestLang}, responseLang: ${responseLang})`,
       videoData,
     );
 
@@ -645,13 +569,13 @@ export class VOTTranslationHandler {
       throwIfAborted(signal);
 
       const livelyVoiceAllowed = this.videoHandler.isLivelyVoiceAllowed(
-        requestLangForApi,
+        requestLang,
         responseLang,
       );
       const translationAttempt =
         await this.requestTranslationWithLivelyFallback({
           videoData,
-          requestLangForApi,
+          requestLang,
           responseLang,
           translationHelp,
           shouldSendFailedAudio,
@@ -685,7 +609,13 @@ export class VOTTranslationHandler {
       });
       throwIfAborted(signal);
 
-      if (res.translated && res.remainingTime < 1) {
+      // vot.js API: FINISHED/PART_CONTENT => translated=true. FINISHED is terminal:
+      // never re-request translate after it (stale remainingTime used to schedule a retry).
+      if (
+        res.translated &&
+        (res.status === VideoTranslationStatus.FINISHED ||
+          res.remainingTime < 1)
+      ) {
         this.etaCountdown.stop();
         logger.log("[Translation] translation finished", {
           videoId: videoData.videoId,
@@ -847,6 +777,7 @@ export class VOTTranslationHandler {
     const retryDelayMs = this.getRetryDelayMs(
       retryAttempt,
       translationResponse?.remainingTime ?? null,
+      translationResponse?.status,
     );
     debug.log("[Translation] scheduling translation retry", {
       videoId: videoData.videoId,
@@ -881,7 +812,7 @@ export class VOTTranslationHandler {
 
   private async requestTranslationWithLivelyFallback({
     videoData,
-    requestLangForApi,
+    requestLang,
     responseLang,
     translationHelp,
     shouldSendFailedAudio,
@@ -889,7 +820,7 @@ export class VOTTranslationHandler {
     livelyVoiceAllowed,
   }: {
     videoData: VideoData;
-    requestLangForApi: RequestLang;
+    requestLang: RequestLang;
     responseLang: ResponseLang;
     translationHelp: VideoTranslationHelp[] | null;
     shouldSendFailedAudio: boolean;
@@ -907,7 +838,7 @@ export class VOTTranslationHandler {
 
     debug.log("[Translation] requesting translation from VOT client", {
       videoId: videoData.videoId,
-      requestLangForApi,
+      requestLang,
       responseLang,
       shouldSendFailedAudio,
       livelyDisabled,
@@ -920,7 +851,7 @@ export class VOTTranslationHandler {
       try {
         debug.log("[Translation] votClient.translateVideo call", {
           videoId: videoData.videoId,
-          requestLangForApi,
+          requestLang,
           responseLang,
           useLivelyVoice,
           shouldSendFailedAudio,
@@ -928,7 +859,7 @@ export class VOTTranslationHandler {
         });
         const response = await this.videoHandler.votClient.translateVideo({
           videoData,
-          requestLang: requestLangForApi,
+          requestLang,
           responseLang,
           translationHelp,
           extraOpts: {
@@ -938,7 +869,11 @@ export class VOTTranslationHandler {
           shouldSendFailedAudio,
         });
 
-        if (!useLivelyVoice || !this.isLivelyVoiceUnavailableError(response)) {
+        if (
+          !useLivelyVoice ||
+          response.translated ||
+          !this.isLivelyVoiceUnavailableError(response)
+        ) {
           debug.log("[Translation] votClient.translateVideo resolved", {
             videoId: videoData.videoId,
             useLivelyVoice,
@@ -968,7 +903,7 @@ export class VOTTranslationHandler {
       useLivelyVoice = false;
       debug.log("[Translation] retrying translation without lively voice", {
         videoId: videoData.videoId,
-        requestLangForApi,
+        requestLang,
         responseLang,
       });
     }

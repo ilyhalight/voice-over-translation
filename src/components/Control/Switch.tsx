@@ -5,7 +5,6 @@ import {
   mergeProps,
   Show,
 } from "solid-js";
-import "./Switch.scss";
 import { effect } from "solid-js/web";
 
 export type SwitchProps = {
@@ -27,11 +26,9 @@ export function Switch(props: SwitchProps): JSX.Element {
   const textId = createUniqueId();
 
   const [checked, setChecked] = createSignal(finalProps.checked);
-  const [disabled, setDisabled] = createSignal(finalProps.disabled);
 
   effect(() => {
     setChecked(finalProps.checked);
-    setDisabled(finalProps.disabled);
   });
 
   return (
@@ -42,7 +39,7 @@ export function Switch(props: SwitchProps): JSX.Element {
         "vot-switch_sub": finalProps.isSubSwitch,
       }}
       hidden={finalProps.hidden}
-      data-disabled={disabled()}
+      data-disabled={finalProps.disabled}
     >
       <input
         class="vot-switch-control"
@@ -55,7 +52,7 @@ export function Switch(props: SwitchProps): JSX.Element {
         type="checkbox"
         name={textId}
         checked={checked()}
-        disabled={disabled()}
+        disabled={finalProps.disabled}
         onChange={(event) => {
           const nextChecked = event.currentTarget.checked;
           setChecked(nextChecked);

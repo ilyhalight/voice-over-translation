@@ -9,11 +9,14 @@ import {
   TYPE_XHR_ABORT,
   TYPE_XHR_START,
 } from "../shared/constants";
-import {
-  getSameWindowPostMessageTargetOrigin,
-  toBridgeMessage,
-} from "../shared/transport";
+import { postToPage as postToBridge } from "../shared/transport";
 import { callXhrCallback } from "../shared/utils";
+import {
+  getBridgeInstanceId,
+  getBridgeState,
+  isBridgeRestartError,
+  whenBridgeReady,
+} from "./bridge-client";
 
 const XHR_FALLBACK_TIMEOUT_GRACE_MS = 1_000;
 const BRIDGE_REQUEST_TIMEOUT_MS = 15_000;
@@ -27,7 +30,7 @@ export type PendingRequest = {
   action: string;
   resolve: (value: unknown) => void;
   reject: (reason: unknown) => void;
-  timeoutId: number;
+  timeoutId: ReturnType<typeof setTimeout>;
 };
 
 function asRecord(value: unknown): UnknownRecord {
@@ -38,13 +41,6 @@ function toFiniteNumber(value: unknown): number | undefined {
   if (value == null) return undefined;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function postToBridge(payload: AnyObject) {
-  globalThis.postMessage(
-    toBridgeMessage(payload),
-    getSameWindowPostMessageTargetOrigin(),
-  );
 }
 
 // Notifications cannot transport functions (onclick/ondone) over postMessage.
@@ -69,7 +65,6 @@ function sanitizeNotificationDetails(details: unknown): AnyObject {
   return sanitized;
 }
 
-// Request/response plumbing for GM.* promises API.
 let seq = 0;
 export const pending = new Map<string, PendingRequest>();
 
@@ -78,20 +73,46 @@ function makeId(): string {
   return `${REQUEST_ID_PREFIX}_${seq.toString(36)}`;
 }
 
-export function request<T = unknown>(
+export async function request<T = unknown>(
   action: string,
   payload: AnyObject = {},
 ): Promise<T> {
+  if (getBridgeState() === "down") await whenBridgeReady();
+  const sentToInstance = getBridgeInstanceId();
+  try {
+    return await sendRequestOnce<T>(action, payload);
+  } catch (err: unknown) {
+    if (!isBridgeRestartError(err)) throw err;
+    debug.warn("[VOT EXT][prelude] GM API bridge restarted, retrying once", {
+      action,
+      instanceId: sentToInstance,
+    });
+    await whenBridgeReady(BRIDGE_REQUEST_TIMEOUT_MS, sentToInstance);
+    return sendRequestOnce<T>(action, payload);
+  }
+}
+
+export function popPendingRequest(id: string): PendingRequest | undefined {
+  const item = pending.get(id);
+  if (item) {
+    pending.delete(id);
+    clearTimeout(item.timeoutId);
+  }
+  return item;
+}
+
+function sendRequestOnce<T>(action: string, payload: AnyObject): Promise<T> {
   const id = makeId();
   return new Promise<T>((resolve, reject) => {
     const timeoutId = globalThis.setTimeout(() => {
-      pending.delete(id);
+      const item = popPendingRequest(id);
+      if (!item) return;
       debug.warn("[VOT EXT][prelude] GM API timeout", {
         requestId: id,
         action,
       });
-      reject(new Error(`VOT bridge timeout for ${action}`));
-    }, BRIDGE_REQUEST_TIMEOUT_MS) as unknown as number;
+      item.reject(new Error(`VOT bridge timeout for ${action}`));
+    }, BRIDGE_REQUEST_TIMEOUT_MS);
 
     debug.log("[VOT EXT][prelude] GM API request", {
       requestId: id,
@@ -104,7 +125,11 @@ export function request<T = unknown>(
       reject,
       timeoutId,
     });
-    postToBridge({ type: TYPE_REQ, id, action, payload });
+    try {
+      postToBridge({ type: TYPE_REQ, id, action, payload });
+    } catch (error) {
+      popPendingRequest(id)?.reject(error);
+    }
   });
 }
 
@@ -115,31 +140,20 @@ export type XhrCallbackState = {
   acknowledged: boolean;
   settled: boolean;
   lastBridgeEventAt: number;
+  /** Set once a progress event reached the page (no restart retry after that). */
+  progressDelivered?: boolean;
+  /**
+   * Called by the message handler for a bridge-restart error event.
+   * Returns true when the request was re-queued (event must not be surfaced).
+   */
+  retryOnBridgeRestart?: (payload: AnyObject) => boolean;
 };
 
-// GM_xmlhttpRequest callback plumbing.
 export const xhrCallbacks = new Map<string, XhrCallbackState>();
 
-type XhrSettleCallbackName = "onload" | "onerror" | "ontimeout" | "onabort";
-type XhrSettleState = { isSettled: boolean };
-
-function createXhrSettleHandler(
-  callbackName: XhrSettleCallbackName,
-  original: AnyObject,
-  settleState: XhrSettleState,
-  resolve: (value: unknown) => void,
-  reject: (reason: unknown) => void,
-): (value: unknown) => void {
-  return (value: unknown) => {
-    callXhrCallback(original[callbackName], value);
-    if (settleState.isSettled) return;
-    settleState.isSettled = true;
-    if (callbackName === "onload") {
-      resolve(value);
-      return;
-    }
-    reject(value);
-  };
+function clearXhrTimeout(state: XhrCallbackState): void {
+  if (state.timeoutId !== null) clearTimeout(state.timeoutId);
+  state.timeoutId = null;
 }
 
 export function popXhrCallbacks(requestId: string): AnyObject | null {
@@ -147,9 +161,7 @@ export function popXhrCallbacks(requestId: string): AnyObject | null {
   if (!state) return null;
   state.settled = true;
   xhrCallbacks.delete(requestId);
-  if (state.timeoutId !== null) {
-    clearTimeout(state.timeoutId);
-  }
+  clearXhrTimeout(state);
   return state.callbacks;
 }
 
@@ -157,67 +169,45 @@ export function armXhrFallbackWatchdog(
   requestId: string,
   state: XhrCallbackState,
 ): void {
-  if (state.timeoutId !== null) {
-    clearTimeout(state.timeoutId);
-    state.timeoutId = null;
+  clearXhrTimeout(state);
+  let timeoutMs = BRIDGE_REQUEST_TIMEOUT_MS;
+  if (state.acknowledged) {
+    timeoutMs = 0;
+    if (state.timeoutMs > 0 && Number.isFinite(state.timeoutMs)) {
+      timeoutMs = state.timeoutMs + XHR_FALLBACK_TIMEOUT_GRACE_MS;
+    }
   }
-  if (
-    state.settled ||
-    !state.acknowledged ||
-    !Number.isFinite(state.timeoutMs) ||
-    state.timeoutMs <= 0
-  ) {
-    return;
-  }
+  if (state.settled || timeoutMs <= 0) return;
 
   state.timeoutId = globalThis.setTimeout(() => {
-    const current = xhrCallbacks.get(requestId);
-    if (!current || current.settled) return;
-    debug.warn("[VOT EXT][prelude] GM_xmlhttpRequest timeout fallback fired", {
+    if (xhrCallbacks.get(requestId) !== state) return;
+    const callbacks = popXhrCallbacks(requestId);
+    if (!callbacks) return;
+    abortBridgeXhr(requestId);
+    const error = state.acknowledged
+      ? "Timeout"
+      : "VOT bridge did not acknowledge XHR request";
+    debug.warn("[VOT EXT][prelude] GM_xmlhttpRequest timeout fallback", {
       requestId,
-      timeoutMs: current.timeoutMs,
-      state: "terminal",
-      lastBridgeEventAt: current.lastBridgeEventAt || null,
+      error,
+      lastBridgeEventAt: state.lastBridgeEventAt || null,
     });
-    const callbackFns = popXhrCallbacks(requestId);
-    if (!callbackFns) return;
-    try {
-      postToBridge({ type: TYPE_XHR_ABORT, requestId });
-    } catch {
-      // ignore
-    }
-    callXhrCallback(callbackFns.ontimeout, {
-      finalUrl: String(current.callbacks.url || ""),
-      readyState: 4,
-      status: 0,
-      statusText: "",
-      responseHeaders: "",
-      response: null,
-      responseText: "",
-      error: "Timeout",
-    });
-  }, state.timeoutMs + XHR_FALLBACK_TIMEOUT_GRACE_MS);
+    callXhrCallback(
+      state.acknowledged ? callbacks.ontimeout : callbacks.onerror,
+      makeXhrTerminalErrorPayload(callbacks, error),
+    );
+  }, timeoutMs);
 }
 
-function toSerializableXhrDetails(details: AnyObject): AnyObject {
-  return {
-    method: details.method,
-    url: details.url,
-    headers: details.headers,
-    data: summarizeBodyForDebug(details.data),
-    timeout: details.timeout,
-    responseType: details.responseType,
-    anonymous: details.anonymous,
-    withCredentials: details.withCredentials,
-  };
+function abortBridgeXhr(requestId: string): void {
+  try {
+    postToBridge({ type: TYPE_XHR_ABORT, requestId });
+  } catch {
+    // The bridge may already be gone; local cleanup must still complete.
+  }
 }
 
 function toBridgeXhrDetails(details: AnyObject): AnyObject {
-  debug.log("[VOT EXT][prelude] GM_xmlhttpRequest body passthrough", {
-    url: details.url,
-    method: details.method,
-    body: summarizeBodyForDebug(details.data),
-  });
   return {
     method: details.method,
     url: details.url,
@@ -256,30 +246,32 @@ export function makeXhrTerminalErrorPayload(
   };
 }
 
-export function installPageGmPolyfills() {
-  // Legacy GM_notification (callback-based). Used by src/utils/notify.ts.
-  (globalThis as any).GM_notification = (details: unknown) => {
+export function installPageGmPolyfills(): void {
+  const pageGlobal = globalThis as any;
+  const notification = (details: unknown) => {
+    postToBridge({
+      type: TYPE_NOTIFY,
+      details: sanitizeNotificationDetails(details),
+    });
+  };
+
+  pageGlobal.GM_notification = (details: unknown) => {
     try {
-      postToBridge({
-        type: TYPE_NOTIFY,
-        details: sanitizeNotificationDetails(details),
-      });
+      notification(details);
     } catch {
       // ignore
     }
   };
 
-  // GM_addStyle helper.
-  (globalThis as any).GM_addStyle = (css: string) => {
+  pageGlobal.GM_addStyle = (css: string) => {
     const style = document.createElement("style");
     style.textContent = String(css ?? "");
     (document.head || document.documentElement).appendChild(style);
     return style;
   };
 
-  // GM_xmlhttpRequest shim backed by the extension service worker.
-  (globalThis as any).GM_xmlhttpRequest = (details: AnyObject) => {
-    const requestId = makeId();
+  pageGlobal.GM_xmlhttpRequest = (details: AnyObject) => {
+    let requestId = makeId();
     const callbacks: AnyObject = asRecord(details);
     const timeoutMs = Number(callbacks.timeout ?? 0);
     const callbackState: XhrCallbackState = {
@@ -292,54 +284,102 @@ export function installPageGmPolyfills() {
     };
     xhrCallbacks.set(requestId, callbackState);
 
-    let active = true;
+    const waitController = new AbortController();
+    const isActive = (id = requestId) => xhrCallbacks.get(id) === callbackState;
+    let restartRetried = false;
+    let sentToInstance: string | null = null;
 
     debug.log("[VOT EXT][prelude] GM_xmlhttpRequest", {
       requestId,
       state: "created",
       timeoutMs: callbackState.timeoutMs,
-      details: toSerializableXhrDetails(callbacks),
     });
+
+    const failRequest = (id: string, error: unknown) => {
+      if (!isActive(id)) return;
+      const errorPayload =
+        isObjectLike(error) && !(error instanceof Error)
+          ? (error as AnyObject)
+          : makeXhrTerminalErrorPayload(callbacks, toErrorMessage(error));
+      callXhrCallback(popXhrCallbacks(id)?.onerror, errorPayload);
+    };
 
     const startRequest = () => {
       try {
-        if (!active || !xhrCallbacks.has(requestId)) return;
+        if (!isActive()) return;
         const requestDetails = toBridgeXhrDetails(callbacks);
 
         debug.log("[VOT EXT][prelude] GM_xmlhttpRequest post TYPE_XHR_START", {
           requestId,
-          details: toSerializableXhrDetails(callbacks),
+          details: {
+            ...requestDetails,
+            data: summarizeBodyForDebug(requestDetails.data),
+          },
         });
+        sentToInstance = getBridgeInstanceId();
+        armXhrFallbackWatchdog(requestId, callbackState);
         postToBridge({
           type: TYPE_XHR_START,
           requestId,
           details: requestDetails,
         });
       } catch (err: unknown) {
-        if (!active || !xhrCallbacks.has(requestId)) return;
-        active = false;
-        const errorMsg = toErrorMessage(err);
-        debug.log("[VOT EXT][prelude] GM_xmlhttpRequest start error", {
-          requestId,
-          error: errorMsg,
-        });
-        callXhrCallback(
-          popXhrCallbacks(requestId)?.onerror,
-          makeXhrTerminalErrorPayload(callbacks, errorMsg),
-        );
+        failRequest(requestId, err);
       }
     };
-    startRequest();
+
+    const waitAndStart = (staleInstanceId?: string | null, error?: unknown) => {
+      const waitId = requestId;
+      whenBridgeReady(
+        BRIDGE_REQUEST_TIMEOUT_MS,
+        staleInstanceId,
+        waitController.signal,
+      ).then(
+        () => {
+          if (isActive(waitId)) startRequest();
+        },
+        (waitError: unknown) => failRequest(waitId, error ?? waitError),
+      );
+    };
+
+    // Re-send TYPE_XHR_START once on the next bridge (new request id) when the
+    // bridge died before any load/progress was delivered.
+    callbackState.retryOnBridgeRestart = (payload: AnyObject) => {
+      if (restartRetried || !isActive() || callbackState.progressDelivered) {
+        return false;
+      }
+      restartRetried = true;
+      const staleInstance = sentToInstance;
+      const originalError = payload?.error ?? payload;
+      xhrCallbacks.delete(requestId);
+      clearXhrTimeout(callbackState);
+      callbackState.acknowledged = false;
+      callbackState.lastBridgeEventAt = 0;
+      const previousId = requestId;
+      requestId = makeId();
+      xhrCallbacks.set(requestId, callbackState);
+      debug.warn("[VOT EXT][prelude] GM_xmlhttpRequest bridge restarted", {
+        requestId: previousId,
+        retryRequestId: requestId,
+        instanceId: staleInstance,
+      });
+      waitAndStart(staleInstance, originalError);
+      return true;
+    };
+
+    if (getBridgeState() === "down") waitAndStart();
+    else startRequest();
 
     return {
       abort: () => {
-        if (!active) return;
-        active = false;
-        debug.warn("[VOT EXT][prelude] GM_xmlhttpRequest abort called", {
-          requestId,
-        });
-        popXhrCallbacks(requestId);
-        postToBridge({ type: TYPE_XHR_ABORT, requestId });
+        const callbacks = popXhrCallbacks(requestId);
+        if (!callbacks) return;
+        waitController.abort();
+        abortBridgeXhr(requestId);
+        callXhrCallback(
+          callbacks.onabort,
+          makeXhrTerminalErrorPayload(callbacks, "Aborted"),
+        );
       },
     };
   };
@@ -353,38 +393,23 @@ export function installPageGmPolyfills() {
 
     const p = new Promise<unknown>((resolve, reject) => {
       const wrapped: AnyObject = { ...original };
-      const settleState: XhrSettleState = { isSettled: false };
-
-      wrapped.onload = createXhrSettleHandler(
+      let settled = false;
+      for (const name of [
         "onload",
-        original,
-        settleState,
-        resolve,
-        reject,
-      );
-      wrapped.onerror = createXhrSettleHandler(
         "onerror",
-        original,
-        settleState,
-        resolve,
-        reject,
-      );
-      wrapped.ontimeout = createXhrSettleHandler(
         "ontimeout",
-        original,
-        settleState,
-        resolve,
-        reject,
-      );
-      wrapped.onabort = createXhrSettleHandler(
         "onabort",
-        original,
-        settleState,
-        resolve,
-        reject,
-      );
+      ] as const) {
+        wrapped[name] = (value: unknown) => {
+          if (settled) return;
+          settled = true;
+          callXhrCallback(original[name], value);
+          if (name === "onload") resolve(value);
+          else reject(value);
+        };
+      }
 
-      const ctrl = (globalThis as any).GM_xmlhttpRequest(wrapped);
+      const ctrl = pageGlobal.GM_xmlhttpRequest(wrapped);
       abortFn =
         ctrl && typeof ctrl.abort === "function" ? ctrl.abort.bind(ctrl) : null;
     }) as AbortablePromise<unknown>;
@@ -399,8 +424,7 @@ export function installPageGmPolyfills() {
     return p;
   };
 
-  // GM4 promises API used by src/utils/storage.ts.
-  (globalThis as any).GM = {
+  pageGlobal.GM = {
     getValue: <T>(key: string, def?: T) =>
       request<T>("gm_getValue", { key, def }),
     setValue: (key: string, value: unknown) =>
@@ -409,21 +433,15 @@ export function installPageGmPolyfills() {
     listValues: <T extends string = string>() => request<T[]>("gm_listValues"),
     getValues: <T extends AnyObject>(defaults: T) =>
       request<T>("gm_getValues", { defaults }),
-    notification: (details: unknown) => {
-      postToBridge({
-        type: TYPE_NOTIFY,
-        details: sanitizeNotificationDetails(details),
-      });
-    },
-    xmlHttpRequest: (details: AnyObject) => gmPromiseXmlHttpRequest(details),
+    notification,
+    xmlHttpRequest: gmPromiseXmlHttpRequest,
   };
 
-  // Provide GM_info so the core code can report environment information.
   const buildVersion =
     typeof VOT_VERSION === "undefined"
       ? "0.0.0"
       : String(VOT_VERSION || "0.0.0");
-  (globalThis as any).GM_info = {
+  pageGlobal.GM_info = {
     script: { name: "VOT Extension", version: buildVersion },
     scriptHandler: "VOT Extension",
     version: buildVersion,

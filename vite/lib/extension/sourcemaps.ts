@@ -9,40 +9,26 @@ async function listMapFiles(dir: string): Promise<string[]> {
 
 /**
  * Moves the maps out of the extension directory so they never end up in the
- * package. Maps that carry no debug id (crxjs internals, standalone scripts
- * without telemetry) are dropped.
+ * package. Maps that carry no debug id (standalone scripts without telemetry)
+ * are dropped. Debug builds use inline maps, so there may be nothing to stash.
  */
-export async function stashChromeSourcemaps(chromeDir: string): Promise<void> {
-  const target = path.join(EXT_SOURCEMAPS_DIR, "chrome");
+export async function stashSourcemaps(
+  browser: "chrome" | "firefox",
+  extensionDir: string,
+): Promise<void> {
+  const source = path.join(extensionDir, SOURCEMAP_DIR);
+  const target = path.join(EXT_SOURCEMAPS_DIR, browser);
   await fs.rm(target, { recursive: true, force: true });
   await fs.mkdir(path.dirname(target), { recursive: true });
-  await fs.rename(path.join(chromeDir, SOURCEMAP_DIR), target);
+  try {
+    await fs.rename(source, target);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
 
   await Promise.all(
-    (await listMapFiles(chromeDir)).map((entry) =>
-      fs.rm(path.join(chromeDir, entry)),
+    (await listMapFiles(extensionDir)).map((entry) =>
+      fs.rm(path.join(extensionDir, entry)),
     ),
   );
-}
-
-/** The Firefox background bundle is shipped as `background.js`. */
-export async function stashFirefoxSourcemaps(tmpDir: string): Promise<void> {
-  const target = path.join(EXT_SOURCEMAPS_DIR, "firefox");
-  await fs.rm(target, { recursive: true, force: true });
-  await fs.mkdir(target, { recursive: true });
-
-  for (const entry of await listMapFiles(path.join(tmpDir, SOURCEMAP_DIR))) {
-    const source = path.join(tmpDir, SOURCEMAP_DIR, entry);
-    if (entry !== "background-ff.js.map") {
-      await fs.copyFile(source, path.join(target, entry));
-      continue;
-    }
-
-    const map = JSON.parse(await fs.readFile(source, "utf8"));
-    map.file = "background.js";
-    await fs.writeFile(
-      path.join(target, "background.js.map"),
-      JSON.stringify(map),
-    );
-  }
 }

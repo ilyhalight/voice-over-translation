@@ -92,14 +92,12 @@ import {
   isYouTubeHosts as isYouTubeHostsImpl,
   proxifyAudio as proxifyAudioImpl,
   refreshTranslationAudio as refreshTranslationAudioImpl,
-  scheduleTranslationRefresh as scheduleTranslationRefreshImpl,
   setupAudioSettings as setupAudioSettingsImpl,
   stopSmartVolumeDucking as stopSmartVolumeDuckingImpl,
   syncTranslationPlaybackVolume as syncTranslationPlaybackVolumeImpl,
   translateFunc as translateFuncImpl,
   unproxifyAudio as unproxifyAudioImpl,
   updateTranslation as updateTranslationImpl,
-  validateAudioUrl as validateAudioUrlImpl,
 } from "./videoHandler/modules/translation";
 import { ensureCountryCode, getCountryCode } from "./videoHandler/shared";
 import {
@@ -379,10 +377,7 @@ export class VideoHandler {
     to: string,
     translationHelp?: unknown,
   ): string {
-    const requestLangForApi = this.getRequestLangForTranslation(
-      from as RequestLang,
-      to as ResponseLang,
-    );
+    const requestLangForApi = from as RequestLang;
     const useLivelyVoice =
       this.isLivelyVoiceAllowed(requestLangForApi, to as ResponseLang) &&
       this.data?.useLivelyVoice;
@@ -665,9 +660,14 @@ export class VideoHandler {
   }
 
   get isAudioContextSupported() {
+    const webkitAudioContext = (
+      globalThis as typeof globalThis & {
+        webkitAudioContext?: typeof AudioContext;
+      }
+    ).webkitAudioContext;
     return (
       globalThis.AudioContext !== undefined ||
-      (globalThis as any).webkitAudioContext !== undefined
+      webkitAudioContext !== undefined
     );
   }
 
@@ -742,8 +742,10 @@ export class VideoHandler {
 
   /** Initializes the VOT client. */
   async initVOTClient() {
-    while (this.votClientInitPromise) {
-      await this.votClientInitPromise.catch(() => undefined);
+    const pendingInit = this.votClientInitPromise;
+    if (pendingInit !== undefined) {
+      await pendingInit.catch(() => undefined);
+      return this.initVOTClient();
     }
 
     const proxyKey = this.getVOTClientProxyKey();
@@ -801,21 +803,29 @@ export class VideoHandler {
     const originalGetSession = this.votClient.provider.getSession.bind(
       this.votClient.provider,
     );
-    this.votClient.provider.getSession = async (
-      module: SessionModule,
-    ): Promise<ClientSession> => {
-      let session: ClientSession;
-      try {
-        session = await originalGetSession(module);
-      } catch (err) {
-        this.reportSessionFailure(err, module, transportHost);
-        throw err;
+    // Dedupe concurrent session requests per module so parallel
+    const inFlightSessions = new Map<SessionModule, Promise<ClientSession>>();
+    const provider = this.votClient.provider;
+    provider.getSession = (module: SessionModule): Promise<ClientSession> => {
+      const pending = inFlightSessions.get(module);
+      if (pending !== undefined) {
+        return pending;
       }
-      await this.votSessionStorage.persist(
-        transportHost,
-        this.votClient.provider.sessions,
-      );
-      return session;
+      const request = (async () => {
+        let session: ClientSession;
+        try {
+          session = await originalGetSession(module);
+        } catch (err) {
+          this.reportSessionFailure(err, module, transportHost);
+          throw err;
+        }
+        await this.votSessionStorage.persist(transportHost, provider.sessions);
+        return session;
+      })().finally(() => {
+        inFlightSessions.delete(module);
+      });
+      inFlightSessions.set(module, request);
+      return request;
     };
 
     return this;
@@ -992,29 +1002,13 @@ export class VideoHandler {
     return toggleSubtitlesForCurrentLangPairImpl.call(this);
   }
 
-  getRequestLangForTranslation(
-    requestLang: RequestLang,
-    responseLang: ResponseLang,
-  ): RequestLang {
-    if (
-      this.data?.useLivelyVoice &&
-      requestLang === "auto" &&
-      responseLang === "ru"
-    ) {
-      return "en";
-    }
-    return requestLang;
-  }
 
   isLivelyVoiceAllowed(
     requestLang: RequestLang = this.videoData?.detectedLanguage ?? "auto",
     responseLang: ResponseLang = this.videoData?.responseLanguage ??
       this.translateToLang,
   ) {
-    const requestLangForApi = this.getRequestLangForTranslation(
-      requestLang,
-      responseLang,
-    );
+    const requestLangForApi = requestLang;
     if (requestLangForApi === "auto" || responseLang !== "ru") {
       return false;
     }
@@ -1422,23 +1416,6 @@ export class VideoHandler {
       this.notifier.translationCompleted(globalThis.location.hostname);
       this.hadAsyncWait = false;
     }
-  }
-
-  /**
-   * Keeps the historical async hook for audio URL preparation.
-   * Playback errors are handled by the native audio player path.
-   * @param {string} audioUrl The audio URL.
-   * @returns {Promise<string>} The prepared audio URL.
-   */
-  validateAudioUrl(
-    audioUrl: string,
-    actionContext?: { gen: number; videoId: string },
-  ): Promise<string> {
-    return validateAudioUrlImpl.call(this, audioUrl, actionContext);
-  }
-
-  scheduleTranslationRefresh(): void {
-    scheduleTranslationRefreshImpl.call(this);
   }
 
   refreshTranslationAudio = refreshTranslationAudioImpl;

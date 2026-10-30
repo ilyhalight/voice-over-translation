@@ -8,8 +8,6 @@ import {
   Show,
 } from "solid-js";
 
-import "./Textfield.scss";
-
 export type TextfieldProps = {
   labelText: JSX.Element;
   placeholder?: string;

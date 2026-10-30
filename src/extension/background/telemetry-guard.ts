@@ -1,7 +1,7 @@
+import { browser } from "wxt/browser";
 import { INGEST_HOST } from "../../modules/telemetry/event";
 import { BG_MSG_TELEMETRY_CONSENT } from "../shared/constants";
 import { sendBridgeResponse } from "../shared/utils";
-import { ext, permissionsGetAll } from "../shared/webext";
 
 const TECHNICAL_AND_INTERACTION = "technicalAndInteraction";
 
@@ -16,9 +16,11 @@ function isIngestUrl(url: string): boolean {
 
 export async function hasTelemetryConsent(): Promise<boolean> {
   try {
-    const { data_collection: granted } = await permissionsGetAll<{
-      data_collection?: unknown;
-    }>();
+    // `data_collection` is Firefox-only and missing from the Chrome typings.
+    const { data_collection: granted } =
+      (await browser.permissions.getAll()) as {
+        data_collection?: unknown;
+      };
     return (
       Array.isArray(granted) && granted.includes(TECHNICAL_AND_INTERACTION)
     );
@@ -29,31 +31,26 @@ export async function hasTelemetryConsent(): Promise<boolean> {
 
 /** Firefox only: error reports need the user's built-in data collection consent. */
 export async function isTelemetryBlocked(url: string): Promise<boolean> {
-  if (typeof VOT_BUILD_VARIANT === "undefined") return false;
-  if (VOT_BUILD_VARIANT !== "firefox" || !isIngestUrl(url)) return false;
-
+  if (!import.meta.env.FIREFOX || !isIngestUrl(url)) return false;
   return !(await hasTelemetryConsent());
 }
 
 export function registerBackgroundTelemetryConsent(): void {
-  ext?.runtime?.onMessage?.addListener?.(
-    (
-      msg: unknown,
-      _sender: unknown,
-      sendResponse: ((value: unknown) => void) | undefined,
-    ) => {
-      if (
-        !msg ||
-        typeof msg !== "object" ||
-        (msg as { type?: unknown }).type !== BG_MSG_TELEMETRY_CONSENT
-      ) {
-        return;
-      }
+  browser.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (
+      !msg ||
+      typeof msg !== "object" ||
+      (msg as { type?: unknown }).type !== BG_MSG_TELEMETRY_CONSENT
+    ) {
+      return;
+    }
 
-      void hasTelemetryConsent().then((result) => {
+    // Fail closed: a storage error must still answer the sender (no consent).
+    void hasTelemetryConsent()
+      .catch(() => false)
+      .then((result) => {
         sendBridgeResponse(sendResponse, { ok: true, result });
       });
-      return true;
-    },
-  );
+    return true;
+  });
 }

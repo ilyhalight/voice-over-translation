@@ -1,8 +1,5 @@
 import { type JSX, mergeProps, splitProps } from "solid-js";
 
-import "./SegmentedButtonOverlay.scss";
-import "./PreviewSegmentedButtonOverlay.scss";
-
 import type { Position } from "../../types/components/votButton";
 import { Overlay } from "../Utils/Overlay";
 import {

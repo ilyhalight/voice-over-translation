@@ -240,8 +240,8 @@ export class TokenLayoutProcessor {
     const found = segmentRanges.findIndex(
       (segment) => time >= segment.startMs && time < segment.endMs,
     );
-    const resolved =
-      found >= 0 ? found : time < segmentRanges[0].startMs ? 0 : length - 1;
+    const fallbackIndex = time < segmentRanges[0].startMs ? 0 : length - 1;
+    const resolved = found >= 0 ? found : fallbackIndex;
     this.lastSegmentIndex = resolved;
     return resolved;
   }

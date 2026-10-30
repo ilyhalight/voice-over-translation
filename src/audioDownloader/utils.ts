@@ -1,3 +1,9 @@
+import {
+  getYouTubeAudioBitrate,
+  getYouTubeAudioSize,
+  type YouTubeAudioFormat,
+} from "./strategies/youtubeAudioSelection";
+
 type YoutubeAudioFormatLike = {
   languageCode?: unknown;
   language?: unknown;
@@ -28,12 +34,11 @@ export function getYoutubeAudioFormatLanguage(
     return tag;
   };
 
-  const direct = accept(
-    format?.languageCode ??
-      format?.language ??
-      format?.audioTrack?.languageCode ??
-      format?.audioTrack?.language,
-  );
+  const direct =
+    accept(format?.languageCode) ??
+    accept(format?.language) ??
+    accept(format?.audioTrack?.languageCode) ??
+    accept(format?.audioTrack?.language);
   if (direct) return direct;
 
   const trackId = format?.audioTrack?.id ?? format?.audioTrackId;
@@ -61,28 +66,46 @@ export function getYoutubeAudioFormatLanguage(
   return "";
 }
 
-export function selectSmallestAudioFormat<
-  T extends { contentLength?: unknown; averageBitrate?: unknown },
->(candidates: T[]): T | undefined {
-  const smallest = (key: "contentLength" | "averageBitrate") => {
-    let best: T | undefined;
-    let bestValue = Number.POSITIVE_INFINITY;
-    for (const candidate of candidates) {
-      const raw = candidate[key];
-      const value =
-        raw == null
-          ? Number.NaN
-          : typeof raw === "number"
-            ? raw
-            : Number(String(raw));
-      if (Number.isFinite(value) && value > 0 && value < bestValue) {
-        best = candidate;
-        bestValue = value;
-      }
-    }
-    return best;
-  };
-  return (
-    smallest("contentLength") ?? smallest("averageBitrate") ?? candidates[0]
+export function selectSmallestAudioFormat<T extends YouTubeAudioFormat>(
+  candidates: T[],
+): T | undefined {
+  const duration = candidates
+    .map((format) => Number(format.approxDurationMs))
+    .find((value) => Number.isFinite(value) && value > 0);
+  const sizes = candidates.map((format) =>
+    getYouTubeAudioSize(format, duration),
   );
+  const useSizes = sizes.every((size) => size !== undefined);
+  let selected: T | undefined;
+  let best = Infinity;
+  let bestSecondary = Infinity;
+  candidates.forEach((format, index) => {
+    const size = sizes[index] ?? Infinity;
+    const bitrate = getYouTubeAudioBitrate(format) ?? Infinity;
+    const cost = useSizes ? size : bitrate;
+    const secondary = useSizes ? bitrate : size;
+    if (
+      !selected ||
+      cost < best ||
+      (cost === best && secondary < bestSecondary)
+    ) {
+      selected = format;
+      best = cost;
+      bestSecondary = secondary;
+    }
+  });
+  return selected;
+}
+
+export function toPrimitiveString(value: unknown, fallback = ""): string {
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    typeof value === "bigint" ||
+    typeof value === "symbol"
+  ) {
+    return String(value);
+  }
+  return fallback;
 }

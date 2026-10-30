@@ -1,12 +1,12 @@
 import path from "node:path";
 import { defineConfig, type UserConfig } from "vite";
 import { debugIdPlugin } from "./lib/debug-id.ts";
-import { buildDefine } from "./lib/env.ts";
+import { buildDefine, resolveDebugMode } from "./lib/env.ts";
 import {
   DIST_DIR,
   SOURCE_DIR,
   SOURCEMAP_DIR,
-  singleFileBuildOptions,
+  sharedBuildOptions,
 } from "./lib/paths.ts";
 import {
   collectUsedUserscriptGrantsFromEntry,
@@ -27,7 +27,7 @@ const USERSCRIPT_GLOBAL_NAME = "vot";
 type UserscriptBranch = "dev" | "master";
 
 function isDebugBuild(command: string, mode: string): boolean {
-  return command === "serve" || mode === "development";
+  return resolveDebugMode(mode, command === "serve" || mode === "development");
 }
 
 function getUserscriptBranches({
@@ -91,12 +91,11 @@ export default defineConfig(async ({ command, mode }) => {
       repoBranch,
       version,
       authors,
-      crxjsBuild: false,
       minified,
     }),
     build: {
       ...baseConfig.build,
-      ...singleFileBuildOptions,
+      ...sharedBuildOptions,
       outDir: DIST_DIR,
       emptyOutDir: false,
       sourcemap: debug ? true : "hidden",
