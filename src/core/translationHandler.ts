@@ -568,10 +568,8 @@ export class VOTTranslationHandler {
       await this.videoHandler.ensureProxySettingsResolved();
       throwIfAborted(signal);
 
-      const livelyVoiceAllowed = this.videoHandler.isLivelyVoiceAllowed(
-        requestLang,
-        responseLang,
-      );
+      const livelyVoiceAllowed =
+        this.videoHandler.isLivelyVoiceAllowed(responseLang);
       const translationAttempt =
         await this.requestTranslationWithLivelyFallback({
           videoData,

@@ -379,7 +379,7 @@ export class VideoHandler {
   ): string {
     const requestLangForApi = from as RequestLang;
     const useLivelyVoice =
-      this.isLivelyVoiceAllowed(requestLangForApi, to as ResponseLang) &&
+      this.isLivelyVoiceAllowed(to as ResponseLang) &&
       this.data?.useLivelyVoice;
     const helpStr =
       translationHelp === undefined || translationHelp === null
@@ -666,8 +666,7 @@ export class VideoHandler {
       }
     ).webkitAudioContext;
     return (
-      globalThis.AudioContext !== undefined ||
-      webkitAudioContext !== undefined
+      globalThis.AudioContext !== undefined || webkitAudioContext !== undefined
     );
   }
 
@@ -1002,18 +1001,11 @@ export class VideoHandler {
     return toggleSubtitlesForCurrentLangPairImpl.call(this);
   }
 
-
   isLivelyVoiceAllowed(
-    requestLang: RequestLang = this.videoData?.detectedLanguage ?? "auto",
     responseLang: ResponseLang = this.videoData?.responseLanguage ??
       this.translateToLang,
   ) {
-    const requestLangForApi = requestLang;
-    if (requestLangForApi === "auto" || responseLang !== "ru") {
-      return false;
-    }
-
-    return true;
+    return responseLang === "ru";
   }
 
   /**
