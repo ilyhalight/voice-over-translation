@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "يساعدنا في العثور على الأخطاء وإصلاحها. يتم إرسال التفاصيل الفنية فقط",
   "VOTSubtitlesTranslationLanguage": "كلمة وعبارة لغة الترجمة",
   "VOTSameAsMenuLanguage": "نفس لغة القائمة",
-  "VOTMediaProxyHost": "أدخل عنوان وكيل الوسائط"
+  "VOTMediaProxyHost": "أدخل عنوان وكيل الوسائط",
+  "VOTCheckingForUpdate": "التحقق من وجود تحديثات...",
+  "VOTUpdateCheckFailed": "تعذر التحقق من وجود تحديثات",
+  "VOTUpdateAvailable": "الإصدار الجديد {0} متاح"
 }

@@ -336,7 +336,10 @@ export type Phrase =
   | "sendErrorReports"
   | "sendErrorReportsDescription"
   | "VOTSubtitlesTranslationLanguage"
-  | "VOTSameAsMenuLanguage";
+  | "VOTSameAsMenuLanguage"
+  | "VOTCheckingForUpdate"
+  | "VOTUpdateCheckFailed"
+  | "VOTUpdateAvailable";
 
 export type Phrases = {
   recommended: string;
@@ -616,6 +619,9 @@ export type Phrases = {
   sendErrorReportsDescription: string;
   VOTSubtitlesTranslationLanguage: string;
   VOTSameAsMenuLanguage: string;
+  VOTCheckingForUpdate: string;
+  VOTUpdateCheckFailed: string;
+  VOTUpdateAvailable: string;
 };
 
 export type FlatPhrases = Record<Phrase, string>;

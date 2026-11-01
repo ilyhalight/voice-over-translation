@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Помаже нам да пронађемо и исправимо грешке. Шаљу се само технички детаљи",
   "VOTSubtitlesTranslationLanguage": "Језик превођења речи и фраза",
   "VOTSameAsMenuLanguage": "Исто као и језик менија",
-  "VOTMediaProxyHost": "Унесите адресу медијског проки сервера"
+  "VOTMediaProxyHost": "Унесите адресу медијског проки сервера",
+  "VOTCheckingForUpdate": "Проверавам ажурирања...",
+  "VOTUpdateCheckFailed": "Провера ажурирања није успела",
+  "VOTUpdateAvailable": "Доступна је нова верзија {0}"
 }

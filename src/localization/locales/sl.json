@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Pomaga nam najti in odpraviti napake. Pošljejo se samo tehnične podrobnosti",
   "VOTSubtitlesTranslationLanguage": "Jezik prevajanja besed in besednih zvez",
   "VOTSameAsMenuLanguage": "Enako kot jezik menija",
-  "VOTMediaProxyHost": "Vnesite naslov predstavnostnega posrednika"
+  "VOTMediaProxyHost": "Vnesite naslov predstavnostnega posrednika",
+  "VOTCheckingForUpdate": "Preverjanje posodobitev...",
+  "VOTUpdateCheckFailed": "Ni bilo mogoče preveriti posodobitev",
+  "VOTUpdateAvailable": "Na voljo je nova različica {0} "
 }

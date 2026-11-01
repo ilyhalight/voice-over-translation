@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Помогает нам находить и исправлять ошибки. Присылаются только технические подробности",
   "VOTSubtitlesTranslationLanguage": "Язык перевода слов и фраз",
   "VOTSameAsMenuLanguage": "То же, что и язык меню",
-  "VOTMediaProxyHost": "Введите адрес медиа-прокси-сервера"
+  "VOTMediaProxyHost": "Введите адрес медиа-прокси сервера",
+  "VOTCheckingForUpdate": "Проверяю наличие обновлений...",
+  "VOTUpdateCheckFailed": "Не удалось проверить наличие обновлений",
+  "VOTUpdateAvailable": "Доступна новая версия {0}"
 }

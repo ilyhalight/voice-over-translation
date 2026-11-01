@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Hjælper os med at finde og rette fejl. Kun tekniske detaljer sendes",
   "VOTSubtitlesTranslationLanguage": "Oversættelse af ord og sætninger",
   "VOTSameAsMenuLanguage": "Samme som Menusprog",
-  "VOTMediaProxyHost": "Indtast adressen til mediemeddelelse"
+  "VOTMediaProxyHost": "Indtast adressen til mediemeddelelse",
+  "VOTCheckingForUpdate": "Kontrol for opdateringer...",
+  "VOTUpdateCheckFailed": "Kunne ikke tjekke for opdateringer",
+  "VOTUpdateAvailable": "Ny version {0} er tilgængelig"
 }

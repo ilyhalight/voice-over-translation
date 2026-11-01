@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "کیڑے تلاش کرنے اور ٹھیک کرنے میں ہماری مدد کرتا ہے ۔  صرف تکنیکی تفصیلات بھیجی جاتی ہیں",
   "VOTSubtitlesTranslationLanguage": "لفظ اور فقرے کا ترجمہ زبان",
   "VOTSameAsMenuLanguage": "مینو زبان کی طرح",
-  "VOTMediaProxyHost": "میڈیا پراکسی ایڈریس درج کریں"
+  "VOTMediaProxyHost": "میڈیا پراکسی ایڈریس درج کریں",
+  "VOTCheckingForUpdate": "اپ ڈیٹس کی جانچ پڑتال...",
+  "VOTUpdateCheckFailed": "اپ ڈیٹس کے لئے چیک نہیں کر سکا",
+  "VOTUpdateAvailable": "نیا ورژن {0} دستیاب ہے"
 }

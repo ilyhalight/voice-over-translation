@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Helpt ons bugs te vinden en op te lossen. Alleen technische details worden verzonden",
   "VOTSubtitlesTranslationLanguage": "Woorden en zinnen vertalen Taal",
   "VOTSameAsMenuLanguage": "Zelfde als menutaal",
-  "VOTMediaProxyHost": "Voer het media proxy adres in"
+  "VOTMediaProxyHost": "Voer het media proxy adres in",
+  "VOTCheckingForUpdate": "Controleren op updates...",
+  "VOTUpdateCheckFailed": "Kon niet controleren op updates",
+  "VOTUpdateAvailable": "Nieuwe versie {0} is beschikbaar"
 }

@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Membantu kami menemukan dan memperbaiki bug. Hanya detail teknis yang dikirim",
   "VOTSubtitlesTranslationLanguage": "Bahasa terjemahan kata dan frase",
   "VOTSameAsMenuLanguage": "Sama seperti bahasa menu",
-  "VOTMediaProxyHost": "Masukkan alamat proksi media"
+  "VOTMediaProxyHost": "Masukkan alamat proksi media",
+  "VOTCheckingForUpdate": "Memeriksa pembaruan...",
+  "VOTUpdateCheckFailed": "Tidak dapat memeriksa pembaruan",
+  "VOTUpdateAvailable": "Versi baru {0} tersedia"
 }

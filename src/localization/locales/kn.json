@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "ದೋಷಗಳನ್ನು ಹುಡುಕಲು ಮತ್ತು ಸರಿಪಡಿಸಲು ನಮಗೆ ಸಹಾಯ ಮಾಡುತ್ತದೆ. ತಾಂತ್ರಿಕ ವಿವರಗಳನ್ನು ಮಾತ್ರ ಕಳುಹಿಸಲಾಗುತ್ತದೆ",
   "VOTSubtitlesTranslationLanguage": "ಪದ ಮತ್ತು ಪದಗುಚ್ಛ ಅನುವಾದ ಭಾಷೆ",
   "VOTSameAsMenuLanguage": "ಮೆನು ಭಾಷೆಯಂತೆಯೇ",
-  "VOTMediaProxyHost": "ಮಾಧ್ಯಮ ಪ್ರಾಕ್ಸಿ ವಿಳಾಸವನ್ನು ನಮೂದಿಸಿ"
+  "VOTMediaProxyHost": "ಮಾಧ್ಯಮ ಪ್ರಾಕ್ಸಿ ವಿಳಾಸವನ್ನು ನಮೂದಿಸಿ",
+  "VOTCheckingForUpdate": "ನವೀಕರಣಗಳಿಗಾಗಿ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...",
+  "VOTUpdateCheckFailed": "ನವೀಕರಣಗಳಿಗಾಗಿ ಪರಿಶೀಲಿಸಲಾಗಿಲ್ಲ",
+  "VOTUpdateAvailable": "ಹೊಸ ಆವೃತ್ತಿ {0} ಲಭ್ಯವಿದೆ"
 }

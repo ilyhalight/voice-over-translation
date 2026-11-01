@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "हमें कीड़े खोजने और ठीक करने में मदद करता है ।  केवल तकनीकी विवरण भेजे जाते हैं",
   "VOTSubtitlesTranslationLanguage": "शब्द और वाक्यांश अनुवाद भाषा",
   "VOTSameAsMenuLanguage": "मेनू भाषा के समान",
-  "VOTMediaProxyHost": "मीडिया प्रॉक्सी पता दर्ज करें"
+  "VOTMediaProxyHost": "मीडिया प्रॉक्सी पता दर्ज करें",
+  "VOTCheckingForUpdate": "अद्यतन के लिए जाँच हो रही है । ..",
+  "VOTUpdateCheckFailed": "अपडेट के लिए जाँच नहीं कर सका",
+  "VOTUpdateAvailable": "नया संस्करण {0} उपलब्ध है"
 }

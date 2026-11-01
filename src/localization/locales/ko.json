@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "버그를 찾고 수정하는 데 도움이됩니다. 기술적 인 세부 사항 만 전송됩니다",
   "VOTSubtitlesTranslationLanguage": "단어 및 구문 번역 언어",
   "VOTSameAsMenuLanguage": "메뉴 언어와 동일",
-  "VOTMediaProxyHost": "미디어 프록시 주소를 입력합니다"
+  "VOTMediaProxyHost": "미디어 프록시 주소를 입력합니다",
+  "VOTCheckingForUpdate": "업데이트 확인...",
+  "VOTUpdateCheckFailed": "업데이트를 확인할 수 없습니다",
+  "VOTUpdateAvailable": "새 버전{0}을 사용할 수 있습니다"
 }

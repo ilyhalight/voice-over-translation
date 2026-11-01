@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "به ما کمک می کند تا باگ ها را پیدا و برطرف کنیم. فقط جزئیات فنی ارسال می شود",
   "VOTSubtitlesTranslationLanguage": "زبان ترجمه کلمه و عبارت",
   "VOTSameAsMenuLanguage": "همان زبان منو",
-  "VOTMediaProxyHost": "آدرس پروکسی رسانه را وارد کنید"
+  "VOTMediaProxyHost": "آدرس پروکسی رسانه را وارد کنید",
+  "VOTCheckingForUpdate": "چک کردن به روز رسانی ها..",
+  "VOTUpdateCheckFailed": "نتونستم به روز رساني ها رو چک کنم",
+  "VOTUpdateAvailable": "نسخه جدید {0} "
 }

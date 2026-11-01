@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Inatusaidia kupata na kurekebisha mende. Maelezo ya kiufundi tu yanatumwa",
   "VOTSubtitlesTranslationLanguage": "Neno na maneno tafsiri lugha",
   "VOTSameAsMenuLanguage": "Sawa na lugha ya menyu",
-  "VOTMediaProxyHost": "Ingiza anwani ya wakala wa media"
+  "VOTMediaProxyHost": "Ingiza anwani ya wakala wa media",
+  "VOTCheckingForUpdate": "Kuangalia kwa updates...",
+  "VOTUpdateCheckFailed": "Haikuweza kuangalia sasisho",
+  "VOTUpdateAvailable": "Toleo jipya {0} inapatikana"
 }

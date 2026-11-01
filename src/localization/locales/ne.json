@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "हामीलाई बगहरू फेला पार्न र ठीक गर्न मद्दत गर्दछ ।  प्राविधिक विवरण मात्र पठाइन्छ",
   "VOTSubtitlesTranslationLanguage": "शब्द र वाक्यांश अनुवाद भाषा",
   "VOTSameAsMenuLanguage": "मेनु भाषा जस्तै",
-  "VOTMediaProxyHost": "मिडिया प्रोक्सी ठेगाना प्रविष्ट गर्नुहोस्"
+  "VOTMediaProxyHost": "मिडिया प्रोक्सी ठेगाना प्रविष्ट गर्नुहोस्",
+  "VOTCheckingForUpdate": "अपडेटका लागि जाँच गर्दैछ।..",
+  "VOTUpdateCheckFailed": "अद्यावधिकका लागि जाँच गर्न सकिएन",
+  "VOTUpdateAvailable": "नयाँ संस्करण {0} उपलब्ध छ"
 }

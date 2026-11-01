@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Na ndihmon të gjejmë dhe rregullojmë gabimet. Dërgohen vetëm detaje teknike",
   "VOTSubtitlesTranslationLanguage": "Gjuha e përkthimit të fjalëve dhe frazave",
   "VOTSameAsMenuLanguage": "Njësoj si gjuha e menusë",
-  "VOTMediaProxyHost": "Vendosni adresën e përfaqësuesit të medias"
+  "VOTMediaProxyHost": "Vendosni adresën e përfaqësuesit të medias",
+  "VOTCheckingForUpdate": "Kontrollimi për përditësime...",
+  "VOTUpdateCheckFailed": "Nuk mund të kontrolloni për përditësime",
+  "VOTUpdateAvailable": "Versioni i ri {0} është në dispozicion"
 }

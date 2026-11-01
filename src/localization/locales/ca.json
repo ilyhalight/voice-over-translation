@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Ens ajuda a trobar i corregir errors. Només s'envien detalls tècnics",
   "VOTSubtitlesTranslationLanguage": "Llengua de traducció de paraules i frases",
   "VOTSameAsMenuLanguage": "Igual que l'idioma del menú",
-  "VOTMediaProxyHost": "Introduïu l'adreça del servidor intermediari multimèdia"
+  "VOTMediaProxyHost": "Introduïu l'adreça del servidor intermediari multimèdia",
+  "VOTCheckingForUpdate": "Comprovació d'actualitzacions...",
+  "VOTUpdateCheckFailed": "No s ' ha pogut comprovar les actualitzacions",
+  "VOTUpdateAvailable": "La nova versió {0} està disponible"
 }

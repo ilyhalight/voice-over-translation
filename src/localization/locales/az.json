@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Səhvləri tapmağa və düzəltməyə kömək edir. Yalnız texniki detallar göndərilir",
   "VOTSubtitlesTranslationLanguage": "Söz və ifadələrin tərcümə dili",
   "VOTSameAsMenuLanguage": "Menyu dili ilə eyni",
-  "VOTMediaProxyHost": "Media proxy server ünvanını daxil edin"
+  "VOTMediaProxyHost": "Media proxy server ünvanını daxil edin",
+  "VOTCheckingForUpdate": "Yeniləmələri yoxlayıram...",
+  "VOTUpdateCheckFailed": "Yeniləmələri yoxlamaq mümkün olmadı",
+  "VOTUpdateAvailable": "Yeni versiya {0}mövcuddur"
 }

@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Segít megtalálni és kijavítani a hibákat. Csak technikai részleteket küldünk",
   "VOTSubtitlesTranslationLanguage": "Szó - és kifejezésfordítás nyelve",
   "VOTSameAsMenuLanguage": "Ugyanaz, mint a menü nyelve",
-  "VOTMediaProxyHost": "Adja meg a Média proxy címét"
+  "VOTMediaProxyHost": "Adja meg a Média proxy címét",
+  "VOTCheckingForUpdate": "Frissítések keresése...",
+  "VOTUpdateCheckFailed": "Nem sikerült ellenőrizni a frissítéseket",
+  "VOTUpdateAvailable": "Új verzió {0} elérhető"
 }

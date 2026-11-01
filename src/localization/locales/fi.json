@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Auttaa meitä löytämään ja korjaamaan vikoja. Vain tekniset tiedot lähetetään",
   "VOTSubtitlesTranslationLanguage": "Sanan ja lauseen käännöskieli",
   "VOTSameAsMenuLanguage": "Sama kuin valikon kieli",
-  "VOTMediaProxyHost": "Anna median välityspalvelimen osoite"
+  "VOTMediaProxyHost": "Anna median välityspalvelimen osoite",
+  "VOTCheckingForUpdate": "Tarkistan päivitykset...",
+  "VOTUpdateCheckFailed": "Päivityksiä ei voitu tarkistaa",
+  "VOTUpdateAvailable": "Uusi versio {0} on saatavilla"
 }

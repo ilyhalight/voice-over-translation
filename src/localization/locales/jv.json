@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Mbantu kita nemokake lan ndandani bug. Mung rincian teknis sing dikirim",
   "VOTSubtitlesTranslationLanguage": "Basa terjemahan tembung lan frasa",
   "VOTSameAsMenuLanguage": "Padha karo basa menu",
-  "VOTMediaProxyHost": "Ketik alamat proxy media"
+  "VOTMediaProxyHost": "Ketik alamat proxy media",
+  "VOTCheckingForUpdate": "Monitoring updates...",
+  "VOTUpdateCheckFailed": "Ora bisa mriksa nganyari",
+  "VOTUpdateAvailable": "Versi anyar {0} kasedhiya"
 }

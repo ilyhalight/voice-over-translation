@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Pomaže nam u pronalaženju i ispravljanju pogrešaka. Šalju se samo tehnički detalji",
   "VOTSubtitlesTranslationLanguage": "Jezik prevođenja riječi i fraza",
   "VOTSameAsMenuLanguage": "Isto kao i jezik izbornika",
-  "VOTMediaProxyHost": "Unesite adresu medijskog posrednika"
+  "VOTMediaProxyHost": "Unesite adresu medijskog posrednika",
+  "VOTCheckingForUpdate": "Provjeravam ima li ažuriranja...",
+  "VOTUpdateCheckFailed": "Provjera ažuriranja nije uspjela",
+  "VOTUpdateAvailable": "Dostupna je nova verzija {0}"
 }

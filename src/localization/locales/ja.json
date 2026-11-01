@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "バグを見つけて修正するのに役立ちます。 技術的な詳細のみが送信されます",
   "VOTSubtitlesTranslationLanguage": "単語とフレーズの翻訳言語",
   "VOTSameAsMenuLanguage": "メニュー言語と同じ",
-  "VOTMediaProxyHost": "メディアプロキシアドレスを入力します"
+  "VOTMediaProxyHost": "メディアプロキシアドレスを入力します",
+  "VOTCheckingForUpdate": "更新をチェックします。..",
+  "VOTUpdateCheckFailed": "更新をチェックできませんでした",
+  "VOTUpdateAvailable": "新しいバージョン{0}が利用可能です"
 }

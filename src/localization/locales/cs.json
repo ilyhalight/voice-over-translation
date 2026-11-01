@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Pomáhá nám najít a opravit chyby. Zasílají se pouze technické údaje",
   "VOTSubtitlesTranslationLanguage": "Slovo a fráze překlad jazyk",
   "VOTSameAsMenuLanguage": "Stejné jako jazyk nabídky",
-  "VOTMediaProxyHost": "Zadejte adresu proxy serveru médií"
+  "VOTMediaProxyHost": "Zadejte adresu proxy serveru médií",
+  "VOTCheckingForUpdate": "Kontrola aktualizací...",
+  "VOTUpdateCheckFailed": "Nelze zkontrolovat aktualizace",
+  "VOTUpdateAvailable": "Nová verze {0} je k dispozici"
 }

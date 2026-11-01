@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Yn ein helpu i ddod o hyd i a thrwsio chwilod. Dim ond manylion technegol sy'n cael eu hanfon",
   "VOTSubtitlesTranslationLanguage": "Iaith cyfieithu geiriau ac ymadroddion",
   "VOTSameAsMenuLanguage": "Yr un fath ag iaith y ddewislen",
-  "VOTMediaProxyHost": "Rhowch gyfeiriad dirprwy y cyfryngau"
+  "VOTMediaProxyHost": "Rhowch gyfeiriad dirprwy y cyfryngau",
+  "VOTCheckingForUpdate": "Gwirio am ddiweddariadau...",
+  "VOTUpdateCheckFailed": "Diweddaru pecyn",
+  "VOTUpdateAvailable": "Fersiwn newydd {0} ar gael"
 }

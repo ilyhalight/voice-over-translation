@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Bugs aurkitu eta konpontzen laguntzen digu. Xehetasun teknikoak bakarrik bidaltzen dira",
   "VOTSubtitlesTranslationLanguage": "Hitzen eta esaldien itzulpen hizkuntza",
   "VOTSameAsMenuLanguage": "Menu hizkuntza bezala",
-  "VOTMediaProxyHost": "Sartu komunikabideen ordezkariaren helbidea"
+  "VOTMediaProxyHost": "Sartu komunikabideen ordezkariaren helbidea",
+  "VOTCheckingForUpdate": "Eguneraketak egiaztatzen...",
+  "VOTUpdateCheckFailed": "Ezin izan da eguneraketarik begiratu",
+  "VOTUpdateAvailable": "{0} bertsio berria eskuragarri dago"
 }

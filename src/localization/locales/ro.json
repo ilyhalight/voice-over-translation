@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Ne ajută să găsim și să remediem Erorile. Sunt trimise doar detalii tehnice",
   "VOTSubtitlesTranslationLanguage": "Limba de traducere a cuvintelor și expresiilor",
   "VOTSameAsMenuLanguage": "La fel ca limba meniului",
-  "VOTMediaProxyHost": "Introduceți adresa proxy media"
+  "VOTMediaProxyHost": "Introduceți adresa proxy media",
+  "VOTCheckingForUpdate": "Verificarea actualizărilor...",
+  "VOTUpdateCheckFailed": "Nu s-a putut verifica actualizările",
+  "VOTUpdateAvailable": "Noua versiune {0} este disponibilă"
 }

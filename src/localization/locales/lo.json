@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "ຊ່ວຍພວກເຮົາຊອກຫາແລະແກ້ໄຂແມງໄມ້. ພຽງແຕ່ລາຍລະອຽດດ້ານວິຊາການຖືກສົ່ງ",
   "VOTSubtitlesTranslationLanguage": "ການແປຄຳສັບແລະປະໂຫຍກພາສາ",
   "VOTSameAsMenuLanguage": "ຄືກັນກັບພາສາເມນູ",
-  "VOTMediaProxyHost": "ກະລຸນາໃສ່ທີ່ຢູ່ຕົວແທນສື່ມວນຊົນ"
+  "VOTMediaProxyHost": "ກະລຸນາໃສ່ທີ່ຢູ່ຕົວແທນສື່ມວນຊົນ",
+  "VOTCheckingForUpdate": "ກວດເບິ່ງການປັບປຸງ...",
+  "VOTUpdateCheckFailed": "ບໍ່ສາມາດກວດສອບການອັບເດດໄດ້",
+  "VOTUpdateAvailable": "ສະບັບໃຫມ່{0}ສາມາດໃຊ້ໄດ້"
 }

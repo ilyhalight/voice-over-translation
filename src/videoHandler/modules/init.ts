@@ -1,3 +1,7 @@
+import {
+  createDefaultUpdaterInfo,
+  setUpdaterInfo,
+} from "#modules/updater/store.ts";
 import logger from "#utils/logger.ts";
 import { actualCompatVersion, m3u8ProxyHost } from "../../config/config";
 import { getDefaultSendErrorReports } from "../../modules/telemetry/consent";
@@ -32,6 +36,7 @@ export async function init(this: VideoHandler) {
     account: {},
     localeHash: "",
     localeUpdatedAt: 0,
+    updaterInfo: createDefaultUpdaterInfo(),
   });
 
   if (this.data.compatVersion !== actualCompatVersion) {
@@ -48,6 +53,7 @@ export async function init(this: VideoHandler) {
     ...pickSettings(this.data),
     buttonPos: normalizeButtonPosition(this.data.buttonPos),
   });
+  setUpdaterInfo(this.data.updaterInfo);
 
   try {
     if (

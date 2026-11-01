@@ -1,13 +1,14 @@
 import type { ResponseLang } from "@vot.js/shared/types/data";
+import type { RawHotkey } from "#modules/hotkeys/types.ts";
 import type {
   DetectService,
   TranslateTextService,
 } from "#modules/translateText/types.ts";
+import type { UpdaterInfoStore } from "#modules/updater/store.ts";
 import type { LangOverride } from "../localization/localizationProvider";
-import type { RawHotkey } from "../modules/hotkeys/types";
-import type { SubtitleFontFamily, SubtitleFormat } from "../types/subtitles";
 import type { LanguageSelectKey } from "./components/select";
 import type { Position } from "./components/votButton";
+import type { SubtitleFontFamily, SubtitleFormat } from "./subtitles.ts";
 
 export type LocaleStorageKey =
   | "localePhrases"
@@ -80,6 +81,7 @@ export const storageKeys = [
   "localeUpdatedAt",
   "localeLangOverride",
   "account",
+  "updaterInfo",
 ] as const;
 
 export type TranslateProxyStatus = 0 | 1 | 2;
@@ -172,6 +174,7 @@ export type StorageData = {
   localeVersion: string;
   localeUpdatedAt: number;
   localeLangOverride: string;
+  updaterInfo: UpdaterInfoStore;
 };
 
 // intentionally breaking type if StorageData has an extra keys

@@ -1,4 +1,11 @@
-import { createSignal, createUniqueId, type JSX, mergeProps } from "solid-js";
+import {
+  createMemo,
+  createSignal,
+  createUniqueId,
+  type JSX,
+  mergeProps,
+  Show,
+} from "solid-js";
 import { effect } from "solid-js/web";
 
 import { RawButton } from "../Button/RawButton";
@@ -8,6 +15,7 @@ export type SettingsSectionProps = {
   title: string;
   children: JSX.Element;
   isOpen?: boolean;
+  lazy?: boolean;
 };
 
 export function SettingsSection(props: SettingsSectionProps): JSX.Element {
@@ -18,6 +26,9 @@ export function SettingsSection(props: SettingsSectionProps): JSX.Element {
   const contentId = `${sectionId}-content`;
 
   const [isOpen, setIsOpen] = createSignal(finalProps.isOpen);
+
+  // stays mounted after first open so collapsing doesn't re-run its resources
+  const wasOpened = createMemo<boolean>((prev) => prev || isOpen(), false);
 
   effect(() => {
     setIsOpen(finalProps.isOpen);
@@ -50,7 +61,9 @@ export function SettingsSection(props: SettingsSectionProps): JSX.Element {
         aria-labelledby={headerId}
         hidden={!isOpen()}
       >
-        {finalProps.children}
+        <Show when={!finalProps.lazy || wasOpened()}>
+          {finalProps.children}
+        </Show>
       </vot-block>
     </vot-block>
   );

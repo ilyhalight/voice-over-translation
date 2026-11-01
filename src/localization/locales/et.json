@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Aitab meil vigu leida ja parandada. Saadetakse ainult tehnilised üksikasjad",
   "VOTSubtitlesTranslationLanguage": "Sõna ja fraasi tõlkekeel",
   "VOTSameAsMenuLanguage": "Sama mis menüü keel",
-  "VOTMediaProxyHost": "Sisestage meedia puhverserveri aadress"
+  "VOTMediaProxyHost": "Sisestage meedia puhverserveri aadress",
+  "VOTCheckingForUpdate": "Värskenduste kontrollimine...",
+  "VOTUpdateCheckFailed": "Värskendusi ei õnnestunud kontrollida",
+  "VOTUpdateAvailable": "Uus versioon {0} on saadaval"
 }

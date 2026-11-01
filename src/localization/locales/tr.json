@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Hataları bulmamıza ve düzeltmemize yardımcı olur. Sadece teknik detaylar gönderilir",
   "VOTSubtitlesTranslationLanguage": "Kelime ve cümle çeviri dili",
   "VOTSameAsMenuLanguage": "Menü dili ile aynı",
-  "VOTMediaProxyHost": "Medya proxy adresini girin"
+  "VOTMediaProxyHost": "Medya proxy adresini girin",
+  "VOTCheckingForUpdate": "Güncellemeleri kontrol ediyorum...",
+  "VOTUpdateCheckFailed": "Güncellemeler kontrol edilemedi",
+  "VOTUpdateAvailable": "Yeni sürüm {0} kullanılabilir"
 }

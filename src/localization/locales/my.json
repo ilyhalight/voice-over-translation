@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "အမှားတွေကိုရှာပြီးပြင်ဖို့ကူညီပေးတယ်။ နည်းပညာဆိုင်ရာအချက်အလက်များကိုသာပေးပို့ပါသည်။",
   "VOTSubtitlesTranslationLanguage": "စကားလုံးနှင့်စကားစုဘာသာပြန်ဘာသာစကား",
   "VOTSameAsMenuLanguage": "Menu language လိုပဲ",
-  "VOTMediaProxyHost": "မီဒီယာ proxy လိပ်စာကိုရိုက်ထည့်ပါ"
+  "VOTMediaProxyHost": "မီဒီယာ proxy လိပ်စာကိုရိုက်ထည့်ပါ",
+  "VOTCheckingForUpdate": "နောက်ဆုံးသတင်းတွေကိုစစ်ဆေးနေတယ်။..",
+  "VOTUpdateCheckFailed": "အပ်ဒိတ်များကိုစစ်ဆေး၍မရပါ။",
+  "VOTUpdateAvailable": "{0}ဗားရှင်းအသစ်ရရှိနိုင်သည်"
 }

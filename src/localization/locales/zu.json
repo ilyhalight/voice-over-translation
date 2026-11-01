@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Usisiza ukuthola futhi silungise izimbungulu. Imininingwane yobuchwepheshe kuphela ethunyelwayo",
   "VOTSubtitlesTranslationLanguage": "Ulimi lokuhumusha amagama nemishwana",
   "VOTSameAsMenuLanguage": "Okufanayo nolimi lwemenyu",
-  "VOTMediaProxyHost": "Faka ikheli le-media proxy"
+  "VOTMediaProxyHost": "Faka ikheli le-media proxy",
+  "VOTCheckingForUpdate": "Ukuhlola izibuyekezo...",
+  "VOTUpdateCheckFailed": "Ayikwazanga ukuhlola izibuyekezo",
+  "VOTUpdateAvailable": "Inguqulo entsha {0} iyatholakala"
 }

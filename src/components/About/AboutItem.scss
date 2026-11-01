@@ -10,12 +10,55 @@
     color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.68);
   }
 
+  &__link {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125em 0.625em;
+    border-radius: 8px;
+    background-color: rgba(var(--vot-primary-rgb, 33, 150, 243), 0.12);
+    color: rgb(var(--vot-primary-rgb, 33, 150, 243));
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+
+    @media (hover: hover) {
+      &:hover {
+        background-color: rgba(var(--vot-primary-rgb, 33, 150, 243), 0.2);
+      }
+    }
+
+    &:active {
+      background-color: rgba(var(--vot-primary-rgb, 33, 150, 243), 0.24);
+    }
+  }
+
   &__value {
     text-align: end;
     color: rgba(var(--vot-primary-rgb, 33, 150, 243), 0.9);
 
+    &[data-has-link="true"] {
+      @media screen and (min-width: 450px) {
+        display: flex;
+        gap: 0.25em;
+        flex-direction: row-reverse;
+        align-items: center;
+      }
+    }
+
     &_detail {
       color: rgba(var(--vot-onsurface-rgb, 0, 0, 0), 0.68);
+      &[data-state="error"] {
+        color: rgba(var(--vot-error-rgb, 255, 0, 0), 0.9);
+      }
+      &[data-state="loading"] {
+        display: flex;
+        align-items: center;
+        gap: 0.25em;
+        svg {
+          font-size: 1.25em;
+        }
+      }
     }
   }
 }

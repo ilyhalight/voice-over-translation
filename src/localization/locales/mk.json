@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Ни помага да најдеме и поправиме грешки. Се испраќаат само технички детали",
   "VOTSubtitlesTranslationLanguage": "Збор и фраза превод јазик",
   "VOTSameAsMenuLanguage": "Исто како и јазикот на менито",
-  "VOTMediaProxyHost": "Внесете ја адресата за медиумски прокси"
+  "VOTMediaProxyHost": "Внесете ја адресата за медиумски прокси",
+  "VOTCheckingForUpdate": "Проверка за ажурирања...",
+  "VOTUpdateCheckFailed": "Не можев да проверам за ажурирања",
+  "VOTUpdateAvailable": "Нова верзија {0} е достапна"
 }

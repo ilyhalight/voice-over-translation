@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "ជួយឱ្យយើងរកឃើញនិងជួសជុលកំហុស. តែច្ចេកទេសលម្អិតត្រូវបានផ្ញើ",
   "VOTSubtitlesTranslationLanguage": "ពាក្យនិងឃ្លាបកប្រែភាសា",
   "VOTSameAsMenuLanguage": "ដូចគ្នានឹងភាសាម៉ឺនុយ",
-  "VOTMediaProxyHost": "បញ្ចូលអាសយដ្ឋានប្រូកស៊ីមេឌៀ"
+  "VOTMediaProxyHost": "បញ្ចូលអាសយដ្ឋានប្រូកស៊ីមេឌៀ",
+  "VOTCheckingForUpdate": "កំពុងពិនិត្យមើលភាពទាន់សម័យ...",
+  "VOTUpdateCheckFailed": "មិនអាចពិនិត្យមើលភាពទាន់សម័យ",
+  "VOTUpdateAvailable": "កំណែថ្មី{0}គឺអាចរកបាន"
 }

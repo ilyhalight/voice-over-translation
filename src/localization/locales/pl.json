@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Pomaga nam znaleźć i naprawić błędy. Wysyłane są tylko szczegóły techniczne",
   "VOTSubtitlesTranslationLanguage": "Język tłumaczenia słów i wyrażeń",
   "VOTSameAsMenuLanguage": "Taki sam jak język menu",
-  "VOTMediaProxyHost": "Wprowadź adres proxy mediów"
+  "VOTMediaProxyHost": "Wprowadź adres proxy mediów",
+  "VOTCheckingForUpdate": "Sprawdzanie aktualizacji...",
+  "VOTUpdateCheckFailed": "Nie można sprawdzić aktualizacji",
+  "VOTUpdateAvailable": "Nowa wersja {0} jest dostępna"
 }

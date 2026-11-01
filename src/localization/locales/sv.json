@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Hjälper oss att hitta och åtgärda buggar. Endast tekniska detaljer skickas",
   "VOTSubtitlesTranslationLanguage": "Ord och fras översättning språk",
   "VOTSameAsMenuLanguage": "Samma som menyspråk",
-  "VOTMediaProxyHost": "Ange media proxy-adressen"
+  "VOTMediaProxyHost": "Ange media proxy-adressen",
+  "VOTCheckingForUpdate": "Söker efter uppdateringar...",
+  "VOTUpdateCheckFailed": "Kunde inte söka efter uppdateringar",
+  "VOTUpdateAvailable": "Ny version {0} är tillgänglig"
 }

@@ -275,5 +275,8 @@
   "sendErrorReports": "Send anonymous error reports",
   "sendErrorReportsDescription": "Helps us find and fix bugs. Only technical details are sent",
   "VOTSubtitlesTranslationLanguage": "Word and phrase translation language",
-  "VOTSameAsMenuLanguage": "Same as menu language"
+  "VOTSameAsMenuLanguage": "Same as menu language",
+  "VOTCheckingForUpdate": "Checking for updates...",
+  "VOTUpdateCheckFailed": "Couldn't check for updates",
+  "VOTUpdateAvailable": "New version {0} is available"
 }

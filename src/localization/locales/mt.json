@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Jgħinna nsibu u nirranġaw il-bugs. Jintbagħtu biss dettalji tekniċi",
   "VOTSubtitlesTranslationLanguage": "Lingwa tat-traduzzjoni tal-kelma u l-frażi",
   "VOTSameAsMenuLanguage": "L-istess bħall-lingwa tal-menu",
-  "VOTMediaProxyHost": "Daħħal l indirizz tal prokura tal midja"
+  "VOTMediaProxyHost": "Daħħal l indirizz tal prokura tal midja",
+  "VOTCheckingForUpdate": "Iċċekkjar għal aġġornamenti...",
+  "VOTUpdateCheckFailed": "Ma setgħetx tiċċekkja għal aġġornamenti",
+  "VOTUpdateAvailable": "Verżjoni ġdida {0} hija disponibbli"
 }

@@ -62,7 +62,7 @@ export function SettingsDialog(props: SettingsDialogProps): JSX.Element {
       <SettingsProxySection {...props.proxy} />
       <SettingsMiscSection {...props.misc} />
       <SettingsAppearanceSection {...props.appearance} />
-      <SettingsSection title={t("aboutExtension")}>
+      <SettingsSection title={t("aboutExtension")} lazy>
         <AboutSection />
       </SettingsSection>
     </Dialog>

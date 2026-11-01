@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Mantuan urang manggihan jeung ngalereskeun bug. Ngan rinci teknis anu dikirim",
   "VOTSubtitlesTranslationLanguage": "Kecap jeung frasa basa tarjamahan",
   "VOTSameAsMenuLanguage": "Sarua jeung basa menu",
-  "VOTMediaProxyHost": "Tuliskeun alamat proxy media"
+  "VOTMediaProxyHost": "Tuliskeun alamat proxy media",
+  "VOTCheckingForUpdate": "Pariksa pikeun apdet...",
+  "VOTUpdateCheckFailed": "Tak sabar nak update",
+  "VOTUpdateAvailable": "Versi anyar {0} geus sadia"
 }

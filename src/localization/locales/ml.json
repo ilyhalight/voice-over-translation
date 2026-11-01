@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "ബഗുകൾ കണ്ടെത്താനും പരിഹരിക്കാനും ഞങ്ങളെ സഹായിക്കുന്നു. സാങ്കേതിക വിശദാംശങ്ങൾ മാത്രം അയയ്ക്കുന്നു",
   "VOTSubtitlesTranslationLanguage": "വാക്കും വാക്യവും വിവർത്തന ഭാഷ",
   "VOTSameAsMenuLanguage": "മെനു ഭാഷ പോലെ",
-  "VOTMediaProxyHost": "മീഡിയ പ്രോക്സി വിലാസം നല്കുക"
+  "VOTMediaProxyHost": "മീഡിയ പ്രോക്സി വിലാസം നല്കുക",
+  "VOTCheckingForUpdate": "അപ്ഡേറ്റുകൾക്കായി പരിശോധിക്കുന്നു...",
+  "VOTUpdateCheckFailed": "അപ്ഡേറ്റുകള്ക്കായി പരിശോധിക്കാന് കഴിഞ്ഞില്ല",
+  "VOTUpdateAvailable": "പുതിയ പതിപ്പ് {0} ലഭ്യമാണ്"
 }

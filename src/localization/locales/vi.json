@@ -275,5 +275,8 @@
   "sendErrorReportsDescription": "Giúp chúng tôi tìm và sửa lỗi. Chỉ có chi tiết kỹ thuật được gửi",
   "VOTSubtitlesTranslationLanguage": "Ngôn ngữ dịch từ và cụm từ",
   "VOTSameAsMenuLanguage": "Giống như ngôn ngữ menu",
-  "VOTMediaProxyHost": "Nhập địa chỉ proxy phương tiện"
+  "VOTMediaProxyHost": "Nhập địa chỉ proxy phương tiện",
+  "VOTCheckingForUpdate": "Kiểm tra các bản cập nhật...",
+  "VOTUpdateCheckFailed": "Không thể kiểm tra các bản cập nhật",
+  "VOTUpdateAvailable": "Phiên bản mới {0} có sẵn"
 }
