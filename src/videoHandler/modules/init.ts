@@ -5,7 +5,7 @@ import {
 import logger from "#utils/logger.ts";
 import { actualCompatVersion, m3u8ProxyHost } from "../../config/config";
 import { getDefaultSendErrorReports } from "../../modules/telemetry/consent";
-import { updateAccountFromStorage } from "../../stores/account";
+import { updateAccount } from "../../stores/account";
 import { setLocale } from "../../stores/locale";
 import {
   createDefaultSettings,
@@ -44,7 +44,7 @@ export async function init(this: VideoHandler) {
     await votStorage.set("compatVersion", actualCompatVersion);
   }
 
-  await updateAccountFromStorage();
+  updateAccount(this.data.account);
   setLocale({
     updatedAt: this.data.localeUpdatedAt,
     hash: this.data.localeHash,
