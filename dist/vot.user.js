@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 配音翻译
 // @namespace      vot
-// @version        1.12.4
+// @version        1.12.5
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    Watch videos in other languages with voice-over translation and subtitles in any browser
 // @description:de Sieh dir Videos in anderen Sprachen mit Voice-over-Übersetzung und Untertiteln in jedem Browser an
@@ -242,8 +242,8 @@
 // @connect        disk.yandex.uz
 // @connect        disk.360.yandex.ru
 // @connect        yandex.net
-// @connect        timeweb.cloud
-// @connect        raw.githubusercontent.com
+// @connect        githubusercontent.com
+// @connect        github.com
 // @connect        vimeo.com
 // @connect        vhx.tv
 // @connect        toil.cc
@@ -277,17 +277,12 @@
 // @grant          GM.xmlHttpRequest
 // @grant          window.focus
 // ==/UserScript==
-(function(){try{var g=globalThis,k=Symbol.for("vot.debugIds"),s=(new Error().stack||"").replace(/(extension:\/\/)[^\/\s]+/g,"$1extension");if(s){g[k]||Object.defineProperty(g,k,{value:{}});g[k][s]={d:"143ffc32-8e46-4f6c-82cb-b81e6d22a8dc",l:280}}}catch(e){}})();
+(function(){try{var g=globalThis,k=Symbol.for("vot.debugIds"),s=(new Error().stack||"").replace(/(extension:\/\/)[^\/\s]+/g,"$1extension");if(s){g[k]||Object.defineProperty(g,k,{value:{}});g[k][s]={d:"d14083e9-a227-490c-b4ed-d627e05645f9",l:280}}}catch(e){}})();
 
 var vot = (function(exports) {
 	Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 	// \0rolldown/runtime.js
-	var __create = Object.create;
 	var __defProp = Object.defineProperty;
-	var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-	var __getOwnPropNames = Object.getOwnPropertyNames;
-	var __getProtoOf = Object.getPrototypeOf;
-	var __hasOwnProp = Object.prototype.hasOwnProperty;
 	var __esmMin = (fn, res, err) => () => {
 		if (err) throw err[0];
 		try {
@@ -296,7 +291,6 @@ var vot = (function(exports) {
 			throw err = [e], e;
 		}
 	};
-	var __commonJSMin = (cb, mod) => () => (mod || (cb((mod = { exports: {} }).exports, mod, mod.exports), cb = null), mod.exports);
 	var __exportAll = (all, no_symbols) => {
 		let target = {};
 		for (var name in all) __defProp(target, name, {
@@ -306,20 +300,6 @@ var vot = (function(exports) {
 		if (!no_symbols) __defProp(target, Symbol.toStringTag, { value: "Module" });
 		return target;
 	};
-	var __copyProps = (to, from, except, desc) => {
-		if (from && typeof from === "object" || typeof from === "function") for (var keys = __getOwnPropNames(from), i = 0, n = keys.length, key; i < n; i++) {
-			key = keys[i];
-			if (!__hasOwnProp.call(to, key) && key !== except) __defProp(to, key, {
-				get: ((k) => from[k]).bind(null, key),
-				enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable
-			});
-		}
-		return to;
-	};
-	var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule || !__hasOwnProp.call(mod, "default") ? __defProp(target, "default", {
-		value: mod,
-		enumerable: true
-	}) : target, mod));
 	// ../vot.js/packages/core/dist/types/service.js
 	var VideoService$1;
 	(function(VideoService) {
@@ -7573,1721 +7553,2024 @@ var vot = (function(exports) {
 		warn: (...text) => logImpl("warn", ...text),
 		error: (...text) => logImpl("error", ...text)
 	};
-	var browserInfo = __toESM(__commonJSMin(((exports, module, this$1) => {
-		(function(e, t) {
-			"object" == typeof exports && "object" == typeof module ? module.exports = t() : "function" == typeof define && define.amd ? define([], t) : "object" == typeof exports ? exports.bowser = t() : e.bowser = t();
-		})(this$1, (function() {
-			return function(e) {
-				var t = {};
-				function r(i) {
-					if (t[i]) return t[i].exports;
-					var n = t[i] = {
-						i,
-						l: !1,
-						exports: {}
-					};
-					return e[i].call(n.exports, n, n.exports, r), n.l = !0, n.exports;
+	// node_modules/bowser/bowser.mjs
+	var BROWSER_ALIASES_MAP = {
+		AmazonBot: "amazonbot",
+		"Amazon Silk": "amazon_silk",
+		"Android Browser": "android",
+		BaiduSpider: "baiduspider",
+		Bada: "bada",
+		BingCrawler: "bingcrawler",
+		Brave: "brave",
+		BlackBerry: "blackberry",
+		"ChatGPT-User": "chatgpt_user",
+		Chrome: "chrome",
+		ClaudeBot: "claudebot",
+		Chromium: "chromium",
+		Diffbot: "diffbot",
+		DuckDuckBot: "duckduckbot",
+		DuckDuckGo: "duckduckgo",
+		Electron: "electron",
+		Epiphany: "epiphany",
+		FacebookExternalHit: "facebookexternalhit",
+		Firefox: "firefox",
+		Focus: "focus",
+		Generic: "generic",
+		"Google Search": "google_search",
+		Googlebot: "googlebot",
+		GPTBot: "gptbot",
+		"HeyTap Browser": "heytap",
+		"Internet Explorer": "ie",
+		InternetArchiveCrawler: "internetarchivecrawler",
+		"K-Meleon": "k_meleon",
+		Ladybird: "ladybird",
+		LibreWolf: "librewolf",
+		Linespider: "linespider",
+		Maxthon: "maxthon",
+		"Meta-ExternalAds": "meta_externalads",
+		"Meta-ExternalAgent": "meta_externalagent",
+		"Meta-ExternalFetcher": "meta_externalfetcher",
+		"Meta-WebIndexer": "meta_webindexer",
+		"Microsoft Edge": "edge",
+		"MZ Browser": "mz",
+		"NAVER Whale Browser": "naver",
+		"OAI-SearchBot": "oai_searchbot",
+		Omgilibot: "omgilibot",
+		Opera: "opera",
+		"Opera Coast": "opera_coast",
+		"Pale Moon": "pale_moon",
+		PerplexityBot: "perplexitybot",
+		"Perplexity-User": "perplexity_user",
+		PhantomJS: "phantomjs",
+		PingdomBot: "pingdombot",
+		Puffin: "puffin",
+		QQ: "qq",
+		QQLite: "qqlite",
+		QupZilla: "qupzilla",
+		Roku: "roku",
+		Safari: "safari",
+		Sailfish: "sailfish",
+		"Samsung Internet for Android": "samsung_internet",
+		SlackBot: "slackbot",
+		SeaMonkey: "seamonkey",
+		Sleipnir: "sleipnir",
+		"Sogou Browser": "sogou",
+		Swing: "swing",
+		Tizen: "tizen",
+		"UC Browser": "uc",
+		"Vivo Browser": "vivo",
+		Vivaldi: "vivaldi",
+		"WebOS Browser": "webos",
+		WeChat: "wechat",
+		YahooSlurp: "yahooslurp",
+		"Yandex Browser": "yandex",
+		YandexBot: "yandexbot",
+		YouBot: "youbot"
+	};
+	var BROWSER_MAP = {
+		amazonbot: "AmazonBot",
+		amazon_silk: "Amazon Silk",
+		android: "Android Browser",
+		baiduspider: "BaiduSpider",
+		bada: "Bada",
+		bingcrawler: "BingCrawler",
+		blackberry: "BlackBerry",
+		brave: "Brave",
+		chatgpt_user: "ChatGPT-User",
+		chrome: "Chrome",
+		claudebot: "ClaudeBot",
+		chromium: "Chromium",
+		diffbot: "Diffbot",
+		duckduckbot: "DuckDuckBot",
+		duckduckgo: "DuckDuckGo",
+		edge: "Microsoft Edge",
+		electron: "Electron",
+		epiphany: "Epiphany",
+		facebookexternalhit: "FacebookExternalHit",
+		firefox: "Firefox",
+		focus: "Focus",
+		generic: "Generic",
+		google_search: "Google Search",
+		googlebot: "Googlebot",
+		gptbot: "GPTBot",
+		heytap: "HeyTap Browser",
+		ie: "Internet Explorer",
+		internetarchivecrawler: "InternetArchiveCrawler",
+		k_meleon: "K-Meleon",
+		ladybird: "Ladybird",
+		librewolf: "LibreWolf",
+		linespider: "Linespider",
+		maxthon: "Maxthon",
+		meta_externalads: "Meta-ExternalAds",
+		meta_externalagent: "Meta-ExternalAgent",
+		meta_externalfetcher: "Meta-ExternalFetcher",
+		meta_webindexer: "Meta-WebIndexer",
+		mz: "MZ Browser",
+		naver: "NAVER Whale Browser",
+		oai_searchbot: "OAI-SearchBot",
+		omgilibot: "Omgilibot",
+		opera: "Opera",
+		opera_coast: "Opera Coast",
+		pale_moon: "Pale Moon",
+		perplexitybot: "PerplexityBot",
+		perplexity_user: "Perplexity-User",
+		phantomjs: "PhantomJS",
+		pingdombot: "PingdomBot",
+		puffin: "Puffin",
+		qq: "QQ Browser",
+		qqlite: "QQ Browser Lite",
+		qupzilla: "QupZilla",
+		roku: "Roku",
+		safari: "Safari",
+		sailfish: "Sailfish",
+		samsung_internet: "Samsung Internet for Android",
+		seamonkey: "SeaMonkey",
+		slackbot: "SlackBot",
+		sleipnir: "Sleipnir",
+		sogou: "Sogou Browser",
+		swing: "Swing",
+		tizen: "Tizen",
+		uc: "UC Browser",
+		vivo: "Vivo Browser",
+		vivaldi: "Vivaldi",
+		webos: "WebOS Browser",
+		wechat: "WeChat",
+		yahooslurp: "YahooSlurp",
+		yandex: "Yandex Browser",
+		yandexbot: "YandexBot",
+		youbot: "YouBot"
+	};
+	var PLATFORMS_MAP = {
+		bot: "bot",
+		desktop: "desktop",
+		mobile: "mobile",
+		tablet: "tablet",
+		tv: "tv"
+	};
+	var OS_MAP = {
+		Android: "Android",
+		Bada: "Bada",
+		BlackBerry: "BlackBerry",
+		ChromeOS: "Chrome OS",
+		HarmonyOS: "HarmonyOS",
+		iOS: "iOS",
+		Linux: "Linux",
+		MacOS: "macOS",
+		PlayStation4: "PlayStation 4",
+		Roku: "Roku",
+		Tizen: "Tizen",
+		WebOS: "WebOS",
+		Windows: "Windows",
+		WindowsPhone: "Windows Phone"
+	};
+	var ENGINE_MAP = {
+		Blink: "Blink",
+		EdgeHTML: "EdgeHTML",
+		Gecko: "Gecko",
+		LibWeb: "LibWeb",
+		Presto: "Presto",
+		Trident: "Trident",
+		WebKit: "WebKit"
+	};
+	var Utils = function() {
+		function Utils() {}
+		Utils.getFirstMatch = function getFirstMatch(regexp, ua) {
+			var match = ua.match(regexp);
+			return match && match.length > 0 && match[1] || "";
+		};
+		Utils.getSecondMatch = function getSecondMatch(regexp, ua) {
+			var match = ua.match(regexp);
+			return match && match.length > 1 && match[2] || "";
+		};
+		Utils.matchAndReturnConst = function matchAndReturnConst(regexp, ua, _const) {
+			if (regexp.test(ua)) return _const;
+		};
+		Utils.isFirefoxOnIpad = function isFirefoxOnIpad(ua) {
+			var macIndex = ua.indexOf("Macintosh");
+			if (macIndex === -1) return false;
+			var fxiosIndex = ua.indexOf(" FxiOS", macIndex + 9);
+			return fxiosIndex !== -1 && ua.indexOf("/", fxiosIndex + 6) !== -1;
+		};
+		Utils.getWindowsVersionName = function getWindowsVersionName(version) {
+			switch (version) {
+				case "NT": return "NT";
+				case "XP": return "XP";
+				case "NT 5.0": return "2000";
+				case "NT 5.1": return "XP";
+				case "NT 5.2": return "2003";
+				case "NT 6.0": return "Vista";
+				case "NT 6.1": return "7";
+				case "NT 6.2": return "8";
+				case "NT 6.3": return "8.1";
+				case "NT 10.0": return "10";
+				default: return;
+			}
+		};
+		Utils.getMacOSVersionName = function getMacOSVersionName(version) {
+			var v = version.split(".").splice(0, 2).map(function(s) {
+				return parseInt(s, 10) || 0;
+			});
+			v.push(0);
+			var major = v[0];
+			var minor = v[1];
+			if (major === 10) switch (minor) {
+				case 5: return "Leopard";
+				case 6: return "Snow Leopard";
+				case 7: return "Lion";
+				case 8: return "Mountain Lion";
+				case 9: return "Mavericks";
+				case 10: return "Yosemite";
+				case 11: return "El Capitan";
+				case 12: return "Sierra";
+				case 13: return "High Sierra";
+				case 14: return "Mojave";
+				case 15: return "Catalina";
+				default: return;
+			}
+			switch (major) {
+				case 11: return "Big Sur";
+				case 12: return "Monterey";
+				case 13: return "Ventura";
+				case 14: return "Sonoma";
+				case 15: return "Sequoia";
+				default: return;
+			}
+		};
+		Utils.getAndroidVersionName = function getAndroidVersionName(version) {
+			var v = version.split(".").splice(0, 2).map(function(s) {
+				return parseInt(s, 10) || 0;
+			});
+			v.push(0);
+			if (v[0] === 1 && v[1] < 5) return void 0;
+			if (v[0] === 1 && v[1] < 6) return "Cupcake";
+			if (v[0] === 1 && v[1] >= 6) return "Donut";
+			if (v[0] === 2 && v[1] < 2) return "Eclair";
+			if (v[0] === 2 && v[1] === 2) return "Froyo";
+			if (v[0] === 2 && v[1] > 2) return "Gingerbread";
+			if (v[0] === 3) return "Honeycomb";
+			if (v[0] === 4 && v[1] < 1) return "Ice Cream Sandwich";
+			if (v[0] === 4 && v[1] < 4) return "Jelly Bean";
+			if (v[0] === 4 && v[1] >= 4) return "KitKat";
+			if (v[0] === 5) return "Lollipop";
+			if (v[0] === 6) return "Marshmallow";
+			if (v[0] === 7) return "Nougat";
+			if (v[0] === 8) return "Oreo";
+			if (v[0] === 9) return "Pie";
+		};
+		Utils.getVersionPrecision = function getVersionPrecision(version) {
+			return version.split(".").length;
+		};
+		Utils.compareVersions = function compareVersions(versionA, versionB, isLoose) {
+			if (isLoose === void 0) isLoose = false;
+			var versionAPrecision = Utils.getVersionPrecision(versionA);
+			var versionBPrecision = Utils.getVersionPrecision(versionB);
+			var precision = Math.max(versionAPrecision, versionBPrecision);
+			var lastPrecision = 0;
+			var chunks = Utils.map([versionA, versionB], function(version) {
+				var delta = precision - Utils.getVersionPrecision(version);
+				var _version = version + new Array(delta + 1).join(".0");
+				return Utils.map(_version.split("."), function(chunk) {
+					return new Array(20 - chunk.length).join("0") + chunk;
+				}).reverse();
+			});
+			if (isLoose) lastPrecision = precision - Math.min(versionAPrecision, versionBPrecision);
+			precision -= 1;
+			while (precision >= lastPrecision) {
+				if (chunks[0][precision] > chunks[1][precision]) return 1;
+				if (chunks[0][precision] === chunks[1][precision]) {
+					if (precision === lastPrecision) return 0;
+					precision -= 1;
+				} else if (chunks[0][precision] < chunks[1][precision]) return -1;
+			}
+		};
+		Utils.map = function map(arr, iterator) {
+			var result = [];
+			var i;
+			if (Array.prototype.map) return Array.prototype.map.call(arr, iterator);
+			for (i = 0; i < arr.length; i += 1) result.push(iterator(arr[i]));
+			return result;
+		};
+		Utils.find = function find(arr, predicate) {
+			var i;
+			var l;
+			if (Array.prototype.find) return Array.prototype.find.call(arr, predicate);
+			for (i = 0, l = arr.length; i < l; i += 1) {
+				var value = arr[i];
+				if (predicate(value, i)) return value;
+			}
+		};
+		Utils.assign = function assign(obj) {
+			var result = obj;
+			var i;
+			var l;
+			for (var _len = arguments.length, assigners = new Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) assigners[_key - 1] = arguments[_key];
+			if (Object.assign) return Object.assign.apply(Object, [obj].concat(assigners));
+			var _loop = function _loop() {
+				var assigner = assigners[i];
+				if (typeof assigner === "object" && assigner !== null) Object.keys(assigner).forEach(function(key) {
+					result[key] = assigner[key];
+				});
+			};
+			for (i = 0, l = assigners.length; i < l; i += 1) _loop();
+			return obj;
+		};
+		Utils.getBrowserAlias = function getBrowserAlias(browserName) {
+			return BROWSER_ALIASES_MAP[browserName];
+		};
+		Utils.getBrowserTypeByAlias = function getBrowserTypeByAlias(browserAlias) {
+			return BROWSER_MAP[browserAlias] || "";
+		};
+		return Utils;
+	}();
+	var commonVersionIdentifier = /version\/(\d+(\.?_?\d+)+)/i;
+	var browsersList = [
+		{
+			test: [/gptbot/i],
+			describe: function describe(ua) {
+				var browser = { name: "GPTBot" };
+				var version = Utils.getFirstMatch(/gptbot\/(\d+(\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/chatgpt-user/i],
+			describe: function describe(ua) {
+				var browser = { name: "ChatGPT-User" };
+				var version = Utils.getFirstMatch(/chatgpt-user\/(\d+(\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/oai-searchbot/i],
+			describe: function describe(ua) {
+				var browser = { name: "OAI-SearchBot" };
+				var version = Utils.getFirstMatch(/oai-searchbot\/(\d+(\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [
+				/claudebot/i,
+				/claude-web/i,
+				/claude-user/i,
+				/claude-searchbot/i
+			],
+			describe: function describe(ua) {
+				var browser = { name: "ClaudeBot" };
+				var version = Utils.getFirstMatch(/(?:claudebot|claude-web|claude-user|claude-searchbot)\/(\d+(\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/omgilibot/i, /webzio-extended/i],
+			describe: function describe(ua) {
+				var browser = { name: "Omgilibot" };
+				var version = Utils.getFirstMatch(/(?:omgilibot|webzio-extended)\/(\d+(\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/diffbot/i],
+			describe: function describe(ua) {
+				var browser = { name: "Diffbot" };
+				var version = Utils.getFirstMatch(/diffbot\/(\d+(\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/perplexitybot/i],
+			describe: function describe(ua) {
+				var browser = { name: "PerplexityBot" };
+				var version = Utils.getFirstMatch(/perplexitybot\/(\d+(\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/perplexity-user/i],
+			describe: function describe(ua) {
+				var browser = { name: "Perplexity-User" };
+				var version = Utils.getFirstMatch(/perplexity-user\/(\d+(\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/youbot/i],
+			describe: function describe(ua) {
+				var browser = { name: "YouBot" };
+				var version = Utils.getFirstMatch(/youbot\/(\d+(\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/meta-webindexer/i],
+			describe: function describe(ua) {
+				var browser = { name: "Meta-WebIndexer" };
+				var version = Utils.getFirstMatch(/meta-webindexer\/(\d+(\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/meta-externalads/i],
+			describe: function describe(ua) {
+				var browser = { name: "Meta-ExternalAds" };
+				var version = Utils.getFirstMatch(/meta-externalads\/(\d+(\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/meta-externalagent/i],
+			describe: function describe(ua) {
+				var browser = { name: "Meta-ExternalAgent" };
+				var version = Utils.getFirstMatch(/meta-externalagent\/(\d+(\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/meta-externalfetcher/i],
+			describe: function describe(ua) {
+				var browser = { name: "Meta-ExternalFetcher" };
+				var version = Utils.getFirstMatch(/meta-externalfetcher\/(\d+(\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/googlebot/i],
+			describe: function describe(ua) {
+				var browser = { name: "Googlebot" };
+				var version = Utils.getFirstMatch(/googlebot\/(\d+(\.\d+))/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/linespider/i],
+			describe: function describe(ua) {
+				var browser = { name: "Linespider" };
+				var version = Utils.getFirstMatch(/(?:linespider)(?:-[-\w]{1,64})?[\s/](\d+(\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/amazonbot/i],
+			describe: function describe(ua) {
+				var browser = { name: "AmazonBot" };
+				var version = Utils.getFirstMatch(/amazonbot\/(\d+(\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/bingbot/i],
+			describe: function describe(ua) {
+				var browser = { name: "BingCrawler" };
+				var version = Utils.getFirstMatch(/bingbot\/(\d+(\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/baiduspider/i],
+			describe: function describe(ua) {
+				var browser = { name: "BaiduSpider" };
+				var version = Utils.getFirstMatch(/baiduspider\/(\d+(\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/duckduckbot/i],
+			describe: function describe(ua) {
+				var browser = { name: "DuckDuckBot" };
+				var version = Utils.getFirstMatch(/duckduckbot\/(\d+(\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/ia_archiver/i],
+			describe: function describe(ua) {
+				var browser = { name: "InternetArchiveCrawler" };
+				var version = Utils.getFirstMatch(/ia_archiver\/(\d+(\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/facebookexternalhit/i, /facebookcatalog/i],
+			describe: function describe() {
+				return { name: "FacebookExternalHit" };
+			}
+		},
+		{
+			test: [/slackbot/i, /slack-imgProxy/i],
+			describe: function describe(ua) {
+				var browser = { name: "SlackBot" };
+				var version = Utils.getFirstMatch(/(?:slackbot|slack-imgproxy)(?:-[-\w]{1,64})?[\s/](\d+(\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/yahoo!?[\s/]*slurp/i],
+			describe: function describe() {
+				return { name: "YahooSlurp" };
+			}
+		},
+		{
+			test: [/yandexbot/i, /yandexmobilebot/i],
+			describe: function describe() {
+				return { name: "YandexBot" };
+			}
+		},
+		{
+			test: [/pingdom/i],
+			describe: function describe() {
+				return { name: "PingdomBot" };
+			}
+		},
+		{
+			test: [/opera/i],
+			describe: function describe(ua) {
+				var browser = { name: "Opera" };
+				var version = Utils.getFirstMatch(commonVersionIdentifier, ua) || Utils.getFirstMatch(/(?:opera)[\s/](\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/opr\/|opios/i],
+			describe: function describe(ua) {
+				var browser = { name: "Opera" };
+				var version = Utils.getFirstMatch(/(?:opr|opios)[\s/](\S+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/SamsungBrowser/i],
+			describe: function describe(ua) {
+				var browser = { name: "Samsung Internet for Android" };
+				var version = Utils.getFirstMatch(commonVersionIdentifier, ua) || Utils.getFirstMatch(/(?:SamsungBrowser)[\s/](\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/Whale/i],
+			describe: function describe(ua) {
+				var browser = { name: "NAVER Whale Browser" };
+				var version = Utils.getFirstMatch(commonVersionIdentifier, ua) || Utils.getFirstMatch(/(?:whale)[\s/](\d+(?:\.\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/PaleMoon/i],
+			describe: function describe(ua) {
+				var browser = { name: "Pale Moon" };
+				var version = Utils.getFirstMatch(commonVersionIdentifier, ua) || Utils.getFirstMatch(/(?:PaleMoon)[\s/](\d+(?:\.\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/HeyTapBrowser/i],
+			describe: function describe(ua) {
+				var browser = { name: "HeyTap Browser" };
+				var version = Utils.getFirstMatch(/(?:HeyTapBrowser)[\s/](\d+(?:\.\d+)*)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/VivoBrowser/i],
+			describe: function describe(ua) {
+				var browser = { name: "Vivo Browser" };
+				var version = Utils.getFirstMatch(/(?:VivoBrowser)[\s/](\d+(?:\.\d+)*)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/MZBrowser/i],
+			describe: function describe(ua) {
+				var browser = { name: "MZ Browser" };
+				var version = Utils.getFirstMatch(/(?:MZBrowser)[\s/](\d+(?:\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/focus/i],
+			describe: function describe(ua) {
+				var browser = { name: "Focus" };
+				var version = Utils.getFirstMatch(/(?:focus)[\s/](\d+(?:\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/swing/i],
+			describe: function describe(ua) {
+				var browser = { name: "Swing" };
+				var version = Utils.getFirstMatch(/(?:swing)[\s/](\d+(?:\.\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/coast/i],
+			describe: function describe(ua) {
+				var browser = { name: "Opera Coast" };
+				var version = Utils.getFirstMatch(commonVersionIdentifier, ua) || Utils.getFirstMatch(/(?:coast)[\s/](\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/opt\/\d+(?:.?_?\d+)+/i],
+			describe: function describe(ua) {
+				var browser = { name: "Opera Touch" };
+				var version = Utils.getFirstMatch(/(?:opt)[\s/](\d+(\.?_?\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/yabrowser/i],
+			describe: function describe(ua) {
+				var browser = { name: "Yandex Browser" };
+				var version = Utils.getFirstMatch(/(?:yabrowser)[\s/](\d+(\.?_?\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/ucbrowser/i],
+			describe: function describe(ua) {
+				var browser = { name: "UC Browser" };
+				var version = Utils.getFirstMatch(commonVersionIdentifier, ua) || Utils.getFirstMatch(/(?:ucbrowser)[\s/](\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/Maxthon|mxios/i],
+			describe: function describe(ua) {
+				var browser = { name: "Maxthon" };
+				var version = Utils.getFirstMatch(commonVersionIdentifier, ua) || Utils.getFirstMatch(/(?:Maxthon|mxios)[\s/](\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/epiphany/i],
+			describe: function describe(ua) {
+				var browser = { name: "Epiphany" };
+				var version = Utils.getFirstMatch(commonVersionIdentifier, ua) || Utils.getFirstMatch(/(?:epiphany)[\s/](\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/puffin/i],
+			describe: function describe(ua) {
+				var browser = { name: "Puffin" };
+				var version = Utils.getFirstMatch(commonVersionIdentifier, ua) || Utils.getFirstMatch(/(?:puffin)[\s/](\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/sleipnir/i],
+			describe: function describe(ua) {
+				var browser = { name: "Sleipnir" };
+				var version = Utils.getFirstMatch(commonVersionIdentifier, ua) || Utils.getFirstMatch(/(?:sleipnir)[\s/](\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/k-meleon/i],
+			describe: function describe(ua) {
+				var browser = { name: "K-Meleon" };
+				var version = Utils.getFirstMatch(commonVersionIdentifier, ua) || Utils.getFirstMatch(/(?:k-meleon)[\s/](\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/micromessenger/i],
+			describe: function describe(ua) {
+				var browser = { name: "WeChat" };
+				var version = Utils.getFirstMatch(/(?:micromessenger)[\s/](\d+(\.?_?\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/qqbrowser/i],
+			describe: function describe(ua) {
+				var browser = { name: /qqbrowserlite/i.test(ua) ? "QQ Browser Lite" : "QQ Browser" };
+				var version = Utils.getFirstMatch(/(?:qqbrowserlite|qqbrowser)[/](\d+(\.?_?\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/msie|trident/i],
+			describe: function describe(ua) {
+				var browser = { name: "Internet Explorer" };
+				var version = Utils.getFirstMatch(/(?:msie |rv:)(\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/\sedg\//i],
+			describe: function describe(ua) {
+				var browser = { name: "Microsoft Edge" };
+				var version = Utils.getFirstMatch(/\sedg\/(\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/edg([ea]|ios)\//i],
+			describe: function describe(ua) {
+				var browser = { name: "Microsoft Edge" };
+				var version = Utils.getSecondMatch(/edg([ea]|ios)\/(\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: function test(parser) {
+				if (parser.hasBrand("Vivaldi")) return true;
+				return parser.test(/vivaldi/i);
+			},
+			describe: function describe(ua, parser) {
+				var browser = { name: "Vivaldi" };
+				if (parser) {
+					var hintsVersion = parser.getBrandVersion("Vivaldi");
+					if (hintsVersion) {
+						browser.version = hintsVersion;
+						return browser;
+					}
 				}
-				return r.m = e, r.c = t, r.d = function(e, t, i) {
-					r.o(e, t) || Object.defineProperty(e, t, {
-						enumerable: !0,
-						get: i
-					});
-				}, r.r = function(e) {
-					"undefined" != typeof Symbol && Symbol.toStringTag && Object.defineProperty(e, Symbol.toStringTag, { value: "Module" }), Object.defineProperty(e, "__esModule", { value: !0 });
-				}, r.t = function(e, t) {
-					if (1 & t && (e = r(e)), 8 & t) return e;
-					if (4 & t && "object" == typeof e && e && e.__esModule) return e;
-					var i = Object.create(null);
-					if (r.r(i), Object.defineProperty(i, "default", {
-						enumerable: !0,
-						value: e
-					}), 2 & t && "string" != typeof e) for (var n in e) r.d(i, n, function(t) {
-						return e[t];
-					}.bind(null, n));
-					return i;
-				}, r.n = function(e) {
-					var t = e && e.__esModule ? function() {
-						return e.default;
-					} : function() {
-						return e;
-					};
-					return r.d(t, "a", t), t;
-				}, r.o = function(e, t) {
-					return Object.prototype.hasOwnProperty.call(e, t);
-				}, r.p = "", r(r.s = 90);
-			}({
-				17: function(e, t, r) {
-					"use strict";
-					t.__esModule = !0, t.default = void 0;
-					var i = r(18);
-					t.default = function() {
-						function e() {}
-						return e.getFirstMatch = function(e, t) {
-							var r = t.match(e);
-							return r && r.length > 0 && r[1] || "";
-						}, e.getSecondMatch = function(e, t) {
-							var r = t.match(e);
-							return r && r.length > 1 && r[2] || "";
-						}, e.matchAndReturnConst = function(e, t, r) {
-							if (e.test(t)) return r;
-						}, e.getWindowsVersionName = function(e) {
-							switch (e) {
-								case "NT": return "NT";
-								case "XP": return "XP";
-								case "NT 5.0": return "2000";
-								case "NT 5.1": return "XP";
-								case "NT 5.2": return "2003";
-								case "NT 6.0": return "Vista";
-								case "NT 6.1": return "7";
-								case "NT 6.2": return "8";
-								case "NT 6.3": return "8.1";
-								case "NT 10.0": return "10";
-								default: return;
-							}
-						}, e.getMacOSVersionName = function(e) {
-							var t = e.split(".").splice(0, 2).map((function(e) {
-								return parseInt(e, 10) || 0;
-							}));
-							t.push(0);
-							var r = t[0], i = t[1];
-							if (10 === r) switch (i) {
-								case 5: return "Leopard";
-								case 6: return "Snow Leopard";
-								case 7: return "Lion";
-								case 8: return "Mountain Lion";
-								case 9: return "Mavericks";
-								case 10: return "Yosemite";
-								case 11: return "El Capitan";
-								case 12: return "Sierra";
-								case 13: return "High Sierra";
-								case 14: return "Mojave";
-								case 15: return "Catalina";
-								default: return;
-							}
-							switch (r) {
-								case 11: return "Big Sur";
-								case 12: return "Monterey";
-								case 13: return "Ventura";
-								case 14: return "Sonoma";
-								case 15: return "Sequoia";
-								default: return;
-							}
-						}, e.getAndroidVersionName = function(e) {
-							var t = e.split(".").splice(0, 2).map((function(e) {
-								return parseInt(e, 10) || 0;
-							}));
-							if (t.push(0), !(1 === t[0] && t[1] < 5)) return 1 === t[0] && t[1] < 6 ? "Cupcake" : 1 === t[0] && t[1] >= 6 ? "Donut" : 2 === t[0] && t[1] < 2 ? "Eclair" : 2 === t[0] && 2 === t[1] ? "Froyo" : 2 === t[0] && t[1] > 2 ? "Gingerbread" : 3 === t[0] ? "Honeycomb" : 4 === t[0] && t[1] < 1 ? "Ice Cream Sandwich" : 4 === t[0] && t[1] < 4 ? "Jelly Bean" : 4 === t[0] && t[1] >= 4 ? "KitKat" : 5 === t[0] ? "Lollipop" : 6 === t[0] ? "Marshmallow" : 7 === t[0] ? "Nougat" : 8 === t[0] ? "Oreo" : 9 === t[0] ? "Pie" : void 0;
-						}, e.getVersionPrecision = function(e) {
-							return e.split(".").length;
-						}, e.compareVersions = function(t, r, i) {
-							void 0 === i && (i = !1);
-							var n = e.getVersionPrecision(t), a = e.getVersionPrecision(r), o = Math.max(n, a), s = 0, u = e.map([t, r], (function(t) {
-								var r = o - e.getVersionPrecision(t), i = t + new Array(r + 1).join(".0");
-								return e.map(i.split("."), (function(e) {
-									return new Array(20 - e.length).join("0") + e;
-								})).reverse();
-							}));
-							for (i && (s = o - Math.min(n, a)), o -= 1; o >= s;) {
-								if (u[0][o] > u[1][o]) return 1;
-								if (u[0][o] === u[1][o]) {
-									if (o === s) return 0;
-									o -= 1;
-								} else if (u[0][o] < u[1][o]) return -1;
-							}
-						}, e.map = function(e, t) {
-							var r, i = [];
-							if (Array.prototype.map) return Array.prototype.map.call(e, t);
-							for (r = 0; r < e.length; r += 1) i.push(t(e[r]));
-							return i;
-						}, e.find = function(e, t) {
-							var r, i;
-							if (Array.prototype.find) return Array.prototype.find.call(e, t);
-							for (r = 0, i = e.length; r < i; r += 1) {
-								var n = e[r];
-								if (t(n, r)) return n;
-							}
-						}, e.assign = function(e) {
-							for (var t, r, i = e, n = arguments.length, a = new Array(n > 1 ? n - 1 : 0), o = 1; o < n; o++) a[o - 1] = arguments[o];
-							if (Object.assign) return Object.assign.apply(Object, [e].concat(a));
-							var s = function() {
-								var e = a[t];
-								"object" == typeof e && null !== e && Object.keys(e).forEach((function(t) {
-									i[t] = e[t];
-								}));
-							};
-							for (t = 0, r = a.length; t < r; t += 1) s();
-							return e;
-						}, e.getBrowserAlias = function(e) {
-							return i.BROWSER_ALIASES_MAP[e];
-						}, e.getBrowserTypeByAlias = function(e) {
-							return i.BROWSER_MAP[e] || "";
-						}, e;
-					}(), e.exports = t.default;
-				},
-				18: function(e, t, r) {
-					"use strict";
-					t.__esModule = !0, t.ENGINE_MAP = t.OS_MAP = t.PLATFORMS_MAP = t.BROWSER_MAP = t.BROWSER_ALIASES_MAP = void 0;
-					t.BROWSER_ALIASES_MAP = {
-						AmazonBot: "amazonbot",
-						"Amazon Silk": "amazon_silk",
-						"Android Browser": "android",
-						BaiduSpider: "baiduspider",
-						Bada: "bada",
-						BingCrawler: "bingcrawler",
-						Brave: "brave",
-						BlackBerry: "blackberry",
-						"ChatGPT-User": "chatgpt_user",
-						Chrome: "chrome",
-						ClaudeBot: "claudebot",
-						Chromium: "chromium",
-						Diffbot: "diffbot",
-						DuckDuckBot: "duckduckbot",
-						DuckDuckGo: "duckduckgo",
-						Electron: "electron",
-						Epiphany: "epiphany",
-						FacebookExternalHit: "facebookexternalhit",
-						Firefox: "firefox",
-						Focus: "focus",
-						Generic: "generic",
-						"Google Search": "google_search",
-						Googlebot: "googlebot",
-						GPTBot: "gptbot",
-						"Internet Explorer": "ie",
-						InternetArchiveCrawler: "internetarchivecrawler",
-						"K-Meleon": "k_meleon",
-						LibreWolf: "librewolf",
-						Linespider: "linespider",
-						Maxthon: "maxthon",
-						"Meta-ExternalAds": "meta_externalads",
-						"Meta-ExternalAgent": "meta_externalagent",
-						"Meta-ExternalFetcher": "meta_externalfetcher",
-						"Meta-WebIndexer": "meta_webindexer",
-						"Microsoft Edge": "edge",
-						"MZ Browser": "mz",
-						"NAVER Whale Browser": "naver",
-						"OAI-SearchBot": "oai_searchbot",
-						Omgilibot: "omgilibot",
-						Opera: "opera",
-						"Opera Coast": "opera_coast",
-						"Pale Moon": "pale_moon",
-						PerplexityBot: "perplexitybot",
-						"Perplexity-User": "perplexity_user",
-						PhantomJS: "phantomjs",
-						PingdomBot: "pingdombot",
-						Puffin: "puffin",
-						QQ: "qq",
-						QQLite: "qqlite",
-						QupZilla: "qupzilla",
-						Roku: "roku",
-						Safari: "safari",
-						Sailfish: "sailfish",
-						"Samsung Internet for Android": "samsung_internet",
-						SlackBot: "slackbot",
-						SeaMonkey: "seamonkey",
-						Sleipnir: "sleipnir",
-						"Sogou Browser": "sogou",
-						Swing: "swing",
-						Tizen: "tizen",
-						"UC Browser": "uc",
-						Vivaldi: "vivaldi",
-						"WebOS Browser": "webos",
-						WeChat: "wechat",
-						YahooSlurp: "yahooslurp",
-						"Yandex Browser": "yandex",
-						YandexBot: "yandexbot",
-						YouBot: "youbot"
-					};
-					t.BROWSER_MAP = {
-						amazonbot: "AmazonBot",
-						amazon_silk: "Amazon Silk",
-						android: "Android Browser",
-						baiduspider: "BaiduSpider",
-						bada: "Bada",
-						bingcrawler: "BingCrawler",
-						blackberry: "BlackBerry",
-						brave: "Brave",
-						chatgpt_user: "ChatGPT-User",
-						chrome: "Chrome",
-						claudebot: "ClaudeBot",
-						chromium: "Chromium",
-						diffbot: "Diffbot",
-						duckduckbot: "DuckDuckBot",
-						duckduckgo: "DuckDuckGo",
-						edge: "Microsoft Edge",
-						electron: "Electron",
-						epiphany: "Epiphany",
-						facebookexternalhit: "FacebookExternalHit",
-						firefox: "Firefox",
-						focus: "Focus",
-						generic: "Generic",
-						google_search: "Google Search",
-						googlebot: "Googlebot",
-						gptbot: "GPTBot",
-						ie: "Internet Explorer",
-						internetarchivecrawler: "InternetArchiveCrawler",
-						k_meleon: "K-Meleon",
-						librewolf: "LibreWolf",
-						linespider: "Linespider",
-						maxthon: "Maxthon",
-						meta_externalads: "Meta-ExternalAds",
-						meta_externalagent: "Meta-ExternalAgent",
-						meta_externalfetcher: "Meta-ExternalFetcher",
-						meta_webindexer: "Meta-WebIndexer",
-						mz: "MZ Browser",
-						naver: "NAVER Whale Browser",
-						oai_searchbot: "OAI-SearchBot",
-						omgilibot: "Omgilibot",
-						opera: "Opera",
-						opera_coast: "Opera Coast",
-						pale_moon: "Pale Moon",
-						perplexitybot: "PerplexityBot",
-						perplexity_user: "Perplexity-User",
-						phantomjs: "PhantomJS",
-						pingdombot: "PingdomBot",
-						puffin: "Puffin",
-						qq: "QQ Browser",
-						qqlite: "QQ Browser Lite",
-						qupzilla: "QupZilla",
-						roku: "Roku",
-						safari: "Safari",
-						sailfish: "Sailfish",
-						samsung_internet: "Samsung Internet for Android",
-						seamonkey: "SeaMonkey",
-						slackbot: "SlackBot",
-						sleipnir: "Sleipnir",
-						sogou: "Sogou Browser",
-						swing: "Swing",
-						tizen: "Tizen",
-						uc: "UC Browser",
-						vivaldi: "Vivaldi",
-						webos: "WebOS Browser",
-						wechat: "WeChat",
-						yahooslurp: "YahooSlurp",
-						yandex: "Yandex Browser",
-						yandexbot: "YandexBot",
-						youbot: "YouBot"
-					};
-					t.PLATFORMS_MAP = {
-						bot: "bot",
-						desktop: "desktop",
-						mobile: "mobile",
-						tablet: "tablet",
-						tv: "tv"
-					};
-					t.OS_MAP = {
-						Android: "Android",
-						Bada: "Bada",
-						BlackBerry: "BlackBerry",
-						ChromeOS: "Chrome OS",
-						HarmonyOS: "HarmonyOS",
-						iOS: "iOS",
-						Linux: "Linux",
-						MacOS: "macOS",
-						PlayStation4: "PlayStation 4",
-						Roku: "Roku",
-						Tizen: "Tizen",
-						WebOS: "WebOS",
-						Windows: "Windows",
-						WindowsPhone: "Windows Phone"
-					};
-					t.ENGINE_MAP = {
-						Blink: "Blink",
-						EdgeHTML: "EdgeHTML",
-						Gecko: "Gecko",
-						Presto: "Presto",
-						Trident: "Trident",
-						WebKit: "WebKit"
-					};
-				},
-				90: function(e, t, r) {
-					"use strict";
-					t.__esModule = !0, t.default = void 0;
-					var i, n = (i = r(91)) && i.__esModule ? i : { default: i }, a = r(18);
-					function o(e, t) {
-						for (var r = 0; r < t.length; r++) {
-							var i = t[r];
-							i.enumerable = i.enumerable || !1, i.configurable = !0, "value" in i && (i.writable = !0), Object.defineProperty(e, i.key, i);
-						}
+				var version = Utils.getFirstMatch(/vivaldi\/(\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/seamonkey/i],
+			describe: function describe(ua) {
+				var browser = { name: "SeaMonkey" };
+				var version = Utils.getFirstMatch(/seamonkey\/(\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/sailfish/i],
+			describe: function describe(ua) {
+				var browser = { name: "Sailfish" };
+				var version = Utils.getFirstMatch(/sailfish\s?browser\/(\d+(\.\d+)?)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/silk/i],
+			describe: function describe(ua) {
+				var browser = { name: "Amazon Silk" };
+				var version = Utils.getFirstMatch(/silk\/(\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/phantom/i],
+			describe: function describe(ua) {
+				var browser = { name: "PhantomJS" };
+				var version = Utils.getFirstMatch(/phantomjs\/(\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/slimerjs/i],
+			describe: function describe(ua) {
+				var browser = { name: "SlimerJS" };
+				var version = Utils.getFirstMatch(/slimerjs\/(\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/blackberry|\bbb\d+/i, /rim\stablet/i],
+			describe: function describe(ua) {
+				var browser = { name: "BlackBerry" };
+				var version = Utils.getFirstMatch(commonVersionIdentifier, ua) || Utils.getFirstMatch(/blackberry[\d]+\/(\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/(web|hpw)[o0]s/i],
+			describe: function describe(ua) {
+				var browser = { name: "WebOS Browser" };
+				var version = Utils.getFirstMatch(commonVersionIdentifier, ua) || Utils.getFirstMatch(/w(?:eb)?[o0]sbrowser\/(\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/bada/i],
+			describe: function describe(ua) {
+				var browser = { name: "Bada" };
+				var version = Utils.getFirstMatch(/dolfin\/(\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/tizen/i],
+			describe: function describe(ua) {
+				var browser = { name: "Tizen" };
+				var version = Utils.getFirstMatch(/(?:tizen\s?)?browser\/(\d+(\.?_?\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/qupzilla/i],
+			describe: function describe(ua) {
+				var browser = { name: "QupZilla" };
+				var version = Utils.getFirstMatch(/(?:qupzilla)[\s/](\d+(\.?_?\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/librewolf/i],
+			describe: function describe(ua) {
+				var browser = { name: "LibreWolf" };
+				var version = Utils.getFirstMatch(/(?:librewolf)[\s/](\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/firefox|iceweasel|fxios/i],
+			describe: function describe(ua) {
+				var browser = { name: "Firefox" };
+				var version = Utils.getFirstMatch(/(?:firefox|iceweasel|fxios)[\s/](\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/electron/i],
+			describe: function describe(ua) {
+				var browser = { name: "Electron" };
+				var version = Utils.getFirstMatch(/(?:electron)\/(\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [
+				/sogoumobilebrowser/i,
+				/metasr/i,
+				/se 2\.[x]/i
+			],
+			describe: function describe(ua) {
+				var browser = { name: "Sogou Browser" };
+				var sogouMobileVersion = Utils.getFirstMatch(/(?:sogoumobilebrowser)[\s/](\d+(\.?_?\d+)+)/i, ua);
+				var chromiumVersion = Utils.getFirstMatch(/(?:chrome|crios|crmo)\/(\d+(\.?_?\d+)+)/i, ua);
+				var seVersion = Utils.getFirstMatch(/se ([\d.]+)x/i, ua);
+				var version = sogouMobileVersion || chromiumVersion || seVersion;
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/MiuiBrowser/i],
+			describe: function describe(ua) {
+				var browser = { name: "Miui" };
+				var version = Utils.getFirstMatch(/(?:MiuiBrowser)[\s/](\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: function test(parser) {
+				if (parser.hasBrand("DuckDuckGo")) return true;
+				return parser.test(/\sDdg\/[\d.]+$/i);
+			},
+			describe: function describe(ua, parser) {
+				var browser = { name: "DuckDuckGo" };
+				if (parser) {
+					var hintsVersion = parser.getBrandVersion("DuckDuckGo");
+					if (hintsVersion) {
+						browser.version = hintsVersion;
+						return browser;
 					}
-					t.default = function() {
-						function e() {}
-						var t, r, i;
-						return e.getParser = function(e, t, r) {
-							if (void 0 === t && (t = !1), void 0 === r && (r = null), "string" != typeof e) throw new Error("UserAgent should be a string");
-							return new n.default(e, t, r);
-						}, e.parse = function(e, t) {
-							return void 0 === t && (t = null), new n.default(e, t).getResult();
-						}, t = e, i = [
-							{
-								key: "BROWSER_MAP",
-								get: function() {
-									return a.BROWSER_MAP;
-								}
-							},
-							{
-								key: "ENGINE_MAP",
-								get: function() {
-									return a.ENGINE_MAP;
-								}
-							},
-							{
-								key: "OS_MAP",
-								get: function() {
-									return a.OS_MAP;
-								}
-							},
-							{
-								key: "PLATFORMS_MAP",
-								get: function() {
-									return a.PLATFORMS_MAP;
-								}
-							}
-						], (r = null) && o(t.prototype, r), i && o(t, i), e;
-					}(), e.exports = t.default;
-				},
-				91: function(e, t, r) {
-					"use strict";
-					t.__esModule = !0, t.default = void 0;
-					var i = u(r(92)), n = u(r(93)), a = u(r(94)), o = u(r(95)), s = u(r(17));
-					function u(e) {
-						return e && e.__esModule ? e : { default: e };
+				}
+				var uaVersion = Utils.getFirstMatch(/\sDdg\/([\d.]+)$/i, ua);
+				if (uaVersion) browser.version = uaVersion;
+				return browser;
+			}
+		},
+		{
+			test: function test(parser) {
+				return parser.hasBrand("Brave");
+			},
+			describe: function describe(ua, parser) {
+				var browser = { name: "Brave" };
+				if (parser) {
+					var hintsVersion = parser.getBrandVersion("Brave");
+					if (hintsVersion) {
+						browser.version = hintsVersion;
+						return browser;
 					}
-					t.default = function() {
-						function e(e, t, r) {
-							if (void 0 === t && (t = !1), void 0 === r && (r = null), null == e || "" === e) throw new Error("UserAgent parameter can't be empty");
-							this._ua = e;
-							var i = !1;
-							"boolean" == typeof t ? (i = t, this._hints = r) : this._hints = null != t && "object" == typeof t ? t : null, this.parsedResult = {}, !0 !== i && this.parse();
-						}
-						var t = e.prototype;
-						return t.getHints = function() {
-							return this._hints;
-						}, t.hasBrand = function(e) {
-							if (!this._hints || !Array.isArray(this._hints.brands)) return !1;
-							var t = e.toLowerCase();
-							return this._hints.brands.some((function(e) {
-								return e.brand && e.brand.toLowerCase() === t;
-							}));
-						}, t.getBrandVersion = function(e) {
-							if (this._hints && Array.isArray(this._hints.brands)) {
-								var t = e.toLowerCase(), r = this._hints.brands.find((function(e) {
-									return e.brand && e.brand.toLowerCase() === t;
-								}));
-								return r ? r.version : void 0;
-							}
-						}, t.getUA = function() {
-							return this._ua;
-						}, t.test = function(e) {
-							return e.test(this._ua);
-						}, t.parseBrowser = function() {
-							var e = this;
-							this.parsedResult.browser = {};
-							var t = s.default.find(i.default, (function(t) {
-								if ("function" == typeof t.test) return t.test(e);
-								if (Array.isArray(t.test)) return t.test.some((function(t) {
-									return e.test(t);
-								}));
-								throw new Error("Browser's test function is not valid");
-							}));
-							return t && (this.parsedResult.browser = t.describe(this.getUA(), this)), this.parsedResult.browser;
-						}, t.getBrowser = function() {
-							return this.parsedResult.browser ? this.parsedResult.browser : this.parseBrowser();
-						}, t.getBrowserName = function(e) {
-							return e ? String(this.getBrowser().name).toLowerCase() || "" : this.getBrowser().name || "";
-						}, t.getBrowserVersion = function() {
-							return this.getBrowser().version;
-						}, t.getOS = function() {
-							return this.parsedResult.os ? this.parsedResult.os : this.parseOS();
-						}, t.parseOS = function() {
-							var e = this;
-							this.parsedResult.os = {};
-							var t = s.default.find(n.default, (function(t) {
-								if ("function" == typeof t.test) return t.test(e);
-								if (Array.isArray(t.test)) return t.test.some((function(t) {
-									return e.test(t);
-								}));
-								throw new Error("Browser's test function is not valid");
-							}));
-							return t && (this.parsedResult.os = t.describe(this.getUA())), this.parsedResult.os;
-						}, t.getOSName = function(e) {
-							var t = this.getOS().name;
-							return e ? String(t).toLowerCase() || "" : t || "";
-						}, t.getOSVersion = function() {
-							return this.getOS().version;
-						}, t.getPlatform = function() {
-							return this.parsedResult.platform ? this.parsedResult.platform : this.parsePlatform();
-						}, t.getPlatformType = function(e) {
-							void 0 === e && (e = !1);
-							var t = this.getPlatform().type;
-							return e ? String(t).toLowerCase() || "" : t || "";
-						}, t.parsePlatform = function() {
-							var e = this;
-							this.parsedResult.platform = {};
-							var t = s.default.find(a.default, (function(t) {
-								if ("function" == typeof t.test) return t.test(e);
-								if (Array.isArray(t.test)) return t.test.some((function(t) {
-									return e.test(t);
-								}));
-								throw new Error("Browser's test function is not valid");
-							}));
-							return t && (this.parsedResult.platform = t.describe(this.getUA())), this.parsedResult.platform;
-						}, t.getEngine = function() {
-							return this.parsedResult.engine ? this.parsedResult.engine : this.parseEngine();
-						}, t.getEngineName = function(e) {
-							return e ? String(this.getEngine().name).toLowerCase() || "" : this.getEngine().name || "";
-						}, t.parseEngine = function() {
-							var e = this;
-							this.parsedResult.engine = {};
-							var t = s.default.find(o.default, (function(t) {
-								if ("function" == typeof t.test) return t.test(e);
-								if (Array.isArray(t.test)) return t.test.some((function(t) {
-									return e.test(t);
-								}));
-								throw new Error("Browser's test function is not valid");
-							}));
-							return t && (this.parsedResult.engine = t.describe(this.getUA())), this.parsedResult.engine;
-						}, t.parse = function() {
-							return this.parseBrowser(), this.parseOS(), this.parsePlatform(), this.parseEngine(), this;
-						}, t.getResult = function() {
-							return s.default.assign({}, this.parsedResult);
-						}, t.satisfies = function(e) {
-							var t = this, r = {}, i = 0, n = {}, a = 0;
-							if (Object.keys(e).forEach((function(t) {
-								var o = e[t];
-								"string" == typeof o ? (n[t] = o, a += 1) : "object" == typeof o && (r[t] = o, i += 1);
-							})), i > 0) {
-								var o = Object.keys(r), u = s.default.find(o, (function(e) {
-									return t.isOS(e);
-								}));
-								if (u) {
-									var d = this.satisfies(r[u]);
-									if (void 0 !== d) return d;
-								}
-								var c = s.default.find(o, (function(e) {
-									return t.isPlatform(e);
-								}));
-								if (c) {
-									var f = this.satisfies(r[c]);
-									if (void 0 !== f) return f;
-								}
-							}
-							if (a > 0) {
-								var l = Object.keys(n), b = s.default.find(l, (function(e) {
-									return t.isBrowser(e, !0);
-								}));
-								if (void 0 !== b) return this.compareVersion(n[b]);
-							}
-						}, t.isBrowser = function(e, t) {
-							void 0 === t && (t = !1);
-							var r = this.getBrowserName().toLowerCase(), i = e.toLowerCase(), n = s.default.getBrowserTypeByAlias(i);
-							return t && n && (i = n.toLowerCase()), i === r;
-						}, t.compareVersion = function(e) {
-							var t = [0], r = e, i = !1, n = this.getBrowserVersion();
-							if ("string" == typeof n) return ">" === e[0] || "<" === e[0] ? (r = e.substr(1), "=" === e[1] ? (i = !0, r = e.substr(2)) : t = [], ">" === e[0] ? t.push(1) : t.push(-1)) : "=" === e[0] ? r = e.substr(1) : "~" === e[0] && (i = !0, r = e.substr(1)), t.indexOf(s.default.compareVersions(n, r, i)) > -1;
-						}, t.isOS = function(e) {
-							return this.getOSName(!0) === String(e).toLowerCase();
-						}, t.isPlatform = function(e) {
-							return this.getPlatformType(!0) === String(e).toLowerCase();
-						}, t.isEngine = function(e) {
-							return this.getEngineName(!0) === String(e).toLowerCase();
-						}, t.is = function(e, t) {
-							return void 0 === t && (t = !1), this.isBrowser(e, t) || this.isOS(e) || this.isPlatform(e);
-						}, t.some = function(e) {
-							var t = this;
-							return void 0 === e && (e = []), e.some((function(e) {
-								return t.is(e);
-							}));
-						}, e;
-					}(), e.exports = t.default;
-				},
-				92: function(e, t, r) {
-					"use strict";
-					t.__esModule = !0, t.default = void 0;
-					var i, n = (i = r(17)) && i.__esModule ? i : { default: i };
-					var a = /version\/(\d+(\.?_?\d+)+)/i;
-					t.default = [
-						{
-							test: [/gptbot/i],
-							describe: function(e) {
-								var t = { name: "GPTBot" }, r = n.default.getFirstMatch(/gptbot\/(\d+(\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/chatgpt-user/i],
-							describe: function(e) {
-								var t = { name: "ChatGPT-User" }, r = n.default.getFirstMatch(/chatgpt-user\/(\d+(\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/oai-searchbot/i],
-							describe: function(e) {
-								var t = { name: "OAI-SearchBot" }, r = n.default.getFirstMatch(/oai-searchbot\/(\d+(\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [
-								/claudebot/i,
-								/claude-web/i,
-								/claude-user/i,
-								/claude-searchbot/i
-							],
-							describe: function(e) {
-								var t = { name: "ClaudeBot" }, r = n.default.getFirstMatch(/(?:claudebot|claude-web|claude-user|claude-searchbot)\/(\d+(\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/omgilibot/i, /webzio-extended/i],
-							describe: function(e) {
-								var t = { name: "Omgilibot" }, r = n.default.getFirstMatch(/(?:omgilibot|webzio-extended)\/(\d+(\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/diffbot/i],
-							describe: function(e) {
-								var t = { name: "Diffbot" }, r = n.default.getFirstMatch(/diffbot\/(\d+(\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/perplexitybot/i],
-							describe: function(e) {
-								var t = { name: "PerplexityBot" }, r = n.default.getFirstMatch(/perplexitybot\/(\d+(\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/perplexity-user/i],
-							describe: function(e) {
-								var t = { name: "Perplexity-User" }, r = n.default.getFirstMatch(/perplexity-user\/(\d+(\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/youbot/i],
-							describe: function(e) {
-								var t = { name: "YouBot" }, r = n.default.getFirstMatch(/youbot\/(\d+(\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/meta-webindexer/i],
-							describe: function(e) {
-								var t = { name: "Meta-WebIndexer" }, r = n.default.getFirstMatch(/meta-webindexer\/(\d+(\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/meta-externalads/i],
-							describe: function(e) {
-								var t = { name: "Meta-ExternalAds" }, r = n.default.getFirstMatch(/meta-externalads\/(\d+(\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/meta-externalagent/i],
-							describe: function(e) {
-								var t = { name: "Meta-ExternalAgent" }, r = n.default.getFirstMatch(/meta-externalagent\/(\d+(\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/meta-externalfetcher/i],
-							describe: function(e) {
-								var t = { name: "Meta-ExternalFetcher" }, r = n.default.getFirstMatch(/meta-externalfetcher\/(\d+(\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/googlebot/i],
-							describe: function(e) {
-								var t = { name: "Googlebot" }, r = n.default.getFirstMatch(/googlebot\/(\d+(\.\d+))/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/linespider/i],
-							describe: function(e) {
-								var t = { name: "Linespider" }, r = n.default.getFirstMatch(/(?:linespider)(?:-[-\w]+)?[\s/](\d+(\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/amazonbot/i],
-							describe: function(e) {
-								var t = { name: "AmazonBot" }, r = n.default.getFirstMatch(/amazonbot\/(\d+(\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/bingbot/i],
-							describe: function(e) {
-								var t = { name: "BingCrawler" }, r = n.default.getFirstMatch(/bingbot\/(\d+(\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/baiduspider/i],
-							describe: function(e) {
-								var t = { name: "BaiduSpider" }, r = n.default.getFirstMatch(/baiduspider\/(\d+(\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/duckduckbot/i],
-							describe: function(e) {
-								var t = { name: "DuckDuckBot" }, r = n.default.getFirstMatch(/duckduckbot\/(\d+(\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/ia_archiver/i],
-							describe: function(e) {
-								var t = { name: "InternetArchiveCrawler" }, r = n.default.getFirstMatch(/ia_archiver\/(\d+(\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/facebookexternalhit/i, /facebookcatalog/i],
-							describe: function() {
-								return { name: "FacebookExternalHit" };
-							}
-						},
-						{
-							test: [/slackbot/i, /slack-imgProxy/i],
-							describe: function(e) {
-								var t = { name: "SlackBot" }, r = n.default.getFirstMatch(/(?:slackbot|slack-imgproxy)(?:-[-\w]+)?[\s/](\d+(\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/yahoo!?[\s/]*slurp/i],
-							describe: function() {
-								return { name: "YahooSlurp" };
-							}
-						},
-						{
-							test: [/yandexbot/i, /yandexmobilebot/i],
-							describe: function() {
-								return { name: "YandexBot" };
-							}
-						},
-						{
-							test: [/pingdom/i],
-							describe: function() {
-								return { name: "PingdomBot" };
-							}
-						},
-						{
-							test: [/opera/i],
-							describe: function(e) {
-								var t = { name: "Opera" }, r = n.default.getFirstMatch(a, e) || n.default.getFirstMatch(/(?:opera)[\s/](\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/opr\/|opios/i],
-							describe: function(e) {
-								var t = { name: "Opera" }, r = n.default.getFirstMatch(/(?:opr|opios)[\s/](\S+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/SamsungBrowser/i],
-							describe: function(e) {
-								var t = { name: "Samsung Internet for Android" }, r = n.default.getFirstMatch(a, e) || n.default.getFirstMatch(/(?:SamsungBrowser)[\s/](\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/Whale/i],
-							describe: function(e) {
-								var t = { name: "NAVER Whale Browser" }, r = n.default.getFirstMatch(a, e) || n.default.getFirstMatch(/(?:whale)[\s/](\d+(?:\.\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/PaleMoon/i],
-							describe: function(e) {
-								var t = { name: "Pale Moon" }, r = n.default.getFirstMatch(a, e) || n.default.getFirstMatch(/(?:PaleMoon)[\s/](\d+(?:\.\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/MZBrowser/i],
-							describe: function(e) {
-								var t = { name: "MZ Browser" }, r = n.default.getFirstMatch(/(?:MZBrowser)[\s/](\d+(?:\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/focus/i],
-							describe: function(e) {
-								var t = { name: "Focus" }, r = n.default.getFirstMatch(/(?:focus)[\s/](\d+(?:\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/swing/i],
-							describe: function(e) {
-								var t = { name: "Swing" }, r = n.default.getFirstMatch(/(?:swing)[\s/](\d+(?:\.\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/coast/i],
-							describe: function(e) {
-								var t = { name: "Opera Coast" }, r = n.default.getFirstMatch(a, e) || n.default.getFirstMatch(/(?:coast)[\s/](\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/opt\/\d+(?:.?_?\d+)+/i],
-							describe: function(e) {
-								var t = { name: "Opera Touch" }, r = n.default.getFirstMatch(/(?:opt)[\s/](\d+(\.?_?\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/yabrowser/i],
-							describe: function(e) {
-								var t = { name: "Yandex Browser" }, r = n.default.getFirstMatch(/(?:yabrowser)[\s/](\d+(\.?_?\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/ucbrowser/i],
-							describe: function(e) {
-								var t = { name: "UC Browser" }, r = n.default.getFirstMatch(a, e) || n.default.getFirstMatch(/(?:ucbrowser)[\s/](\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/Maxthon|mxios/i],
-							describe: function(e) {
-								var t = { name: "Maxthon" }, r = n.default.getFirstMatch(a, e) || n.default.getFirstMatch(/(?:Maxthon|mxios)[\s/](\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/epiphany/i],
-							describe: function(e) {
-								var t = { name: "Epiphany" }, r = n.default.getFirstMatch(a, e) || n.default.getFirstMatch(/(?:epiphany)[\s/](\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/puffin/i],
-							describe: function(e) {
-								var t = { name: "Puffin" }, r = n.default.getFirstMatch(a, e) || n.default.getFirstMatch(/(?:puffin)[\s/](\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/sleipnir/i],
-							describe: function(e) {
-								var t = { name: "Sleipnir" }, r = n.default.getFirstMatch(a, e) || n.default.getFirstMatch(/(?:sleipnir)[\s/](\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/k-meleon/i],
-							describe: function(e) {
-								var t = { name: "K-Meleon" }, r = n.default.getFirstMatch(a, e) || n.default.getFirstMatch(/(?:k-meleon)[\s/](\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/micromessenger/i],
-							describe: function(e) {
-								var t = { name: "WeChat" }, r = n.default.getFirstMatch(/(?:micromessenger)[\s/](\d+(\.?_?\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/qqbrowser/i],
-							describe: function(e) {
-								var t = { name: /qqbrowserlite/i.test(e) ? "QQ Browser Lite" : "QQ Browser" }, r = n.default.getFirstMatch(/(?:qqbrowserlite|qqbrowser)[/](\d+(\.?_?\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/msie|trident/i],
-							describe: function(e) {
-								var t = { name: "Internet Explorer" }, r = n.default.getFirstMatch(/(?:msie |rv:)(\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/\sedg\//i],
-							describe: function(e) {
-								var t = { name: "Microsoft Edge" }, r = n.default.getFirstMatch(/\sedg\/(\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/edg([ea]|ios)/i],
-							describe: function(e) {
-								var t = { name: "Microsoft Edge" }, r = n.default.getSecondMatch(/edg([ea]|ios)\/(\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/vivaldi/i],
-							describe: function(e) {
-								var t = { name: "Vivaldi" }, r = n.default.getFirstMatch(/vivaldi\/(\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/seamonkey/i],
-							describe: function(e) {
-								var t = { name: "SeaMonkey" }, r = n.default.getFirstMatch(/seamonkey\/(\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/sailfish/i],
-							describe: function(e) {
-								var t = { name: "Sailfish" }, r = n.default.getFirstMatch(/sailfish\s?browser\/(\d+(\.\d+)?)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/silk/i],
-							describe: function(e) {
-								var t = { name: "Amazon Silk" }, r = n.default.getFirstMatch(/silk\/(\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/phantom/i],
-							describe: function(e) {
-								var t = { name: "PhantomJS" }, r = n.default.getFirstMatch(/phantomjs\/(\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/slimerjs/i],
-							describe: function(e) {
-								var t = { name: "SlimerJS" }, r = n.default.getFirstMatch(/slimerjs\/(\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/blackberry|\bbb\d+/i, /rim\stablet/i],
-							describe: function(e) {
-								var t = { name: "BlackBerry" }, r = n.default.getFirstMatch(a, e) || n.default.getFirstMatch(/blackberry[\d]+\/(\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/(web|hpw)[o0]s/i],
-							describe: function(e) {
-								var t = { name: "WebOS Browser" }, r = n.default.getFirstMatch(a, e) || n.default.getFirstMatch(/w(?:eb)?[o0]sbrowser\/(\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/bada/i],
-							describe: function(e) {
-								var t = { name: "Bada" }, r = n.default.getFirstMatch(/dolfin\/(\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/tizen/i],
-							describe: function(e) {
-								var t = { name: "Tizen" }, r = n.default.getFirstMatch(/(?:tizen\s?)?browser\/(\d+(\.?_?\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/qupzilla/i],
-							describe: function(e) {
-								var t = { name: "QupZilla" }, r = n.default.getFirstMatch(/(?:qupzilla)[\s/](\d+(\.?_?\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/librewolf/i],
-							describe: function(e) {
-								var t = { name: "LibreWolf" }, r = n.default.getFirstMatch(/(?:librewolf)[\s/](\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/firefox|iceweasel|fxios/i],
-							describe: function(e) {
-								var t = { name: "Firefox" }, r = n.default.getFirstMatch(/(?:firefox|iceweasel|fxios)[\s/](\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/electron/i],
-							describe: function(e) {
-								var t = { name: "Electron" }, r = n.default.getFirstMatch(/(?:electron)\/(\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [
-								/sogoumobilebrowser/i,
-								/metasr/i,
-								/se 2\.[x]/i
-							],
-							describe: function(e) {
-								var t = { name: "Sogou Browser" }, r = n.default.getFirstMatch(/(?:sogoumobilebrowser)[\s/](\d+(\.?_?\d+)+)/i, e), i = n.default.getFirstMatch(/(?:chrome|crios|crmo)\/(\d+(\.?_?\d+)+)/i, e), a = n.default.getFirstMatch(/se ([\d.]+)x/i, e), o = r || i || a;
-								return o && (t.version = o), t;
-							}
-						},
-						{
-							test: [/MiuiBrowser/i],
-							describe: function(e) {
-								var t = { name: "Miui" }, r = n.default.getFirstMatch(/(?:MiuiBrowser)[\s/](\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: function(e) {
-								return !!e.hasBrand("DuckDuckGo") || e.test(/\sDdg\/[\d.]+$/i);
-							},
-							describe: function(e, t) {
-								var r = { name: "DuckDuckGo" };
-								if (t) {
-									var i = t.getBrandVersion("DuckDuckGo");
-									if (i) return r.version = i, r;
-								}
-								var a = n.default.getFirstMatch(/\sDdg\/([\d.]+)$/i, e);
-								return a && (r.version = a), r;
-							}
-						},
-						{
-							test: function(e) {
-								return e.hasBrand("Brave");
-							},
-							describe: function(e, t) {
-								var r = { name: "Brave" };
-								if (t) {
-									var i = t.getBrandVersion("Brave");
-									if (i) return r.version = i, r;
-								}
-								return r;
-							}
-						},
-						{
-							test: [/chromium/i],
-							describe: function(e) {
-								var t = { name: "Chromium" }, r = n.default.getFirstMatch(/(?:chromium)[\s/](\d+(\.?_?\d+)+)/i, e) || n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/chrome|crios|crmo/i],
-							describe: function(e) {
-								var t = { name: "Chrome" }, r = n.default.getFirstMatch(/(?:chrome|crios|crmo)\/(\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/GSA/i],
-							describe: function(e) {
-								var t = { name: "Google Search" }, r = n.default.getFirstMatch(/(?:GSA)\/(\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: function(e) {
-								var t = !e.test(/like android/i), r = e.test(/android/i);
-								return t && r;
-							},
-							describe: function(e) {
-								var t = { name: "Android Browser" }, r = n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/playstation 4/i],
-							describe: function(e) {
-								var t = { name: "PlayStation 4" }, r = n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/safari|applewebkit/i],
-							describe: function(e) {
-								var t = { name: "Safari" }, r = n.default.getFirstMatch(a, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/.*/i],
-							describe: function(e) {
-								var t = -1 !== e.search("\\(") ? /^(.*)\/(.*)[ \t]\((.*)/ : /^(.*)\/(.*) /;
-								return {
-									name: n.default.getFirstMatch(t, e),
-									version: n.default.getSecondMatch(t, e)
-								};
-							}
-						}
-					], e.exports = t.default;
-				},
-				93: function(e, t, r) {
-					"use strict";
-					t.__esModule = !0, t.default = void 0;
-					var i, n = (i = r(17)) && i.__esModule ? i : { default: i }, a = r(18);
-					t.default = [
-						{
-							test: [/Roku\/DVP/],
-							describe: function(e) {
-								var t = n.default.getFirstMatch(/Roku\/DVP-(\d+\.\d+)/i, e);
-								return {
-									name: a.OS_MAP.Roku,
-									version: t
-								};
-							}
-						},
-						{
-							test: [/windows phone/i],
-							describe: function(e) {
-								var t = n.default.getFirstMatch(/windows phone (?:os)?\s?(\d+(\.\d+)*)/i, e);
-								return {
-									name: a.OS_MAP.WindowsPhone,
-									version: t
-								};
-							}
-						},
-						{
-							test: [/windows /i],
-							describe: function(e) {
-								var t = n.default.getFirstMatch(/Windows ((NT|XP)( \d\d?.\d)?)/i, e), r = n.default.getWindowsVersionName(t);
-								return {
-									name: a.OS_MAP.Windows,
-									version: t,
-									versionName: r
-								};
-							}
-						},
-						{
-							test: [/Macintosh(.*?) FxiOS(.*?)\//],
-							describe: function(e) {
-								var t = { name: a.OS_MAP.iOS }, r = n.default.getSecondMatch(/(Version\/)(\d[\d.]+)/, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/macintosh/i],
-							describe: function(e) {
-								var t = n.default.getFirstMatch(/mac os x (\d+(\.?_?\d+)+)/i, e).replace(/[_\s]/g, "."), r = n.default.getMacOSVersionName(t), i = {
-									name: a.OS_MAP.MacOS,
-									version: t
-								};
-								return r && (i.versionName = r), i;
-							}
-						},
-						{
-							test: [/(ipod|iphone|ipad)/i],
-							describe: function(e) {
-								var t = n.default.getFirstMatch(/os (\d+([_\s]\d+)*) like mac os x/i, e).replace(/[_\s]/g, ".");
-								return {
-									name: a.OS_MAP.iOS,
-									version: t
-								};
-							}
-						},
-						{
-							test: [/OpenHarmony/i],
-							describe: function(e) {
-								var t = n.default.getFirstMatch(/OpenHarmony\s+(\d+(\.\d+)*)/i, e);
-								return {
-									name: a.OS_MAP.HarmonyOS,
-									version: t
-								};
-							}
-						},
-						{
-							test: function(e) {
-								var t = !e.test(/like android/i), r = e.test(/android/i);
-								return t && r;
-							},
-							describe: function(e) {
-								var t = n.default.getFirstMatch(/android[\s/-](\d+(\.\d+)*)/i, e), r = n.default.getAndroidVersionName(t), i = {
-									name: a.OS_MAP.Android,
-									version: t
-								};
-								return r && (i.versionName = r), i;
-							}
-						},
-						{
-							test: [/(web|hpw)[o0]s/i],
-							describe: function(e) {
-								var t = n.default.getFirstMatch(/(?:web|hpw)[o0]s\/(\d+(\.\d+)*)/i, e), r = { name: a.OS_MAP.WebOS };
-								return t && t.length && (r.version = t), r;
-							}
-						},
-						{
-							test: [/blackberry|\bbb\d+/i, /rim\stablet/i],
-							describe: function(e) {
-								var t = n.default.getFirstMatch(/rim\stablet\sos\s(\d+(\.\d+)*)/i, e) || n.default.getFirstMatch(/blackberry\d+\/(\d+([_\s]\d+)*)/i, e) || n.default.getFirstMatch(/\bbb(\d+)/i, e);
-								return {
-									name: a.OS_MAP.BlackBerry,
-									version: t
-								};
-							}
-						},
-						{
-							test: [/bada/i],
-							describe: function(e) {
-								var t = n.default.getFirstMatch(/bada\/(\d+(\.\d+)*)/i, e);
-								return {
-									name: a.OS_MAP.Bada,
-									version: t
-								};
-							}
-						},
-						{
-							test: [/tizen/i],
-							describe: function(e) {
-								var t = n.default.getFirstMatch(/tizen[/\s](\d+(\.\d+)*)/i, e);
-								return {
-									name: a.OS_MAP.Tizen,
-									version: t
-								};
-							}
-						},
-						{
-							test: [/linux/i],
-							describe: function() {
-								return { name: a.OS_MAP.Linux };
-							}
-						},
-						{
-							test: [/CrOS/],
-							describe: function() {
-								return { name: a.OS_MAP.ChromeOS };
-							}
-						},
-						{
-							test: [/PlayStation 4/],
-							describe: function(e) {
-								var t = n.default.getFirstMatch(/PlayStation 4[/\s](\d+(\.\d+)*)/i, e);
-								return {
-									name: a.OS_MAP.PlayStation4,
-									version: t
-								};
-							}
-						}
-					], e.exports = t.default;
-				},
-				94: function(e, t, r) {
-					"use strict";
-					t.__esModule = !0, t.default = void 0;
-					var i, n = (i = r(17)) && i.__esModule ? i : { default: i }, a = r(18);
-					t.default = [
-						{
-							test: [/googlebot/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "Google"
-								};
-							}
-						},
-						{
-							test: [/linespider/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "Line"
-								};
-							}
-						},
-						{
-							test: [/amazonbot/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "Amazon"
-								};
-							}
-						},
-						{
-							test: [/gptbot/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "OpenAI"
-								};
-							}
-						},
-						{
-							test: [/chatgpt-user/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "OpenAI"
-								};
-							}
-						},
-						{
-							test: [/oai-searchbot/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "OpenAI"
-								};
-							}
-						},
-						{
-							test: [/baiduspider/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "Baidu"
-								};
-							}
-						},
-						{
-							test: [/bingbot/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "Bing"
-								};
-							}
-						},
-						{
-							test: [/duckduckbot/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "DuckDuckGo"
-								};
-							}
-						},
-						{
-							test: [
-								/claudebot/i,
-								/claude-web/i,
-								/claude-user/i,
-								/claude-searchbot/i
-							],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "Anthropic"
-								};
-							}
-						},
-						{
-							test: [/omgilibot/i, /webzio-extended/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "Webz.io"
-								};
-							}
-						},
-						{
-							test: [/diffbot/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "Diffbot"
-								};
-							}
-						},
-						{
-							test: [/perplexitybot/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "Perplexity AI"
-								};
-							}
-						},
-						{
-							test: [/perplexity-user/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "Perplexity AI"
-								};
-							}
-						},
-						{
-							test: [/youbot/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "You.com"
-								};
-							}
-						},
-						{
-							test: [/ia_archiver/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "Internet Archive"
-								};
-							}
-						},
-						{
-							test: [/meta-webindexer/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "Meta"
-								};
-							}
-						},
-						{
-							test: [/meta-externalads/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "Meta"
-								};
-							}
-						},
-						{
-							test: [/meta-externalagent/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "Meta"
-								};
-							}
-						},
-						{
-							test: [/meta-externalfetcher/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "Meta"
-								};
-							}
-						},
-						{
-							test: [/facebookexternalhit/i, /facebookcatalog/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "Meta"
-								};
-							}
-						},
-						{
-							test: [/slackbot/i, /slack-imgProxy/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "Slack"
-								};
-							}
-						},
-						{
-							test: [/yahoo/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "Yahoo"
-								};
-							}
-						},
-						{
-							test: [/yandexbot/i, /yandexmobilebot/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "Yandex"
-								};
-							}
-						},
-						{
-							test: [/pingdom/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.bot,
-									vendor: "Pingdom"
-								};
-							}
-						},
-						{
-							test: [/huawei/i],
-							describe: function(e) {
-								var t = n.default.getFirstMatch(/(can-l01)/i, e) && "Nova", r = {
-									type: a.PLATFORMS_MAP.mobile,
-									vendor: "Huawei"
-								};
-								return t && (r.model = t), r;
-							}
-						},
-						{
-							test: [/nexus\s*(?:7|8|9|10).*/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.tablet,
-									vendor: "Nexus"
-								};
-							}
-						},
-						{
-							test: [/ipad/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.tablet,
-									vendor: "Apple",
-									model: "iPad"
-								};
-							}
-						},
-						{
-							test: [/Macintosh(.*?) FxiOS(.*?)\//],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.tablet,
-									vendor: "Apple",
-									model: "iPad"
-								};
-							}
-						},
-						{
-							test: [/kftt build/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.tablet,
-									vendor: "Amazon",
-									model: "Kindle Fire HD 7"
-								};
-							}
-						},
-						{
-							test: [/silk/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.tablet,
-									vendor: "Amazon"
-								};
-							}
-						},
-						{
-							test: [/tablet(?! pc)/i],
-							describe: function() {
-								return { type: a.PLATFORMS_MAP.tablet };
-							}
-						},
-						{
-							test: function(e) {
-								var t = e.test(/ipod|iphone/i), r = e.test(/like (ipod|iphone)/i);
-								return t && !r;
-							},
-							describe: function(e) {
-								var t = n.default.getFirstMatch(/(ipod|iphone)/i, e);
-								return {
-									type: a.PLATFORMS_MAP.mobile,
-									vendor: "Apple",
-									model: t
-								};
-							}
-						},
-						{
-							test: [/nexus\s*[0-6].*/i, /galaxy nexus/i],
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.mobile,
-									vendor: "Nexus"
-								};
-							}
-						},
-						{
-							test: [/Nokia/i],
-							describe: function(e) {
-								var t = n.default.getFirstMatch(/Nokia\s+([0-9]+(\.[0-9]+)?)/i, e), r = {
-									type: a.PLATFORMS_MAP.mobile,
-									vendor: "Nokia"
-								};
-								return t && (r.model = t), r;
-							}
-						},
-						{
-							test: [/[^-]mobi/i],
-							describe: function() {
-								return { type: a.PLATFORMS_MAP.mobile };
-							}
-						},
-						{
-							test: function(e) {
-								return "blackberry" === e.getBrowserName(!0);
-							},
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.mobile,
-									vendor: "BlackBerry"
-								};
-							}
-						},
-						{
-							test: function(e) {
-								return "bada" === e.getBrowserName(!0);
-							},
-							describe: function() {
-								return { type: a.PLATFORMS_MAP.mobile };
-							}
-						},
-						{
-							test: function(e) {
-								return "windows phone" === e.getBrowserName();
-							},
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.mobile,
-									vendor: "Microsoft"
-								};
-							}
-						},
-						{
-							test: function(e) {
-								var t = Number(String(e.getOSVersion()).split(".")[0]);
-								return "android" === e.getOSName(!0) && t >= 3;
-							},
-							describe: function() {
-								return { type: a.PLATFORMS_MAP.tablet };
-							}
-						},
-						{
-							test: function(e) {
-								return "android" === e.getOSName(!0);
-							},
-							describe: function() {
-								return { type: a.PLATFORMS_MAP.mobile };
-							}
-						},
-						{
-							test: [/smart-?tv|smarttv/i],
-							describe: function() {
-								return { type: a.PLATFORMS_MAP.tv };
-							}
-						},
-						{
-							test: [/netcast/i],
-							describe: function() {
-								return { type: a.PLATFORMS_MAP.tv };
-							}
-						},
-						{
-							test: function(e) {
-								return "macos" === e.getOSName(!0);
-							},
-							describe: function() {
-								return {
-									type: a.PLATFORMS_MAP.desktop,
-									vendor: "Apple"
-								};
-							}
-						},
-						{
-							test: function(e) {
-								return "windows" === e.getOSName(!0);
-							},
-							describe: function() {
-								return { type: a.PLATFORMS_MAP.desktop };
-							}
-						},
-						{
-							test: function(e) {
-								return "linux" === e.getOSName(!0);
-							},
-							describe: function() {
-								return { type: a.PLATFORMS_MAP.desktop };
-							}
-						},
-						{
-							test: function(e) {
-								return "playstation 4" === e.getOSName(!0);
-							},
-							describe: function() {
-								return { type: a.PLATFORMS_MAP.tv };
-							}
-						},
-						{
-							test: function(e) {
-								return "roku" === e.getOSName(!0);
-							},
-							describe: function() {
-								return { type: a.PLATFORMS_MAP.tv };
-							}
-						}
-					], e.exports = t.default;
-				},
-				95: function(e, t, r) {
-					"use strict";
-					t.__esModule = !0, t.default = void 0;
-					var i, n = (i = r(17)) && i.__esModule ? i : { default: i }, a = r(18);
-					t.default = [
-						{
-							test: function(e) {
-								return "microsoft edge" === e.getBrowserName(!0);
-							},
-							describe: function(e) {
-								if (/\sedg\//i.test(e)) return { name: a.ENGINE_MAP.Blink };
-								var t = n.default.getFirstMatch(/edge\/(\d+(\.?_?\d+)+)/i, e);
-								return {
-									name: a.ENGINE_MAP.EdgeHTML,
-									version: t
-								};
-							}
-						},
-						{
-							test: [/trident/i],
-							describe: function(e) {
-								var t = { name: a.ENGINE_MAP.Trident }, r = n.default.getFirstMatch(/trident\/(\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: function(e) {
-								return e.test(/presto/i);
-							},
-							describe: function(e) {
-								var t = { name: a.ENGINE_MAP.Presto }, r = n.default.getFirstMatch(/presto\/(\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: function(e) {
-								var t = e.test(/gecko/i), r = e.test(/like gecko/i);
-								return t && !r;
-							},
-							describe: function(e) {
-								var t = { name: a.ENGINE_MAP.Gecko }, r = n.default.getFirstMatch(/gecko\/(\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						},
-						{
-							test: [/(apple)?webkit\/537\.36/i],
-							describe: function() {
-								return { name: a.ENGINE_MAP.Blink };
-							}
-						},
-						{
-							test: [/(apple)?webkit/i],
-							describe: function(e) {
-								var t = { name: a.ENGINE_MAP.WebKit }, r = n.default.getFirstMatch(/webkit\/(\d+(\.?_?\d+)+)/i, e);
-								return r && (t.version = r), t;
-							}
-						}
-					], e.exports = t.default;
+				}
+				return browser;
+			}
+		},
+		{
+			test: [/chromium/i],
+			describe: function describe(ua) {
+				var browser = { name: "Chromium" };
+				var version = Utils.getFirstMatch(/(?:chromium)[\s/](\d+(\.?_?\d+)+)/i, ua) || Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/ladybird/i],
+			describe: function describe(ua) {
+				var browser = { name: "Ladybird" };
+				var version = Utils.getFirstMatch(/ladybird\/(\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/chrome|crios|crmo/i],
+			describe: function describe(ua) {
+				var browser = { name: "Chrome" };
+				var version = Utils.getFirstMatch(/(?:chrome|crios|crmo)\/(\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/GSA/i],
+			describe: function describe(ua) {
+				var browser = { name: "Google Search" };
+				var version = Utils.getFirstMatch(/(?:GSA)\/(\d+(\.?_?\d+)+)/i, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: function test(parser) {
+				var notLikeAndroid = !parser.test(/like android/i);
+				var butAndroid = parser.test(/android/i);
+				return notLikeAndroid && butAndroid;
+			},
+			describe: function describe(ua) {
+				var browser = { name: "Android Browser" };
+				var version = Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/playstation 4/i],
+			describe: function describe(ua) {
+				var browser = { name: "PlayStation 4" };
+				var version = Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/safari|applewebkit/i],
+			describe: function describe(ua) {
+				var browser = { name: "Safari" };
+				var version = Utils.getFirstMatch(commonVersionIdentifier, ua);
+				if (version) browser.version = version;
+				return browser;
+			}
+		},
+		{
+			test: [/.*/i],
+			describe: function describe(ua) {
+				var regexp = ua.search("\\(") !== -1 ? /^(.*)\/([^/]*)[ \t]\((.*)/ : /^(.*)\/([^/]*) /;
+				return {
+					name: Utils.getFirstMatch(regexp, ua),
+					version: Utils.getSecondMatch(regexp, ua)
+				};
+			}
+		}
+	];
+	var parser_os_default = [
+		{
+			test: [/Roku\/DVP/],
+			describe: function describe(ua) {
+				var version = Utils.getFirstMatch(/Roku\/DVP-(\d+\.\d+)/i, ua);
+				return {
+					name: OS_MAP.Roku,
+					version
+				};
+			}
+		},
+		{
+			test: [/windows phone/i],
+			describe: function describe(ua) {
+				var version = Utils.getFirstMatch(/windows phone (?:os)?\s?(\d+(\.\d+)*)/i, ua);
+				return {
+					name: OS_MAP.WindowsPhone,
+					version
+				};
+			}
+		},
+		{
+			test: [/windows /i],
+			describe: function describe(ua) {
+				var version = Utils.getFirstMatch(/Windows ((NT|XP)( \d\d?.\d)?)/i, ua);
+				var versionName = Utils.getWindowsVersionName(version);
+				return {
+					name: OS_MAP.Windows,
+					version,
+					versionName
+				};
+			}
+		},
+		{
+			test: function test(parser) {
+				return Utils.isFirefoxOnIpad(parser.getUA());
+			},
+			describe: function describe(ua) {
+				var result = { name: OS_MAP.iOS };
+				var version = Utils.getSecondMatch(/(Version\/)(\d[\d.]+)/, ua);
+				if (version) result.version = version;
+				return result;
+			}
+		},
+		{
+			test: [/macintosh/i],
+			describe: function describe(ua) {
+				var version = Utils.getFirstMatch(/mac os x (\d+(\.?_?\d+)+)/i, ua).replace(/[_\s]/g, ".");
+				var versionName = Utils.getMacOSVersionName(version);
+				var os = {
+					name: OS_MAP.MacOS,
+					version
+				};
+				if (versionName) os.versionName = versionName;
+				return os;
+			}
+		},
+		{
+			test: [/(ipod|iphone|ipad)/i],
+			describe: function describe(ua) {
+				var version = Utils.getFirstMatch(/os (\d+([_\s]\d+)*) like mac os x/i, ua).replace(/[_\s]/g, ".");
+				return {
+					name: OS_MAP.iOS,
+					version
+				};
+			}
+		},
+		{
+			test: [/OpenHarmony/i],
+			describe: function describe(ua) {
+				var version = Utils.getFirstMatch(/OpenHarmony\s+(\d+(\.\d+)*)/i, ua);
+				return {
+					name: OS_MAP.HarmonyOS,
+					version
+				};
+			}
+		},
+		{
+			test: function test(parser) {
+				var notLikeAndroid = !parser.test(/like android/i);
+				var butAndroid = parser.test(/android/i);
+				return notLikeAndroid && butAndroid;
+			},
+			describe: function describe(ua) {
+				var version = Utils.getFirstMatch(/android[\s/-](\d+(\.\d+)*)/i, ua);
+				var versionName = Utils.getAndroidVersionName(version);
+				var os = {
+					name: OS_MAP.Android,
+					version
+				};
+				if (versionName) os.versionName = versionName;
+				return os;
+			}
+		},
+		{
+			test: [/(web|hpw)[o0]s/i],
+			describe: function describe(ua) {
+				var version = Utils.getFirstMatch(/(?:web|hpw)[o0]s\/(\d+(\.\d+)*)/i, ua);
+				var os = { name: OS_MAP.WebOS };
+				if (version && version.length) os.version = version;
+				return os;
+			}
+		},
+		{
+			test: [/blackberry|\bbb\d+/i, /rim\stablet/i],
+			describe: function describe(ua) {
+				var version = Utils.getFirstMatch(/rim\stablet\sos\s(\d+(\.\d+)*)/i, ua) || Utils.getFirstMatch(/blackberry\d+\/(\d+([_\s]\d+)*)/i, ua) || Utils.getFirstMatch(/\bbb(\d+)/i, ua);
+				return {
+					name: OS_MAP.BlackBerry,
+					version
+				};
+			}
+		},
+		{
+			test: [/bada/i],
+			describe: function describe(ua) {
+				var version = Utils.getFirstMatch(/bada\/(\d+(\.\d+)*)/i, ua);
+				return {
+					name: OS_MAP.Bada,
+					version
+				};
+			}
+		},
+		{
+			test: [/tizen/i],
+			describe: function describe(ua) {
+				var version = Utils.getFirstMatch(/tizen[/\s](\d+(\.\d+)*)/i, ua);
+				return {
+					name: OS_MAP.Tizen,
+					version
+				};
+			}
+		},
+		{
+			test: [/linux/i],
+			describe: function describe() {
+				return { name: OS_MAP.Linux };
+			}
+		},
+		{
+			test: [/CrOS/],
+			describe: function describe() {
+				return { name: OS_MAP.ChromeOS };
+			}
+		},
+		{
+			test: [/PlayStation 4/],
+			describe: function describe(ua) {
+				var version = Utils.getFirstMatch(/PlayStation 4[/\s](\d+(\.\d+)*)/i, ua);
+				return {
+					name: OS_MAP.PlayStation4,
+					version
+				};
+			}
+		}
+	];
+	var parser_platforms_default = [
+		{
+			test: [/googlebot/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "Google"
+				};
+			}
+		},
+		{
+			test: [/linespider/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "Line"
+				};
+			}
+		},
+		{
+			test: [/amazonbot/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "Amazon"
+				};
+			}
+		},
+		{
+			test: [/gptbot/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "OpenAI"
+				};
+			}
+		},
+		{
+			test: [/chatgpt-user/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "OpenAI"
+				};
+			}
+		},
+		{
+			test: [/oai-searchbot/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "OpenAI"
+				};
+			}
+		},
+		{
+			test: [/baiduspider/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "Baidu"
+				};
+			}
+		},
+		{
+			test: [/bingbot/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "Bing"
+				};
+			}
+		},
+		{
+			test: [/duckduckbot/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "DuckDuckGo"
+				};
+			}
+		},
+		{
+			test: [
+				/claudebot/i,
+				/claude-web/i,
+				/claude-user/i,
+				/claude-searchbot/i
+			],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "Anthropic"
+				};
+			}
+		},
+		{
+			test: [/omgilibot/i, /webzio-extended/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "Webz.io"
+				};
+			}
+		},
+		{
+			test: [/diffbot/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "Diffbot"
+				};
+			}
+		},
+		{
+			test: [/perplexitybot/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "Perplexity AI"
+				};
+			}
+		},
+		{
+			test: [/perplexity-user/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "Perplexity AI"
+				};
+			}
+		},
+		{
+			test: [/youbot/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "You.com"
+				};
+			}
+		},
+		{
+			test: [/ia_archiver/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "Internet Archive"
+				};
+			}
+		},
+		{
+			test: [/meta-webindexer/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "Meta"
+				};
+			}
+		},
+		{
+			test: [/meta-externalads/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "Meta"
+				};
+			}
+		},
+		{
+			test: [/meta-externalagent/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "Meta"
+				};
+			}
+		},
+		{
+			test: [/meta-externalfetcher/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "Meta"
+				};
+			}
+		},
+		{
+			test: [/facebookexternalhit/i, /facebookcatalog/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "Meta"
+				};
+			}
+		},
+		{
+			test: [/slackbot/i, /slack-imgProxy/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "Slack"
+				};
+			}
+		},
+		{
+			test: [/yahoo/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "Yahoo"
+				};
+			}
+		},
+		{
+			test: [/yandexbot/i, /yandexmobilebot/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "Yandex"
+				};
+			}
+		},
+		{
+			test: [/pingdom/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.bot,
+					vendor: "Pingdom"
+				};
+			}
+		},
+		{
+			test: [/huawei/i],
+			describe: function describe(ua) {
+				var model = Utils.getFirstMatch(/(can-l01)/i, ua) && "Nova";
+				var platform = {
+					type: PLATFORMS_MAP.mobile,
+					vendor: "Huawei"
+				};
+				if (model) platform.model = model;
+				return platform;
+			}
+		},
+		{
+			test: [/nexus\s*(?:7|8|9|10).*/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.tablet,
+					vendor: "Nexus"
+				};
+			}
+		},
+		{
+			test: [/ipad/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.tablet,
+					vendor: "Apple",
+					model: "iPad"
+				};
+			}
+		},
+		{
+			test: function test(parser) {
+				return Utils.isFirefoxOnIpad(parser.getUA());
+			},
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.tablet,
+					vendor: "Apple",
+					model: "iPad"
+				};
+			}
+		},
+		{
+			test: [/kftt build/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.tablet,
+					vendor: "Amazon",
+					model: "Kindle Fire HD 7"
+				};
+			}
+		},
+		{
+			test: [/silk/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.tablet,
+					vendor: "Amazon"
+				};
+			}
+		},
+		{
+			test: [/tablet(?! pc)/i],
+			describe: function describe() {
+				return { type: PLATFORMS_MAP.tablet };
+			}
+		},
+		{
+			test: function test(parser) {
+				var iDevice = parser.test(/ipod|iphone/i);
+				var likeIDevice = parser.test(/like (ipod|iphone)/i);
+				return iDevice && !likeIDevice;
+			},
+			describe: function describe(ua) {
+				var model = Utils.getFirstMatch(/(ipod|iphone)/i, ua);
+				return {
+					type: PLATFORMS_MAP.mobile,
+					vendor: "Apple",
+					model
+				};
+			}
+		},
+		{
+			test: [/nexus\s*[0-6].*/i, /galaxy nexus/i],
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.mobile,
+					vendor: "Nexus"
+				};
+			}
+		},
+		{
+			test: [/Nokia/i],
+			describe: function describe(ua) {
+				var model = Utils.getFirstMatch(/Nokia\s+([0-9]+(\.[0-9]+)?)/i, ua);
+				var platform = {
+					type: PLATFORMS_MAP.mobile,
+					vendor: "Nokia"
+				};
+				if (model) platform.model = model;
+				return platform;
+			}
+		},
+		{
+			test: [/[^-]mobi/i],
+			describe: function describe() {
+				return { type: PLATFORMS_MAP.mobile };
+			}
+		},
+		{
+			test: function test(parser) {
+				return parser.getBrowserName(true) === "blackberry";
+			},
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.mobile,
+					vendor: "BlackBerry"
+				};
+			}
+		},
+		{
+			test: function test(parser) {
+				return parser.getBrowserName(true) === "bada";
+			},
+			describe: function describe() {
+				return { type: PLATFORMS_MAP.mobile };
+			}
+		},
+		{
+			test: function test(parser) {
+				return parser.getBrowserName() === "windows phone";
+			},
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.mobile,
+					vendor: "Microsoft"
+				};
+			}
+		},
+		{
+			test: function test(parser) {
+				var osMajorVersion = Number(String(parser.getOSVersion()).split(".")[0]);
+				return parser.getOSName(true) === "android" && osMajorVersion >= 3;
+			},
+			describe: function describe() {
+				return { type: PLATFORMS_MAP.tablet };
+			}
+		},
+		{
+			test: function test(parser) {
+				return parser.getOSName(true) === "android";
+			},
+			describe: function describe() {
+				return { type: PLATFORMS_MAP.mobile };
+			}
+		},
+		{
+			test: [/smart-?tv|smarttv/i],
+			describe: function describe() {
+				return { type: PLATFORMS_MAP.tv };
+			}
+		},
+		{
+			test: [/netcast/i],
+			describe: function describe() {
+				return { type: PLATFORMS_MAP.tv };
+			}
+		},
+		{
+			test: function test(parser) {
+				return parser.getOSName(true) === "macos";
+			},
+			describe: function describe() {
+				return {
+					type: PLATFORMS_MAP.desktop,
+					vendor: "Apple"
+				};
+			}
+		},
+		{
+			test: function test(parser) {
+				return parser.getOSName(true) === "windows";
+			},
+			describe: function describe() {
+				return { type: PLATFORMS_MAP.desktop };
+			}
+		},
+		{
+			test: function test(parser) {
+				return parser.getOSName(true) === "linux";
+			},
+			describe: function describe() {
+				return { type: PLATFORMS_MAP.desktop };
+			}
+		},
+		{
+			test: function test(parser) {
+				return parser.getOSName(true) === "playstation 4";
+			},
+			describe: function describe() {
+				return { type: PLATFORMS_MAP.tv };
+			}
+		},
+		{
+			test: function test(parser) {
+				return parser.getOSName(true) === "roku";
+			},
+			describe: function describe() {
+				return { type: PLATFORMS_MAP.tv };
+			}
+		}
+	];
+	var parser_engines_default = [
+		{
+			test: function test(parser) {
+				return parser.getBrowserName(true) === "microsoft edge";
+			},
+			describe: function describe(ua) {
+				if (/\sedg\//i.test(ua)) return { name: ENGINE_MAP.Blink };
+				var version = Utils.getFirstMatch(/edge\/(\d+(\.?_?\d+)+)/i, ua);
+				return {
+					name: ENGINE_MAP.EdgeHTML,
+					version
+				};
+			}
+		},
+		{
+			test: function test(parser) {
+				return parser.getBrowserName(true) === "ladybird";
+			},
+			describe: function describe() {
+				return { name: ENGINE_MAP.LibWeb };
+			}
+		},
+		{
+			test: [/trident/i],
+			describe: function describe(ua) {
+				var engine = { name: ENGINE_MAP.Trident };
+				var version = Utils.getFirstMatch(/trident\/(\d+(\.?_?\d+)+)/i, ua);
+				if (version) engine.version = version;
+				return engine;
+			}
+		},
+		{
+			test: function test(parser) {
+				return parser.test(/presto/i);
+			},
+			describe: function describe(ua) {
+				var engine = { name: ENGINE_MAP.Presto };
+				var version = Utils.getFirstMatch(/presto\/(\d+(\.?_?\d+)+)/i, ua);
+				if (version) engine.version = version;
+				return engine;
+			}
+		},
+		{
+			test: function test(parser) {
+				var isGecko = parser.test(/gecko/i);
+				var likeGecko = parser.test(/like gecko/i);
+				return isGecko && !likeGecko;
+			},
+			describe: function describe(ua) {
+				var engine = { name: ENGINE_MAP.Gecko };
+				var version = Utils.getFirstMatch(/gecko\/(\d+(\.?_?\d+)+)/i, ua);
+				if (version) engine.version = version;
+				return engine;
+			}
+		},
+		{
+			test: [/(apple)?webkit\/537\.36/i],
+			describe: function describe() {
+				return { name: ENGINE_MAP.Blink };
+			}
+		},
+		{
+			test: [/(apple)?webkit/i],
+			describe: function describe(ua) {
+				var engine = { name: ENGINE_MAP.WebKit };
+				var version = Utils.getFirstMatch(/webkit\/(\d+(\.?_?\d+)+)/i, ua);
+				if (version) engine.version = version;
+				return engine;
+			}
+		}
+	];
+	var Parser = function() {
+		function Parser(UA, skipParsingOrHints, clientHints) {
+			if (skipParsingOrHints === void 0) skipParsingOrHints = false;
+			if (clientHints === void 0) clientHints = null;
+			if (UA === void 0 || UA === null || UA === "") throw new Error("UserAgent parameter can't be empty");
+			this._ua = UA;
+			var skipParsing = false;
+			if (typeof skipParsingOrHints === "boolean") {
+				skipParsing = skipParsingOrHints;
+				this._hints = clientHints;
+			} else if (skipParsingOrHints != null && typeof skipParsingOrHints === "object") this._hints = skipParsingOrHints;
+			else this._hints = null;
+			this.parsedResult = {};
+			if (skipParsing !== true) this.parse();
+		}
+		var _proto = Parser.prototype;
+		_proto.getHints = function getHints() {
+			return this._hints;
+		};
+		_proto.hasBrand = function hasBrand(brandName) {
+			if (!this._hints || !Array.isArray(this._hints.brands)) return false;
+			var brandLower = brandName.toLowerCase();
+			return this._hints.brands.some(function(b) {
+				return b.brand && b.brand.toLowerCase() === brandLower;
+			});
+		};
+		_proto.getBrandVersion = function getBrandVersion(brandName) {
+			if (!this._hints || !Array.isArray(this._hints.brands)) return;
+			var brandLower = brandName.toLowerCase();
+			var brand = Utils.find(this._hints.brands, function(b) {
+				return b.brand && b.brand.toLowerCase() === brandLower;
+			});
+			return brand ? brand.version : void 0;
+		};
+		_proto.getUA = function getUA() {
+			return this._ua;
+		};
+		_proto.test = function test(regex) {
+			return regex.test(this._ua);
+		};
+		_proto.parseBrowser = function parseBrowser() {
+			var _this = this;
+			this.parsedResult.browser = {};
+			var browserDescriptor = Utils.find(browsersList, function(_browser) {
+				if (typeof _browser.test === "function") return _browser.test(_this);
+				if (Array.isArray(_browser.test)) return _browser.test.some(function(condition) {
+					return _this.test(condition);
+				});
+				throw new Error("Browser's test function is not valid");
+			});
+			if (browserDescriptor) this.parsedResult.browser = browserDescriptor.describe(this.getUA(), this);
+			return this.parsedResult.browser;
+		};
+		_proto.getBrowser = function getBrowser() {
+			if (this.parsedResult.browser) return this.parsedResult.browser;
+			return this.parseBrowser();
+		};
+		_proto.getBrowserName = function getBrowserName(toLowerCase) {
+			if (toLowerCase) return String(this.getBrowser().name).toLowerCase() || "";
+			return this.getBrowser().name || "";
+		};
+		_proto.getBrowserVersion = function getBrowserVersion() {
+			return this.getBrowser().version;
+		};
+		_proto.getOS = function getOS() {
+			if (this.parsedResult.os) return this.parsedResult.os;
+			return this.parseOS();
+		};
+		_proto.parseOS = function parseOS() {
+			var _this2 = this;
+			this.parsedResult.os = {};
+			var os = Utils.find(parser_os_default, function(_os) {
+				if (typeof _os.test === "function") return _os.test(_this2);
+				if (Array.isArray(_os.test)) return _os.test.some(function(condition) {
+					return _this2.test(condition);
+				});
+				throw new Error("Browser's test function is not valid");
+			});
+			if (os) this.parsedResult.os = os.describe(this.getUA());
+			return this.parsedResult.os;
+		};
+		_proto.getOSName = function getOSName(toLowerCase) {
+			var name = this.getOS().name;
+			if (toLowerCase) return String(name).toLowerCase() || "";
+			return name || "";
+		};
+		_proto.getOSVersion = function getOSVersion() {
+			return this.getOS().version;
+		};
+		_proto.getPlatform = function getPlatform() {
+			if (this.parsedResult.platform) return this.parsedResult.platform;
+			return this.parsePlatform();
+		};
+		_proto.getPlatformType = function getPlatformType(toLowerCase) {
+			if (toLowerCase === void 0) toLowerCase = false;
+			var type = this.getPlatform().type;
+			if (toLowerCase) return String(type).toLowerCase() || "";
+			return type || "";
+		};
+		_proto.parsePlatform = function parsePlatform() {
+			var _this3 = this;
+			this.parsedResult.platform = {};
+			var platform = Utils.find(parser_platforms_default, function(_platform) {
+				if (typeof _platform.test === "function") return _platform.test(_this3);
+				if (Array.isArray(_platform.test)) return _platform.test.some(function(condition) {
+					return _this3.test(condition);
+				});
+				throw new Error("Browser's test function is not valid");
+			});
+			if (platform) this.parsedResult.platform = platform.describe(this.getUA());
+			return this.parsedResult.platform;
+		};
+		_proto.getEngine = function getEngine() {
+			if (this.parsedResult.engine) return this.parsedResult.engine;
+			return this.parseEngine();
+		};
+		_proto.getEngineName = function getEngineName(toLowerCase) {
+			if (toLowerCase) return String(this.getEngine().name).toLowerCase() || "";
+			return this.getEngine().name || "";
+		};
+		_proto.parseEngine = function parseEngine() {
+			var _this4 = this;
+			this.parsedResult.engine = {};
+			var engine = Utils.find(parser_engines_default, function(_engine) {
+				if (typeof _engine.test === "function") return _engine.test(_this4);
+				if (Array.isArray(_engine.test)) return _engine.test.some(function(condition) {
+					return _this4.test(condition);
+				});
+				throw new Error("Browser's test function is not valid");
+			});
+			if (engine) this.parsedResult.engine = engine.describe(this.getUA());
+			return this.parsedResult.engine;
+		};
+		_proto.parse = function parse() {
+			this.parseBrowser();
+			this.parseOS();
+			this.parsePlatform();
+			this.parseEngine();
+			return this;
+		};
+		_proto.getResult = function getResult() {
+			return Utils.assign({}, this.parsedResult);
+		};
+		_proto.satisfies = function satisfies(checkTree) {
+			var _this5 = this;
+			var platformsAndOSes = {};
+			var platformsAndOSCounter = 0;
+			var browsers = {};
+			var browsersCounter = 0;
+			Object.keys(checkTree).forEach(function(key) {
+				var currentDefinition = checkTree[key];
+				if (typeof currentDefinition === "string" || Array.isArray(currentDefinition)) {
+					browsers[key] = currentDefinition;
+					browsersCounter += 1;
+				} else if (typeof currentDefinition === "object") {
+					platformsAndOSes[key] = currentDefinition;
+					platformsAndOSCounter += 1;
 				}
 			});
-		}));
-	}))(), 1).default.getParser(globalThis.navigator.userAgent).getResult();
+			if (platformsAndOSCounter > 0) {
+				var platformsAndOSNames = Object.keys(platformsAndOSes);
+				var OSMatchingDefinition = Utils.find(platformsAndOSNames, function(name) {
+					return _this5.isOS(name);
+				});
+				if (OSMatchingDefinition) {
+					var osResult = this.satisfies(platformsAndOSes[OSMatchingDefinition]);
+					if (osResult !== void 0) return osResult;
+				}
+				var platformMatchingDefinition = Utils.find(platformsAndOSNames, function(name) {
+					return _this5.isPlatform(name);
+				});
+				if (platformMatchingDefinition) {
+					var platformResult = this.satisfies(platformsAndOSes[platformMatchingDefinition]);
+					if (platformResult !== void 0) return platformResult;
+				}
+			}
+			if (browsersCounter > 0) {
+				var browserNames = Object.keys(browsers);
+				var matchingDefinition = Utils.find(browserNames, function(name) {
+					return _this5.isBrowser(name, true);
+				});
+				if (matchingDefinition !== void 0) return this.compareVersions(browsers[matchingDefinition]);
+			}
+		};
+		_proto.isBrowser = function isBrowser(browserName, includingAlias) {
+			if (includingAlias === void 0) includingAlias = false;
+			var defaultBrowserName = this.getBrowserName().toLowerCase();
+			var browserNameLower = browserName.toLowerCase();
+			var alias = Utils.getBrowserTypeByAlias(browserNameLower);
+			if (includingAlias && alias) browserNameLower = alias.toLowerCase();
+			return browserNameLower === defaultBrowserName;
+		};
+		_proto.compareVersions = function compareVersions(versionsOrVersion) {
+			var _this6 = this;
+			if (typeof versionsOrVersion === "string") return this.compareVersion(versionsOrVersion);
+			return versionsOrVersion.some(function(version) {
+				return _this6.compareVersion(version);
+			});
+		};
+		_proto.compareVersion = function compareVersion(version) {
+			var expectedResults = [0];
+			var comparableVersion = version;
+			var isLoose = false;
+			var currentBrowserVersion = this.getBrowserVersion();
+			if (typeof currentBrowserVersion !== "string") return;
+			if (version[0] === ">" || version[0] === "<") {
+				comparableVersion = version.substr(1);
+				if (version[1] === "=") {
+					isLoose = true;
+					comparableVersion = version.substr(2);
+				} else expectedResults = [];
+				if (version[0] === ">") expectedResults.push(1);
+				else expectedResults.push(-1);
+			} else if (version[0] === "=") comparableVersion = version.substr(1);
+			else if (version[0] === "~") {
+				isLoose = true;
+				comparableVersion = version.substr(1);
+			}
+			return expectedResults.indexOf(Utils.compareVersions(currentBrowserVersion, comparableVersion, isLoose)) > -1;
+		};
+		_proto.isOS = function isOS(osName) {
+			return this.getOSName(true) === String(osName).toLowerCase();
+		};
+		_proto.isPlatform = function isPlatform(platformType) {
+			return this.getPlatformType(true) === String(platformType).toLowerCase();
+		};
+		_proto.isEngine = function isEngine(engineName) {
+			return this.getEngineName(true) === String(engineName).toLowerCase();
+		};
+		_proto.is = function is(anything, includingAlias) {
+			if (includingAlias === void 0) includingAlias = false;
+			return this.isBrowser(anything, includingAlias) || this.isOS(anything) || this.isPlatform(anything);
+		};
+		_proto.some = function some(anythings) {
+			var _this7 = this;
+			if (anythings === void 0) anythings = [];
+			return anythings.some(function(anything) {
+				return _this7.is(anything);
+			});
+		};
+		return Parser;
+	}();
+	function _defineProperties(e, r) {
+		for (var t = 0; t < r.length; t++) {
+			var o = r[t];
+			o.enumerable = o.enumerable || !1, o.configurable = !0, "value" in o && (o.writable = !0), Object.defineProperty(e, _toPropertyKey(o.key), o);
+		}
+	}
+	function _createClass(e, r, t) {
+		return r && _defineProperties(e.prototype, r), t && _defineProperties(e, t), Object.defineProperty(e, "prototype", { writable: !1 }), e;
+	}
+	function _toPropertyKey(t) {
+		var i = _toPrimitive(t, "string");
+		return "symbol" == typeof i ? i : i + "";
+	}
+	function _toPrimitive(t, r) {
+		if ("object" != typeof t || !t) return t;
+		var e = t[Symbol.toPrimitive];
+		if (void 0 !== e) {
+			var i = e.call(t, r || "default");
+			if ("object" != typeof i) return i;
+			throw new TypeError("@@toPrimitive must return a primitive value.");
+		}
+		return ("string" === r ? String : Number)(t);
+	}
+	var Bowser = function() {
+		function Bowser() {}
+		Bowser.getParser = function getParser(UA, skipParsingOrHints, clientHints) {
+			if (skipParsingOrHints === void 0) skipParsingOrHints = false;
+			if (clientHints === void 0) clientHints = null;
+			if (typeof UA !== "string") throw new Error("UserAgent should be a string");
+			return new Parser(UA, skipParsingOrHints, clientHints);
+		};
+		Bowser.parse = function parse(UA, clientHints) {
+			if (clientHints === void 0) clientHints = null;
+			return new Parser(UA, clientHints).getResult();
+		};
+		return _createClass(Bowser, null, [
+			{
+				key: "BROWSER_MAP",
+				get: function get() {
+					return BROWSER_MAP;
+				}
+			},
+			{
+				key: "ENGINE_MAP",
+				get: function get() {
+					return ENGINE_MAP;
+				}
+			},
+			{
+				key: "OS_MAP",
+				get: function get() {
+					return OS_MAP;
+				}
+			},
+			{
+				key: "PLATFORMS_MAP",
+				get: function get() {
+					return PLATFORMS_MAP;
+				}
+			}
+		]);
+	}();
+	Bowser.parse;
+	Bowser.getParser;
+	// src/utils/browserInfo.ts
+	var browserInfo = Bowser.getParser(globalThis.navigator.userAgent).getResult();
 	// src/config/config.ts
 	var workerHost = "api.browser.yandex.ru";
 	var m3u8ProxyHost = "media-proxy.toil.cc/v1/proxy/m3u8";
@@ -9705,6 +9988,15 @@ var vot = (function(exports) {
 	}
 	function base64UrlEncode(bytes) {
 		return btoa(String.fromCodePoint(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+	}
+	function compareVersions(a, b) {
+		const left = a.split(".").map((part) => Number.parseInt(part, 10) || 0);
+		const right = b.split(".").map((part) => Number.parseInt(part, 10) || 0);
+		for (let i = 0; i < Math.max(left.length, right.length); i++) {
+			const diff = (left[i] ?? 0) - (right[i] ?? 0);
+			if (diff !== 0) return Math.sign(diff);
+		}
+		return 0;
 	}
 	// src/utils/responseCache.ts
 	var RESPONSE_CACHE_CREATED_AT_HEADER = "x-vot-cache-created-at";
@@ -10246,7 +10538,8 @@ var vot = (function(exports) {
 		"localeVersion",
 		"localeUpdatedAt",
 		"localeLangOverride",
-		"account"
+		"account",
+		"updaterInfo"
 	];
 	// src/utils/storage.ts
 	function parseStoredValue(rawValue, fallback) {
@@ -10834,7 +11127,7 @@ var vot = (function(exports) {
 	}
 	function getRuntimeInfo() {
 		return {
-			version: "1.12.4",
+			version: "1.12.5",
 			environment: "master",
 			env: getEnvironmentInfo$1(),
 			debugIds: readDebugIdRegistry()
@@ -10845,7 +11138,7 @@ var vot = (function(exports) {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/x-sentry-envelope",
-				"X-Sentry-Auth": buildAuthHeader("1.12.4")
+				"X-Sentry-Auth": buildAuthHeader("1.12.5")
 			},
 			body: buildEnvelope(event),
 			forceGmXhr: true,
@@ -11122,7 +11415,6 @@ var vot = (function(exports) {
 		VOTDownloadWithName: "Download files with the video name",
 		VOTUpdateLocaleFiles: "Update localization files",
 		VOTLocaleHash: "Locale hash",
-		VOTUpdatedAt: "Updated at",
 		VOTNeedWebAudioAPI: "To enable this, you must have a Web Audio API",
 		VOTMediaCSPEnabledOnSite: "Media CSP is enabled on this site",
 		VOTOnlyBypassMediaCSP: "Use it only for bypassing Media CSP",
@@ -11203,7 +11495,11 @@ var vot = (function(exports) {
 		sendErrorReports: "Send anonymous error reports",
 		sendErrorReportsDescription: "Helps us find and fix bugs. Only technical details are sent",
 		VOTSubtitlesTranslationLanguage: "Word and phrase translation language",
-		VOTSameAsMenuLanguage: "Same as menu language"
+		VOTSameAsMenuLanguage: "Same as menu language",
+		VOTCheckingForUpdate: "Checking for updates...",
+		VOTUpdateCheckFailed: "Couldn't check for updates",
+		VOTUpdateAvailable: "New version {0} is available",
+		VOTUpdatedDate: "Updated {0}"
 	};
 	// src/localization/localizationProvider.ts
 	var LOCALE_STORAGE_KEYS = [
@@ -11352,7 +11648,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.12.4"), String(getGMInfo()?.script?.version || ""));
+		return resolveRuntimeLocaleVersion(String("1.12.5"), String(getGMInfo()?.script?.version || ""));
 	}
 	var LocalizationProvider = class {
 		lang;
@@ -31490,6 +31786,7 @@ var vot = (function(exports) {
 		context: null,
 		owner: null
 	};
+	var NO_INIT = {};
 	var Owner = null;
 	var Transition = null;
 	var Scheduler = null;
@@ -31504,7 +31801,7 @@ var vot = (function(exports) {
 			cleanups: null,
 			context: current ? current.context : null,
 			owner: current
-		}, updateFn = unowned ? fn : () => fn(() => untrack(() => cleanNode(root)));
+		}, updateFn = unowned ? fn : () => fn(createDisposer(root));
 		Owner = root;
 		Listener = null;
 		try {
@@ -31513,6 +31810,9 @@ var vot = (function(exports) {
 			Listener = listener;
 			Owner = owner;
 		}
+	}
+	function createDisposer(root) {
+		return () => untrack(() => cleanNode(root));
 	}
 	function createSignal(value, options) {
 		options = options ? Object.assign({}, signalOptions, options) : signalOptions;
@@ -31530,6 +31830,11 @@ var vot = (function(exports) {
 			return writeSignal(s, value);
 		};
 		return [readSignal.bind(s), setter];
+	}
+	function createComputed(fn, value, options) {
+		const c = createComputation(fn, value, true, STALE);
+		if (Scheduler && Transition && Transition.running) Updates.push(c);
+		else updateComputation(c);
 	}
 	function createRenderEffect(fn, value, options) {
 		const c = createComputation(fn, value, false, STALE);
@@ -31554,6 +31859,140 @@ var vot = (function(exports) {
 			Updates.push(c);
 		} else updateComputation(c);
 		return readSignal.bind(c);
+	}
+	function isPromise(v) {
+		return v && typeof v === "object" && "then" in v;
+	}
+	function createResource(pSource, pFetcher, pOptions) {
+		let source;
+		let fetcher;
+		let options;
+		if (typeof pFetcher === "function") {
+			source = pSource;
+			fetcher = pFetcher;
+			options = pOptions || {};
+		} else {
+			source = true;
+			fetcher = pSource;
+			options = pFetcher || {};
+		}
+		let pr = null, initP = NO_INIT, id = null, loadedUnderTransition = false, scheduled = false, resolved = "initialValue" in options, dynamic = typeof source === "function" && createMemo(source);
+		const contexts = new Set(), [value, setValue] = (options.storage || createSignal)(options.initialValue), [error, setError] = createSignal(void 0), [track, trigger] = createSignal(void 0, { equals: false }), [state, setState] = createSignal(resolved ? "ready" : "unresolved");
+		if (Owner) onCleanup(() => {
+			for (const c of contexts.keys()) c.decrement();
+			contexts.clear();
+			if (Transition && pr) Transition.promises.delete(pr);
+			pr = null;
+		});
+		if (sharedConfig.context) {
+			id = sharedConfig.getNextContextId();
+			if (options.ssrLoadFrom === "initial") initP = options.initialValue;
+			else if (sharedConfig.load && sharedConfig.has(id)) initP = sharedConfig.load(id);
+		}
+		function loadEnd(p, v, error, key) {
+			if (pr === p) {
+				pr = null;
+				key !== void 0 && (resolved = true);
+				if ((p === initP || v === initP) && options.onHydrated) queueMicrotask(() => options.onHydrated(key, { value: v }));
+				initP = NO_INIT;
+				if (Transition && p && loadedUnderTransition) {
+					Transition.promises.delete(p);
+					loadedUnderTransition = false;
+					runUpdates(() => {
+						Transition.running = true;
+						completeLoad(v, error);
+					}, false);
+				} else completeLoad(v, error);
+			}
+			return v;
+		}
+		function completeLoad(v, err) {
+			runUpdates(() => {
+				if (err === void 0) setValue(() => v);
+				setState(err !== void 0 ? "errored" : resolved ? "ready" : "unresolved");
+				setError(err);
+				for (const c of contexts.keys()) c.decrement();
+				contexts.clear();
+			}, false);
+		}
+		function read() {
+			const c = SuspenseContext && useContext(SuspenseContext), v = value(), err = error();
+			if (err !== void 0 && !pr) throw err;
+			if (Listener && !Listener.user && c) createComputed(() => {
+				track();
+				if (pr) {
+					if (c.resolved && Transition && loadedUnderTransition) Transition.promises.add(pr);
+					else if (!contexts.has(c)) {
+						c.increment();
+						contexts.add(c);
+					}
+				}
+			});
+			return v;
+		}
+		function load(refetching = true) {
+			if (refetching !== false && scheduled) return;
+			scheduled = false;
+			const lookup = dynamic ? dynamic() : source;
+			loadedUnderTransition = Transition && Transition.running;
+			if (lookup == null || lookup === false) {
+				loadEnd(pr, untrack(value));
+				return;
+			}
+			if (Transition && pr) Transition.promises.delete(pr);
+			let error;
+			const p = initP !== NO_INIT ? initP : untrack(() => {
+				try {
+					return fetcher(lookup, {
+						value: value(),
+						refetching
+					});
+				} catch (fetcherError) {
+					error = fetcherError;
+				}
+			});
+			if (error !== void 0) {
+				loadEnd(pr, void 0, castError(error), lookup);
+				return;
+			} else if (!isPromise(p)) {
+				loadEnd(pr, p, void 0, lookup);
+				return p;
+			}
+			pr = p;
+			if ("v" in p) {
+				if (p.s === 1) loadEnd(pr, p.v, void 0, lookup);
+				else loadEnd(pr, void 0, castError(p.v), lookup);
+				return p;
+			}
+			scheduled = true;
+			queueMicrotask(() => scheduled = false);
+			runUpdates(() => {
+				setState(resolved ? "refreshing" : "pending");
+				trigger();
+			}, false);
+			return p.then((v) => loadEnd(p, v, void 0, lookup), (e) => loadEnd(p, void 0, castError(e), lookup));
+		}
+		Object.defineProperties(read, {
+			state: { get: () => state() },
+			error: { get: () => error() },
+			loading: { get() {
+				const s = state();
+				return s === "pending" || s === "refreshing";
+			} },
+			latest: { get() {
+				if (!resolved) return read();
+				const err = error();
+				if (err && !pr) throw err;
+				return value();
+			} }
+		});
+		let owner = Owner;
+		if (dynamic) createComputed(() => (owner = Owner, load(false)));
+		else load(false);
+		return [read, {
+			refetch: (info) => runWithOwner(owner, () => load(info)),
+			mutate: setValue
+		}];
 	}
 	function batch(fn) {
 		return runUpdates(fn, false);
@@ -31599,6 +32038,20 @@ var vot = (function(exports) {
 	}
 	function getListener() {
 		return Listener;
+	}
+	function runWithOwner(o, fn) {
+		const prev = Owner;
+		const prevListener = Listener;
+		Owner = o;
+		Listener = null;
+		try {
+			return runUpdates(fn, true);
+		} catch (err) {
+			handleError(err);
+		} finally {
+			Owner = prev;
+			Listener = prevListener;
+		}
 	}
 	function startTransition(fn) {
 		if (Transition && Transition.running) {
@@ -32902,6 +33355,20 @@ var vot = (function(exports) {
 	}
 	// src/utils/timeFormatting.ts
 	var MAX_SECS_FRACTION = .66;
+	function createDateTimeFormat(lang) {
+		const options = {
+			dateStyle: "long",
+			timeStyle: "short"
+		};
+		try {
+			return new Intl.DateTimeFormat(lang, options);
+		} catch {
+			return new Intl.DateTimeFormat(void 0, options);
+		}
+	}
+	function formatDateTime(timestampSec, lang) {
+		return createDateTimeFormat(lang).format(timestampSec * 1e3);
+	}
 	function formatTranslationEta(secs, getMessage) {
 		let minutes = Math.floor(secs / 60);
 		if (Math.floor(secs % 60) / 60 >= MAX_SECS_FRACTION) minutes += 1;
@@ -33369,7 +33836,7 @@ var vot = (function(exports) {
 				throwIfAborted(signal);
 				await this.videoHandler.ensureProxySettingsResolved();
 				throwIfAborted(signal);
-				const livelyVoiceAllowed = this.videoHandler.isLivelyVoiceAllowed(requestLang, responseLang);
+				const livelyVoiceAllowed = this.videoHandler.isLivelyVoiceAllowed(responseLang);
 				const translationAttempt = await this.requestTranslationWithLivelyFallback({
 					videoData,
 					requestLang,
@@ -34852,7 +35319,14 @@ var vot = (function(exports) {
 			if (!skipChildren) createRenderEffect(() => prevProps.children = insertExpression(node, props.children, prevProps.children));
 			createRenderEffect(() => props.ref && props.ref(node));
 			createRenderEffect(() => {
-				for (const prop in props) {
+				const propNames = new Set();
+				for (const prop in props) propNames.add(prop);
+				for (const prop in prevProps) {
+					if (prop === "children" || prop === "ref" || propNames.has(prop)) continue;
+					setProperty(node, prop, void 0, prevProps[prop]);
+					delete prevProps[prop];
+				}
+				for (const prop of propNames) {
 					if (prop === "children" || prop === "ref") continue;
 					const value = props[prop];
 					if (value === prevProps[prop]) continue;
@@ -37362,7 +37836,7 @@ var vot = (function(exports) {
 		};
 	}
 	// src/ui/shadowMount.ts
-	var shadowScopedCssText = scopeCssForShadowRoots(":root{--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif;--vot-primary-rgb:139, 180, 245;--vot-onprimary-rgb:32, 33, 36;--vot-surface-rgb:32, 33, 36;--vot-secondary-rgb:43, 44, 48;--vot-onsurface-rgb:227, 227, 227;--vot-danger-rgb:255, 99, 99;--vot-error-rgb:242, 139, 130;--vot-subtitles-color:rgb(var(--vot-onsurface-rgb,227, 227, 227));--vot-subtitles-passed-color:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-space-1:4px;--vot-space-2:8px;--vot-space-3:12px;--vot-space-4:16px;--vot-space-5:20px;--vot-space-6:24px;--vot-radius-xs:6px;--vot-radius-s:10px;--vot-radius-m:14px;--vot-radius-l:18px;--vot-border-color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .14);--vot-border-color-hover:rgba(var(--vot-onsurface-rgb,227, 227, 227), .22);--vot-shadow-1:0 1px 2px #0000002e, 0 8px 24px #00000024;--vot-shadow-2:0 2px 4px #00000038, 0 12px 32px #00000038;--vot-duration-fast:.12s;--vot-duration-medium:.2s;--vot-duration-slow:.32s;--vot-easing-standard:cubic-bezier(.2, 0, 0, 1);--vot-focus-ring-color:rgba(var(--vot-primary-rgb,139, 180, 245), .9);--vot-focus-ring:0 0 0 2px var(--vot-focus-ring-color);--vot-focus-ring-offset:0 0 0 4px rgba(var(--vot-surface-rgb,32, 33, 36), .9)}vot-block,vot-block *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}vot-block[hidden]:not(.vot-menu),vot-block [hidden]:not(.vot-menu){display:none!important}vot-block{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizelegibility;-moz-text-size-adjust:100%;text-size-adjust:100%;display:block;--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;visibility:visible!important;font-weight:400!important}vot-block *{font-weight:inherit!important}.vot-portal-local,.vot-subtitles-widget{isolation:isolate}vot-block:focus,vot-block :focus{box-shadow:none!important;outline:none!important}html.vot-keyboard-nav vot-block:focus-visible,html.vot-keyboard-nav vot-block :focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav vot-block:focus,html.vot-keyboard-nav vot-block :focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}@media (prefers-reduced-motion:reduce){.vot-portal-local *,.vot-portal *,.vot-subtitles-widget *{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}.vot-portal{display:contents}.vot-portal-local{z-index:2147483647;position:fixed;top:0;left:0}.vot-segmented-button,.vot-menu{pointer-events:auto}.vot-about-item{justify-content:space-between;align-items:center;gap:.5em;font-size:.8em;display:flex}.vot-about-item__label{text-transform:lowercase;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-item__value{text-align:end;color:rgba(var(--vot-primary-rgb,33, 150, 243), .9)}.vot-about-item__value_detail{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-section{--vot-about-sep-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);flex-direction:column;gap:.5em;display:flex}.vot-about-section>.vot-about-item:not(:last-child){border-bottom:1px solid var(--vot-about-sep-color);padding-bottom:1em}.vot-account-info{--vot-account-label-color:rgba(var(--vot-onsurface-rgb,13, 1, 31), .68);--vot-account-username-color:rgb(var(--vot-primary-rgb,139, 180, 245));flex-direction:column;gap:1em;font-weight:600;display:flex}.vot-account-info__block{align-items:center;gap:.5em;display:flex}.vot-account-info__avatar{border-radius:50%;min-width:36px;max-width:36px;min-height:36px;max-height:36px;overflow:hidden}.vot-account-info__avatar--failed{background:var(--vot-account-label-color)}.vot-account-info__avatar--failed>.vot-account-info__avatar-img{display:none}.vot-account-info__avatar-img{object-fit:cover;width:36px;height:36px}.vot-account-info__content{flex-direction:column;line-height:1.125em;display:flex}.vot-account-info__label{color:var(--vot-account-label-color);font-size:.75em}.vot-account-info__username{color:var(--vot-account-username-color);font-weight:600}.vot-account-info__refresh{margin-left:auto}.vot-account-login{flex-direction:column;gap:1em;display:flex}.vot-account-login__btn{cursor:pointer;color:#0d011f;border-radius:var(--vot-space-5);background:#fff;align-items:center;gap:1em;min-width:194px;height:56px;padding:14px 16px;font-size:1em;line-height:1.25em;transition:background .25s;display:flex}.vot-account-login__btn:hover{background:#f1eeeb}.vot-account-login__btn-icon{background-image:url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='44' height='44' fill='%23FC3F1D'/%3E%3Cpath d='M22.9515 24.2897C24.2907 27.223 24.737 28.2433 24.737 31.7665V36.4375H19.9544V28.5621L10.9313 8.9375H15.9211L22.9515 24.2897ZM28.8501 8.9375L22.9994 22.2332H27.8617L33.7284 8.9375H28.8501Z' fill='white'/%3E%3C/svg%3E%0A\");background-position:50%;background-repeat:no-repeat;background-size:contain;border-radius:50%;flex-shrink:0;width:26px;height:26px;position:relative}.vot-account-login__btn-text{font-weight:600}.vot-account-login__btn[aria-disabled=true]{cursor:not-allowed;user-select:none;opacity:.5}.vot-account-login__token{align-items:center;gap:1em;width:100%;display:flex}.vot-account-login__token .vot-textfield{width:100%}.vot-account-logout{--vot-theme-rgb:var(--vot-danger-rgb,244, 67, 54);width:100%;display:flex}.vot-account-logout .vot-text-button{width:100%;font-weight:600!important}.vot-account-logout__content{align-items:center;gap:.5em;width:100%;font-size:1.125em;display:flex}.vot-account-logout__content svg{width:1.25em;height:1.25em}.vot-account-menu{flex-direction:column;gap:.5em;display:flex}.vot-icon-button{--vot-helper-onsurface:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:36px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:50%!important;margin:0!important;padding:0!important;font-weight:500!important}.vot-icon-button[hidden]{display:none!important}.vot-icon-button{width:36px;fill:var(--vot-helper-onsurface);color:var(--vot-helper-onsurface);background-color:#0000;border:none!important}.vot-icon-button:before,.vot-icon-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-icon-button:before{background-color:var(--vot-helper-onsurface);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-icon-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-icon-button:hover:before{opacity:.04}.vot-icon-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-icon-button[disabled=true],.vot-icon-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);fill:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-icon-button[disabled=true]:before,.vot-icon-button[disabled=true]:after,.vot-icon-button[aria-disabled=true]:before,.vot-icon-button[aria-disabled=true]:after{opacity:0}.vot-icon-button svg{fill:inherit;stroke:inherit;width:24px;height:36px}.vot-text-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-text-button[hidden]{display:none!important}.vot-text-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:none!important}.vot-text-button:before,.vot-text-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-text-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-text-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-text-button:hover:before{opacity:.04}.vot-text-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-text-button[disabled=true],.vot-text-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-text-button[disabled=true]:before,.vot-text-button[disabled=true]:after,.vot-text-button[aria-disabled=true]:before,.vot-text-button[aria-disabled=true]:after{opacity:0}.vot-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;font-weight:500!important}.vot-button[hidden]{display:none!important}.vot-button{color:rgb(var(--vot-helper-ontheme));background-color:rgb(var(--vot-helper-theme));box-shadow:var(--vot-shadow-1);transition:box-shadow var(--vot-duration-medium) var(--vot-easing-standard);border:none!important}.vot-button:before,.vot-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-button:before{background-color:rgb(var(--vot-helper-ontheme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-button:hover:before{opacity:.08}.vot-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-button:hover,.vot-button:active{box-shadow:var(--vot-shadow-2)}.vot-button[disabled=true]{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);box-shadow:none;cursor:initial}.vot-button[disabled=true]:before,.vot-button[disabled=true]:after{opacity:0}.vot-outlined-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:34px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-outlined-button[hidden]{display:none!important}.vot-outlined-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:solid 1px var(--vot-border-color)!important}.vot-outlined-button:before,.vot-outlined-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-outlined-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-outlined-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-outlined-button:hover:before{opacity:.04}.vot-outlined-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-outlined-button[disabled=true],.vot-outlined-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-outlined-button[disabled=true]:before,.vot-outlined-button[disabled=true]:after,.vot-outlined-button[aria-disabled=true]:before,.vot-outlined-button[aria-disabled=true]:after{opacity:0}.vot-details{color:rgba(var(--vot-onsurface-rgb), .87);text-align:start;cursor:pointer;user-select:none;transition:background var(--vot-duration-medium) var(--vot-easing-standard);justify-content:space-between;align-items:center;font-size:16px;line-height:1.5;display:flex;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:.5em!important;margin:-.5em!important;padding:.5em!important}.vot-details-arrow-icon{width:20px;height:32px;fill:rgba(var(--vot-onsurface-rgb), .87);justify-content:center;align-items:center;font-size:24px;display:flex;transform:scale(1.25)rotate(-90deg)}.vot-details:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .06)}.vot-details[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-hotkey{justify-content:flex-start;align-items:center;gap:var(--vot-space-3,12px);flex-wrap:wrap;display:flex}.vot-hotkey-label{overflow-wrap:anywhere;flex:1}.vot-hotkey-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:32px;height:fit-content;font-size:15px;line-height:1.5;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:400!important}.vot-hotkey-button[hidden]{display:none!important}.vot-hotkey-button{background-color:#0000;width:fit-content;border:solid 1px var(--vot-border-color)!important}.vot-hotkey-button:before,.vot-hotkey-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-hotkey-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-hotkey-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-hotkey-button:hover:before{opacity:.04}.vot-hotkey-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-hotkey-button[data-status=active]{color:rgb(var(--vot-helper-theme))}.vot-hotkey-button[data-status=active]:before{opacity:.04}.vot-hotkey-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-hotkey-button[disabled=true]:before,.vot-hotkey-button[disabled=true]:after{opacity:0}.vot-progress-icon{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));fill:none;stroke:rgb(var(--vot-helper-theme));stroke-width:2px;stroke-linecap:round;transform-origin:50%;transform:rotate(-90deg)}.vot-progress-icon_base{--vot-helper-theme:var(--vot-secondary-rgb,43, 44, 48)}.vot-select{user-select:none;justify-content:end;align-items:center;display:flex;position:relative}.vot-select-label{flex:1}.vot-select-label__description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-select-outer{cursor:pointer;border:1px solid var(--vot-border-color);width:120px;max-width:120px;color:rgba(var(--vot-onsurface-rgb), .87);transition:border-color var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.75em;align-items:center;padding:.5em;display:flex}.vot-select-outer__title{text-overflow:ellipsis;white-space:nowrap;flex:1;align-content:center;height:24px;margin-top:-2px;font-size:.8em;overflow:hidden}.vot-select-outer__arrow{fill:currentColor;transition:transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:1.5em;display:flex}.vot-select-outer[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-outer:not([aria-disabled=true]):hover{border-color:var(--vot-border-color-hover)}.vot-select-outer[aria-expanded=true] .vot-select-outer__arrow{transform:rotate(180deg)}.vot-select-inner{--vot-select-inner-primary-rgb:var(--vot-primary-rgb,33, 150, 243);z-index:2147483647;user-select:none;background:rgb(var(--vot-secondary-rgb,43, 44, 48));color:rgba(var(--vot-onsurface-rgb), .87);max-width:min(300px,100%);max-height:min(85vh, 350px, var(--vot-floating-available-height,100vh));pointer-events:auto;border-radius:.75em;flex-direction:column;padding:.5em;font-size:16px;display:flex;position:fixed;overflow:hidden}.vot-select-inner.vot-select-inner__static-width{width:100%}.vot-select-inner .vot-textfield{margin-bottom:.5em}.vot-select-inner__no-options{color:rgba(var(--vot-onsurface-rgb), .38);text-align:center;padding:.5em .75em}.vot-select-inner__no-options[data-searching=true]{color:rgba(var(--vot-onsurface-rgb), .68);padding:0;font-size:1.75em}.vot-select-inner__options{overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(var(--vot-onsurface-rgb), .38) transparent;min-height:0;margin-right:-8px;padding-right:8px;overflow-y:auto}.vot-select-inner__option{cursor:pointer;transition:background var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.5em;padding:.5em .75em}.vot-select-inner__option[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-inner__option:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb), .14)}.vot-select-inner__option[aria-selected=true]{color:rgb(var(--vot-select-inner-primary-rgb));background:rgba(var(--vot-select-inner-primary-rgb), .2)}.vot-select-inner__option[aria-selected=true]:not([aria-disabled=true]):hover{background:rgba(var(--vot-select-inner-primary-rgb), .1)}.vot-switch{--vot-switch-outline:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-switch-primary:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-switch-onprimary:rgb(var(--vot-onprimary-rgb,32, 33, 36));--vot-switch-track:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);--vot-switch-duration:var(--vot-duration-medium,.2s);--vot-switch-label-offset:24px;box-sizing:border-box;color:rgb(var(--vot-onsurface-rgb,0, 0, 0));cursor:pointer;align-items:center;gap:var(--vot-space-4,16px);width:100%;padding-block:var(--vot-space-2,8px);touch-action:manipulation;vertical-align:middle;display:inline-flex;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-switch[data-disabled=true]{cursor:not-allowed;user-select:none}.vot-switch_sub{padding-left:var(--vot-switch-label-offset)!important}.vot-switch-control{cursor:inherit;opacity:0;z-index:2;width:100%;height:100%;margin:0;position:absolute;inset:0}.vot-switch-control:focus-visible~.vot-switch-track{outline:2px solid var(--vot-focus-ring-color,rgba(var(--vot-primary-rgb,33, 150, 243), .9));outline-offset:2px}.vot-switch-control:hover:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:hover:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .12)}.vot-switch-control:disabled{cursor:not-allowed}.vot-switch-control:disabled~.vot-switch-track{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:disabled~.vot-switch-track .vot-switch-handle{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-control:disabled~.vot-switch-track[data-checked=true] .vot-switch-handle{background:rgb(var(--vot-surface-rgb,32, 33, 36))}.vot-switch-text{flex-direction:column;flex:auto;min-width:0;display:flex}.vot-switch-heading{letter-spacing:.5px;font-size:16px;font-weight:400;line-height:24px}.vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-switch[data-disabled=true] .vot-switch-heading,.vot-switch[data-disabled=true] .vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-track{background:var(--vot-switch-track);border:2px solid var(--vot-switch-outline);box-sizing:border-box;pointer-events:none;height:32px;transition-duration:var(--vot-switch-duration);transition-property:background-color,border-color;transition-timing-function:var(--vot-easing-standard);border-radius:16px;flex:none;align-items:center;width:52px;display:flex;position:relative}.vot-switch-track[data-checked=true]{background:var(--vot-switch-primary);border-color:var(--vot-switch-primary)}.vot-switch-track[data-checked=true] .vot-switch-handle{background:var(--vot-switch-onprimary);width:24px;height:24px;transform:translate(16px,-50%)}.vot-switch-handle{background:var(--vot-switch-outline);height:16px;transition-duration:var(--vot-switch-duration);transition-property:background-color,box-shadow,height,transform,width;transition-timing-function:var(--vot-easing-standard);inset-inline-start:6px;border-radius:50%;width:16px;position:absolute;top:50%;transform:translateY(-50%);box-shadow:0 0 #0000}@media (prefers-reduced-motion:reduce){.vot-switch-track,.vot-switch-handle{transition-duration:.01ms}}.vot-slider{--vot-slider-track-bg:rgba(var(--vot-onsurface-rgb,227, 227, 227), .15);--vot-slider-track-progress-bg:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-slider-size:1em;--vot-slider-border-radius:.5em;--vot-slider-handle-bg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-slider-handle-size:44px;--vot-slider-transition:var(--vot-duration-medium) var(--vot-easing-standard);height:var(--vot-slider-handle-size);align-items:center;display:flex;position:relative}.vot-slider[aria-disabled=true]{user-select:none;opacity:.5}.vot-slider[aria-disabled=true] .vot-slider__control{cursor:not-allowed}.vot-slider__control{opacity:0;appearance:none;cursor:pointer;width:100%;height:100%;position:absolute}.vot-slider__track{background:var(--vot-slider-track-bg);width:100%;height:var(--vot-slider-size);border-radius:var(--vot-slider-border-radius);pointer-events:none}.vot-slider__track-progress{background:var(--vot-slider-track-progress-bg);width:calc(100% * var(--vot-progress,0));transition:width var(--vot-slider-transition);border-top-right-radius:0;border-bottom-right-radius:0;position:absolute}.vot-slider__handle{left:calc(100% * var(--vot-progress,0));width:4px;height:var(--vot-slider-handle-size);background:var(--vot-slider-handle-bg);outline:4px solid var(--vot-slider-track-bg);pointer-events:none;will-change:transform;transition:transform var(--vot-slider-transition), left var(--vot-slider-transition);transform:translateX(calc(-100% * var(--vot-progress,0)));border-radius:4px;position:absolute}.vot-slider[data-dragging] .vot-slider__track-progress,.vot-slider[data-dragging] .vot-slider__handle{transition:none}.vot-slider-label{flex-wrap:nowrap;align-items:baseline;gap:.75em;display:flex}.vot-slider-label__text{text-align:left;flex:auto}.vot-slider-label__text-desc{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-slider-label__value{text-align:right;font-variant-numeric:tabular-nums;flex:none;font-weight:600!important}.vot-slider-label[aria-disabled=true]{opacity:.5;user-select:none;color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .5)}.vot-slider-wrapper{flex-direction:column;gap:.25em;display:flex}.vot-dialog{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-dialog-viewport-margin:16px;--vot-dialog-max-height:75vh;max-width:initial;max-height:initial;width:min(var(--vot-dialog-width,512px), 100%);border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);background-color:var(--vot-helper-surface);height:fit-content;color:var(--vot-helper-onsurface);box-shadow:var(--vot-shadow-2);user-select:none;visibility:visible;opacity:1;transform-origin:50%;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;display:block;position:fixed;inset-block:0;inset-inline:0;overflow:auto hidden;transform:scale(1);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:auto!important;padding:0!important}.vot-dialog[data-vertical-align=top]{inset-block-start:var(--vot-dialog-viewport-margin);inset-block-end:auto;margin:0 auto!important}.vot-dialog-container{visibility:visible;z-index:2147483647;position:absolute}.vot-dialog-container *{box-sizing:border-box!important}.vot-dialog-backdrop{opacity:1;background-color:#0009;transition:opacity .3s;position:fixed;inset:0}.vot-dialog-content-wrapper{max-height:var(--vot-dialog-max-height,75vh);flex-direction:column;display:flex;overflow:auto}.vot-dialog-header-container{flex-shrink:0;align-items:flex-start;min-height:31px;display:flex}.vot-dialog-header-container:empty{padding:0 0 20px}.vot-dialog-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-dialog-title-container{font-size:inherit;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-dialog-title{flex:1;font-size:115.385%;line-height:1;padding:var(--vot-space-5) var(--vot-space-5) var(--vot-space-4)!important;font-weight:700!important}.vot-dialog-body-container{box-sizing:border-box;gap:var(--vot-space-4);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-5)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-dialog-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-dialog-body-container:last-child{padding-block-end:var(--vot-space-5)!important}.vot-dialog-footer-container{justify-content:flex-end;gap:var(--vot-space-2);flex-wrap:wrap;flex-shrink:0;display:flex;padding:var(--vot-space-4)!important}@media (width<=480px){.vot-dialog-footer-container{flex-direction:column;align-items:stretch}.vot-dialog-footer-container>:is(.vot-button,.vot-outlined-button,.vot-text-button){white-space:normal;text-overflow:clip;text-align:center;justify-content:center;align-items:center;width:100%;height:auto;min-height:36px;padding:8px 16px;line-height:1.2;display:flex;overflow:visible}}.vot-settings-section{border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);padding:var(--vot-space-2);background:rgba(var(--vot-helper-onsurface-rgb), .03);flex-direction:column;display:flex}.vot-settings-section>*{margin:0!important}.vot-settings-section>*+*{margin-top:var(--vot-space-2)!important}.vot-settings-section__header{border-radius:var(--vot-radius-m);margin:0!important;padding:.45em .5em!important}.vot-settings-section__header .vot-details-arrow-icon{transition:transform var(--vot-duration-medium) var(--vot-easing-standard)}.vot-settings-section__header[data-open=true] .vot-details-arrow-icon{transform:scale(1.25)rotate(0)}.vot-settings-section__content{--vot-settings-control-width:200px;--vot-settings-row-gap:var(--vot-space-2);gap:var(--vot-settings-row-gap);padding:0 var(--vot-space-1) var(--vot-space-1);flex-direction:column;display:flex}.vot-settings-section__content>*{margin:0!important}.vot-settings-section__content>.vot-switch,.vot-settings-section__content>.vot-hotkey,.vot-settings-section__content>.vot-select,.vot-settings-section__content>.vot-slider-wrapper{padding:var(--vot-space-1);box-sizing:border-box;width:100%!important}.vot-settings-footer{gap:var(--vot-space-2);display:flex}.vot-textfield{display:inline-block;--vot-helper-theme:rgb(var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243)))!important;--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;--vot-helper-safari3:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:start!important;padding-top:6px!important;font-size:16px!important;line-height:1.5!important;position:relative!important}.vot-textfield>:is(input,textarea){box-sizing:border-box!important;border-style:solid!important;border-width:1px!important;border-color:transparent var(--vot-helper-safari2) var(--vot-helper-safari2)!important;width:100%!important;height:inherit!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;-webkit-text-fill-color:currentColor!important;font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;caret-color:var(--vot-helper-theme)!important;background-color:#0000!important;border-radius:4px!important;margin:0!important;padding:15px 13px!important;transition:border .2s,box-shadow .2s!important;box-shadow:inset 1px 0 #0000,inset -1px 0 #0000,inset 0 -1px #0000!important}.vot-textfield>:is(input,textarea):not(:focus):not(:is(.vot-show-placeholder,.vot-show-placeholer))::placeholder{color:#0000!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown{border-top-color:var(--vot-helper-safari2)!important}.vot-textfield>:is(input,textarea)+.vot-textfield__label{font-family:inherit;width:100%!important;max-height:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;cursor:text!important;pointer-events:none!important;font-size:75%!important;line-height:15px!important;transition:color .2s,font-size .2s,line-height .2s!important;display:flex!important;position:absolute!important;top:0!important;left:0!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown+.vot-textfield__label{font-size:inherit!important;line-height:68px!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{content:\"\"!important;box-sizing:border-box!important;border-top:solid 1px var(--vot-helper-safari2)!important;pointer-events:none!important;min-width:10px!important;height:8px!important;margin-top:6px!important;transition:border .2s,box-shadow .2s!important;display:block!important;box-shadow:inset 0 1px #0000!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:before{border-left:1px solid #0000!important;border-radius:4px 0!important;margin-right:4px!important}.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:after{border-right:1px solid #0000!important;border-radius:0 4px!important;flex-grow:1!important;margin-left:4px!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before{margin-right:0!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after{margin-left:0!important}.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}.vot-textfield>textarea{resize:none!important}.vot-textfield:hover>input:not(:disabled),.vot-textfield:hover>textarea:not(:disabled){border-color:transparent var(--vot-helper-safari3) var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:after,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:after{border-top-color:var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled):not(:focus):placeholder-shown,.vot-textfield:hover>textarea:not(:disabled):not(:focus):placeholder-shown{border-color:var(--vot-helper-safari3)!important}.vot-textfield>input:focus,.vot-textfield>textarea:focus{border-color:transparent var(--vot-helper-theme) var(--vot-helper-theme)!important;box-shadow:inset 1px 0 var(--vot-helper-theme), inset -1px 0 var(--vot-helper-theme), inset 0 -1px var(--vot-helper-theme)!important;outline:none!important}.vot-textfield>input:focus+.vot-textfield__label,.vot-textfield>textarea:focus+.vot-textfield__label{color:var(--vot-helper-theme)!important}.vot-textfield>input:focus+.vot-textfield__label:before,.vot-textfield>input:focus+.vot-textfield__label:after,.vot-textfield>textarea:focus+.vot-textfield__label:before,.vot-textfield>textarea:focus+.vot-textfield__label:after{border-top-color:var(--vot-helper-theme)!important;box-shadow:inset 0 1px var(--vot-helper-theme)!important}.vot-textfield>input:disabled,.vot-textfield>input:disabled+.vot-textfield__label,.vot-textfield>textarea:disabled,.vot-textfield>textarea:disabled+.vot-textfield__label{border-color:transparent var(--vot-helper-safari1) var(--vot-helper-safari1)!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;pointer-events:none!important}.vot-textfield>input:disabled+.vot-textfield__label:before,.vot-textfield>input:disabled+.vot-textfield__label:after,.vot-textfield>textarea:disabled+.vot-textfield__label:before,.vot-textfield>textarea:disabled+.vot-textfield__label:after,.vot-textfield>input:disabled:placeholder-shown,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label,.vot-textfield>textarea:disabled:placeholder-shown,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label{border-top-color:var(--vot-helper-safari1)!important}.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}@media not all and (resolution>=.001dpcm){@supports ((-webkit-appearance:none)){.vot-textfield>input,.vot-textfield>input+.vot-textfield__label,.vot-textfield>textarea,.vot-textfield>textarea+.vot-textfield__label,.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{transition-duration:.1s!important}}}.vot-segmented-button{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);cursor:default;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));max-width:100%;height:36px;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);align-items:center;font-size:16px;display:flex;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;box-shadow:var(--vot-shadow-1)!important}.vot-segmented-button[data-direction=column]{flex-direction:column;height:fit-content}.vot-segmented-button[data-direction=column] .vot-segment,.vot-segmented-button[data-direction=column] .vot-segment-only-icon{padding:var(--vot-space-2)!important}.vot-segmented-button[data-direction=column] .vot-separator{width:50%;height:1px}.vot-segmented-button[data-status=error] .vot-translate-button{color:rgb(var(--vot-error-rgb,242, 139, 130))}.vot-segmented-button[data-status=success] .vot-translate-button{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment,.vot-segmented-button .vot-segment-only-icon{min-width:0;height:100%;color:inherit;transition:background-color var(--vot-duration-fast) var(--vot-easing-standard);-webkit-tap-highlight-color:transparent;background-color:#0000;outline:none;flex:auto;justify-content:center;align-items:center;display:flex;position:relative;overflow:hidden;gap:var(--vot-space-2)!important;padding:0 var(--vot-space-2)!important;border:none!important}.vot-segmented-button .vot-segment:focus,.vot-segmented-button .vot-segment-only-icon:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color);outline:none}.vot-segmented-button .vot-segment:focus:not(:focus-visible),.vot-segmented-button .vot-segment-only-icon:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before{background-color:rgb(var(--vot-helper-theme-rgb));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-segmented-button .vot-segment:hover:before,.vot-segmented-button .vot-segment-only-icon:hover:before{opacity:.04}.vot-segmented-button .vot-segment:active:after,.vot-segmented-button .vot-segment-only-icon:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{pointer-events:none}.vot-segmented-button .vot-segment svg,.vot-segmented-button .vot-segment-only-icon svg{font-size:24px}.vot-segmented-button .vot-segment>svg,.vot-segmented-button .vot-segment-only-icon>svg,.vot-segmented-button .vot-segment-label,.vot-segmented-button .vot-segment .vot-dropdown-arrow,.vot-segmented-button .vot-segment-only-icon .vot-dropdown-arrow{z-index:1;position:relative}.vot-segmented-button .vot-segment-only-icon{min-width:36px;padding:0!important}.vot-segmented-button .vot-segment-only-icon[data-active=true]{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment-label{text-overflow:ellipsis;white-space:nowrap;min-width:0;color:inherit;flex:auto;line-height:1;overflow:hidden;font-weight:400!important}.vot-segmented-button .vot-dropdown-arrow{width:30px;min-width:30px;height:100%;color:inherit;fill:inherit;opacity:.95;cursor:default;-webkit-tap-highlight-color:transparent;outline:none;flex:none;justify-content:center;align-items:center;display:inline-flex;position:relative;border-radius:var(--vot-radius-s)!important;margin-inline-end:-4px!important;margin-top:2px!important}.vot-segmented-button .vot-dropdown-arrow:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color)}.vot-segmented-button .vot-dropdown-arrow:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-dropdown-arrow:hover{background:rgba(var(--vot-helper-theme-rgb), .04)}.vot-segmented-button .vot-dropdown-arrow:before,.vot-segmented-button .vot-dropdown-arrow:after{display:none}.vot-segmented-button .vot-dropdown-arrow svg{transform-origin:50%;transition:transform var(--vot-duration-fast) var(--vot-easing-standard);font-size:28px;transform:scale(1.08)}.vot-segmented-button .vot-dropdown-arrow[aria-expanded=true] svg{transform:rotate(180deg)scale(1.08)}.vot-segmented-button .vot-separator{background:rgba(var(--vot-helper-theme-rgb), .1);width:1px;height:50%}.vot-overlay.vot-overlay__segmented-button{--vot-overlay-default-top:5rem;--vot-overlay-top-offset:max(16px, env(safe-area-inset-top,0px));--vot-overlay-side-offset:max(16px, env(safe-area-inset-left,0px));--vot-overlay-side-offset-right:max(16px, env(safe-area-inset-right,0px));--vot-overlay-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px));transition:opacity var(--vot-duration-slow) var(--vot-easing-standard);pointer-events:auto;touch-action:none;max-width:100%;left:50%;transform:translate(-50%)}.vot-overlay.vot-overlay__segmented-button[data-dragging=true]{cursor:grabbing;will-change:transform;transform:translate3d(var(--vot-button-drag-left,0px), var(--vot-button-drag-top,0px), 0)!important;opacity:.96!important;transition:none!important;top:0!important;left:0!important;right:auto!important}.vot-overlay.vot-overlay__segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segment,.vot-overlay.vot-overlay__segmented-button .vot-segment-only-icon,.vot-overlay.vot-overlay__segmented-button .vot-dropdown-arrow{touch-action:none}.vot-overlay.vot-overlay__segmented-button[data-position=left]{left:var(--vot-overlay-side-offset);right:auto;top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=right]{left:auto;right:var(--vot-overlay-side-offset-right);top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=leftCenter]{left:var(--vot-overlay-side-offset);top:50%;right:auto;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button[data-position=rightCenter]{left:auto;right:var(--vot-overlay-side-offset-right);top:50%;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button.vot-segmented-button--dock-preview{z-index:2147483646;transition:left var(--vot-duration-medium) var(--vot-easing-standard), right var(--vot-duration-medium) var(--vot-easing-standard), top var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard), opacity var(--vot-duration-fast) var(--vot-easing-standard);opacity:.72!important;pointer-events:none!important}.vot-voice-icon{display:block;overflow:visible}.vot-voice-icon .vot-eq-bar{transform-origin:50% 100%;transform-box:fill-box;transform:scaleY(1)}.vot-voice-icon--standard .vot-eq-bar{fill:rgba(var(--vot-onsurface-rgb,227, 227, 227), .4)}.vot-voice-icon--live .vot-eq-bar{fill:#e040a0}.vot-voice-popover{--vot-helper-surface-rgb:var(--vot-surface-rgb,32, 33, 36);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,227, 227, 227);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-helper-onsurface-secondary:rgba(var(--vot-helper-onsurface-rgb), .55);--vot-voice-active-standard-bg:rgba(var(--vot-primary-rgb,139, 180, 245), .1);--vot-voice-active-standard-fg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-voice-active-live-bg:#e040a01a;--vot-voice-active-live-fg:#e040a0;z-index:2147483647;background:var(--vot-helper-surface);min-width:230px;max-width:var(--vot-voice-popover-max-width,310px);max-height:var(--vot-voice-popover-max-height,calc(100vh - 16px));cursor:default;user-select:none;overscroll-behavior:contain;transform-origin:0 0;width:max-content;display:block;position:absolute;top:0;left:0;overflow:hidden auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:left!important}.vot-voice-popover,.vot-voice-popover *{box-sizing:border-box!important}.vot-voice-popover{opacity:0;visibility:hidden;pointer-events:none;transition:none;transform:none}.vot-voice-popover[hidden]{display:none!important}.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{opacity:1;visibility:visible;pointer-events:auto;transform:none}.vot-voice-popover[data-placement=top]{transform-origin:bottom}.vot-voice-popover[data-placement=bottom]{transform-origin:top}.vot-voice-popover[data-placement=left]{transform-origin:100%}.vot-voice-popover[data-placement=right]{transform-origin:0}.vot-voice-popover.is-closing{opacity:0;visibility:visible;pointer-events:none;transform:none}.vot-voice-popover__item{cursor:pointer;min-height:62px;color:var(--vot-helper-onsurface);outline:none;gap:12px;transition:none;display:flex;position:relative;overflow:hidden;padding:14px 44px 14px 16px!important}.vot-voice-popover__item:before{content:\"\";opacity:0;pointer-events:none;background:linear-gradient(180deg, rgba(var(--vot-helper-onsurface-rgb), .045), rgba(var(--vot-helper-onsurface-rgb), .06));transition:none;position:absolute;inset:0}.vot-voice-popover__item:hover,.vot-voice-popover__item:focus-visible{box-shadow:inset 0 1px #ffffff08,inset 0 -1px #0000000a}.vot-voice-popover__item:hover:before,.vot-voice-popover__item:focus-visible:before{opacity:1}.vot-voice-popover__item:focus-visible{box-shadow:inset 0 0 0 1px rgba(var(--vot-primary-rgb,139, 180, 245), .18)}.vot-voice-popover__item:after{content:\"\";opacity:0;background-color:currentColor;width:18px;height:18px;transition:none;position:absolute;top:50%;right:14px;transform:translateY(-50%)scale(.88);-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat;mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat}.vot-voice-popover__item--active{font-weight:500!important}.vot-voice-popover__item--active:after{opacity:1;transform:translateY(-50%)scale(1)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active{background-color:var(--vot-voice-active-standard-bg);color:var(--vot-voice-active-standard-fg)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-icon--standard .vot-eq-bar{fill:currentColor}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active{background-color:var(--vot-voice-active-live-bg);color:var(--vot-voice-active-live-fg)}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item-icon{font-size:20px}.vot-voice-popover__item-text{flex-direction:column;gap:2px;min-width:0;display:flex}.vot-voice-popover__item-title{color:inherit;white-space:nowrap;font-size:15px;line-height:1.3;transition:none;font-weight:400!important}.vot-voice-popover__item-subtitle{color:var(--vot-helper-onsurface-secondary);white-space:normal;font-size:12px;line-height:1.4}.vot-voice-popover__divider{background:var(--vot-border-color);height:1px;margin:0!important}@media (prefers-reduced-motion:reduce){.vot-voice-icon .vot-eq-bar{animation:none!important;transform:scaleY(1)!important}.vot-voice-popover,.vot-voice-popover *,.vot-voice-popover:before,.vot-voice-popover:after{transition:none!important;animation:none!important}.vot-voice-popover,.vot-voice-popover.is-closing,.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{transform:none!important}}.vot-segmented-button__menu-header{align-items:center;gap:var(--vot-space-2);margin-left:auto;display:flex}.vot-langpair-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);color:var(--vot-helper-theme);justify-content:space-between;align-items:center;display:flex}.vot-langpair-select__icon{justify-content:center;align-items:center;font-size:24px;display:flex}.vot-overlay.vot-overlay__segmented-button-menu{--vot-overlay-default-top:calc(5rem + 48px);--vot-menu-side-offset:max(76px, calc(env(safe-area-inset-left,0px) + 64px));--vot-menu-side-offset-right:max(76px, calc(env(safe-area-inset-right,0px) + 64px));--vot-menu-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px))}@media (pointer:coarse){.vot-overlay.vot-overlay__segmented-button-menu{--vot-menu-default-top:calc(3rem + 48px);--vot-menu-side-offset:max(64px, calc(env(safe-area-inset-left,0px) + 54px));--vot-menu-side-offset-right:max(64px, calc(env(safe-area-inset-right,0px) + 54px))}}.vot-overlay.vot-overlay__segmented-button-menu{transform-origin:top;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);left:50%;right:auto;transform:translate(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[aria-hidden=true]{transform:translate(-50%,-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left] .vot-menu,.vot-overlay.vot-overlay__segmented-button-menu[data-position=right] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - var(--vot-menu-side-top-offset,48px) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter] .vot-menu,.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left]{left:var(--vot-menu-side-offset);right:auto;top:var(--vot-menu-side-top-offset);transform-origin:0 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=right]{left:auto;right:var(--vot-menu-side-offset-right);top:var(--vot-menu-side-top-offset);transform-origin:100% 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter]{left:var(--vot-menu-side-offset);transform-origin:0;top:50%;right:auto;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter]{left:auto;right:var(--vot-menu-side-offset-right);transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left]{transform-origin:0;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right]{transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=right][aria-hidden=true]{transform:translateY(-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right][aria-hidden=true]{transform:translateY(calc(-50% - 4px))scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-menu__header{flex-wrap:wrap}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-menu__header .vot-segmented-button__menu-header:has(>:nth-child(2)){margin-left:inherit}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-menu__body{max-height:275px}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-langpair-select{gap:var(--vot-space-1);flex-direction:column}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-langpair-select__icon{transform:rotate(90deg)}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-select{justify-content:start;gap:var(--vot-space-1);flex-direction:column;align-items:start;width:100%}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-select-outer{justify-content:space-around;width:100%;max-width:100%}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-select-outer__title{min-width:0;max-width:120px}@property --vot-subtitles-opacity{syntax:\"<number>\";inherits:true;initial-value:.8}@property --vot-subtitles-scale-compensation{syntax:\"<number>\";inherits:true;initial-value:1}.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), var(--vot-subtitles-opacity,.8));--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);background:var(--vot-subtitles-background,#2e2f34cc);width:max-content;inline-size:max-content;color:var(--vot-subtitles-color,#e3e3e3);pointer-events:all;touch-action:none;font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2.2vw), 50px)) * var(--vot-subtitles-scale-compensation,1));-webkit-text-stroke:var(--vot-subtitles-text-stroke-width,clamp(1px, .08em, 2px)) var(--vot-subtitles-text-stroke-color,#000000eb);paint-order:stroke fill;text-shadow:var(--vot-subtitles-text-shadow,0 1px 2px #00000073, 0 2px 8px #00000040);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis:none;position:relative;--vot-subtitles-font-family:var(--vot-subtitles-font-family-custom,var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif))!important;font-family:var(--vot-subtitles-font-family)!important;font-style:normal!important;font-weight:var(--vot-subtitles-font-weight,500)!important;text-transform:none!important;letter-spacing:normal!important;border-radius:.5em!important;padding:.5em .75em!important;line-height:1.25!important}.vot-subtitles,.vot-subtitles *{-webkit-text-stroke:inherit;paint-order:inherit;font-family:var(--vot-subtitles-font-family)!important}.vot-subtitles{box-sizing:border-box;user-select:none;contain:layout paint;isolation:isolate;text-align:center;text-wrap:balance;white-space:normal;overflow-wrap:anywhere;unicode-bidi:plaintext;margin:0 auto;display:block}.vot-subtitles-widget{--vot-subtitles-anchor-width:100vw;--vot-subtitles-anchor-height:100vh;--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));--vot-subtitles-smart-target-width:48ch;--vot-subtitles-smart-min-width-ratio:.62;--vot-subtitles-smart-max-width-ratio:.78;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333);--vot-subtitles-smart-max-width:clamp(calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-min-width-ratio)), var(--vot-subtitles-smart-target-width), calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-max-width-ratio)));box-sizing:border-box;z-index:2147483647;--vot-subtitles-fallback-bottom-inset:calc(env(safe-area-inset-bottom,0px) + clamp(56px, 10vh, 220px) + 10px);left:50%;top:calc(100% - var(--vot-subtitles-fallback-bottom-inset));width:max-content;inline-size:max-content;max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);pointer-events:none;will-change:left, top, transform;max-height:100%;display:block;position:absolute;transform:translate(-50%,-100%)}.vot-subtitles-info{color:#f5f7fa;-webkit-backdrop-filter:blur(18px);text-align:start;background:#1f2023f5;border:1px solid #ffffff14;flex-direction:column;gap:10px;min-width:min(360px,100vw - 32px);max-width:min(720px,100vw - 32px);display:flex;box-shadow:0 18px 48px #00000057,0 4px 16px #00000038;border-radius:18px!important;padding:18px 22px 20px!important}.vot-subtitles-info-service{display:none!important}.vot-subtitles-info-title{letter-spacing:-.01em;align-items:baseline;gap:8px;min-width:0;max-width:100%;display:flex;font-size:clamp(18px,2.4vw,26px)!important;line-height:1.18!important}.vot-subtitles-info-source,.vot-subtitles-info-divider,.vot-subtitles-info-header,.vot-subtitles-info-context{overflow-wrap:anywhere;white-space:normal!important}.vot-subtitles-info-source{color:#f5f7faad;flex:0 auto;font-weight:650!important}.vot-subtitles-info-divider{color:#f5f7fa61;flex:none;font-weight:500!important}.vot-subtitles-info-header{color:#fff;flex:auto;min-width:0;font-weight:750!important}.vot-subtitles-info-context{color:#dee4ecb8;max-width:100%;font-size:clamp(14px,1.45vw,17px)!important;line-height:1.42!important}.vot-subtitles span[data-vot-highlight-index].passed{color:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"]{cursor:pointer;white-space:normal;overflow-wrap:inherit;word-break:normal;position:relative;font-size:inherit!important;font-family:inherit!important;font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-transform:inherit!important;text-decoration:none!important}.vot-subtitles span[data-vot-token=\"1\"]:before{content:\"\";z-index:-1;position:absolute;inset:2px -2px;border-radius:4px!important}.vot-subtitles span[data-vot-token=\"1\"]:hover:before,.vot-subtitles span[data-vot-token=\"1\"]:focus-visible:before{background:var(--vot-subtitles-hover-color,#ffffff8c)}.vot-subtitles span[data-vot-token=\"1\"].selected:before{background:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"].passed.selected:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .4)}.vot-subtitles span[data-vot-token=\"1\"].passed:hover:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .3)}.vot-subtitles span[data-vot-style-italic=\"1\"]{font-style:italic!important}.vot-subtitles span[data-vot-style-bold=\"1\"]{font-weight:700!important}.vot-subtitles span[data-vot-style-underline=\"1\"]{text-decoration:underline!important}.vot-subtitles span[data-vot-style-color=\"1\"]{color:var(--vot-subtitles-inline-color)!important}.vot-subtitles-layer{pointer-events:none;z-index:2147483647;contain:layout paint;width:100vw!important;height:100vh!important;position:fixed!important;inset:0!important}.vot-subtitles-guides{pointer-events:none;z-index:2147483646;position:absolute;inset:0}.vot-subtitles-guide{background:rgba(var(--vot-primary-rgb,33, 150, 243), .7);box-shadow:0 0 0 1px rgba(var(--vot-primary-rgb,33, 150, 243), .12);opacity:0;transition:opacity .12s linear;position:absolute}.vot-subtitles-guide[data-visible=true]{opacity:1}.vot-subtitles-guide--vertical{width:2px;transform:translate(-50%)}.vot-subtitles-guide--horizontal{height:2px;transform:translateY(-50%)}@media (aspect-ratio<=1){.vot-subtitles-widget{--vot-subtitles-smart-target-width:28ch;--vot-subtitles-smart-min-width-ratio:.8;--vot-subtitles-smart-max-width-ratio:.92;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0296)}}@media (aspect-ratio>=1) and (aspect-ratio<=7/5){.vot-subtitles-widget{--vot-subtitles-smart-target-width:32ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.9;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333)}}@media (width<=900px) and (pointer:coarse){.vot-subtitles-widget{--vot-subtitles-fallback-bottom-inset:env(safe-area-inset-bottom,0px)}}@media (prefers-contrast:more){.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), .92);--vot-subtitles-text-stroke-width:max(2px, .1em);--vot-subtitles-text-shadow:0 2px 10px #0000008c}}:is(:fullscreen .vot-subtitles-widget,:fullscreen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:is(:fullscreen .vot-subtitles,:fullscreen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}#vot-subtitles-info.vot-subtitles-info *{user-select:text!important}.vot-or-block{--vot-or-block-line:rgba(var(--vot-primary-rgb,139, 180, 245), .5);color:rgb(var(--vot-primary-rgb));align-items:center;gap:12px;font-size:.75em;font-weight:600;display:flex}.vot-or-block:before,.vot-or-block:after{background:var(--vot-or-block-line);content:\"\";flex:1;height:1px}.vot-menu{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);background:var(--vot-helper-surface);color:var(--vot-helper-onsurface);width:fit-content;min-width:min(320px, 100% - var(--vot-menu-side-offset,0px));max-width:min(90vw,560px);min-height:100px;max-height:calc(var(--vot-container-height,75vh) - var(--vot-overlay-default-top,0px) - 16px);flex-direction:column;font-size:16px;line-height:1.5;display:flex;overflow:auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-menu__header{align-items:center;gap:var(--vot-space-2);flex-shrink:0;min-height:32px;display:flex;padding:var(--vot-space-2) var(--vot-space-4)!important}.vot-menu__body{box-sizing:border-box;gap:var(--vot-space-2);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-4)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-menu__body::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-menu__footer{flex-shrink:0;justify-content:flex-end;display:flex;padding:var(--vot-space-4)!important}.vot-menu__footer:empty{padding:var(--vot-space-4) 0 0 0!important}.vot-tooltip{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-border:rgb(var(--vot-tooltip-border,69, 69, 69));user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));color:var(--vot-helper-theme);fill:var(--vot-helper-theme);font-family:var(--vot-font-family);cursor:default;z-index:2147483647;overflow-wrap:anywhere;white-space:normal;opacity:0;align-items:center;width:max-content;max-width:calc(100vw - 10px);height:max-content;font-size:14px;line-height:1.5;transition:opacity .5s;display:flex;position:absolute;inset:0;overflow:hidden;box-shadow:0 1px 3px #0000001f;border-radius:4px!important;padding:4px 8px!important}.vot-tooltip[data-trigger=hover]:not([data-mode=follow]){pointer-events:none}.vot-tooltip[data-trigger=click]{user-select:text}.vot-tooltip[data-mode=follow]{pointer-events:auto;user-select:text;align-items:stretch}.vot-tooltip[data-mode=follow],.vot-tooltip[data-mode=follow] *{user-select:text!important}.vot-tooltip.vot-tooltip-bordered{border:1px solid var(--vot-helper-border)}.vot-tooltip *{box-sizing:border-box!important;font-family:inherit!important}.vot-tooltip.vot-tooltip--subtitles-info{overflow:visible;box-shadow:none!important;background:0 0!important;border-radius:18px!important;padding:0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info{flex-direction:column;gap:8px;width:max-content;max-width:min(420px,100vw - 24px);display:flex;color:#ffffffeb!important;letter-spacing:0!important;background:#1f2024f5!important;border:1px solid #ffffff14!important;border-radius:16px!important;padding:14px 16px!important;font-size:13px!important;line-height:1.35!important;box-shadow:0 12px 30px #00000047,0 2px 6px #00000038!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-title{flex-wrap:wrap;align-items:center;gap:6px;min-width:0;display:flex;font-size:15px!important;font-weight:600!important;line-height:1.35!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-source{overflow-wrap:anywhere;color:#fffffff0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-divider{color:#ffffff6b!important;font-weight:500!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-header{overflow-wrap:anywhere;color:rgb(var(--vot-primary-rgb,255, 83, 151))!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-context{overflow-wrap:anywhere;max-width:100%;color:#ffffffad!important;font-size:13px!important;font-weight:400!important;line-height:1.45!important}.vot-overlay{--vot-overlay-default-top:0;user-select:none;width:fit-content;max-width:100vw;right:auto;top:var(--vot-overlay-default-top);z-index:2147483646;font-size:16px;line-height:1.5;position:absolute;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-overlay[aria-hidden=true]{pointer-events:none;opacity:0;display:none;visibility:hidden!important}");
+	var shadowScopedCssText = scopeCssForShadowRoots(":root{--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif;--vot-primary-rgb:139, 180, 245;--vot-onprimary-rgb:32, 33, 36;--vot-surface-rgb:32, 33, 36;--vot-secondary-rgb:43, 44, 48;--vot-onsurface-rgb:227, 227, 227;--vot-danger-rgb:255, 99, 99;--vot-error-rgb:242, 139, 130;--vot-subtitles-color:rgb(var(--vot-onsurface-rgb,227, 227, 227));--vot-subtitles-passed-color:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-space-1:4px;--vot-space-2:8px;--vot-space-3:12px;--vot-space-4:16px;--vot-space-5:20px;--vot-space-6:24px;--vot-radius-xs:6px;--vot-radius-s:10px;--vot-radius-m:14px;--vot-radius-l:18px;--vot-border-color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .14);--vot-border-color-hover:rgba(var(--vot-onsurface-rgb,227, 227, 227), .22);--vot-shadow-1:0 1px 2px #0000002e, 0 8px 24px #00000024;--vot-shadow-2:0 2px 4px #00000038, 0 12px 32px #00000038;--vot-duration-fast:.12s;--vot-duration-medium:.2s;--vot-duration-slow:.32s;--vot-easing-standard:cubic-bezier(.2, 0, 0, 1);--vot-focus-ring-color:rgba(var(--vot-primary-rgb,139, 180, 245), .9);--vot-focus-ring:0 0 0 2px var(--vot-focus-ring-color);--vot-focus-ring-offset:0 0 0 4px rgba(var(--vot-surface-rgb,32, 33, 36), .9)}vot-block,vot-block *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}vot-block[hidden]:not(.vot-menu),vot-block [hidden]:not(.vot-menu){display:none!important}vot-block{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizelegibility;-moz-text-size-adjust:100%;text-size-adjust:100%;display:block;--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;visibility:visible!important;font-weight:400!important}vot-block *{font-weight:inherit!important}.vot-portal-local,.vot-subtitles-widget{isolation:isolate}vot-block:focus,vot-block :focus{box-shadow:none!important;outline:none!important}html.vot-keyboard-nav vot-block:focus-visible,html.vot-keyboard-nav vot-block :focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav vot-block:focus,html.vot-keyboard-nav vot-block :focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}@media (prefers-reduced-motion:reduce){.vot-portal-local *,.vot-portal *,.vot-subtitles-widget *{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}.vot-portal{display:contents}.vot-portal-local{z-index:2147483647;position:fixed;top:0;left:0}.vot-segmented-button,.vot-menu{pointer-events:auto}.vot-about-item{justify-content:space-between;align-items:center;gap:.5em;font-size:.8em;display:flex}.vot-about-item__label{text-transform:lowercase;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-item__link{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .12);color:rgb(var(--vot-primary-rgb,33, 150, 243));font:inherit;cursor:pointer;border-radius:8px;align-items:center;padding:.125em .625em;font-weight:500;transition:background-color .15s;display:inline-flex}@media (hover:hover){.vot-about-item__link:hover{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .2)}}.vot-about-item__link:active{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .24)}.vot-about-item__value{text-align:end;color:rgba(var(--vot-primary-rgb,33, 150, 243), .9)}@media screen and (width>=450px){.vot-about-item__value[data-has-link=true]{flex-direction:row-reverse;align-items:center;gap:.25em;display:flex}}.vot-about-item__value_detail{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-item__value_detail[data-state=error]{color:rgba(var(--vot-error-rgb,255, 0, 0), .9)}.vot-about-item__value_detail[data-state=loading]{align-items:center;gap:.25em;display:flex}.vot-about-item__value_detail[data-state=loading] svg{font-size:1.25em}.vot-about-section{--vot-about-sep-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);flex-direction:column;gap:.5em;display:flex}.vot-about-section>.vot-about-item:not(:last-child){border-bottom:1px solid var(--vot-about-sep-color);padding-bottom:1em}.vot-account-info{--vot-account-label-color:rgba(var(--vot-onsurface-rgb,13, 1, 31), .68);--vot-account-username-color:rgb(var(--vot-primary-rgb,139, 180, 245));flex-direction:column;gap:1em;font-weight:600;display:flex}.vot-account-info__block{align-items:center;gap:.5em;display:flex}.vot-account-info__avatar{border-radius:50%;min-width:36px;max-width:36px;min-height:36px;max-height:36px;overflow:hidden}.vot-account-info__avatar--failed{background:var(--vot-account-label-color)}.vot-account-info__avatar--failed>.vot-account-info__avatar-img{display:none}.vot-account-info__avatar-img{object-fit:cover;width:36px;height:36px}.vot-account-info__content{flex-direction:column;line-height:1.125em;display:flex}.vot-account-info__label{color:var(--vot-account-label-color);font-size:.75em}.vot-account-info__username{color:var(--vot-account-username-color);font-weight:600}.vot-account-info__refresh{margin-left:auto}.vot-account-login{flex-direction:column;gap:1em;display:flex}.vot-account-login__btn{cursor:pointer;color:#0d011f;border-radius:var(--vot-space-5);background:#fff;align-items:center;gap:1em;min-width:194px;height:56px;padding:14px 16px;font-size:1em;line-height:1.25em;transition:background .25s;display:flex}.vot-account-login__btn:hover{background:#f1eeeb}.vot-account-login__btn-icon{background-image:url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='44' height='44' fill='%23FC3F1D'/%3E%3Cpath d='M22.9515 24.2897C24.2907 27.223 24.737 28.2433 24.737 31.7665V36.4375H19.9544V28.5621L10.9313 8.9375H15.9211L22.9515 24.2897ZM28.8501 8.9375L22.9994 22.2332H27.8617L33.7284 8.9375H28.8501Z' fill='white'/%3E%3C/svg%3E%0A\");background-position:50%;background-repeat:no-repeat;background-size:contain;border-radius:50%;flex-shrink:0;width:26px;height:26px;position:relative}.vot-account-login__btn-text{font-weight:600}.vot-account-login__btn[aria-disabled=true]{cursor:not-allowed;user-select:none;opacity:.5}.vot-account-login__token{align-items:center;gap:1em;width:100%;display:flex}.vot-account-login__token .vot-textfield{width:100%}.vot-account-logout{--vot-theme-rgb:var(--vot-danger-rgb,244, 67, 54);width:100%;display:flex}.vot-account-logout .vot-text-button{width:100%;font-weight:600!important}.vot-account-logout__content{align-items:center;gap:.5em;width:100%;font-size:1.125em;display:flex}.vot-account-logout__content svg{width:1.25em;height:1.25em}.vot-account-menu{flex-direction:column;gap:.5em;display:flex}.vot-icon-button{--vot-helper-onsurface:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:36px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:50%!important;margin:0!important;padding:0!important;font-weight:500!important}.vot-icon-button[hidden]{display:none!important}.vot-icon-button{width:36px;fill:var(--vot-helper-onsurface);color:var(--vot-helper-onsurface);background-color:#0000;border:none!important}.vot-icon-button:before,.vot-icon-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-icon-button:before{background-color:var(--vot-helper-onsurface);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-icon-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-icon-button:hover:before{opacity:.04}.vot-icon-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-icon-button[disabled=true],.vot-icon-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);fill:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-icon-button[disabled=true]:before,.vot-icon-button[disabled=true]:after,.vot-icon-button[aria-disabled=true]:before,.vot-icon-button[aria-disabled=true]:after{opacity:0}.vot-icon-button svg{fill:inherit;stroke:inherit;width:24px;height:36px}.vot-text-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-text-button[hidden]{display:none!important}.vot-text-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:none!important}.vot-text-button:before,.vot-text-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-text-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-text-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-text-button:hover:before{opacity:.04}.vot-text-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-text-button[disabled=true],.vot-text-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-text-button[disabled=true]:before,.vot-text-button[disabled=true]:after,.vot-text-button[aria-disabled=true]:before,.vot-text-button[aria-disabled=true]:after{opacity:0}.vot-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;font-weight:500!important}.vot-button[hidden]{display:none!important}.vot-button{color:rgb(var(--vot-helper-ontheme));background-color:rgb(var(--vot-helper-theme));box-shadow:var(--vot-shadow-1);transition:box-shadow var(--vot-duration-medium) var(--vot-easing-standard);border:none!important}.vot-button:before,.vot-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-button:before{background-color:rgb(var(--vot-helper-ontheme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-button:hover:before{opacity:.08}.vot-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-button:hover,.vot-button:active{box-shadow:var(--vot-shadow-2)}.vot-button[disabled=true]{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);box-shadow:none;cursor:initial}.vot-button[disabled=true]:before,.vot-button[disabled=true]:after{opacity:0}.vot-outlined-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:34px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-outlined-button[hidden]{display:none!important}.vot-outlined-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:solid 1px var(--vot-border-color)!important}.vot-outlined-button:before,.vot-outlined-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-outlined-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-outlined-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-outlined-button:hover:before{opacity:.04}.vot-outlined-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-outlined-button[disabled=true],.vot-outlined-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-outlined-button[disabled=true]:before,.vot-outlined-button[disabled=true]:after,.vot-outlined-button[aria-disabled=true]:before,.vot-outlined-button[aria-disabled=true]:after{opacity:0}.vot-details{color:rgba(var(--vot-onsurface-rgb), .87);text-align:start;cursor:pointer;user-select:none;transition:background var(--vot-duration-medium) var(--vot-easing-standard);justify-content:space-between;align-items:center;font-size:16px;line-height:1.5;display:flex;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:.5em!important;margin:-.5em!important;padding:.5em!important}.vot-details-arrow-icon{width:20px;height:32px;fill:rgba(var(--vot-onsurface-rgb), .87);justify-content:center;align-items:center;font-size:24px;display:flex;transform:scale(1.25)rotate(-90deg)}.vot-details:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .06)}.vot-details[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-hotkey{justify-content:flex-start;align-items:center;gap:var(--vot-space-3,12px);flex-wrap:wrap;display:flex}.vot-hotkey-label{overflow-wrap:anywhere;flex:1}.vot-hotkey-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:32px;height:fit-content;font-size:15px;line-height:1.5;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:400!important}.vot-hotkey-button[hidden]{display:none!important}.vot-hotkey-button{background-color:#0000;width:fit-content;border:solid 1px var(--vot-border-color)!important}.vot-hotkey-button:before,.vot-hotkey-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-hotkey-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-hotkey-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-hotkey-button:hover:before{opacity:.04}.vot-hotkey-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-hotkey-button[data-status=active]{color:rgb(var(--vot-helper-theme))}.vot-hotkey-button[data-status=active]:before{opacity:.04}.vot-hotkey-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-hotkey-button[disabled=true]:before,.vot-hotkey-button[disabled=true]:after{opacity:0}.vot-progress-icon{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));fill:none;stroke:rgb(var(--vot-helper-theme));stroke-width:2px;stroke-linecap:round;transform-origin:50%;transform:rotate(-90deg)}.vot-progress-icon_base{--vot-helper-theme:var(--vot-secondary-rgb,43, 44, 48)}.vot-select{user-select:none;justify-content:end;align-items:center;display:flex;position:relative}.vot-select-label{flex:1}.vot-select-label__description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-select-outer{cursor:pointer;border:1px solid var(--vot-border-color);width:120px;max-width:120px;color:rgba(var(--vot-onsurface-rgb), .87);transition:border-color var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.75em;align-items:center;padding:.5em;display:flex}.vot-select-outer__title{text-overflow:ellipsis;white-space:nowrap;flex:1;align-content:center;height:24px;margin-top:-2px;font-size:.8em;overflow:hidden}.vot-select-outer__arrow{fill:currentColor;transition:transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:1.5em;display:flex}.vot-select-outer[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-outer:not([aria-disabled=true]):hover{border-color:var(--vot-border-color-hover)}.vot-select-outer[aria-expanded=true] .vot-select-outer__arrow{transform:rotate(180deg)}.vot-select-inner{--vot-select-inner-primary-rgb:var(--vot-primary-rgb,33, 150, 243);z-index:2147483647;user-select:none;background:rgb(var(--vot-secondary-rgb,43, 44, 48));color:rgba(var(--vot-onsurface-rgb), .87);max-width:min(300px,100%);max-height:min(85vh, 350px, var(--vot-floating-available-height,100vh));pointer-events:auto;border-radius:.75em;flex-direction:column;padding:.5em;font-size:16px;display:flex;position:fixed;overflow:hidden}.vot-select-inner.vot-select-inner__static-width{width:100%}.vot-select-inner .vot-textfield{margin-bottom:.5em}.vot-select-inner__no-options{color:rgba(var(--vot-onsurface-rgb), .38);text-align:center;padding:.5em .75em}.vot-select-inner__no-options[data-searching=true]{color:rgba(var(--vot-onsurface-rgb), .68);padding:0;font-size:1.75em}.vot-select-inner__options{overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(var(--vot-onsurface-rgb), .38) transparent;min-height:0;margin-right:-8px;padding-right:8px;overflow-y:auto}.vot-select-inner__option{cursor:pointer;transition:background var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.5em;padding:.5em .75em}.vot-select-inner__option[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-inner__option:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb), .14)}.vot-select-inner__option[aria-selected=true]{color:rgb(var(--vot-select-inner-primary-rgb));background:rgba(var(--vot-select-inner-primary-rgb), .2)}.vot-select-inner__option[aria-selected=true]:not([aria-disabled=true]):hover{background:rgba(var(--vot-select-inner-primary-rgb), .1)}.vot-switch{--vot-switch-outline:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-switch-primary:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-switch-onprimary:rgb(var(--vot-onprimary-rgb,32, 33, 36));--vot-switch-track:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);--vot-switch-duration:var(--vot-duration-medium,.2s);--vot-switch-label-offset:24px;box-sizing:border-box;color:rgb(var(--vot-onsurface-rgb,0, 0, 0));cursor:pointer;align-items:center;gap:var(--vot-space-4,16px);width:100%;padding-block:var(--vot-space-2,8px);touch-action:manipulation;vertical-align:middle;display:inline-flex;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-switch[data-disabled=true]{cursor:not-allowed;user-select:none}.vot-switch_sub{padding-left:var(--vot-switch-label-offset)!important}.vot-switch-control{cursor:inherit;opacity:0;z-index:2;width:100%;height:100%;margin:0;position:absolute;inset:0}.vot-switch-control:focus-visible~.vot-switch-track{outline:2px solid var(--vot-focus-ring-color,rgba(var(--vot-primary-rgb,33, 150, 243), .9));outline-offset:2px}.vot-switch-control:hover:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:hover:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .12)}.vot-switch-control:disabled{cursor:not-allowed}.vot-switch-control:disabled~.vot-switch-track{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:disabled~.vot-switch-track .vot-switch-handle{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-control:disabled~.vot-switch-track[data-checked=true] .vot-switch-handle{background:rgb(var(--vot-surface-rgb,32, 33, 36))}.vot-switch-text{flex-direction:column;flex:auto;min-width:0;display:flex}.vot-switch-heading{letter-spacing:.5px;font-size:16px;font-weight:400;line-height:24px}.vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-switch[data-disabled=true] .vot-switch-heading,.vot-switch[data-disabled=true] .vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-track{background:var(--vot-switch-track);border:2px solid var(--vot-switch-outline);box-sizing:border-box;pointer-events:none;height:32px;transition-duration:var(--vot-switch-duration);transition-property:background-color,border-color;transition-timing-function:var(--vot-easing-standard);border-radius:16px;flex:none;align-items:center;width:52px;display:flex;position:relative}.vot-switch-track[data-checked=true]{background:var(--vot-switch-primary);border-color:var(--vot-switch-primary)}.vot-switch-track[data-checked=true] .vot-switch-handle{background:var(--vot-switch-onprimary);width:24px;height:24px;transform:translate(16px,-50%)}.vot-switch-handle{background:var(--vot-switch-outline);height:16px;transition-duration:var(--vot-switch-duration);transition-property:background-color,box-shadow,height,transform,width;transition-timing-function:var(--vot-easing-standard);inset-inline-start:6px;border-radius:50%;width:16px;position:absolute;top:50%;transform:translateY(-50%);box-shadow:0 0 #0000}@media (prefers-reduced-motion:reduce){.vot-switch-track,.vot-switch-handle{transition-duration:.01ms}}.vot-slider{--vot-slider-track-bg:rgba(var(--vot-onsurface-rgb,227, 227, 227), .15);--vot-slider-track-progress-bg:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-slider-size:1em;--vot-slider-border-radius:.5em;--vot-slider-handle-bg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-slider-handle-size:44px;--vot-slider-transition:var(--vot-duration-medium) var(--vot-easing-standard);height:var(--vot-slider-handle-size);align-items:center;display:flex;position:relative}.vot-slider[aria-disabled=true]{user-select:none;opacity:.5}.vot-slider[aria-disabled=true] .vot-slider__control{cursor:not-allowed}.vot-slider__control{opacity:0;appearance:none;cursor:pointer;width:100%;height:100%;position:absolute}.vot-slider__track{background:var(--vot-slider-track-bg);width:100%;height:var(--vot-slider-size);border-radius:var(--vot-slider-border-radius);pointer-events:none}.vot-slider__track-progress{background:var(--vot-slider-track-progress-bg);width:calc(100% * var(--vot-progress,0));transition:width var(--vot-slider-transition);border-top-right-radius:0;border-bottom-right-radius:0;position:absolute}.vot-slider__handle{left:calc(100% * var(--vot-progress,0));width:4px;height:var(--vot-slider-handle-size);background:var(--vot-slider-handle-bg);outline:4px solid var(--vot-slider-track-bg);pointer-events:none;will-change:transform;transition:transform var(--vot-slider-transition), left var(--vot-slider-transition);transform:translateX(calc(-100% * var(--vot-progress,0)));border-radius:4px;position:absolute}.vot-slider[data-dragging] .vot-slider__track-progress,.vot-slider[data-dragging] .vot-slider__handle{transition:none}.vot-slider-label{flex-wrap:nowrap;align-items:baseline;gap:.75em;display:flex}.vot-slider-label__text{text-align:left;flex:auto}.vot-slider-label__text-desc{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-slider-label__value{text-align:right;font-variant-numeric:tabular-nums;flex:none;font-weight:600!important}.vot-slider-label[aria-disabled=true]{opacity:.5;user-select:none;color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .5)}.vot-slider-wrapper{flex-direction:column;gap:.25em;display:flex}.vot-dialog{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-dialog-viewport-margin:16px;--vot-dialog-max-height:75vh;max-width:initial;max-height:initial;width:min(var(--vot-dialog-width,512px), 100%);border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);background-color:var(--vot-helper-surface);height:fit-content;color:var(--vot-helper-onsurface);box-shadow:var(--vot-shadow-2);user-select:none;visibility:visible;opacity:1;transform-origin:50%;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;display:block;position:fixed;inset-block:0;inset-inline:0;overflow:auto hidden;transform:scale(1);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:auto!important;padding:0!important}.vot-dialog[data-vertical-align=top]{inset-block-start:var(--vot-dialog-viewport-margin);inset-block-end:auto;margin:0 auto!important}.vot-dialog-container{visibility:visible;z-index:2147483647;position:absolute}.vot-dialog-container *{box-sizing:border-box!important}.vot-dialog-backdrop{opacity:1;background-color:#0009;transition:opacity .3s;position:fixed;inset:0}.vot-dialog-content-wrapper{max-height:var(--vot-dialog-max-height,75vh);flex-direction:column;display:flex;overflow:auto}.vot-dialog-header-container{flex-shrink:0;align-items:flex-start;min-height:31px;display:flex}.vot-dialog-header-container:empty{padding:0 0 20px}.vot-dialog-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-dialog-title-container{font-size:inherit;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-dialog-title{flex:1;font-size:115.385%;line-height:1;padding:var(--vot-space-5) var(--vot-space-5) var(--vot-space-4)!important;font-weight:700!important}.vot-dialog-body-container{box-sizing:border-box;gap:var(--vot-space-4);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-5)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-dialog-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-dialog-body-container:last-child{padding-block-end:var(--vot-space-5)!important}.vot-dialog-footer-container{justify-content:flex-end;gap:var(--vot-space-2);flex-wrap:wrap;flex-shrink:0;display:flex;padding:var(--vot-space-4)!important}@media (width<=480px){.vot-dialog-footer-container{flex-direction:column;align-items:stretch}.vot-dialog-footer-container>:is(.vot-button,.vot-outlined-button,.vot-text-button){white-space:normal;text-overflow:clip;text-align:center;justify-content:center;align-items:center;width:100%;height:auto;min-height:36px;padding:8px 16px;line-height:1.2;display:flex;overflow:visible}}.vot-settings-section{border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);padding:var(--vot-space-2);background:rgba(var(--vot-helper-onsurface-rgb), .03);flex-direction:column;display:flex}.vot-settings-section>*{margin:0!important}.vot-settings-section>*+*{margin-top:var(--vot-space-2)!important}.vot-settings-section__header{border-radius:var(--vot-radius-m);margin:0!important;padding:.45em .5em!important}.vot-settings-section__header .vot-details-arrow-icon{transition:transform var(--vot-duration-medium) var(--vot-easing-standard)}.vot-settings-section__header[data-open=true] .vot-details-arrow-icon{transform:scale(1.25)rotate(0)}.vot-settings-section__content{--vot-settings-control-width:200px;--vot-settings-row-gap:var(--vot-space-2);gap:var(--vot-settings-row-gap);padding:0 var(--vot-space-1) var(--vot-space-1);flex-direction:column;display:flex}.vot-settings-section__content>*{margin:0!important}.vot-settings-section__content>.vot-switch,.vot-settings-section__content>.vot-hotkey,.vot-settings-section__content>.vot-select,.vot-settings-section__content>.vot-slider-wrapper{padding:var(--vot-space-1);box-sizing:border-box;width:100%!important}.vot-settings-footer{gap:var(--vot-space-2);display:flex}.vot-textfield{display:inline-block;--vot-helper-theme:rgb(var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243)))!important;--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;--vot-helper-safari3:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:start!important;padding-top:6px!important;font-size:16px!important;line-height:1.5!important;position:relative!important}.vot-textfield>:is(input,textarea){box-sizing:border-box!important;border-style:solid!important;border-width:1px!important;border-color:transparent var(--vot-helper-safari2) var(--vot-helper-safari2)!important;width:100%!important;height:inherit!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;-webkit-text-fill-color:currentColor!important;font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;caret-color:var(--vot-helper-theme)!important;background-color:#0000!important;border-radius:4px!important;margin:0!important;padding:15px 13px!important;transition:border .2s,box-shadow .2s!important;box-shadow:inset 1px 0 #0000,inset -1px 0 #0000,inset 0 -1px #0000!important}.vot-textfield>:is(input,textarea):not(:focus):not(:is(.vot-show-placeholder,.vot-show-placeholer))::placeholder{color:#0000!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown{border-top-color:var(--vot-helper-safari2)!important}.vot-textfield>:is(input,textarea)+.vot-textfield__label{font-family:inherit;width:100%!important;max-height:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;cursor:text!important;pointer-events:none!important;font-size:75%!important;line-height:15px!important;transition:color .2s,font-size .2s,line-height .2s!important;display:flex!important;position:absolute!important;top:0!important;left:0!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown+.vot-textfield__label{font-size:inherit!important;line-height:68px!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{content:\"\"!important;box-sizing:border-box!important;border-top:solid 1px var(--vot-helper-safari2)!important;pointer-events:none!important;min-width:10px!important;height:8px!important;margin-top:6px!important;transition:border .2s,box-shadow .2s!important;display:block!important;box-shadow:inset 0 1px #0000!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:before{border-left:1px solid #0000!important;border-radius:4px 0!important;margin-right:4px!important}.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:after{border-right:1px solid #0000!important;border-radius:0 4px!important;flex-grow:1!important;margin-left:4px!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before{margin-right:0!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after{margin-left:0!important}.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}.vot-textfield>textarea{resize:none!important}.vot-textfield:hover>input:not(:disabled),.vot-textfield:hover>textarea:not(:disabled){border-color:transparent var(--vot-helper-safari3) var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:after,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:after{border-top-color:var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled):not(:focus):placeholder-shown,.vot-textfield:hover>textarea:not(:disabled):not(:focus):placeholder-shown{border-color:var(--vot-helper-safari3)!important}.vot-textfield>input:focus,.vot-textfield>textarea:focus{border-color:transparent var(--vot-helper-theme) var(--vot-helper-theme)!important;box-shadow:inset 1px 0 var(--vot-helper-theme), inset -1px 0 var(--vot-helper-theme), inset 0 -1px var(--vot-helper-theme)!important;outline:none!important}.vot-textfield>input:focus+.vot-textfield__label,.vot-textfield>textarea:focus+.vot-textfield__label{color:var(--vot-helper-theme)!important}.vot-textfield>input:focus+.vot-textfield__label:before,.vot-textfield>input:focus+.vot-textfield__label:after,.vot-textfield>textarea:focus+.vot-textfield__label:before,.vot-textfield>textarea:focus+.vot-textfield__label:after{border-top-color:var(--vot-helper-theme)!important;box-shadow:inset 0 1px var(--vot-helper-theme)!important}.vot-textfield>input:disabled,.vot-textfield>input:disabled+.vot-textfield__label,.vot-textfield>textarea:disabled,.vot-textfield>textarea:disabled+.vot-textfield__label{border-color:transparent var(--vot-helper-safari1) var(--vot-helper-safari1)!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;pointer-events:none!important}.vot-textfield>input:disabled+.vot-textfield__label:before,.vot-textfield>input:disabled+.vot-textfield__label:after,.vot-textfield>textarea:disabled+.vot-textfield__label:before,.vot-textfield>textarea:disabled+.vot-textfield__label:after,.vot-textfield>input:disabled:placeholder-shown,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label,.vot-textfield>textarea:disabled:placeholder-shown,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label{border-top-color:var(--vot-helper-safari1)!important}.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}@media not all and (resolution>=.001dpcm){@supports ((-webkit-appearance:none)){.vot-textfield>input,.vot-textfield>input+.vot-textfield__label,.vot-textfield>textarea,.vot-textfield>textarea+.vot-textfield__label,.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{transition-duration:.1s!important}}}.vot-segmented-button{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);cursor:default;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));max-width:100%;height:36px;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);align-items:center;font-size:16px;display:flex;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;box-shadow:var(--vot-shadow-1)!important}.vot-segmented-button[data-direction=column]{flex-direction:column;height:fit-content}.vot-segmented-button[data-direction=column] .vot-segment,.vot-segmented-button[data-direction=column] .vot-segment-only-icon{padding:var(--vot-space-2)!important}.vot-segmented-button[data-direction=column] .vot-separator{width:50%;height:1px}.vot-segmented-button[data-status=error] .vot-translate-button{color:rgb(var(--vot-error-rgb,242, 139, 130))}.vot-segmented-button[data-status=success] .vot-translate-button{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment,.vot-segmented-button .vot-segment-only-icon{min-width:0;height:100%;color:inherit;transition:background-color var(--vot-duration-fast) var(--vot-easing-standard);-webkit-tap-highlight-color:transparent;background-color:#0000;outline:none;flex:auto;justify-content:center;align-items:center;display:flex;position:relative;overflow:hidden;gap:var(--vot-space-2)!important;padding:0 var(--vot-space-2)!important;border:none!important}.vot-segmented-button .vot-segment:focus,.vot-segmented-button .vot-segment-only-icon:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color);outline:none}.vot-segmented-button .vot-segment:focus:not(:focus-visible),.vot-segmented-button .vot-segment-only-icon:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before{background-color:rgb(var(--vot-helper-theme-rgb));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-segmented-button .vot-segment:hover:before,.vot-segmented-button .vot-segment-only-icon:hover:before{opacity:.04}.vot-segmented-button .vot-segment:active:after,.vot-segmented-button .vot-segment-only-icon:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{pointer-events:none}.vot-segmented-button .vot-segment svg,.vot-segmented-button .vot-segment-only-icon svg{font-size:24px}.vot-segmented-button .vot-segment>svg,.vot-segmented-button .vot-segment-only-icon>svg,.vot-segmented-button .vot-segment-label,.vot-segmented-button .vot-segment .vot-dropdown-arrow,.vot-segmented-button .vot-segment-only-icon .vot-dropdown-arrow{z-index:1;position:relative}.vot-segmented-button .vot-segment-only-icon{min-width:36px;padding:0!important}.vot-segmented-button .vot-segment-only-icon[data-active=true]{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment-label{text-overflow:ellipsis;white-space:nowrap;min-width:0;color:inherit;flex:auto;line-height:1;overflow:hidden;font-weight:400!important}.vot-segmented-button .vot-dropdown-arrow{width:30px;min-width:30px;height:100%;color:inherit;fill:inherit;opacity:.95;cursor:default;-webkit-tap-highlight-color:transparent;outline:none;flex:none;justify-content:center;align-items:center;display:inline-flex;position:relative;border-radius:var(--vot-radius-s)!important;margin-inline-end:-4px!important;margin-top:2px!important}.vot-segmented-button .vot-dropdown-arrow:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color)}.vot-segmented-button .vot-dropdown-arrow:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-dropdown-arrow:hover{background:rgba(var(--vot-helper-theme-rgb), .04)}.vot-segmented-button .vot-dropdown-arrow:before,.vot-segmented-button .vot-dropdown-arrow:after{display:none}.vot-segmented-button .vot-dropdown-arrow svg{transform-origin:50%;transition:transform var(--vot-duration-fast) var(--vot-easing-standard);font-size:28px;transform:scale(1.08)}.vot-segmented-button .vot-dropdown-arrow[aria-expanded=true] svg{transform:rotate(180deg)scale(1.08)}.vot-segmented-button .vot-separator{background:rgba(var(--vot-helper-theme-rgb), .1);width:1px;height:50%}.vot-overlay.vot-overlay__segmented-button{--vot-overlay-default-top:5rem;--vot-overlay-top-offset:max(16px, env(safe-area-inset-top,0px));--vot-overlay-side-offset:max(16px, env(safe-area-inset-left,0px));--vot-overlay-side-offset-right:max(16px, env(safe-area-inset-right,0px));--vot-overlay-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px));transition:opacity var(--vot-duration-slow) var(--vot-easing-standard);pointer-events:auto;touch-action:none;max-width:100%;left:50%;transform:translate(-50%)}.vot-overlay.vot-overlay__segmented-button[data-dragging=true]{cursor:grabbing;will-change:transform;transform:translate3d(var(--vot-button-drag-left,0px), var(--vot-button-drag-top,0px), 0)!important;opacity:.96!important;transition:none!important;top:0!important;left:0!important;right:auto!important}.vot-overlay.vot-overlay__segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segment,.vot-overlay.vot-overlay__segmented-button .vot-segment-only-icon,.vot-overlay.vot-overlay__segmented-button .vot-dropdown-arrow{touch-action:none}.vot-overlay.vot-overlay__segmented-button[data-position=left]{left:var(--vot-overlay-side-offset);right:auto;top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=right]{left:auto;right:var(--vot-overlay-side-offset-right);top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=leftCenter]{left:var(--vot-overlay-side-offset);top:50%;right:auto;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button[data-position=rightCenter]{left:auto;right:var(--vot-overlay-side-offset-right);top:50%;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button.vot-segmented-button--dock-preview{z-index:2147483646;transition:left var(--vot-duration-medium) var(--vot-easing-standard), right var(--vot-duration-medium) var(--vot-easing-standard), top var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard), opacity var(--vot-duration-fast) var(--vot-easing-standard);opacity:.72!important;pointer-events:none!important}.vot-voice-icon{display:block;overflow:visible}.vot-voice-icon .vot-eq-bar{transform-origin:50% 100%;transform-box:fill-box;transform:scaleY(1)}.vot-voice-icon--standard .vot-eq-bar{fill:rgba(var(--vot-onsurface-rgb,227, 227, 227), .4)}.vot-voice-icon--live .vot-eq-bar{fill:#e040a0}.vot-voice-popover{--vot-helper-surface-rgb:var(--vot-surface-rgb,32, 33, 36);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,227, 227, 227);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-helper-onsurface-secondary:rgba(var(--vot-helper-onsurface-rgb), .55);--vot-voice-active-standard-bg:rgba(var(--vot-primary-rgb,139, 180, 245), .1);--vot-voice-active-standard-fg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-voice-active-live-bg:#e040a01a;--vot-voice-active-live-fg:#e040a0;z-index:2147483647;background:var(--vot-helper-surface);min-width:230px;max-width:var(--vot-voice-popover-max-width,310px);max-height:var(--vot-voice-popover-max-height,calc(100vh - 16px));cursor:default;user-select:none;overscroll-behavior:contain;transform-origin:0 0;width:max-content;display:block;position:absolute;top:0;left:0;overflow:hidden auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:left!important}.vot-voice-popover,.vot-voice-popover *{box-sizing:border-box!important}.vot-voice-popover{opacity:0;visibility:hidden;pointer-events:none;transition:none;transform:none}.vot-voice-popover[hidden]{display:none!important}.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{opacity:1;visibility:visible;pointer-events:auto;transform:none}.vot-voice-popover[data-placement=top]{transform-origin:bottom}.vot-voice-popover[data-placement=bottom]{transform-origin:top}.vot-voice-popover[data-placement=left]{transform-origin:100%}.vot-voice-popover[data-placement=right]{transform-origin:0}.vot-voice-popover.is-closing{opacity:0;visibility:visible;pointer-events:none;transform:none}.vot-voice-popover__item{cursor:pointer;min-height:62px;color:var(--vot-helper-onsurface);outline:none;gap:12px;transition:none;display:flex;position:relative;overflow:hidden;padding:14px 44px 14px 16px!important}.vot-voice-popover__item:before{content:\"\";opacity:0;pointer-events:none;background:linear-gradient(180deg, rgba(var(--vot-helper-onsurface-rgb), .045), rgba(var(--vot-helper-onsurface-rgb), .06));transition:none;position:absolute;inset:0}.vot-voice-popover__item:hover,.vot-voice-popover__item:focus-visible{box-shadow:inset 0 1px #ffffff08,inset 0 -1px #0000000a}.vot-voice-popover__item:hover:before,.vot-voice-popover__item:focus-visible:before{opacity:1}.vot-voice-popover__item:focus-visible{box-shadow:inset 0 0 0 1px rgba(var(--vot-primary-rgb,139, 180, 245), .18)}.vot-voice-popover__item:after{content:\"\";opacity:0;background-color:currentColor;width:18px;height:18px;transition:none;position:absolute;top:50%;right:14px;transform:translateY(-50%)scale(.88);-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat;mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat}.vot-voice-popover__item--active{font-weight:500!important}.vot-voice-popover__item--active:after{opacity:1;transform:translateY(-50%)scale(1)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active{background-color:var(--vot-voice-active-standard-bg);color:var(--vot-voice-active-standard-fg)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-icon--standard .vot-eq-bar{fill:currentColor}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active{background-color:var(--vot-voice-active-live-bg);color:var(--vot-voice-active-live-fg)}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item-icon{font-size:20px}.vot-voice-popover__item-text{flex-direction:column;gap:2px;min-width:0;display:flex}.vot-voice-popover__item-title{color:inherit;white-space:nowrap;font-size:15px;line-height:1.3;transition:none;font-weight:400!important}.vot-voice-popover__item-subtitle{color:var(--vot-helper-onsurface-secondary);white-space:normal;font-size:12px;line-height:1.4}.vot-voice-popover__divider{background:var(--vot-border-color);height:1px;margin:0!important}@media (prefers-reduced-motion:reduce){.vot-voice-icon .vot-eq-bar{animation:none!important;transform:scaleY(1)!important}.vot-voice-popover,.vot-voice-popover *,.vot-voice-popover:before,.vot-voice-popover:after{transition:none!important;animation:none!important}.vot-voice-popover,.vot-voice-popover.is-closing,.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{transform:none!important}}.vot-segmented-button__menu-header{align-items:center;gap:var(--vot-space-2);margin-left:auto;display:flex}.vot-langpair-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);color:var(--vot-helper-theme);justify-content:space-between;align-items:center;display:flex}.vot-langpair-select__icon{justify-content:center;align-items:center;font-size:24px;display:flex}.vot-overlay.vot-overlay__segmented-button-menu{--vot-overlay-default-top:calc(5rem + 48px);--vot-menu-side-offset:max(76px, calc(env(safe-area-inset-left,0px) + 64px));--vot-menu-side-offset-right:max(76px, calc(env(safe-area-inset-right,0px) + 64px));--vot-menu-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px))}@media (pointer:coarse){.vot-overlay.vot-overlay__segmented-button-menu{--vot-menu-default-top:calc(3rem + 48px);--vot-menu-side-offset:max(64px, calc(env(safe-area-inset-left,0px) + 54px));--vot-menu-side-offset-right:max(64px, calc(env(safe-area-inset-right,0px) + 54px))}}.vot-overlay.vot-overlay__segmented-button-menu{transform-origin:top;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);left:50%;right:auto;transform:translate(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[aria-hidden=true]{transform:translate(-50%,-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left] .vot-menu,.vot-overlay.vot-overlay__segmented-button-menu[data-position=right] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - var(--vot-menu-side-top-offset,48px) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter] .vot-menu,.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left]{left:var(--vot-menu-side-offset);right:auto;top:var(--vot-menu-side-top-offset);transform-origin:0 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=right]{left:auto;right:var(--vot-menu-side-offset-right);top:var(--vot-menu-side-top-offset);transform-origin:100% 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter]{left:var(--vot-menu-side-offset);transform-origin:0;top:50%;right:auto;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter]{left:auto;right:var(--vot-menu-side-offset-right);transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left]{transform-origin:0;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right]{transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=right][aria-hidden=true]{transform:translateY(-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right][aria-hidden=true]{transform:translateY(calc(-50% - 4px))scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-menu__header{flex-wrap:wrap}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-menu__header .vot-segmented-button__menu-header:has(>:nth-child(2)){margin-left:inherit}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-menu__body{max-height:275px}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-langpair-select{gap:var(--vot-space-1);flex-direction:column}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-langpair-select__icon{transform:rotate(90deg)}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-select{justify-content:start;gap:var(--vot-space-1);flex-direction:column;align-items:start;width:100%}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-select-outer{justify-content:space-around;width:100%;max-width:100%}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-select-outer__title{min-width:0;max-width:120px}@property --vot-subtitles-opacity{syntax:\"<number>\";inherits:true;initial-value:.8}@property --vot-subtitles-scale-compensation{syntax:\"<number>\";inherits:true;initial-value:1}.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), var(--vot-subtitles-opacity,.8));--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);background:var(--vot-subtitles-background,#2e2f34cc);width:max-content;inline-size:max-content;color:var(--vot-subtitles-color,#e3e3e3);pointer-events:all;touch-action:none;font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2.2vw), 50px)) * var(--vot-subtitles-scale-compensation,1));-webkit-text-stroke:var(--vot-subtitles-text-stroke-width,clamp(1px, .08em, 2px)) var(--vot-subtitles-text-stroke-color,#000000eb);paint-order:stroke fill;text-shadow:var(--vot-subtitles-text-shadow,0 1px 2px #00000073, 0 2px 8px #00000040);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis:none;position:relative;--vot-subtitles-font-family:var(--vot-subtitles-font-family-custom,var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif))!important;font-family:var(--vot-subtitles-font-family)!important;font-style:normal!important;font-weight:var(--vot-subtitles-font-weight,500)!important;text-transform:none!important;letter-spacing:normal!important;border-radius:.5em!important;padding:.5em .75em!important;line-height:1.25!important}.vot-subtitles,.vot-subtitles *{-webkit-text-stroke:inherit;paint-order:inherit;font-family:var(--vot-subtitles-font-family)!important}.vot-subtitles{box-sizing:border-box;user-select:none;contain:layout paint;isolation:isolate;text-align:center;text-wrap:balance;white-space:normal;overflow-wrap:anywhere;unicode-bidi:plaintext;margin:0 auto;display:block}.vot-subtitles-widget{--vot-subtitles-anchor-width:100vw;--vot-subtitles-anchor-height:100vh;--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));--vot-subtitles-smart-target-width:48ch;--vot-subtitles-smart-min-width-ratio:.62;--vot-subtitles-smart-max-width-ratio:.78;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333);--vot-subtitles-smart-max-width:clamp(calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-min-width-ratio)), var(--vot-subtitles-smart-target-width), calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-max-width-ratio)));box-sizing:border-box;z-index:2147483647;--vot-subtitles-fallback-bottom-inset:calc(env(safe-area-inset-bottom,0px) + clamp(56px, 10vh, 220px) + 10px);left:50%;top:calc(100% - var(--vot-subtitles-fallback-bottom-inset));width:max-content;inline-size:max-content;max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);pointer-events:none;will-change:left, top, transform;max-height:100%;display:block;position:absolute;transform:translate(-50%,-100%)}.vot-subtitles-info{color:#f5f7fa;-webkit-backdrop-filter:blur(18px);text-align:start;background:#1f2023f5;border:1px solid #ffffff14;flex-direction:column;gap:10px;min-width:min(360px,100vw - 32px);max-width:min(720px,100vw - 32px);display:flex;box-shadow:0 18px 48px #00000057,0 4px 16px #00000038;border-radius:18px!important;padding:18px 22px 20px!important}.vot-subtitles-info-service{display:none!important}.vot-subtitles-info-title{letter-spacing:-.01em;align-items:baseline;gap:8px;min-width:0;max-width:100%;display:flex;font-size:clamp(18px,2.4vw,26px)!important;line-height:1.18!important}.vot-subtitles-info-source,.vot-subtitles-info-divider,.vot-subtitles-info-header,.vot-subtitles-info-context{overflow-wrap:anywhere;white-space:normal!important}.vot-subtitles-info-source{color:#f5f7faad;flex:0 auto;font-weight:650!important}.vot-subtitles-info-divider{color:#f5f7fa61;flex:none;font-weight:500!important}.vot-subtitles-info-header{color:#fff;flex:auto;min-width:0;font-weight:750!important}.vot-subtitles-info-context{color:#dee4ecb8;max-width:100%;font-size:clamp(14px,1.45vw,17px)!important;line-height:1.42!important}.vot-subtitles span[data-vot-highlight-index].passed{color:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"]{cursor:pointer;white-space:normal;overflow-wrap:inherit;word-break:normal;position:relative;font-size:inherit!important;font-family:inherit!important;font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-transform:inherit!important;text-decoration:none!important}.vot-subtitles span[data-vot-token=\"1\"]:before{content:\"\";z-index:-1;position:absolute;inset:2px -2px;border-radius:4px!important}.vot-subtitles span[data-vot-token=\"1\"]:hover:before,.vot-subtitles span[data-vot-token=\"1\"]:focus-visible:before{background:var(--vot-subtitles-hover-color,#ffffff8c)}.vot-subtitles span[data-vot-token=\"1\"].selected:before{background:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"].passed.selected:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .4)}.vot-subtitles span[data-vot-token=\"1\"].passed:hover:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .3)}.vot-subtitles span[data-vot-style-italic=\"1\"]{font-style:italic!important}.vot-subtitles span[data-vot-style-bold=\"1\"]{font-weight:700!important}.vot-subtitles span[data-vot-style-underline=\"1\"]{text-decoration:underline!important}.vot-subtitles span[data-vot-style-color=\"1\"]{color:var(--vot-subtitles-inline-color)!important}.vot-subtitles-layer{pointer-events:none;z-index:2147483647;contain:layout paint;width:100vw!important;height:100vh!important;position:fixed!important;inset:0!important}.vot-subtitles-guides{pointer-events:none;z-index:2147483646;position:absolute;inset:0}.vot-subtitles-guide{background:rgba(var(--vot-primary-rgb,33, 150, 243), .7);box-shadow:0 0 0 1px rgba(var(--vot-primary-rgb,33, 150, 243), .12);opacity:0;transition:opacity .12s linear;position:absolute}.vot-subtitles-guide[data-visible=true]{opacity:1}.vot-subtitles-guide--vertical{width:2px;transform:translate(-50%)}.vot-subtitles-guide--horizontal{height:2px;transform:translateY(-50%)}@media (aspect-ratio<=1){.vot-subtitles-widget{--vot-subtitles-smart-target-width:28ch;--vot-subtitles-smart-min-width-ratio:.8;--vot-subtitles-smart-max-width-ratio:.92;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0296)}}@media (aspect-ratio>=1) and (aspect-ratio<=7/5){.vot-subtitles-widget{--vot-subtitles-smart-target-width:32ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.9;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333)}}@media (width<=900px) and (pointer:coarse){.vot-subtitles-widget{--vot-subtitles-fallback-bottom-inset:env(safe-area-inset-bottom,0px)}}@media (prefers-contrast:more){.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), .92);--vot-subtitles-text-stroke-width:max(2px, .1em);--vot-subtitles-text-shadow:0 2px 10px #0000008c}}:is(:fullscreen .vot-subtitles-widget,:fullscreen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:is(:fullscreen .vot-subtitles,:fullscreen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}#vot-subtitles-info.vot-subtitles-info *{user-select:text!important}.vot-or-block{--vot-or-block-line:rgba(var(--vot-primary-rgb,139, 180, 245), .5);color:rgb(var(--vot-primary-rgb));align-items:center;gap:12px;font-size:.75em;font-weight:600;display:flex}.vot-or-block:before,.vot-or-block:after{background:var(--vot-or-block-line);content:\"\";flex:1;height:1px}.vot-menu{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);background:var(--vot-helper-surface);color:var(--vot-helper-onsurface);width:fit-content;min-width:min(320px, 100% - var(--vot-menu-side-offset,0px));max-width:min(90vw,560px);min-height:100px;max-height:calc(var(--vot-container-height,75vh) - var(--vot-overlay-default-top,0px) - 16px);flex-direction:column;font-size:16px;line-height:1.5;display:flex;overflow:auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-menu__header{align-items:center;gap:var(--vot-space-2);flex-shrink:0;min-height:32px;display:flex;padding:var(--vot-space-2) var(--vot-space-4)!important}.vot-menu__body{box-sizing:border-box;gap:var(--vot-space-2);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-4)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-menu__body::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-menu__footer{flex-shrink:0;justify-content:flex-end;display:flex;padding:var(--vot-space-4)!important}.vot-menu__footer:empty{padding:var(--vot-space-4) 0 0 0!important}.vot-tooltip{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-border:rgb(var(--vot-tooltip-border,69, 69, 69));user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));color:var(--vot-helper-theme);fill:var(--vot-helper-theme);font-family:var(--vot-font-family);cursor:default;z-index:2147483647;overflow-wrap:anywhere;white-space:normal;opacity:0;align-items:center;width:max-content;max-width:calc(100vw - 10px);height:max-content;font-size:14px;line-height:1.5;transition:opacity .5s;display:flex;position:absolute;inset:0;overflow:hidden;box-shadow:0 1px 3px #0000001f;border-radius:4px!important;padding:4px 8px!important}.vot-tooltip[data-trigger=hover]:not([data-mode=follow]){pointer-events:none}.vot-tooltip[data-trigger=click]{user-select:text}.vot-tooltip[data-mode=follow]{pointer-events:auto;user-select:text;align-items:stretch}.vot-tooltip[data-mode=follow],.vot-tooltip[data-mode=follow] *{user-select:text!important}.vot-tooltip.vot-tooltip-bordered{border:1px solid var(--vot-helper-border)}.vot-tooltip *{box-sizing:border-box!important;font-family:inherit!important}.vot-tooltip.vot-tooltip--subtitles-info{overflow:visible;box-shadow:none!important;background:0 0!important;border-radius:18px!important;padding:0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info{flex-direction:column;gap:8px;width:max-content;max-width:min(420px,100vw - 24px);display:flex;color:#ffffffeb!important;letter-spacing:0!important;background:#1f2024f5!important;border:1px solid #ffffff14!important;border-radius:16px!important;padding:14px 16px!important;font-size:13px!important;line-height:1.35!important;box-shadow:0 12px 30px #00000047,0 2px 6px #00000038!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-title{flex-wrap:wrap;align-items:center;gap:6px;min-width:0;display:flex;font-size:15px!important;font-weight:600!important;line-height:1.35!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-source{overflow-wrap:anywhere;color:#fffffff0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-divider{color:#ffffff6b!important;font-weight:500!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-header{overflow-wrap:anywhere;color:rgb(var(--vot-primary-rgb,255, 83, 151))!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-context{overflow-wrap:anywhere;max-width:100%;color:#ffffffad!important;font-size:13px!important;font-weight:400!important;line-height:1.45!important}.vot-overlay{--vot-overlay-default-top:0;user-select:none;width:fit-content;max-width:100vw;right:auto;top:var(--vot-overlay-default-top);z-index:2147483646;font-size:16px;line-height:1.5;position:absolute;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-overlay[aria-hidden=true]{pointer-events:none;opacity:0;display:none;visibility:hidden!important}");
 	var sharedShadowStyleSheet = null;
 	var sharedShadowStyleSheetReady = false;
 	function scopeCssForShadowRoots(cssText) {
@@ -42963,6 +43437,57 @@ var vot = (function(exports) {
 			syncContainerSize();
 		}
 	};
+	// src/modules/updater/const.ts
+	var LATEST_RELEASE_URL = `${repositoryUrl}/releases/latest`;
+	var REMOTE_VERSION_URL = `${LATEST_RELEASE_URL}/download/vot-extension-firefox-updates.json`;
+	var UPDATE_CHECK_INTERVAL = 216e5;
+	// src/modules/updater/store.ts
+	function createDefaultUpdaterInfo() {
+		return {
+			checkedAt: 0,
+			remoteVersion: "1.12.5"
+		};
+	}
+	var [updaterInfo, setUpdaterInfo] = createStore(createDefaultUpdaterInfo());
+	// src/modules/updater/service.ts
+	async function fetchRemoteVersion() {
+		const res = await GM_fetch(REMOTE_VERSION_URL);
+		if (!res.ok) throw new Error(`Failed to fetch remote version: ${res.status}`);
+		const data = await res.json();
+		const version = Object.values(data?.addons ?? {})[0]?.updates?.[0]?.version;
+		if (!version) throw new Error("Remote version is missing in the updates manifest");
+		return version;
+	}
+	function canCheckUpdate() {
+		return Date.now() - updaterInfo.checkedAt >= UPDATE_CHECK_INTERVAL;
+	}
+	var getAvailableUpdate = (version) => compareVersions(version, "1.12.5") > 0 ? version : false;
+	async function checkUpdate() {
+		if (!canCheckUpdate()) return getAvailableUpdate(updaterInfo.remoteVersion);
+		let remoteVersion;
+		try {
+			remoteVersion = await fetchRemoteVersion();
+		} catch (error) {
+			logger_default.error("[updater] Failed to fetch info about remote version", error);
+			throw error;
+		}
+		const newData = {
+			remoteVersion,
+			checkedAt: Date.now()
+		};
+		await votStorage.set("updaterInfo", newData);
+		setUpdaterInfo(newData);
+		return getAvailableUpdate(remoteVersion);
+	}
+	// src/stores/locale.ts
+	var [locale, setLocale] = createStore({
+		updatedAt: 0,
+		hash: ""
+	});
+	// src/components/Button/OutlinedButton.tsx
+	function OutlinedButton(props) {
+		return createComponent(RawButton, mergeProps(props, { "class": "vot-outlined-button" }));
+	}
 	// src/components/About/AboutItem.tsx
 	function AboutItem(props) {
 		return (() => {
@@ -42976,28 +43501,29 @@ var vot = (function(exports) {
 			insert(_el$2, () => props.label);
 			setProp(_el$3, "class", "vot-about-item__value");
 			insert(_el$3, () => props.children);
+			effect((_$p) => setProp(_el$3, "data-has-link", props.hasLink, _$p));
 			return _el$;
 		})();
 	}
-	// src/stores/locale.ts
-	var [locale, setLocale] = createStore({
-		updatedAt: 0,
-		hash: ""
-	});
-	// src/components/Button/OutlinedButton.tsx
-	function OutlinedButton(props) {
-		return createComponent(RawButton, mergeProps(props, { "class": "vot-outlined-button" }));
-	}
 	// src/components/About/AboutSection.tsx
 	function AboutSection(props) {
+		const [updaterResult] = createResource(checkUpdate);
 		const envInfo = getEnvironmentInfo();
 		const safeGMInfo = getGMInfo();
 		const scriptVersion = envInfo.scriptVersion === "unknown" ? safeGMInfo?.script?.version || t$1("notFound") : envInfo.scriptVersion;
 		const buildAuthors = String("Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng");
 		const scriptAuthors = (safeGMInfo?.script)?.author || buildAuthors || t$1("notFound");
 		const browserInfo = `${envInfo.browser} (${envInfo.os})`;
-		const localeUpdatedAt = () => new Date(locale.updatedAt * 1e3).toLocaleString();
+		const localeUpdatedAt = () => locale.updatedAt > 0 ? formatDateTime(locale.updatedAt, localizationProvider.lang) : void 0;
 		const localeHashValue = () => locale.hash || t$1("notFound");
+		const updaterState = () => {
+			if (updaterResult.loading) return "loading";
+			if (updaterResult.error) return "error";
+			return updaterResult() ? "available" : "latest";
+		};
+		function openLatestRelease() {
+			globalThis.open(LATEST_RELEASE_URL, "_blank", "noopener,noreferrer");
+		}
 		return (() => {
 			var _el$ = createElement("vot-block");
 			var _ref$ = props.ref;
@@ -43007,7 +43533,56 @@ var vot = (function(exports) {
 				get label() {
 					return t$1("VOTVersion");
 				},
-				children: scriptVersion
+				get hasLink() {
+					return updaterState() === "available";
+				},
+				get children() {
+					return [scriptVersion, (() => {
+						var _el$2 = createElement("vot-block");
+						setProp(_el$2, "class", "vot-about-item__value_detail");
+						insert(_el$2, createComponent(Switch$1, { get children() {
+							return [
+								createComponent(Match, {
+									get when() {
+										return updaterResult.loading;
+									},
+									get children() {
+										return [createComponent(LoadingDotsIcon, {}), memo(() => t$1("VOTCheckingForUpdate"))];
+									}
+								}),
+								createComponent(Match, {
+									get when() {
+										return updaterResult.error;
+									},
+									get children() {
+										return t$1("VOTUpdateCheckFailed");
+									}
+								}),
+								createComponent(Match, {
+									get when() {
+										return updaterResult();
+									},
+									get children() {
+										var _el$3 = createElement("vot-block");
+										setProp(_el$3, "class", "vot-about-item__link");
+										setProp(_el$3, "role", "link");
+										setProp(_el$3, "tabIndex", 0);
+										setProp(_el$3, "onPointerUp", () => openLatestRelease());
+										setProp(_el$3, "onKeyDown", (event) => {
+											if (event.key !== "Enter") return;
+											event.preventDefault();
+											openLatestRelease();
+										});
+										insert(_el$3, () => t$1("VOTUpdateAvailable").replace("{0}", updaterResult()));
+										return _el$3;
+									}
+								})
+							];
+						} }));
+						effect((_$p) => setProp(_el$2, "data-state", updaterState(), _$p));
+						return _el$2;
+					})()];
+				}
 			}), null);
 			insert(_el$, createComponent(AboutItem, {
 				get label() {
@@ -43034,20 +43609,19 @@ var vot = (function(exports) {
 					return t$1("VOTLocaleHash");
 				},
 				get children() {
-					return [
-						memo(() => localeHashValue()),
-						createElement("br"),
-						(() => {
-							var _el$3 = createElement("vot-block"), _el$4 = createTextNode(`(`), _el$5 = createTextNode(` `), _el$6 = createTextNode(`)`);
-							insertNode(_el$3, _el$4);
-							insertNode(_el$3, _el$5);
-							insertNode(_el$3, _el$6);
-							setProp(_el$3, "class", "vot-about-item__value_detail");
-							insert(_el$3, () => t$1("VOTUpdatedAt"), _el$5);
-							insert(_el$3, localeUpdatedAt, _el$6);
-							return _el$3;
-						})()
-					];
+					return [memo(() => localeHashValue()), createComponent(Show, {
+						get when() {
+							return localeUpdatedAt();
+						},
+						children: (updatedAt) => [createElement("br"), (() => {
+							var _el$5 = createElement("vot-block"), _el$6 = createTextNode(`(`), _el$7 = createTextNode(`)`);
+							insertNode(_el$5, _el$6);
+							insertNode(_el$5, _el$7);
+							setProp(_el$5, "class", "vot-about-item__value_detail");
+							insert(_el$5, () => t$1("VOTUpdatedDate").replace("{0}", updatedAt()), _el$7);
+							return _el$5;
+						})()]
+					})];
 				}
 			}), null);
 			insert(_el$, createComponent(OutlinedButton, {
@@ -43584,6 +44158,7 @@ var vot = (function(exports) {
 		const headerId = `${sectionId}-header`;
 		const contentId = `${sectionId}-content`;
 		const [isOpen, setIsOpen] = createSignal(finalProps.isOpen);
+		const wasOpened = createMemo((prev) => prev || isOpen(), false);
 		createRenderEffect(() => {
 			setIsOpen(finalProps.isOpen);
 		});
@@ -43621,7 +44196,14 @@ var vot = (function(exports) {
 			setProp(_el$4, "id", contentId);
 			setProp(_el$4, "role", "region");
 			setProp(_el$4, "aria-labelledby", headerId);
-			insert(_el$4, () => finalProps.children);
+			insert(_el$4, createComponent(Show, {
+				get when() {
+					return !finalProps.lazy || wasOpened();
+				},
+				get children() {
+					return finalProps.children;
+				}
+			}));
 			effect((_$p) => setProp(_el$4, "hidden", !isOpen(), _$p));
 			return _el$;
 		})();
@@ -44612,6 +45194,7 @@ var vot = (function(exports) {
 						get title() {
 							return t$1("aboutExtension");
 						},
+						lazy: true,
 						get children() {
 							return createComponent(AboutSection, {});
 						}
@@ -47056,13 +47639,14 @@ var vot = (function(exports) {
 			compatVersion: "",
 			account: {},
 			localeHash: "",
-			localeUpdatedAt: 0
+			localeUpdatedAt: 0,
+			updaterInfo: createDefaultUpdaterInfo()
 		});
 		if (this.data.compatVersion !== "2026-08-18") {
 			this.data = await updateConfig(this.data);
 			await votStorage.set("compatVersion", actualCompatVersion);
 		}
-		await updateAccountFromStorage();
+		updateAccount(this.data.account);
 		setLocale({
 			updatedAt: this.data.localeUpdatedAt,
 			hash: this.data.localeHash
@@ -47071,6 +47655,7 @@ var vot = (function(exports) {
 			...pickSettings(this.data),
 			buttonPos: normalizeButtonPosition(this.data.buttonPos)
 		});
+		setUpdaterInfo(this.data.updaterInfo);
 		try {
 			if (calculatedResLang === "en" && Array.isArray(this.data?.dontTranslateLanguages) && this.data.dontTranslateLanguages.length === 1 && this.data.dontTranslateLanguages[0] === "en" && typeof this.data.responseLanguage === "string" && this.data.responseLanguage !== "en") {
 				const responseLang = this.data.responseLanguage;
@@ -48191,7 +48776,7 @@ var vot = (function(exports) {
 		}
 		getTranslationCacheKey(videoId, from, to, translationHelp) {
 			const requestLangForApi = from;
-			const useLivelyVoice = this.isLivelyVoiceAllowed(requestLangForApi, to) && this.data?.useLivelyVoice;
+			const useLivelyVoice = this.isLivelyVoiceAllowed(to) && this.data?.useLivelyVoice;
 			const helpStr = translationHelp === void 0 || translationHelp === null ? "" : stringifyCircularSafe(translationHelp, { sortKeys: true });
 			return `${videoId}_${requestLangForApi}_${to}_${useLivelyVoice}_${helpStr ? fnv1a32ToKeyPart(helpStr) : "0"}`;
 		}
@@ -48514,9 +49099,8 @@ var vot = (function(exports) {
 		toggleSubtitlesForCurrentLangPair() {
 			return toggleSubtitlesForCurrentLangPair.call(this);
 		}
-		isLivelyVoiceAllowed(requestLang = this.videoData?.detectedLanguage ?? "auto", responseLang = this.videoData?.responseLanguage ?? this.translateToLang) {
-			if (requestLang === "auto" || responseLang !== "ru") return false;
-			return true;
+		isLivelyVoiceAllowed(responseLang = this.videoData?.responseLanguage ?? this.translateToLang) {
+			return responseLang === "ru";
 		}
 		getVideoVolume = () => this.videoManager.getVideoVolume();
 		setVideoVolume(volume, options = {}) {
@@ -48889,4 +49473,4 @@ var vot = (function(exports) {
 	exports.bootstrapContentScript = bootstrapContentScript;
 	return exports;
 })({});
-//# debugId=143ffc32-8e46-4f6c-82cb-b81e6d22a8dc
+//# debugId=d14083e9-a227-490c-b4ed-d627e05645f9
