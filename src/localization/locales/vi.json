@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Tải xuống các tệp có tên video",
   "VOTUpdateLocaleFiles": "Cập nhật tệp bản địa hóa",
   "VOTLocaleHash": "Ngôn ngữ băm",
-  "VOTUpdatedAt": "Cập nhật lúc",
   "VOTNeedWebAudioAPI": "Để kích hoạt ĐIỀU này, bạn phải có Api Âm Thanh Web",
   "VOTMediaCSPEnabledOnSite": "Media CSP được kích hoạt trên trang web này",
   "VOTOnlyBypassMediaCSP": "Chỉ sử dụng Nó để bỏ QUA Media Csp",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Nhập địa chỉ proxy phương tiện",
   "VOTCheckingForUpdate": "Kiểm tra các bản cập nhật...",
   "VOTUpdateCheckFailed": "Không thể kiểm tra các bản cập nhật",
-  "VOTUpdateAvailable": "Phiên bản mới {0} có sẵn"
+  "VOTUpdateAvailable": "Phiên bản mới {0} có sẵn",
+  "VOTUpdatedDate": "Cập nhật {0}"
 }

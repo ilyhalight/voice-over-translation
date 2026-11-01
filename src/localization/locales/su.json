@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Ngundeur payil jeung ngaran video",
   "VOTUpdateLocaleFiles": "File lokalisasi Update",
   "VOTLocaleHash": "Lokal hash",
-  "VOTUpdatedAt": "Diperbarui jam",
   "VOTNeedWebAudioAPI": "Pikeun ngaktipkeun ieu, anjeun kudu boga API Audio Web",
   "VOTMediaCSPEnabledOnSite": "Media csp diaktipkeun dina situs ieu",
   "VOTOnlyBypassMediaCSP": "Ngagunakeun eta ngan Pikeun Bypassing Media Csp",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Tuliskeun alamat proxy media",
   "VOTCheckingForUpdate": "Pariksa pikeun apdet...",
   "VOTUpdateCheckFailed": "Tak sabar nak update",
-  "VOTUpdateAvailable": "Versi anyar {0} geus sadia"
+  "VOTUpdateAvailable": "Versi anyar {0} geus sadia",
+  "VOTUpdatedDate": "Diropéa {0}"
 }

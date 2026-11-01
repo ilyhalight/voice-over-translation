@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Preuzmite datoteke sa imenom video zapisa",
   "VOTUpdateLocaleFiles": "Ažurirajte datoteke za lokalizaciju",
   "VOTLocaleHash": "Locale hash",
-  "VOTUpdatedAt": "Ažurirano u",
   "VOTNeedWebAudioAPI": "Da biste to omogućili, morate imati Web Audio API",
   "VOTMediaCSPEnabledOnSite": "Media CSP je omogućen na ovom sajtu",
   "VOTOnlyBypassMediaCSP": "Koristi ga samo za zaobilaženje medija CSP",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Unesite adresu proxy-a za medije",
   "VOTCheckingForUpdate": "Provjera ažuriranja...",
   "VOTUpdateCheckFailed": "Nisam mogao provjeriti ažuriranja",
-  "VOTUpdateAvailable": "Dostupna je nova verzija {0} "
+  "VOTUpdateAvailable": "Dostupna je nova verzija {0} ",
+  "VOTUpdatedDate": "Ažurirano {0}"
 }

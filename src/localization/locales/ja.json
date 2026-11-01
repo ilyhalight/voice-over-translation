@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "ビデオ名のファイルをダウンロードする",
   "VOTUpdateLocaleFiles": "ローカリゼーションファイルの更新",
   "VOTLocaleHash": "ロケールハッシュ",
-  "VOTUpdatedAt": "更新",
   "VOTNeedWebAudioAPI": "これを有効にするには、Web Audio APIが必要です",
   "VOTMediaCSPEnabledOnSite": "メディアCSPはこのサイトで有効になっています",
   "VOTOnlyBypassMediaCSP": "メディアCSPをバイパスするためにのみ使用します",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "メディアプロキシアドレスを入力します",
   "VOTCheckingForUpdate": "更新をチェックします。..",
   "VOTUpdateCheckFailed": "更新をチェックできませんでした",
-  "VOTUpdateAvailable": "新しいバージョン{0}が利用可能です"
+  "VOTUpdateAvailable": "新しいバージョン{0}が利用可能です",
+  "VOTUpdatedDate": "更新された{0}"
 }

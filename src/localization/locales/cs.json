@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Stahujte soubory s názvem videa",
   "VOTUpdateLocaleFiles": "Aktualizace lokalizačních souborů",
   "VOTLocaleHash": "Národní hash",
-  "VOTUpdatedAt": "Aktualizováno v",
   "VOTNeedWebAudioAPI": "Chcete-li to povolit, musíte mít webové Audio API",
   "VOTMediaCSPEnabledOnSite": "Media CSP je povoleno na tomto webu",
   "VOTOnlyBypassMediaCSP": "Použijte jej pouze pro obcházení médií CSP",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Zadejte adresu proxy serveru médií",
   "VOTCheckingForUpdate": "Kontrola aktualizací...",
   "VOTUpdateCheckFailed": "Nelze zkontrolovat aktualizace",
-  "VOTUpdateAvailable": "Nová verze {0} je k dispozici"
+  "VOTUpdateAvailable": "Nová verze {0} je k dispozici",
+  "VOTUpdatedDate": "Aktualizováno {0}"
 }

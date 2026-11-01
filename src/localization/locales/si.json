@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "වීඩියෝ නාමය සහිත ගොනු බාගත කරන්න",
   "VOTUpdateLocaleFiles": "දේශීයකරණ ගොනු යාවත්කාලීන කරන්න",
   "VOTLocaleHash": "දේශීය හැෂ්",
-  "VOTUpdatedAt": "ට යාවත්කාලීන කරන ලදි",
   "VOTNeedWebAudioAPI": "මෙය සක් රීය කිරීම සඳහා, ඔබට වෙබ් ශ් රව් ය API එකක් තිබිය යුතුය",
   "VOTMediaCSPEnabledOnSite": "මෙම වෙබ් අඩවියේ csp මාධ් ය සක් රීය කර ඇත",
   "VOTOnlyBypassMediaCSP": "මාධ්ය CSP මඟ හැරීම සඳහා පමණක් එය භාවිතා කරන්න",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "මාධ්ය ප්රොක්සි ලිපිනය ඇතුලත් කරන්න",
   "VOTCheckingForUpdate": "යාවත්කාලීන කිරීම් සඳහා පරීක්ෂා කිරීම...",
   "VOTUpdateCheckFailed": "යාවත්කාලීන කිරීම් සඳහා පරීක්ෂා කළ නොහැකි විය",
-  "VOTUpdateAvailable": "{0} නව අනුවාදය ලබා ගත හැක"
+  "VOTUpdateAvailable": "{0} නව අනුවාදය ලබා ගත හැක",
+  "VOTUpdatedDate": "{0}යාවත්කාලීන කර ඇත"
 }

@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "تحميل الملفات مع اسم الفيديو",
   "VOTUpdateLocaleFiles": "تحديث ملفات الترجمة",
   "VOTLocaleHash": "تجزئة اللغة",
-  "VOTUpdatedAt": "تحديث في",
   "VOTNeedWebAudioAPI": "لتمكين هذا ، يجب أن يكون لديك واجهة برمجة تطبيقات صوت الويب",
   "VOTMediaCSPEnabledOnSite": "يتم تمكين الطاقة الشمسية المركزة وسائل الإعلام على هذا الموقع",
   "VOTOnlyBypassMediaCSP": "استخدامه فقط لتجاوز وسائل الإعلام سب",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "أدخل عنوان وكيل الوسائط",
   "VOTCheckingForUpdate": "التحقق من وجود تحديثات...",
   "VOTUpdateCheckFailed": "تعذر التحقق من وجود تحديثات",
-  "VOTUpdateAvailable": "الإصدار الجديد {0} متاح"
+  "VOTUpdateAvailable": "الإصدار الجديد {0} متاح",
+  "VOTUpdatedDate": "تحديث {0}"
 }

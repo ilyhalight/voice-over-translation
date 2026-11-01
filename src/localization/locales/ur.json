@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "ویڈیو نام کے ساتھ فائلیں ڈاؤن لوڈ کریں",
   "VOTUpdateLocaleFiles": "لوکلائزیشن فائلوں کو اپ ڈیٹ کریں",
   "VOTLocaleHash": "مقامی ہیش",
-  "VOTUpdatedAt": "پر اپ ڈیٹ",
   "VOTNeedWebAudioAPI": "اس کو فعال کرنے کے ل you ، آپ کے پاس ویب آڈیو API ہونا ضروری ہے",
   "VOTMediaCSPEnabledOnSite": "اس سائٹ پر میڈیا سی ایس پی فعال ہے",
   "VOTOnlyBypassMediaCSP": "اسے صرف میڈیا CSP کو نظرانداز کرنے کے لیے استعمال کریں ۔ ",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "میڈیا پراکسی ایڈریس درج کریں",
   "VOTCheckingForUpdate": "اپ ڈیٹس کی جانچ پڑتال...",
   "VOTUpdateCheckFailed": "اپ ڈیٹس کے لئے چیک نہیں کر سکا",
-  "VOTUpdateAvailable": "نیا ورژن {0} دستیاب ہے"
+  "VOTUpdateAvailable": "نیا ورژن {0} دستیاب ہے",
+  "VOTUpdatedDate": "اپ ڈیٹ {0}"
 }

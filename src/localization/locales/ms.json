@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Muat turun fail dengan nama video",
   "VOTUpdateLocaleFiles": "Kemas kini fail penyetempatan",
   "VOTLocaleHash": "Hash tempatan",
-  "VOTUpdatedAt": "Dikemaskini pada",
   "VOTNeedWebAudioAPI": "Untuk membolehkan ini, anda mesti mempunyai API Audio web",
   "VOTMediaCSPEnabledOnSite": "Media CSP diaktifkan di laman web ini",
   "VOTOnlyBypassMediaCSP": "Gunakan ia hanya untuk memintas media CSP",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Masukkan alamat proksi media",
   "VOTCheckingForUpdate": "Menyemak kemas kini...",
   "VOTUpdateCheckFailed": "Tidak dapat menyemak kemas kini",
-  "VOTUpdateAvailable": "Versi baru {0} Boleh didapati"
+  "VOTUpdateAvailable": "Versi baru {0} Boleh didapati",
+  "VOTUpdatedDate": "Dikemaskini {0}"
 }

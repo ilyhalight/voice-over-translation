@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Λήψη αρχείων με το όνομα του βίντεο",
   "VOTUpdateLocaleFiles": "Ενημέρωση αρχείων εντοπισμού",
   "VOTLocaleHash": "Τοπικό χασίς",
-  "VOTUpdatedAt": "Ενημερώθηκε στις",
   "VOTNeedWebAudioAPI": "Για να το ενεργοποιήσετε, πρέπει να έχετε ένα API Web Audio",
   "VOTMediaCSPEnabledOnSite": "Το Media CSP είναι ενεργοποιημένο σε αυτόν τον ιστότοπο",
   "VOTOnlyBypassMediaCSP": "Χρησιμοποιήστε το μόνο για παράκαμψη CSP πολυμέσων",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Εισαγάγετε τη διεύθυνση διακομιστή μεσολάβησης πολυμέσων",
   "VOTCheckingForUpdate": "Έλεγχος για ενημερώσεις...",
   "VOTUpdateCheckFailed": "Δεν ήταν δυνατός ο έλεγχος για ενημερώσεις",
-  "VOTUpdateAvailable": "Η νέα έκδοση {0} είναι διαθέσιμη"
+  "VOTUpdateAvailable": "Η νέα έκδοση {0} είναι διαθέσιμη",
+  "VOTUpdatedDate": "Ενημερώθηκε {0}"
 }

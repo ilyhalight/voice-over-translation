@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Baixeu fitxers amb el nom del vídeo",
   "VOTUpdateLocaleFiles": "Actualitza els fitxers de localització",
   "VOTLocaleHash": "Hash de localització",
-  "VOTUpdatedAt": "Actualització a les",
   "VOTNeedWebAudioAPI": "Per activar-ho, heu de tenir UNA API D'Àudio",
   "VOTMediaCSPEnabledOnSite": "Media CSP està habilitat en aquest lloc",
   "VOTOnlyBypassMediaCSP": "Utilitzeu lo només per evitar Els Mitjans Csp",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Introduïu l'adreça del servidor intermediari multimèdia",
   "VOTCheckingForUpdate": "Comprovació d'actualitzacions...",
   "VOTUpdateCheckFailed": "No s ' ha pogut comprovar les actualitzacions",
-  "VOTUpdateAvailable": "La nova versió {0} està disponible"
+  "VOTUpdateAvailable": "La nova versió {0} està disponible",
+  "VOTUpdatedDate": "Actualització {0}"
 }

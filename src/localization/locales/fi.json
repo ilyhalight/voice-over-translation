@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Lataa tiedostoja videon nimellä",
   "VOTUpdateLocaleFiles": "Päivitä lokalisointitiedostot",
   "VOTLocaleHash": "Paikallinen hash",
-  "VOTUpdatedAt": "Päivitetty klo",
   "VOTNeedWebAudioAPI": "Jotta voit ottaa tämän käyttöön, sinulla on oltava Web Audio API",
   "VOTMediaCSPEnabledOnSite": "Media CSP on käytössä tällä sivustolla",
   "VOTOnlyBypassMediaCSP": "Käytä sitä vain Media CSP: n ohittamiseen",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Anna median välityspalvelimen osoite",
   "VOTCheckingForUpdate": "Tarkistan päivitykset...",
   "VOTUpdateCheckFailed": "Päivityksiä ei voitu tarkistaa",
-  "VOTUpdateAvailable": "Uusi versio {0} on saatavilla"
+  "VOTUpdateAvailable": "Uusi versio {0} on saatavilla",
+  "VOTUpdatedDate": "Päivitetty {0}"
 }

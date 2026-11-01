@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Видео нэртэй файлуудыг татаж авах",
   "VOTUpdateLocaleFiles": "Локалчлалын файлуудыг шинэчлэх",
   "VOTLocaleHash": "Локал хэш",
-  "VOTUpdatedAt": "цагт шинэчлэгдсэн",
   "VOTNeedWebAudioAPI": "Үүнийг идэвхжүүлэхийн тулд та вэб аудио API-тэй байх естой",
   "VOTMediaCSPEnabledOnSite": "Хэвлэл мэдээллийн CSP энэ сайт дээр идэвхжүүлсэн байна",
   "VOTOnlyBypassMediaCSP": "Зөвхөн хэвлэл мэдээллийн ОНХХ алгасан үүнийг ашиглах",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Медиа прокси хаягийг оруулна уу",
   "VOTCheckingForUpdate": "Шинэчлэлтүүдийг шалгах...",
   "VOTUpdateCheckFailed": "Шинэчлэлтүүдийг шалгаж чадахгүй байна",
-  "VOTUpdateAvailable": "Шинэ хувилбар {0} байгаа"
+  "VOTUpdateAvailable": "Шинэ хувилбар {0} байгаа",
+  "VOTUpdatedDate": "Шинэчлэгдсэн {0}"
 }

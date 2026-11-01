@@ -259,7 +259,6 @@ export type Phrase =
   | "VOTDownloadWithName"
   | "VOTUpdateLocaleFiles"
   | "VOTLocaleHash"
-  | "VOTUpdatedAt"
   | "VOTNeedWebAudioAPI"
   | "VOTMediaCSPEnabledOnSite"
   | "VOTOnlyBypassMediaCSP"
@@ -339,7 +338,8 @@ export type Phrase =
   | "VOTSameAsMenuLanguage"
   | "VOTCheckingForUpdate"
   | "VOTUpdateCheckFailed"
-  | "VOTUpdateAvailable";
+  | "VOTUpdateAvailable"
+  | "VOTUpdatedDate";
 
 export type Phrases = {
   recommended: string;
@@ -537,7 +537,6 @@ export type Phrases = {
   VOTDownloadWithName: string;
   VOTUpdateLocaleFiles: string;
   VOTLocaleHash: string;
-  VOTUpdatedAt: string;
   VOTNeedWebAudioAPI: string;
   VOTMediaCSPEnabledOnSite: string;
   VOTOnlyBypassMediaCSP: string;
@@ -622,6 +621,7 @@ export type Phrases = {
   VOTCheckingForUpdate: string;
   VOTUpdateCheckFailed: string;
   VOTUpdateAvailable: string;
+  VOTUpdatedDate: string;
 };
 
 export type FlatPhrases = Record<Phrase, string>;

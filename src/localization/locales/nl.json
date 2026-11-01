@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Download bestanden met de naam van de video",
   "VOTUpdateLocaleFiles": "Lokalisatiebestanden bijwerken",
   "VOTLocaleHash": "Lokale hash",
-  "VOTUpdatedAt": "Bijgewerkt op",
   "VOTNeedWebAudioAPI": "Om dit in te schakelen, moet u een Web Audio API hebben",
   "VOTMediaCSPEnabledOnSite": "Media CSP is ingeschakeld op deze site",
   "VOTOnlyBypassMediaCSP": "Gebruik het alleen voor het omzeilen van Media CSP",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Voer het media proxy adres in",
   "VOTCheckingForUpdate": "Controleren op updates...",
   "VOTUpdateCheckFailed": "Kon niet controleren op updates",
-  "VOTUpdateAvailable": "Nieuwe versie {0} is beschikbaar"
+  "VOTUpdateAvailable": "Nieuwe versie {0} is beschikbaar",
+  "VOTUpdatedDate": "{0}bijgewerkt"
 }

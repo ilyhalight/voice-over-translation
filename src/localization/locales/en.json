@@ -194,7 +194,6 @@
   "VOTDownloadWithName": "Download files with the video name",
   "VOTUpdateLocaleFiles": "Update localization files",
   "VOTLocaleHash": "Locale hash",
-  "VOTUpdatedAt": "Updated at",
   "VOTNeedWebAudioAPI": "To enable this, you must have a Web Audio API",
   "VOTMediaCSPEnabledOnSite": "Media CSP is enabled on this site",
   "VOTOnlyBypassMediaCSP": "Use it only for bypassing Media CSP",
@@ -278,5 +277,6 @@
   "VOTSameAsMenuLanguage": "Same as menu language",
   "VOTCheckingForUpdate": "Checking for updates...",
   "VOTUpdateCheckFailed": "Couldn't check for updates",
-  "VOTUpdateAvailable": "New version {0} is available"
+  "VOTUpdateAvailable": "New version {0} is available",
+  "VOTUpdatedDate": "Updated {0}"
 }

@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Hent filer med videonavnet",
   "VOTUpdateLocaleFiles": "Opdater lokaliseringsfiler",
   "VOTLocaleHash": "Locale hash",
-  "VOTUpdatedAt": "Opdateret kl.",
   "VOTNeedWebAudioAPI": "For at aktivere dette skal du have en Internet Audio API",
   "VOTMediaCSPEnabledOnSite": "Media CSP er aktiveret på dette site",
   "VOTOnlyBypassMediaCSP": "Brug den kun til at omgå Media CSP",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Indtast adressen til mediemeddelelse",
   "VOTCheckingForUpdate": "Kontrol for opdateringer...",
   "VOTUpdateCheckFailed": "Kunne ikke tjekke for opdateringer",
-  "VOTUpdateAvailable": "Ny version {0} er tilgængelig"
+  "VOTUpdateAvailable": "Ny version {0} er tilgængelig",
+  "VOTUpdatedDate": "Opdateret {0}"
 }

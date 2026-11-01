@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "വീഡിയോ പേര് ഉപയോഗിച്ച് ഫയലുകൾ ഡൗൺലോഡ്",
   "VOTUpdateLocaleFiles": "അപ്ഡേറ്റ് localization ഫയലുകൾ",
   "VOTLocaleHash": "പ്രാദേശിക ഹാഷ്",
-  "VOTUpdatedAt": "അപ്ഡേറ്റ്",
   "VOTNeedWebAudioAPI": "ഇത് ചെയ്യുന്നതിന്, നിങ്ങൾക്ക് ഒരു വെബ് ഓഡിയോ എപിഐ ഉണ്ടായിരിക്കണം.",
   "VOTMediaCSPEnabledOnSite": "മീഡിയ സിഎസ്പി ഈ സൈറ്റിൽ പ്രാപ്തമാക്കിയിരിക്കുന്നു",
   "VOTOnlyBypassMediaCSP": "മീഡിയ സി. എസ്. പിയെ മറികടക്കാന് മാത്രം ഉപയോഗിക്കുക",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "മീഡിയ പ്രോക്സി വിലാസം നല്കുക",
   "VOTCheckingForUpdate": "അപ്ഡേറ്റുകൾക്കായി പരിശോധിക്കുന്നു...",
   "VOTUpdateCheckFailed": "അപ്ഡേറ്റുകള്ക്കായി പരിശോധിക്കാന് കഴിഞ്ഞില്ല",
-  "VOTUpdateAvailable": "പുതിയ പതിപ്പ് {0} ലഭ്യമാണ്"
+  "VOTUpdateAvailable": "പുതിയ പതിപ്പ് {0} ലഭ്യമാണ്",
+  "VOTUpdatedDate": "അപ്ഡേറ്റ് {0}"
 }

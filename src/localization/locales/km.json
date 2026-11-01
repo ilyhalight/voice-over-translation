@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "ទាញយកឯកសារដែលមានឈ្មោះវីដេអូ",
   "VOTUpdateLocaleFiles": "ធ្វើឲ្យឯកសារមូលដ្ឋានីយកម្មទាន់សម័យ",
   "VOTLocaleHash": "សញ្ញាមូលដ្ឋាន",
-  "VOTUpdatedAt": "ធ្វើឱ្យទាន់សម័យនៅ",
   "VOTNeedWebAudioAPI": "ដើម្បីអនុញ្ញាតនេះ,អ្នកត្រូវតែមានបណ្តាញ Api របស់អូឌីយ៉ូ",
   "VOTMediaCSPEnabledOnSite": "ប្រព័ន្ធផ្សព្វផ្សាយ CSP ត្រូវបានបើកនៅលើតំបន់បណ្ដាញនេះ",
   "VOTOnlyBypassMediaCSP": "ប្រើវាសម្រាប់តែឆ្លងកាត់ប្រព័ន្ធផ្សព្វផ្សាយ CSP",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "បញ្ចូលអាសយដ្ឋានប្រូកស៊ីមេឌៀ",
   "VOTCheckingForUpdate": "កំពុងពិនិត្យមើលភាពទាន់សម័យ...",
   "VOTUpdateCheckFailed": "មិនអាចពិនិត្យមើលភាពទាន់សម័យ",
-  "VOTUpdateAvailable": "កំណែថ្មី{0}គឺអាចរកបាន"
+  "VOTUpdateAvailable": "កំណែថ្មី{0}គឺអាចរកបាន",
+  "VOTUpdatedDate": "បន្ទាន់សម័យ{0}"
 }

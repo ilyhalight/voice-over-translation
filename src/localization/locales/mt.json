@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Niżżel fajls bl-isem tal-vidjo",
   "VOTUpdateLocaleFiles": "Aġġorna l-fajls tal-lokalizzazzjoni",
   "VOTLocaleHash": "Hash lokali",
-  "VOTUpdatedAt": "Aġġornat fis-",
   "VOTNeedWebAudioAPI": "Biex tippermetti dan, irid ikollok Api Awdjo Tal - Web",
   "VOTMediaCSPEnabledOnSite": "Il-PSK tal-midja huwa attivat fuq dan is-sit",
   "VOTOnlyBypassMediaCSP": "Użaha biss Biex tevita L-PSK Tal-Midja",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Daħħal l indirizz tal prokura tal midja",
   "VOTCheckingForUpdate": "Iċċekkjar għal aġġornamenti...",
   "VOTUpdateCheckFailed": "Ma setgħetx tiċċekkja għal aġġornamenti",
-  "VOTUpdateAvailable": "Verżjoni ġdida {0} hija disponibbli"
+  "VOTUpdateAvailable": "Verżjoni ġdida {0} hija disponibbli",
+  "VOTUpdatedDate": "Aġġornat {0}"
 }

@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Laai lêers af met die video naam",
   "VOTUpdateLocaleFiles": "Dateer lokaliseringslêers op",
   "VOTLocaleHash": "Plaaslike hash",
-  "VOTUpdatedAt": "Opgedateer om",
   "VOTNeedWebAudioAPI": "Om dit te aktiveer, moet jy'n Web Audio API",
   "VOTMediaCSPEnabledOnSite": "MEDIA CSP is geaktiveer op hierdie webwerf",
   "VOTOnlyBypassMediaCSP": "Gebruik dit slegs vir omseil Media CSP",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Voer die media-instaanadres in",
   "VOTCheckingForUpdate": "Kontroleer vir opdaterings...",
   "VOTUpdateCheckFailed": "Kon nie vir opdaterings nagaan nie",
-  "VOTUpdateAvailable": "Nuwe weergawe {0} is beskikbaar"
+  "VOTUpdateAvailable": "Nuwe weergawe {0} is beskikbaar",
+  "VOTUpdatedDate": "Opgedateer {0}"
 }

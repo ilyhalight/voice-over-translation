@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Бейне атауы бар файлдарды жүктеңіз",
   "VOTUpdateLocaleFiles": "Локализация файлдарын жаңарту",
   "VOTLocaleHash": "Жергілікті хэш",
-  "VOTUpdatedAt": "жаңартылды",
   "VOTNeedWebAudioAPI": "Мұны қосу Үшін Сізде Web Audio API БОЛУЫ КЕРЕК",
   "VOTMediaCSPEnabledOnSite": "Бұл сайтта медиа CSP қосылған",
   "VOTOnlyBypassMediaCSP": "Оны Тек Csp Медиасын айналып өту үшін пайдаланыңыз",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Медиа прокси мекенжайын енгізіңіз",
   "VOTCheckingForUpdate": "Жаңартуларды тексеру...",
   "VOTUpdateCheckFailed": "Жаңартуларды тексеру мүмкін болмады",
-  "VOTUpdateAvailable": "Жаңа нұсқасы {0} қол жетімді"
+  "VOTUpdateAvailable": "Жаңа нұсқасы {0} қол жетімді",
+  "VOTUpdatedDate": "Жаңартылған {0}"
 }

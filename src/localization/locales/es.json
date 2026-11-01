@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Descargar archivos con el nombre del video",
   "VOTUpdateLocaleFiles": "Actualizar archivos de localización",
   "VOTLocaleHash": "Hash de configuración regional",
-  "VOTUpdatedAt": "Actualizado a las",
   "VOTNeedWebAudioAPI": "Para habilitar esto, debe tener una API de audio web",
   "VOTMediaCSPEnabledOnSite": "Media CSP está habilitado en este sitio",
   "VOTOnlyBypassMediaCSP": "Úselo solo para omitir CSP de medios",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Ingrese la dirección del proxy de medios",
   "VOTCheckingForUpdate": "Buscando actualizaciones...",
   "VOTUpdateCheckFailed": "No se pudieron buscar actualizaciones",
-  "VOTUpdateAvailable": "Nueva versión {0} disponible"
+  "VOTUpdateAvailable": "Nueva versión {0} disponible",
+  "VOTUpdatedDate": "Actualizado {0}"
 }

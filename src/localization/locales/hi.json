@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "वीडियो नाम के साथ फ़ाइलें डाउनलोड करें",
   "VOTUpdateLocaleFiles": "स्थानीयकरण फ़ाइलें अपडेट करें",
   "VOTLocaleHash": "लोकेल हैश",
-  "VOTUpdatedAt": "पर अपडेट किया गया",
   "VOTNeedWebAudioAPI": "इसे सक्षम करने के लिए, आपके पास एक वेब ऑडियो एपीआई होना चाहिए",
   "VOTMediaCSPEnabledOnSite": "मीडिया सीएसपी इस साइट पर सक्षम है",
   "VOTOnlyBypassMediaCSP": "इसका उपयोग केवल मीडिया सीएसपी को दरकिनार करने के लिए करें",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "मीडिया प्रॉक्सी पता दर्ज करें",
   "VOTCheckingForUpdate": "अद्यतन के लिए जाँच हो रही है । ..",
   "VOTUpdateCheckFailed": "अपडेट के लिए जाँच नहीं कर सका",
-  "VOTUpdateAvailable": "नया संस्करण {0} उपलब्ध है"
+  "VOTUpdateAvailable": "नया संस्करण {0} उपलब्ध है",
+  "VOTUpdatedDate": "अद्यतन {0}"
 }

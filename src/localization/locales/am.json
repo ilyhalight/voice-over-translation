@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "ፋይሎችን በቪዲዮ ስም ያውርዱ",
   "VOTUpdateLocaleFiles": "የአካባቢ ፋይሎችን አዘምን",
   "VOTLocaleHash": "አካባቢያዊ ሃሽ",
-  "VOTUpdatedAt": "ላይ የተዘመነ",
   "VOTNeedWebAudioAPI": "ይህንን ለማስቻል, አንድ የድር ኦዲዮ ኤፒአይ ሊኖርዎት ይገባል",
   "VOTMediaCSPEnabledOnSite": "በዚህ ድረ ገጽ ላይ የፒ",
   "VOTOnlyBypassMediaCSP": "የሚዲያ ሲ ኤስ ፒ ለማለፍ ብቻ ይጠቀሙ",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "የሚዲያ ተኪ አድራሻ ያስገቡ",
   "VOTCheckingForUpdate": "ዝማኔዎችን በመፈተሽ ላይ ። ..",
   "VOTUpdateCheckFailed": "ዝማኔዎችን ማረጋገጥ አልተቻለም ። ",
-  "VOTUpdateAvailable": "አዲስ ስሪት {0} ይገኛል"
+  "VOTUpdateAvailable": "አዲስ ስሪት {0} ይገኛል",
+  "VOTUpdatedDate": "የዘመነ {0}"
 }

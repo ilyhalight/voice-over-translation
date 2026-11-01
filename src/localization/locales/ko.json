@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "비디오 이름을 가진 파일 다운로드",
   "VOTUpdateLocaleFiles": "현지화 파일 업데이트",
   "VOTLocaleHash": "로캘 해시",
-  "VOTUpdatedAt": "에 업데이트 됨",
   "VOTNeedWebAudioAPI": "이 기능을 사용하려면 웹 오디오가 있어야 합니다.",
   "VOTMediaCSPEnabledOnSite": "이 사이트에서 사용할 수 있습니다",
   "VOTOnlyBypassMediaCSP": "미디어 우회 용으로만 사용",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "미디어 프록시 주소를 입력합니다",
   "VOTCheckingForUpdate": "업데이트 확인...",
   "VOTUpdateCheckFailed": "업데이트를 확인할 수 없습니다",
-  "VOTUpdateAvailable": "새 버전{0}을 사용할 수 있습니다"
+  "VOTUpdateAvailable": "새 버전{0}을 사용할 수 있습니다",
+  "VOTUpdatedDate": "업데이트{0}"
 }

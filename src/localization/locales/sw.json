@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Pakua faili zilizo na jina la video",
   "VOTUpdateLocaleFiles": "Sasisha faili za ujanibishaji",
   "VOTLocaleHash": "Eneo hash",
-  "VOTUpdatedAt": "Imesasishwa saa",
   "VOTNeedWebAudioAPI": "Ili kuwezesha hii, lazima uwe NA API Ya Sauti Ya Wavuti",
   "VOTMediaCSPEnabledOnSite": "Media CSP imewezeshwa kwenye tovuti hii",
   "VOTOnlyBypassMediaCSP": "Tumia Tu kwa kupitisha Vyombo VYA Habari CSP",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Ingiza anwani ya wakala wa media",
   "VOTCheckingForUpdate": "Kuangalia kwa updates...",
   "VOTUpdateCheckFailed": "Haikuweza kuangalia sasisho",
-  "VOTUpdateAvailable": "Toleo jipya {0} inapatikana"
+  "VOTUpdateAvailable": "Toleo jipya {0} inapatikana",
+  "VOTUpdatedDate": "Imesasishwa {0}"
 }

@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Ladda ner filer med videonamnet",
   "VOTUpdateLocaleFiles": "Uppdatera lokaliseringsfiler",
   "VOTLocaleHash": "Lokal hash",
-  "VOTUpdatedAt": "Uppdaterat klockan",
   "VOTNeedWebAudioAPI": "För att aktivera detta måste du ha ETT Web Audio API",
   "VOTMediaCSPEnabledOnSite": "Media CSP är aktiverat på den här webbplatsen",
   "VOTOnlyBypassMediaCSP": "Använd den bara för att kringgå Media CSP",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Ange media proxy-adressen",
   "VOTCheckingForUpdate": "Söker efter uppdateringar...",
   "VOTUpdateCheckFailed": "Kunde inte söka efter uppdateringar",
-  "VOTUpdateAvailable": "Ny version {0} är tillgänglig"
+  "VOTUpdateAvailable": "Ny version {0} är tillgänglig",
+  "VOTUpdatedDate": "Uppdaterad {0}"
 }

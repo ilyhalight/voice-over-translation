@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Video adı ilə faylları yükləyin",
   "VOTUpdateLocaleFiles": "Yerli faylları yeniləyin",
   "VOTLocaleHash": "Hash yerli",
-  "VOTUpdatedAt": "Saat yeniləndi",
   "VOTNeedWebAudioAPI": "Bunu aktivləşdirmək üçün veb Audio API olmalıdır",
   "VOTMediaCSPEnabledOnSite": "Media CSP bu saytda aktivdir",
   "VOTOnlyBypassMediaCSP": "Yalnız Media CSP-ni keçmək üçün istifadə edin",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Media proxy server ünvanını daxil edin",
   "VOTCheckingForUpdate": "Yeniləmələri yoxlayıram...",
   "VOTUpdateCheckFailed": "Yeniləmələri yoxlamaq mümkün olmadı",
-  "VOTUpdateAvailable": "Yeni versiya {0}mövcuddur"
+  "VOTUpdateAvailable": "Yeni versiya {0}mövcuddur",
+  "VOTUpdatedDate": "Yenilənib {0}"
 }

@@ -1,5 +1,5 @@
 import type { TMInfoScriptMeta } from "@toil/gm-types/types/info/tampermonkey";
-import { createResource, type JSX, Match, Switch } from "solid-js";
+import { createResource, type JSX, Match, Show, Switch } from "solid-js";
 import { LoadingDotsIcon } from "#components/Icons/LoadingDotsIcon.tsx";
 import { LATEST_RELEASE_URL } from "#modules/updater/const.ts";
 import { checkUpdate } from "#modules/updater/service.ts";
@@ -11,6 +11,7 @@ import {
 import { locale } from "../../stores/locale";
 import { getEnvironmentInfo } from "../../utils/environment";
 import { votStorage } from "../../utils/storage";
+import { formatDateTime } from "../../utils/timeFormatting";
 import { OutlinedButton } from "../Button/OutlinedButton";
 import { AboutItem } from "./AboutItem";
 
@@ -36,7 +37,9 @@ export function AboutSection(props: AboutSectionProps): JSX.Element {
   const browserInfo = `${envInfo.browser} (${envInfo.os})`;
 
   const localeUpdatedAt = () =>
-    new Date(locale.updatedAt * 1000).toLocaleString();
+    locale.updatedAt > 0
+      ? formatDateTime(locale.updatedAt, localizationProvider.lang)
+      : undefined;
   const localeHashValue = () => locale.hash || t("notFound");
   const updaterState = () => {
     if (updaterResult.loading) return "loading";
@@ -90,10 +93,16 @@ export function AboutSection(props: AboutSectionProps): JSX.Element {
       <AboutItem label={t("VOTBrowser")}>{browserInfo}</AboutItem>
       <AboutItem label={t("VOTLocaleHash")}>
         {localeHashValue()}
-        <br />
-        <vot-block class="vot-about-item__value_detail">
-          ({t("VOTUpdatedAt")} {localeUpdatedAt()})
-        </vot-block>
+        <Show when={localeUpdatedAt()}>
+          {(updatedAt) => (
+            <>
+              <br />
+              <vot-block class="vot-about-item__value_detail">
+                ({t("VOTUpdatedDate").replace("{0}", updatedAt())})
+              </vot-block>
+            </>
+          )}
+        </Show>
       </AboutItem>
       <OutlinedButton
         onClick={async () => {

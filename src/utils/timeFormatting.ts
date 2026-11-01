@@ -9,6 +9,23 @@ type TranslationEtaMessageGetter = (key: TranslationEtaMessageKey) => string;
 
 const MAX_SECS_FRACTION = 0.66;
 
+function createDateTimeFormat(lang: string) {
+  const options: Intl.DateTimeFormatOptions = {
+    dateStyle: "long",
+    timeStyle: "short",
+  };
+  try {
+    return new Intl.DateTimeFormat(lang, options);
+  } catch {
+    // Intl throws RangeError on structurally invalid language tags
+    return new Intl.DateTimeFormat(undefined, options);
+  }
+}
+
+export function formatDateTime(timestampSec: number, lang: string): string {
+  return createDateTimeFormat(lang).format(timestampSec * 1000);
+}
+
 export function formatTranslationEta(
   secs: number,
   getMessage: TranslationEtaMessageGetter,

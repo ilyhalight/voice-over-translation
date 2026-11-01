@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "دانلود فایل با نام تصویری",
   "VOTUpdateLocaleFiles": "به روز رسانی فایل های محلی سازی",
   "VOTLocaleHash": "هش محلی",
-  "VOTUpdatedAt": "به روز رسانی شده در",
   "VOTNeedWebAudioAPI": "برای فعال کردن این ، شما باید یک API صوتی وب داشته باشید",
   "VOTMediaCSPEnabledOnSite": "Media CSP در این سایت فعال شده است",
   "VOTOnlyBypassMediaCSP": "از آن فقط برای دور زدن Csp رسانه استفاده کنید",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "آدرس پروکسی رسانه را وارد کنید",
   "VOTCheckingForUpdate": "چک کردن به روز رسانی ها..",
   "VOTUpdateCheckFailed": "نتونستم به روز رساني ها رو چک کنم",
-  "VOTUpdateAvailable": "نسخه جدید {0} "
+  "VOTUpdateAvailable": "نسخه جدید {0} ",
+  "VOTUpdatedDate": "به روز شده {0}"
 }

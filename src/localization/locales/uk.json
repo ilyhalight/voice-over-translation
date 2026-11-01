@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Завантажуйте файли з назвою відео",
   "VOTUpdateLocaleFiles": "Оновити файли локалізації",
   "VOTLocaleHash": "Хеш локалі",
-  "VOTUpdatedAt": "Оновлено о",
   "VOTNeedWebAudioAPI": "Щоб увімкнути це, ви повинні мати Web Audio API",
   "VOTMediaCSPEnabledOnSite": "На цьому сайті включено Media CSP",
   "VOTOnlyBypassMediaCSP": "Використовуйте його лише для обходу Media CSP",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Введіть адресу медіа-проксі-сервера",
   "VOTCheckingForUpdate": "Перевіряю наявність оновлень...",
   "VOTUpdateCheckFailed": "Не вдалося перевірити наявність оновлень",
-  "VOTUpdateAvailable": "Доступна нова версія {0}"
+  "VOTUpdateAvailable": "Доступна нова версія {0}",
+  "VOTUpdatedDate": "Оновлено {0}"
 }

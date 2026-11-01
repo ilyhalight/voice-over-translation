@@ -190,7 +190,6 @@
   "VOTDownloadWithName": "Загружать файлы с названием видео",
   "VOTUpdateLocaleFiles": "Обновить файлы локализации",
   "VOTLocaleHash": "Хеш перевода",
-  "VOTUpdatedAt": "Обновлено в",
   "VOTNeedWebAudioAPI": "Чтобы включить, у вас должен быть Web Audio API",
   "VOTMediaCSPEnabledOnSite": "На этом сайте включен Media CSP",
   "VOTOnlyBypassMediaCSP": "Использовать только для обхода Media CSP",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Введите адрес медиа-прокси сервера",
   "VOTCheckingForUpdate": "Проверяю наличие обновлений...",
   "VOTUpdateCheckFailed": "Не удалось проверить наличие обновлений",
-  "VOTUpdateAvailable": "Доступна новая версия {0}"
+  "VOTUpdateAvailable": "Доступна новая версия {0}",
+  "VOTUpdatedDate": "Обновлено {0}"
 }

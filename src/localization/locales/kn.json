@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "ವೀಡಿಯೊ ಹೆಸರಿನೊಂದಿಗೆ ಫೈಲ್ಗಳನ್ನು ಡೌನ್ಲೋಡ್ ಮಾಡಿ",
   "VOTUpdateLocaleFiles": "ಅಪ್ಡೇಟ್ ಸ್ಥಳೀಕರಣ ಕಡತಗಳನ್ನು",
   "VOTLocaleHash": "ಲೊಕೇಲ್ ಹ್ಯಾಶ್",
-  "VOTUpdatedAt": "ಕ್ಕೆ ನವೀಕರಿಸಲಾಗಿದೆ",
   "VOTNeedWebAudioAPI": "ಇದನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಲು, ನೀವು ವೆಬ್ ಆಡಿಯೊ API ಅನ್ನು ಹೊಂದಿರಬೇಕು",
   "VOTMediaCSPEnabledOnSite": "ಈ ಸೈಟ್ನಲ್ಲಿ ಮೀಡಿಯಾ CSP ಅನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಲಾಗಿದೆ",
   "VOTOnlyBypassMediaCSP": "ಮಾಧ್ಯಮ ಸಿಎಸ್ಪಿ ಬೈಪಾಸ್ ಮಾಡಲು ಮಾತ್ರ ಇದನ್ನು ಬಳಸಿ",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "ಮಾಧ್ಯಮ ಪ್ರಾಕ್ಸಿ ವಿಳಾಸವನ್ನು ನಮೂದಿಸಿ",
   "VOTCheckingForUpdate": "ನವೀಕರಣಗಳಿಗಾಗಿ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...",
   "VOTUpdateCheckFailed": "ನವೀಕರಣಗಳಿಗಾಗಿ ಪರಿಶೀಲಿಸಲಾಗಿಲ್ಲ",
-  "VOTUpdateAvailable": "ಹೊಸ ಆವೃತ್ತಿ {0} ಲಭ್ಯವಿದೆ"
+  "VOTUpdateAvailable": "ಹೊಸ ಆವೃತ್ತಿ {0} ಲಭ್ಯವಿದೆ",
+  "VOTUpdatedDate": "ಅಪ್ಡೇಟ್ಗೊಳಿಸಲಾಗಿದೆ {0}"
 }

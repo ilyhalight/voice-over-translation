@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Descărcați fișiere cu numele videoclipului",
   "VOTUpdateLocaleFiles": "Actualizați fișierele de localizare",
   "VOTLocaleHash": "Hash Locale",
-  "VOTUpdatedAt": "Actualizat la",
   "VOTNeedWebAudioAPI": "Pentru a activa acest lucru, trebuie să aveți un API Audio Web",
   "VOTMediaCSPEnabledOnSite": "Media CSP este activat pe acest site",
   "VOTOnlyBypassMediaCSP": "Utilizați-l numai pentru ocolirea CSP Media",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Introduceți adresa proxy media",
   "VOTCheckingForUpdate": "Verificarea actualizărilor...",
   "VOTUpdateCheckFailed": "Nu s-a putut verifica actualizările",
-  "VOTUpdateAvailable": "Noua versiune {0} este disponibilă"
+  "VOTUpdateAvailable": "Noua versiune {0} este disponibilă",
+  "VOTUpdatedDate": "Actualizat {0}"
 }

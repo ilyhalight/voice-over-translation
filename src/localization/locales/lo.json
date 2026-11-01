@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "ດາວນ໌ໂຫລດໄຟລ໌ທີ່ມີຊື່ວິດີໂອໄດ້",
   "VOTUpdateLocaleFiles": "ອັບເດດໄຟລ໌ທ້ອງຖິ່ນ",
   "VOTLocaleHash": "Hash ທ້ອງຖິ່ນ",
-  "VOTUpdatedAt": "ອັບເດດເວລາ",
   "VOTNeedWebAudioAPI": "ເພື່ອເປີດໃຊ້ສິ່ງນີ້,ທ່ານຕ້ອງມີ Web Audio API",
   "VOTMediaCSPEnabledOnSite": "Media CSP ຖືກເປີດໃຊ້ໃນເວັບໄຊທ໌ນີ້",
   "VOTOnlyBypassMediaCSP": "ໃຊ້ມັນພຽງແຕ່ສໍາລັບການ bypassing ສື່ CSP",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "ກະລຸນາໃສ່ທີ່ຢູ່ຕົວແທນສື່ມວນຊົນ",
   "VOTCheckingForUpdate": "ກວດເບິ່ງການປັບປຸງ...",
   "VOTUpdateCheckFailed": "ບໍ່ສາມາດກວດສອບການອັບເດດໄດ້",
-  "VOTUpdateAvailable": "ສະບັບໃຫມ່{0}ສາມາດໃຊ້ໄດ້"
+  "VOTUpdateAvailable": "ສະບັບໃຫມ່{0}ສາມາດໃຊ້ໄດ້",
+  "VOTUpdatedDate": "ອັບເດດ{0}"
 }

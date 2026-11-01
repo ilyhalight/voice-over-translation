@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Վերբեռնեք ֆայլեր տեսանյութի անունով",
   "VOTUpdateLocaleFiles": "Թարմացրեք տեղայնացման ֆայլերը",
   "VOTLocaleHash": "Հաշ locales",
-  "VOTUpdatedAt": "Թարմացվել է",
   "VOTNeedWebAudioAPI": "Սա միացնելու համար դուք պետք է ունենաք վեբ աուդիո API",
   "VOTMediaCSPEnabledOnSite": "Media CSP-ն միացված է այս կայքում",
   "VOTOnlyBypassMediaCSP": "Օգտագործեք այն միայն Media CSP-ն շրջանցելու համար",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Մուտքագրեք լրատվամիջոցների վստահված սերվերի հասցեն",
   "VOTCheckingForUpdate": "Ստուգեք թարմացումների համար:..",
   "VOTUpdateCheckFailed": "Հնարավոր չէ ստուգել թարմացումները",
-  "VOTUpdateAvailable": "Նոր տարբերակը հասանելի է {0}"
+  "VOTUpdateAvailable": "Նոր տարբերակը հասանելի է {0}",
+  "VOTUpdatedDate": "Թարմացվել է {0}"
 }

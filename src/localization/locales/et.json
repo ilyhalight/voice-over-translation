@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Laadige alla video nimega failid",
   "VOTUpdateLocaleFiles": "Uuenda lokaliseerimisfaile",
   "VOTLocaleHash": "Locale hash",
-  "VOTUpdatedAt": "Uuendatud kell",
   "VOTNeedWebAudioAPI": "Selle lubamiseks peab teil olema Veebiheli API",
   "VOTMediaCSPEnabledOnSite": "Meedia CSP on lubatud sellel saidil",
   "VOTOnlyBypassMediaCSP": "Kasutage seda ainult mööda meedia CSP",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Sisestage meedia puhverserveri aadress",
   "VOTCheckingForUpdate": "Värskenduste kontrollimine...",
   "VOTUpdateCheckFailed": "Värskendusi ei õnnestunud kontrollida",
-  "VOTUpdateAvailable": "Uus versioon {0} on saadaval"
+  "VOTUpdateAvailable": "Uus versioon {0} on saadaval",
+  "VOTUpdatedDate": "Uuendatud {0}"
 }

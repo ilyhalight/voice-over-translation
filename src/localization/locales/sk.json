@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Stiahnite si súbory s názvom videa",
   "VOTUpdateLocaleFiles": "Aktualizácia lokalizačných súborov",
   "VOTLocaleHash": "Locale hash",
-  "VOTUpdatedAt": "Aktualizované o",
   "VOTNeedWebAudioAPI": "Ak to chcete povoliť, musíte mať rozhranie Web Audio API",
   "VOTMediaCSPEnabledOnSite": "Media CSP je povolené na tejto stránke",
   "VOTOnlyBypassMediaCSP": "Používajte ho iba na obídenie médií CSP",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Zadajte adresu proxy servera médií",
   "VOTCheckingForUpdate": "Kontrola aktualizácií...",
   "VOTUpdateCheckFailed": "Nepodarilo sa skontrolovať aktualizácie",
-  "VOTUpdateAvailable": "K dispozícii je nová verzia {0} "
+  "VOTUpdateAvailable": "K dispozícii je nová verzia {0} ",
+  "VOTUpdatedDate": "Aktualizácia {0}"
 }

@@ -47,6 +47,7 @@ export default defineMain({
           DEBUG_MODE: true,
           IS_EXTENSION: false,
           GM_info: {},
+          VOT_VERSION: JSON.stringify("0.0.0-storybook"),
           AVAILABLE_LOCALES: await getAvailableLocales(),
         },
         resolve: {

@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "ဗီဒီယိုအမည်ပါဖိုင်များကိုဒေါင်းလုပ်ဆွဲပါ",
   "VOTUpdateLocaleFiles": "ဒေသတွင်းဖိုင်များကို Update လုပ်ပါ",
   "VOTLocaleHash": "ဒေသတွင်းဟက်ရှ်",
-  "VOTUpdatedAt": "၁၆:၄၀ တွင်အတည်ပြု",
   "VOTNeedWebAudioAPI": "ဒါကိုဖွင့်ဖို့ Web Audio API တစ်ခုရှိရပါမယ်။",
   "VOTMediaCSPEnabledOnSite": "ဤဆိုက်တွင်မီဒီယာ CSP ကိုခွင့်ပြုထားသည်။",
   "VOTOnlyBypassMediaCSP": "မီဒီယာ CSP ကိုရှောင်လွှဲဖို့ပဲသုံးပါ။",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "မီဒီယာ proxy လိပ်စာကိုရိုက်ထည့်ပါ",
   "VOTCheckingForUpdate": "နောက်ဆုံးသတင်းတွေကိုစစ်ဆေးနေတယ်။..",
   "VOTUpdateCheckFailed": "အပ်ဒိတ်များကိုစစ်ဆေး၍မရပါ။",
-  "VOTUpdateAvailable": "{0}ဗားရှင်းအသစ်ရရှိနိုင်သည်"
+  "VOTUpdateAvailable": "{0}ဗားရှင်းအသစ်ရရှိနိုင်သည်",
+  "VOTUpdatedDate": "{0}ကိုအပ်ဒိတ်လုပ်ထားသည်"
 }

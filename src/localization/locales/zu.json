@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Thwebula amafayela ngegama video",
   "VOTUpdateLocaleFiles": "Buyekeza amafayela localization",
   "VOTLocaleHash": "I-hash yendawo",
-  "VOTUpdatedAt": "Kubuyekezwe",
   "VOTNeedWebAudioAPI": "Ukuze ukwazi lokhu, kufanele UBE NE-WEB AUDIO API",
   "VOTMediaCSPEnabledOnSite": "I-Media csp inikwe amandla kule sayithi",
   "VOTOnlyBypassMediaCSP": "Sebenzisa kuphela Bypassing Media Csp",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Faka ikheli le-media proxy",
   "VOTCheckingForUpdate": "Ukuhlola izibuyekezo...",
   "VOTUpdateCheckFailed": "Ayikwazanga ukuhlola izibuyekezo",
-  "VOTUpdateAvailable": "Inguqulo entsha {0} iyatholakala"
+  "VOTUpdateAvailable": "Inguqulo entsha {0} iyatholakala",
+  "VOTUpdatedDate": "Kubuyekeziwe {0}"
 }

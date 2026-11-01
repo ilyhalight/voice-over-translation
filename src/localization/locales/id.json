@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Unduh file dengan nama video",
   "VOTUpdateLocaleFiles": "Perbarui file pelokalan",
   "VOTLocaleHash": "Hash lokal",
-  "VOTUpdatedAt": "Diperbarui pukul",
   "VOTNeedWebAudioAPI": "Untuk mengaktifkan ini, Anda harus memiliki Web Audio API",
   "VOTMediaCSPEnabledOnSite": "Media CSP diaktifkan di situs ini",
   "VOTOnlyBypassMediaCSP": "Gunakan hanya untuk melewati Media CSP",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Masukkan alamat proksi media",
   "VOTCheckingForUpdate": "Memeriksa pembaruan...",
   "VOTUpdateCheckFailed": "Tidak dapat memeriksa pembaruan",
-  "VOTUpdateAvailable": "Versi baru {0} tersedia"
+  "VOTUpdateAvailable": "Versi baru {0} tersedia",
+  "VOTUpdatedDate": "Diperbarui {0}"
 }

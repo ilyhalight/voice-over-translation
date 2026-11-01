@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Lawrlwytho ffeiliau gydag enw'r fideo",
   "VOTUpdateLocaleFiles": "Diweddaru ffeiliau lleoleiddio",
   "VOTLocaleHash": "Hash Locale",
-  "VOTUpdatedAt": "Diweddarwyd am",
   "VOTNeedWebAudioAPI": "I alluogi HYN, rhaid bod GENNYCH API Sain Gwe",
   "VOTMediaCSPEnabledOnSite": "Mae csp cyfryngau wedi'i alluogi ar y wefan hon",
   "VOTOnlyBypassMediaCSP": "Defnyddiwch ef yn unig ar gyfer osgoi Cyfryngau CSP",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Rhowch gyfeiriad dirprwy y cyfryngau",
   "VOTCheckingForUpdate": "Gwirio am ddiweddariadau...",
   "VOTUpdateCheckFailed": "Diweddaru pecyn",
-  "VOTUpdateAvailable": "Fersiwn newydd {0} ar gael"
+  "VOTUpdateAvailable": "Fersiwn newydd {0} ar gael",
+  "VOTUpdatedDate": "Diweddarwyd {0}"
 }

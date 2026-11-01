@@ -186,7 +186,6 @@
   "VOTDownloadWithName": "Töltsön le fájlokat a videó nevével",
   "VOTUpdateLocaleFiles": "Lokalizációs fájlok frissítése",
   "VOTLocaleHash": "Locale hash",
-  "VOTUpdatedAt": "Frissítve",
   "VOTNeedWebAudioAPI": "Ennek engedélyezéséhez rendelkeznie kell egy Web Audio API-val",
   "VOTMediaCSPEnabledOnSite": "A Media CSP engedélyezve van ezen a webhelyen",
   "VOTOnlyBypassMediaCSP": "Csak a Media CSP megkerülésére használja",
@@ -278,5 +277,6 @@
   "VOTMediaProxyHost": "Adja meg a Média proxy címét",
   "VOTCheckingForUpdate": "Frissítések keresése...",
   "VOTUpdateCheckFailed": "Nem sikerült ellenőrizni a frissítéseket",
-  "VOTUpdateAvailable": "Új verzió {0} elérhető"
+  "VOTUpdateAvailable": "Új verzió {0} elérhető",
+  "VOTUpdatedDate": "Frissítve {0}"
 }
