@@ -1,7 +1,7 @@
 {
   "name": "[VOT] - Voice Over Translation",
   "description": "Watch videos in other languages with voice-over translation and subtitles in any browser",
-  "version": "1.12.5",
+  "version": "1.12.6",
   "author": "Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng",
   "namespace": "vot",
   "icon": "https://raw.githubusercontent.com/ilyhalight/voice-over-translation/dev/src/public/icons/icon-128.png",
@@ -220,6 +220,7 @@
     "vtrans.eu.cc",
     "vot-worker.vtrans.eu.cc",
     "ingest.nirel.cc",
-    "kinopoisk.ru"
+    "kinopoisk.ru",
+    "api.bilibili.com"
   ]
 }

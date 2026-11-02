@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 配音翻译
 // @namespace      vot
-// @version        1.12.5
+// @version        1.12.6
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    Watch videos in other languages with voice-over translation and subtitles in any browser
 // @description:de Sieh dir Videos in anderen Sprachen mit Voice-over-Übersetzung und Untertiteln in jedem Browser an
@@ -260,6 +260,7 @@
 // @connect        vot-worker.vtrans.eu.cc
 // @connect        ingest.nirel.cc
 // @connect        kinopoisk.ru
+// @connect        api.bilibili.com
 // @grant          GM_addStyle
 // @grant          GM_deleteValue
 // @grant          GM_getValue
@@ -277,7 +278,7 @@
 // @grant          GM.xmlHttpRequest
 // @grant          window.focus
 // ==/UserScript==
-(function(){try{var g=globalThis,k=Symbol.for("vot.debugIds"),s=(new Error().stack||"").replace(/(extension:\/\/)[^\/\s]+/g,"$1extension");if(s){g[k]||Object.defineProperty(g,k,{value:{}});g[k][s]={d:"d14083e9-a227-490c-b4ed-d627e05645f9",l:280}}}catch(e){}})();
+(function(){try{var g=globalThis,k=Symbol.for("vot.debugIds"),s=(new Error().stack||"").replace(/(extension:\/\/)[^\/\s]+/g,"$1extension");if(s){g[k]||Object.defineProperty(g,k,{value:{}});g[k][s]={d:"ed6273ae-2d1a-4aa5-a94a-8f931168bfcf",l:281}}}catch(e){}})();
 
 var vot = (function(exports) {
 	Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
@@ -857,13 +858,15 @@ var vot = (function(exports) {
 			host: VideoService$1.bilibili,
 			url: "https://www.bilibili.com/",
 			match: /^(www|m|player).bilibili.com$/,
-			selector: sharedSelectors.bilibiliPlayer
+			selector: sharedSelectors.bilibiliPlayer,
+			needExtraData: true
 		},
 		{
 			host: VideoService$1.bilibili,
 			url: "https://www.bilibili.tv/",
 			match: /^(?:www\.|m\.)?bilibili\.tv$/,
-			selector: sharedSelectors.bilibiliPlayer
+			selector: sharedSelectors.bilibiliPlayer,
+			needExtraData: true
 		},
 		{
 			additionalData: "old",
@@ -1449,7 +1452,7 @@ var vot = (function(exports) {
 		defaultDuration: 310,
 		minChunkSize: 5295308,
 		loggerLevel: 1,
-		version: "3.2.1"
+		version: "3.2.2"
 	};
 	// ../vot.js/packages/shared/dist/types/logger.js
 	var LoggerLevel;
@@ -1761,7 +1764,96 @@ var vot = (function(exports) {
 		}
 	};
 	// ../vot.js/packages/ext/dist/helpers/bilibili.js
+	var getPlayer$2 = () => {
+		return window.player;
+	};
+	var getPlayInitialState = () => {
+		return window.__initialState;
+	};
+	var BILIBILI_FNVAL = "4048";
 	var BilibiliHelper = class extends BaseHelper {
+		async checkAudioUrl(url) {
+			if (!url.includes(".m4s")) return false;
+			try {
+				const res = await this.fetch(url, { headers: { Range: "bytes=1-1" } });
+				if (!res.ok) throw new Error(`Failed to check audio URL: ${res.status} ${res.statusText}`);
+				return url;
+			} catch (err) {
+				Logger$1.log(`Failed to check audio URL: ${url}`, err);
+				return false;
+			}
+		}
+		async parseDash(dash) {
+			const { duration, audio: audios } = dash;
+			const audio = audios.filter((a) => (a.mimeType ?? a.mime_type) === "audio/mp4").sort((a, b) => b.bandwidth - a.bandwidth)[0];
+			if (!audio) throw new Error("No audio available");
+			const { baseUrl, base_url, backupUrl, backup_url } = audio;
+			const audioUrl = await this.checkAudioUrl(baseUrl ?? base_url) ?? await this.checkAudioUrl(backupUrl?.[0] ?? backup_url?.[0]);
+			if (!audioUrl) throw new Error("No valid audio URL found");
+			return {
+				duration,
+				audioUrl
+			};
+		}
+		async getVideoPlayUrl(bvid, cid) {
+			const params = new URLSearchParams({
+				fnval: BILIBILI_FNVAL,
+				bvid,
+				cid: cid.toString(),
+				gaia_source: "pre-load",
+				wts: getTimestamp$1().toString()
+			}).toString();
+			const res = await this.fetch(`https://api.bilibili.com/x/player/wbi/playurl?${params}`);
+			if (!res.ok) throw new Error(`Failed to fetch play URL: ${res.status} ${res.statusText}`);
+			const result = await res.json();
+			if (result.code !== 0) throw new Error(`Failed to fetch play URL: ${result.message || "Unknown error"}`);
+			return await this.parseDash(result.data.dash);
+		}
+		async getBagumiPlayUrl(seasonId, episodeId) {
+			const params = new URLSearchParams({
+				biz_type: "ogv",
+				fnval: BILIBILI_FNVAL,
+				ep_id: episodeId.toString(),
+				season_id: seasonId.toString(),
+				wts: getTimestamp$1().toString()
+			}).toString();
+			const res = await this.fetch(`https://api.bilibili.com/ogv/player/playview?${params}`, { credentials: "include" });
+			if (!res.ok) throw new Error(`Failed to fetch play URL: ${res.status} ${res.statusText}`);
+			const result = await res.json();
+			if (result.code !== 0) throw new Error(`Failed to fetch play URL: ${result.message || "Unknown error"}`);
+			return await this.parseDash(result.data.video_info.dash);
+		}
+		async getVideoPageData() {
+			const player = getPlayer$2();
+			if (!player) throw new Error("Bilibili player not found");
+			const { bvid, cid, seasonId, episodeId } = player.getManifest();
+			return bvid !== null ? await this.getVideoPlayUrl(bvid, cid) : await this.getBagumiPlayUrl(seasonId, episodeId);
+		}
+		async getPlayPageData() {
+			const initialState = getPlayInitialState();
+			if (!initialState) throw new Error("Bilibili play page initial state not found");
+			const dash = initialState?.player?.playUrl?.value?.dash;
+			if (!dash) throw new Error("No dash data found");
+			return await this.parseDash(dash);
+		}
+		async getVideoData(videoId) {
+			const baseData = this.returnBaseData(videoId);
+			if (!baseData) return;
+			try {
+				const playData = videoId.startsWith("play/") ? await this.getPlayPageData() : await this.getVideoPageData();
+				return {
+					...baseData,
+					duration: playData.duration,
+					translationHelp: [{
+						target: "video_file_url",
+						targetUrl: proxyMedia(playData.audioUrl, "mp4", this.mediaProxy)
+					}]
+				};
+			} catch (err) {
+				Logger$1.warn(`Failed to get Bilibili video data by video ID: ${videoId}, because ${err.message}. Using clear link instead...`);
+				return baseData;
+			}
+		}
 		async getVideoId(url) {
 			const playId = /(?:bangumi|cheese)\/play\/[^/]+/.exec(url.pathname)?.[0];
 			if (playId) return playId;
@@ -11127,7 +11219,7 @@ var vot = (function(exports) {
 	}
 	function getRuntimeInfo() {
 		return {
-			version: "1.12.5",
+			version: "1.12.6",
 			environment: "master",
 			env: getEnvironmentInfo$1(),
 			debugIds: readDebugIdRegistry()
@@ -11138,7 +11230,7 @@ var vot = (function(exports) {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/x-sentry-envelope",
-				"X-Sentry-Auth": buildAuthHeader("1.12.5")
+				"X-Sentry-Auth": buildAuthHeader("1.12.6")
 			},
 			body: buildEnvelope(event),
 			forceGmXhr: true,
@@ -11648,7 +11740,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.12.5"), String(getGMInfo()?.script?.version || ""));
+		return resolveRuntimeLocaleVersion(String("1.12.6"), String(getGMInfo()?.script?.version || ""));
 	}
 	var LocalizationProvider = class {
 		lang;
@@ -43445,7 +43537,7 @@ var vot = (function(exports) {
 	function createDefaultUpdaterInfo() {
 		return {
 			checkedAt: 0,
-			remoteVersion: "1.12.5"
+			remoteVersion: "1.12.6"
 		};
 	}
 	var [updaterInfo, setUpdaterInfo] = createStore(createDefaultUpdaterInfo());
@@ -43461,7 +43553,7 @@ var vot = (function(exports) {
 	function canCheckUpdate() {
 		return Date.now() - updaterInfo.checkedAt >= UPDATE_CHECK_INTERVAL;
 	}
-	var getAvailableUpdate = (version) => compareVersions(version, "1.12.5") > 0 ? version : false;
+	var getAvailableUpdate = (version) => compareVersions(version, "1.12.6") > 0 ? version : false;
 	async function checkUpdate() {
 		if (!canCheckUpdate()) return getAvailableUpdate(updaterInfo.remoteVersion);
 		let remoteVersion;
@@ -49473,4 +49565,4 @@ var vot = (function(exports) {
 	exports.bootstrapContentScript = bootstrapContentScript;
 	return exports;
 })({});
-//# debugId=d14083e9-a227-490c-b4ed-d627e05645f9
+//# debugId=ed6273ae-2d1a-4aa5-a94a-8f931168bfcf
