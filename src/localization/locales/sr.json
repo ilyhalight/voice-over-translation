@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Проверавам ажурирања...",
   "VOTUpdateCheckFailed": "Провера ажурирања није успела",
   "VOTUpdateAvailable": "Доступна је нова верзија {0}",
-  "VOTUpdatedDate": "Ажурирано {0}"
+  "VOTUpdatedDate": "Ажурирано {0}",
+  "udemyPreparingTranslation": "Припрема превода",
+  "udemyCapturingAudio": "Снимање звука предавања за Иандек",
+  "udemySendingAudio": "Слање звука у Иандек"
 }

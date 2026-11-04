@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Buscando actualizaciones...",
   "VOTUpdateCheckFailed": "No se pudieron buscar actualizaciones",
   "VOTUpdateAvailable": "Nueva versión {0} disponible",
-  "VOTUpdatedDate": "Actualizado {0}"
+  "VOTUpdatedDate": "Actualizado {0}",
+  "udemyPreparingTranslation": "Preparando la traducción",
+  "udemyCapturingAudio": "Grabación del sonido de la conferencia para Yandex",
+  "udemySendingAudio": "Envío de audio a Yandex"
 }

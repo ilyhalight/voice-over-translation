@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Kontrol for opdateringer...",
   "VOTUpdateCheckFailed": "Kunne ikke tjekke for opdateringer",
   "VOTUpdateAvailable": "Ny version {0} er tilgængelig",
-  "VOTUpdatedDate": "Opdateret {0}"
+  "VOTUpdatedDate": "Opdateret {0}",
+  "udemyPreparingTranslation": "Forberedelse af oversættelse",
+  "udemyCapturingAudio": "Optagelse af foredragslyden til Yandeks",
+  "udemySendingAudio": "Afsendelse af lyd til Yandeks"
 }

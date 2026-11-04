@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "چک کردن به روز رسانی ها..",
   "VOTUpdateCheckFailed": "نتونستم به روز رساني ها رو چک کنم",
   "VOTUpdateAvailable": "نسخه جدید {0} ",
-  "VOTUpdatedDate": "به روز شده {0}"
+  "VOTUpdatedDate": "به روز شده {0}",
+  "udemyPreparingTranslation": "آماده سازی ترجمه",
+  "udemyCapturingAudio": "ضبط صدای سخنرانی برای Yandex",
+  "udemySendingAudio": "ارسال صدا به Yandex"
 }

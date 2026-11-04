@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Kontrola aktualizací...",
   "VOTUpdateCheckFailed": "Nelze zkontrolovat aktualizace",
   "VOTUpdateAvailable": "Nová verze {0} je k dispozici",
-  "VOTUpdatedDate": "Aktualizováno {0}"
+  "VOTUpdatedDate": "Aktualizováno {0}",
+  "udemyPreparingTranslation": "Příprava překladu",
+  "udemyCapturingAudio": "Nahrávání zvuku přednášky pro Yandex",
+  "udemySendingAudio": "Odesílání zvuku do Yandexu"
 }

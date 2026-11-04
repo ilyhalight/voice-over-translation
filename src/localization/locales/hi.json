@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "अद्यतन के लिए जाँच हो रही है । ..",
   "VOTUpdateCheckFailed": "अपडेट के लिए जाँच नहीं कर सका",
   "VOTUpdateAvailable": "नया संस्करण {0} उपलब्ध है",
-  "VOTUpdatedDate": "अद्यतन {0}"
+  "VOTUpdatedDate": "अद्यतन {0}",
+  "udemyPreparingTranslation": "अनुवाद की तैयारी",
+  "udemyCapturingAudio": "यांडेक्स के लिए व्याख्यान ध्वनि रिकॉर्ड करना",
+  "udemySendingAudio": "यांडेक्स को ऑडियो भेजना"
 }

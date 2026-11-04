@@ -1,0 +1,32 @@
+.vot-udemy-capture-overlay-host {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.vot-udemy-capture-overlay {
+  display: flex;
+  box-sizing: border-box;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: var(--vot-space-6, 24px);
+  gap: var(--vot-space-2, 8px);
+  background: rgb(var(--vot-surface-rgb, 32, 33, 36));
+  color: rgb(var(--vot-onsurface-rgb, 227, 227, 227));
+  font-family: var(--vot-font-family);
+  text-align: center;
+
+  &__title {
+    font-size: 18px;
+    font-weight: 500;
+  }
+
+  &__detail {
+    font-size: 14px;
+    opacity: 0.72;
+  }
+}

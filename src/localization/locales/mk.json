@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Проверка за ажурирања...",
   "VOTUpdateCheckFailed": "Не можев да проверам за ажурирања",
   "VOTUpdateAvailable": "Нова верзија {0} е достапна",
-  "VOTUpdatedDate": "Ажурирано {0}"
+  "VOTUpdatedDate": "Ажурирано {0}",
+  "udemyPreparingTranslation": "Подготовка на превод",
+  "udemyCapturingAudio": "Снимање на звукот на предавање За Јандекс",
+  "udemySendingAudio": "Испраќање аудио До Јандекс"
 }

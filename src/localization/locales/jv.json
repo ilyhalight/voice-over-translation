@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Monitoring updates...",
   "VOTUpdateCheckFailed": "Ora bisa mriksa nganyari",
   "VOTUpdateAvailable": "Versi anyar {0} kasedhiya",
-  "VOTUpdatedDate": "Dianyari {0}"
+  "VOTUpdatedDate": "Dianyari {0}",
+  "udemyPreparingTranslation": "Nyiapake terjemahan",
+  "udemyCapturingAudio": "Ngrekam swara kuliah Kanggo Yandex",
+  "udemySendingAudio": "Ngirim audio Menyang Yandex"
 }

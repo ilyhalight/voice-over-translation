@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Kontroleer vir opdaterings...",
   "VOTUpdateCheckFailed": "Kon nie vir opdaterings nagaan nie",
   "VOTUpdateAvailable": "Nuwe weergawe {0} is beskikbaar",
-  "VOTUpdatedDate": "Opgedateer {0}"
+  "VOTUpdatedDate": "Opgedateer {0}",
+  "udemyPreparingTranslation": "Voorbereiding van vertaling",
+  "udemyCapturingAudio": "Opname van die lesing klank Vir Yandex",
+  "udemySendingAudio": "Stuur klank Na Yandex"
 }

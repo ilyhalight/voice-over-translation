@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Yangilanishlarni tekshirish...",
   "VOTUpdateCheckFailed": "Yangilanishlarni tekshirib bo'lmadi",
   "VOTUpdateAvailable": "Yangi versiya {0} mavjud",
-  "VOTUpdatedDate": "Yangilangan {0}"
+  "VOTUpdatedDate": "Yangilangan {0}",
+  "udemyPreparingTranslation": "Tarjimani tayyorlash",
+  "udemyCapturingAudio": "Yandex uchun ma'ruza ovozini yozib olish",
+  "udemySendingAudio": "Yandex-ga audio yuborish"
 }

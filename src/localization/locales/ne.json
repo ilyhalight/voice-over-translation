@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "अपडेटका लागि जाँच गर्दैछ।..",
   "VOTUpdateCheckFailed": "अद्यावधिकका लागि जाँच गर्न सकिएन",
   "VOTUpdateAvailable": "नयाँ संस्करण {0} उपलब्ध छ",
-  "VOTUpdatedDate": "{0}अद्यावधिक गरियो"
+  "VOTUpdatedDate": "{0}अद्यावधिक गरियो",
+  "udemyPreparingTranslation": "अनुवाद तयार पार्दै",
+  "udemyCapturingAudio": "यान्डेक्सका लागि व्याख्यान ध्वनि रेकर्ड गर्दै",
+  "udemySendingAudio": "यान्डेक्समा अडियो पठाउँदै"
 }

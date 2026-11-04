@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Eguneraketak egiaztatzen...",
   "VOTUpdateCheckFailed": "Ezin izan da eguneraketarik begiratu",
   "VOTUpdateAvailable": "{0} bertsio berria eskuragarri dago",
-  "VOTUpdatedDate": "Eguneratua: {0}"
+  "VOTUpdatedDate": "Eguneratua: {0}",
+  "udemyPreparingTranslation": "Itzulpena prestatzen",
+  "udemyCapturingAudio": "Hitzaldiaren soinua Grabatzen",
+  "udemySendingAudio": "Audioa Bidaltzen Yandex - era"
 }

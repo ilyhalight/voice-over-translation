@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Provjeravam ima li ažuriranja...",
   "VOTUpdateCheckFailed": "Provjera ažuriranja nije uspjela",
   "VOTUpdateAvailable": "Dostupna je nova verzija {0}",
-  "VOTUpdatedDate": "Ažurirano {0}"
+  "VOTUpdatedDate": "Ažurirano {0}",
+  "udemyPreparingTranslation": "Priprema prijevoda",
+  "udemyCapturingAudio": "Snimanje zvuka predavanja za Jandeks",
+  "udemySendingAudio": "Slanje zvuka u Jandeks"
 }

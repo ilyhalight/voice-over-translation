@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "更新をチェックします。..",
   "VOTUpdateCheckFailed": "更新をチェックできませんでした",
   "VOTUpdateAvailable": "新しいバージョン{0}が利用可能です",
-  "VOTUpdatedDate": "更新された{0}"
+  "VOTUpdatedDate": "更新された{0}",
+  "udemyPreparingTranslation": "翻訳の準備",
+  "udemyCapturingAudio": "Yandexのための講義の音を録音する",
+  "udemySendingAudio": "Yandexにオーディオを送信する"
 }

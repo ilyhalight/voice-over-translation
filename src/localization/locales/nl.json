@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Controleren op updates...",
   "VOTUpdateCheckFailed": "Kon niet controleren op updates",
   "VOTUpdateAvailable": "Nieuwe versie {0} is beschikbaar",
-  "VOTUpdatedDate": "{0}bijgewerkt"
+  "VOTUpdatedDate": "{0}bijgewerkt",
+  "udemyPreparingTranslation": "Vertaling voorbereiden",
+  "udemyCapturingAudio": "Opname van het lezinggeluid voor Yandex",
+  "udemySendingAudio": "Audio verzenden naar Yandex"
 }

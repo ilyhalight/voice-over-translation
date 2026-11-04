@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "التحقق من وجود تحديثات...",
   "VOTUpdateCheckFailed": "تعذر التحقق من وجود تحديثات",
   "VOTUpdateAvailable": "الإصدار الجديد {0} متاح",
-  "VOTUpdatedDate": "تحديث {0}"
+  "VOTUpdatedDate": "تحديث {0}",
+  "udemyPreparingTranslation": "إعداد الترجمة",
+  "udemyCapturingAudio": "تسجيل صوت المحاضرة لياندكس",
+  "udemySendingAudio": "إرسال الصوت إلى ياندكس"
 }

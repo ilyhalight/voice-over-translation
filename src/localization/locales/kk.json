@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Жаңартуларды тексеру...",
   "VOTUpdateCheckFailed": "Жаңартуларды тексеру мүмкін болмады",
   "VOTUpdateAvailable": "Жаңа нұсқасы {0} қол жетімді",
-  "VOTUpdatedDate": "Жаңартылған {0}"
+  "VOTUpdatedDate": "Жаңартылған {0}",
+  "udemyPreparingTranslation": "Аударманы дайындау",
+  "udemyCapturingAudio": "Яндекс үшін дәріс дыбысын жазу",
+  "udemySendingAudio": "Дыбысты Яндекске жіберу"
 }

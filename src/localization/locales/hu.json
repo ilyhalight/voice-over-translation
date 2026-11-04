@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Frissítések keresése...",
   "VOTUpdateCheckFailed": "Nem sikerült ellenőrizni a frissítéseket",
   "VOTUpdateAvailable": "Új verzió {0} elérhető",
-  "VOTUpdatedDate": "Frissítve {0}"
+  "VOTUpdatedDate": "Frissítve {0}",
+  "udemyPreparingTranslation": "Fordítás előkészítése",
+  "udemyCapturingAudio": "Az előadás hangjának rögzítése a Yandex számára",
+  "udemySendingAudio": "Hang küldése a Yandexnek"
 }

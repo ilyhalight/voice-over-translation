@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Kuangalia kwa updates...",
   "VOTUpdateCheckFailed": "Haikuweza kuangalia sasisho",
   "VOTUpdateAvailable": "Toleo jipya {0} inapatikana",
-  "VOTUpdatedDate": "Imesasishwa {0}"
+  "VOTUpdatedDate": "Imesasishwa {0}",
+  "udemyPreparingTranslation": "Kuandaa tafsiri",
+  "udemyCapturingAudio": "Kurekodi sauti ya hotuba Kwa Yandex",
+  "udemySendingAudio": "Kutuma sauti Kwa Yandex"
 }

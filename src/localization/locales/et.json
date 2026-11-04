@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Värskenduste kontrollimine...",
   "VOTUpdateCheckFailed": "Värskendusi ei õnnestunud kontrollida",
   "VOTUpdateAvailable": "Uus versioon {0} on saadaval",
-  "VOTUpdatedDate": "Uuendatud {0}"
+  "VOTUpdatedDate": "Uuendatud {0}",
+  "udemyPreparingTranslation": "Tõlke ettevalmistamine",
+  "udemyCapturingAudio": "Loengu heli salvestamine Yandexi jaoks",
+  "udemySendingAudio": "Heli saatmine Yandexile"
 }

@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "检查更新。..",
   "VOTUpdateCheckFailed": "无法检查更新",
   "VOTUpdateAvailable": "新版本{0}可用",
-  "VOTUpdatedDate": "更新{0}"
+  "VOTUpdatedDate": "更新{0}",
+  "udemyPreparingTranslation": "准备翻译",
+  "udemyCapturingAudio": "为Yandex录制讲座声音",
+  "udemySendingAudio": "将音频发送到Yandex"
 }

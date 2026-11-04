@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "اپ ڈیٹس کی جانچ پڑتال...",
   "VOTUpdateCheckFailed": "اپ ڈیٹس کے لئے چیک نہیں کر سکا",
   "VOTUpdateAvailable": "نیا ورژن {0} دستیاب ہے",
-  "VOTUpdatedDate": "اپ ڈیٹ {0}"
+  "VOTUpdatedDate": "اپ ڈیٹ {0}",
+  "udemyPreparingTranslation": "ترجمہ کی تیاری",
+  "udemyCapturingAudio": "Yandex کے لئے لیکچر کی آواز ریکارڈنگ",
+  "udemySendingAudio": "Yandex کو آڈیو بھیجنا"
 }

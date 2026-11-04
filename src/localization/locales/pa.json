@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "ਅੱਪਡੇਟ ਲਈ ਚੈੱਕ...",
   "VOTUpdateCheckFailed": "ਅੱਪਡੇਟ ਲਈ ਚੈੱਕ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਿਆ",
   "VOTUpdateAvailable": "{0} ਨਵਾਂ ਵਰਜਨ ਉਪਲੱਬਧ ਹੈ",
-  "VOTUpdatedDate": "{0}ਅੱਪਡੇਟ"
+  "VOTUpdatedDate": "{0}ਅੱਪਡੇਟ",
+  "udemyPreparingTranslation": "ਅਨੁਵਾਦ ਦੀ ਤਿਆਰੀ",
+  "udemyCapturingAudio": "ਯਾਂਡੇਕਸ ਲਈ ਲੈਕਚਰ ਸਾਊਂਡ ਰਿਕਾਰਡ ਕਰਨਾ",
+  "udemySendingAudio": "ਯਾਂਡੇਕਸ ਨੂੰ ਆਡੀਓ ਭੇਜਣਾ"
 }
