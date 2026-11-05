@@ -5,28 +5,41 @@
   --vot-slider-border-radius: 0.5em;
   --vot-slider-handle-bg: rgb(var(--vot-primary-rgb, 139, 180, 245));
   --vot-slider-handle-size: 44px;
-  --vot-slider-transition: var(--vot-duration-medium) var(--vot-easing-standard);
+  --vot-slider-transition: var(--vot-duration-medium) var(
+    --vot-easing-standard
+  );
+  --vot-slider-handle-width: 4px;
+  --vot-slider-handle-outline: 4px;
+  --vot-slider-thumb-width: calc(
+    var(--vot-slider-handle-width) + 2 * var(--vot-slider-handle-outline)
+  );
+  // Must match the pointer mapping in Slider.tsx
+  // (origin = left + thumb / 2, trackWidth = width - thumb).
+  --vot-slider-thumb-center: calc(
+    var(--vot-slider-thumb-width) / 2 + (100% - var(--vot-slider-thumb-width)) *
+      var(--vot-progress, 0)
+  );
 
   display: flex;
   align-items: center;
   position: relative;
   height: var(--vot-slider-handle-size);
+  cursor: pointer;
+  touch-action: pan-y;
 
   &[aria-disabled="true"] {
     user-select: none;
     opacity: 0.5;
-    .vot-slider__control {
-      cursor: not-allowed;
-    }
+    cursor: not-allowed;
   }
 
   &__control {
     position: absolute;
+    inset: 0;
+    margin: 0;
     opacity: 0;
     appearance: none;
-    width: 100%;
-    height: 100%;
-    cursor: pointer;
+    pointer-events: none;
   }
 
   &__track {
@@ -38,7 +51,7 @@
     &-progress {
       background: var(--vot-slider-track-progress-bg);
       position: absolute;
-      width: calc(100% * var(--vot-progress, 0));
+      width: var(--vot-slider-thumb-center);
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
       transition: width var(--vot-slider-transition);
@@ -47,18 +60,21 @@
 
   &__handle {
     position: absolute;
-    left: calc(100% * var(--vot-progress, 0));
-    width: 4px;
+    left: var(--vot-slider-thumb-center);
+    width: var(--vot-slider-handle-width);
     height: var(--vot-slider-handle-size);
     background: var(--vot-slider-handle-bg);
-    outline: 4px solid var(--vot-slider-track-bg);
+    outline: var(--vot-slider-handle-outline) solid var(--vot-slider-track-bg);
     border-radius: 4px;
     pointer-events: none;
-    will-change: transform;
-    transition:
-      transform var(--vot-slider-transition),
-      left var(--vot-slider-transition);
-    transform: translateX(calc(-100% * var(--vot-progress, 0)));
+    transform: translateX(-50%);
+    transition: left var(--vot-slider-transition);
+  }
+
+  &__handle-hitbox {
+    position: absolute;
+    inset: calc(-1 * var(--vot-slider-handle-outline));
+    pointer-events: none;
   }
 
   &[data-dragging] {
