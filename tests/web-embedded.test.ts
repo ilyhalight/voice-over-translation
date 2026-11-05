@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 
 (globalThis as unknown as { DEBUG_MODE: boolean }).DEBUG_MODE = false;
 

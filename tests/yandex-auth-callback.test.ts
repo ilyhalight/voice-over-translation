@@ -1,20 +1,6 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { memoryStorage } from "./helpers/storage";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
-(globalThis as unknown as { DEBUG_MODE: boolean }).DEBUG_MODE = false;
-
-Object.defineProperty(globalThis, "localStorage", {
-  configurable: true,
-  value: memoryStorage(),
-});
-Object.defineProperty(globalThis, "sessionStorage", {
-  configurable: true,
-  value: memoryStorage(),
-});
-
-const { updateAccountByCallbackData } = await import(
-  "../src/modules/auth/yandex"
-);
+import { updateAccountByCallbackData } from "../src/modules/auth/yandex";
 
 const originalFetch = globalThis.fetch;
 let tokenRequests: string[] = [];

@@ -1,11 +1,16 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
+import { AudioDownloader } from "../src/audioDownloader";
+import {
+  SABR_STRATEGY,
+  strategies,
+  WEB_ABR_STRATEGY,
+  WEB_MSE_PROXY_STRATEGY,
+} from "../src/audioDownloader/strategies";
 import { makeAbortError } from "../src/utils/errors";
 
-(globalThis as unknown as { DEBUG_MODE: boolean }).DEBUG_MODE = false;
-
 function deferred<T>() {
-  let resolve!: (value: T | PromiseLike<T>) => void;
-  let reject!: (reason?: unknown) => void;
+  let resolve: (value: T | PromiseLike<T>) => void;
+  let reject: (reason?: unknown) => void;
   const promise = new Promise<T>((res, rej) => {
     resolve = res;
     reject = rej;
@@ -15,10 +20,6 @@ function deferred<T>() {
 
 const tick = (ms = 10) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
-
-const { AudioDownloader } = await import("../src/audioDownloader/index");
-const { strategies, SABR_STRATEGY, WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY } =
-  await import("../src/audioDownloader/strategies/index");
 
 // The real SABR strategy waits on a page bridge that does not exist in bun, so
 // it must never run. "auto" tries it first, hence this stub throws immediately.
@@ -566,7 +567,7 @@ test("an aborted run drops its buffered collecting chunks", async () => {
     }),
     abrSucceeds(),
   );
-  const collecting = (downloader: AudioDownloader) =>
+  const collecting = (downloader: (typeof AudioDownloader)["prototype"]) =>
     (downloader as unknown as { collectingChunks: Map<string, unknown> })
       .collectingChunks;
   try {

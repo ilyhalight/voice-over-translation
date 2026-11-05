@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { describe, test } from "vitest";
 
 import { IntervalIdleChecker } from "../src/utils/intervalIdleChecker";
 
@@ -53,7 +53,7 @@ function createRuntime() {
 }
 
 describe("IntervalIdleChecker polling cost", () => {
-  it("does not poll while nobody is subscribed", () => {
+  test("does not poll while nobody is subscribed", () => {
     const env = createRuntime();
     const checker = new IntervalIdleChecker({ runtime: env.runtime });
     checker.start();
@@ -64,11 +64,15 @@ describe("IntervalIdleChecker polling cost", () => {
     assert.equal(env.activeTimers[0].periodMs, 250);
 
     unsubscribe();
-    assert.equal(env.activeTimers.length, 0, "timer released with last subscriber");
+    assert.equal(
+      env.activeTimers.length,
+      0,
+      "timer released with last subscriber",
+    );
     checker.destroy();
   });
 
-  it("backs the poll rate off to 1s once idle and restores it on activity", () => {
+  test("backs the poll rate off to 1s once idle and restores it on activity", () => {
     const env = createRuntime();
     const checker = new IntervalIdleChecker({ runtime: env.runtime });
     let ticks = 0;
@@ -88,7 +92,7 @@ describe("IntervalIdleChecker polling cost", () => {
     checker.destroy();
   });
 
-  it("keeps exactly one timer armed across mode flips", () => {
+  test("keeps exactly one timer armed across mode flips", () => {
     const env = createRuntime();
     const checker = new IntervalIdleChecker({ runtime: env.runtime });
     checker.subscribe(() => {});
@@ -103,7 +107,7 @@ describe("IntervalIdleChecker polling cost", () => {
     assert.equal(env.activeTimers.length, 0);
   });
 
-  it("still delivers immediate ticks when the poll is slow", () => {
+  test("still delivers immediate ticks when the poll is slow", () => {
     const env = createRuntime();
     const checker = new IntervalIdleChecker({ runtime: env.runtime });
     let ticks = 0;
@@ -120,7 +124,7 @@ describe("IntervalIdleChecker polling cost", () => {
     checker.destroy();
   });
 
-  it("honours explicit profile overrides", () => {
+  test("honours explicit profile overrides", () => {
     const env = createRuntime();
     const checker = new IntervalIdleChecker({
       runtime: env.runtime,
@@ -137,7 +141,7 @@ describe("IntervalIdleChecker polling cost", () => {
 });
 
 describe("IntervalIdleChecker dormancy", () => {
-  it("stops polling when no subscriber reports pending work", () => {
+  test("stops polling when no subscriber reports pending work", () => {
     const env = createRuntime();
     const checker = new IntervalIdleChecker({ runtime: env.runtime });
     let pending = false;
@@ -150,7 +154,11 @@ describe("IntervalIdleChecker dormancy", () => {
     );
     checker.start();
 
-    assert.equal(env.activeTimers.length, 0, "dormant while nothing is pending");
+    assert.equal(
+      env.activeTimers.length,
+      0,
+      "dormant while nothing is pending",
+    );
     assert.equal(ticks, 1, "only the start tick runs");
 
     pending = true;
@@ -174,7 +182,7 @@ describe("IntervalIdleChecker dormancy", () => {
     checker.destroy();
   });
 
-  it("keeps polling for subscribers that declare no predicate", () => {
+  test("keeps polling for subscribers that declare no predicate", () => {
     const env = createRuntime();
     const checker = new IntervalIdleChecker({ runtime: env.runtime });
     let ticks = 0;
@@ -189,7 +197,7 @@ describe("IntervalIdleChecker dormancy", () => {
     checker.destroy();
   });
 
-  it("does not poll a hidden document", () => {
+  test("does not poll a hidden document", () => {
     const env = createRuntime();
     const checker = new IntervalIdleChecker({
       runtime: {

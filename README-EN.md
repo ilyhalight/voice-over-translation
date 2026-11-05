@@ -249,6 +249,12 @@ npm run build:dev
 
 Userscript build artifacts are placed in `dist/`, unpacked extension builds in `.output/chrome-mv3` and `.output/firefox-mv3` , and packaged `.zip`/`.xpi` archives in `dist-ext/`.
 
+If you are using Bun you can run unit tests with the built-in Test Runner:
+
+```bash
+bun test --isolate --preload ./tests/setup.ts
+```
+
 ## Customization of appearance:
 
 The extension supports appearance customization via Stylus, Stylish, and similar tools.

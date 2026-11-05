@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 
 Object.assign(globalThis, { DEBUG_MODE: false });
 const { SubtitleStyleController } = await import(

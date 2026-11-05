@@ -49,9 +49,9 @@
     "zip-a-folder": "^7.0.1"
   },
   "scripts": {
-    "test": "bun test --isolate --preload ./tests/setup.ts",
-    "test:unit": "bun run test",
-    "test:unit:watch": "bun test --isolate --preload ./tests/setup.ts --watch",
+    "test": "run-s test:unit test:ui",
+    "test:unit": "vitest run --project unit --isolate",
+    "test:unit:watch": "npm run test:unit --watch",
     "test:ui": "vitest run --project storybook --maxWorkers=4",
     "build:gm:default": "vite build --config vite/vite.config.ts",
     "build:gm:min": "vite build --mode minify --config vite/vite.config.ts",

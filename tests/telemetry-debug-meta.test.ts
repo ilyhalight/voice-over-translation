@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test";
 import vm from "node:vm";
+import { describe, expect, test } from "vitest";
 import { readDebugIdRegistry } from "../src/modules/telemetry/debug-ids";
 import {
   buildEvent,

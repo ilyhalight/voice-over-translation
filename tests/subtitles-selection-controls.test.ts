@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, test } from "vitest";
 import type { VideoHandler } from "../src/VideoHandler";
 
 Object.assign(globalThis, { DEBUG_MODE: false });

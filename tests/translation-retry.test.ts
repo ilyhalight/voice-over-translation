@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { createAbortableDelay } from "../src/utils/abort";
 import { isAbortError } from "../src/utils/errors";
 
@@ -103,7 +103,7 @@ describe("scheduleRetry disable→re-enable scenario", () => {
 
     // Simulate stopTranslate clearing the timer
     expect(timerId).toBeDefined();
-    clearTimeout(timerId!);
+    clearTimeout(timerId);
 
     // The delay never resolves; abort to avoid hanging the test
     controller.abort();

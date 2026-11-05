@@ -1,4 +1,4 @@
-import { afterEach, expect, test } from "bun:test";
+import { afterEach, expect, test } from "vitest";
 import { captureGlobal } from "./helpers/globals";
 
 (globalThis as unknown as { DEBUG_MODE: boolean }).DEBUG_MODE = false;

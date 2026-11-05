@@ -1,23 +1,12 @@
-import { describe, expect, test } from "bun:test";
-import { emptyStorage } from "./helpers/storage";
+import { describe, expect, test } from "vitest";
 
-(globalThis as unknown as { DEBUG_MODE: boolean }).DEBUG_MODE = false;
-Object.defineProperty(globalThis, "localStorage", {
-  configurable: true,
-  value: emptyStorage(),
-});
-
-const { VOTTranslationHandler } = await import(
-  "../src/core/translationHandler"
-);
-const { requestTranslationAudio } = await import(
-  "../src/videoHandler/modules/translationShared"
-);
-const {
+import { VOTTranslationHandler } from "../src/core/translationHandler";
+import {
   cancelDeferredTranslationResume,
   pauseVideoForTranslation,
   resumeVideoAfterTranslation,
-} = await import("../src/videoHandler/modules/translationPlayback");
+} from "../src/videoHandler/modules/translationPlayback";
+import { requestTranslationAudio } from "../src/videoHandler/modules/translationShared";
 
 type FakeListenerOptions = { once?: boolean; signal?: AbortSignal };
 

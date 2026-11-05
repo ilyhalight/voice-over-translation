@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { clamp } from "../src/utils/number.ts";
 import { safeSetPlayerVolume } from "../src/videoHandler/translationVolume.ts";
 

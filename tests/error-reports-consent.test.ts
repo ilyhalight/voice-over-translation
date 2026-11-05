@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import {
   BG_MSG_TELEMETRY_CONSENT,
   MARK,
@@ -199,12 +199,12 @@ describe("sendErrorReports default", () => {
 
   test("timeout defaults to false and removes the listener", async () => {
     onRequest = () => {};
-    const timer = spyOn(globalThis, "setTimeout").mockImplementationOnce(
-      (callback) => {
+    const timer = vi
+      .spyOn(globalThis, "setTimeout")
+      .mockImplementationOnce((callback) => {
         queueMicrotask(callback as () => void);
         return 0 as unknown as ReturnType<typeof setTimeout>;
-      },
-    );
+      });
     try {
       expect(await getDefaultSendErrorReports()).toBe(false);
     } finally {

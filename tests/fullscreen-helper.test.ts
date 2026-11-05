@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { FullscreenHelper } from "#modules/fullscreen/helper.ts";
 
 function createListenerTarget() {

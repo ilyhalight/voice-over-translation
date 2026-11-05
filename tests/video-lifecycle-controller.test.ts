@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 
 async function loadGetYouTubeSourceKey() {
   (globalThis as unknown as { DEBUG_MODE: boolean }).DEBUG_MODE = false;

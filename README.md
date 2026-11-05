@@ -246,7 +246,13 @@ Dev-сборка userscript с sourcemap:
 npm run build:dev
 ```
 
-Артефакты userscript попадают в `dist/`, распакованные сборки расширений  — в `.output/chrome-mv3` и `.output/firefox-mv3`, упакованные `.zip`/`.xpi` — в `dist-ext/`.
+Артефакты userscript попадают в `dist/`, распакованные сборки расширений — в `.output/chrome-mv3` и `.output/firefox-mv3`, упакованные `.zip`/`.xpi` — в `dist-ext/`.
+
+Если вы используете Bun, вы можете запускать юнит тесты с помощью встроенного Test Runner:
+
+```bash
+bun test --isolate --preload ./tests/setup.ts
+```
 
 ## Кастомизация внешнего вида:
 

@@ -23,6 +23,12 @@ export default defineConfig({
           },
         },
       },
+      {
+        test: {
+          name: "unit",
+          setupFiles: ["./tests/setup.ts"],
+        },
+      },
     ],
   },
 });

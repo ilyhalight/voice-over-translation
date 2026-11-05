@@ -1,18 +1,12 @@
-import { describe, expect, test } from "bun:test";
 import { VideoTranslationStatus } from "@vot.js/core/types/providers/yandex";
-import { emptyStorage } from "./helpers/storage";
-
-(globalThis as unknown as { DEBUG_MODE: boolean }).DEBUG_MODE = false;
-Object.defineProperty(globalThis, "localStorage", {
-  configurable: true,
-  value: emptyStorage(),
-});
-
-const { VOTTranslationHandler } = await import(
-  "../src/core/translationHandler"
-);
-const { strategies, SABR_STRATEGY, WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY } =
-  await import("../src/audioDownloader/strategies/index");
+import { describe, expect, test } from "vitest";
+import {
+  SABR_STRATEGY,
+  strategies,
+  WEB_ABR_STRATEGY,
+  WEB_MSE_PROXY_STRATEGY,
+} from "../src/audioDownloader/strategies";
+import { VOTTranslationHandler } from "../src/core/translationHandler";
 
 const tick = (ms = 10) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));

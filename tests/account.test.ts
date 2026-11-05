@@ -1,4 +1,9 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
+import {
+  hasAccountToken,
+  hasValidAccountToken,
+  isAccountExpired,
+} from "../src/utils/account";
 
 describe("account auth state", () => {
   test("detects expired token", async () => {
@@ -7,8 +12,7 @@ describe("account auth state", () => {
       writable: true,
       value: false,
     });
-    const { hasAccountToken, hasValidAccountToken, isAccountExpired } =
-      await import("../src/utils/account");
+
     const now = 1_000;
     const account = { token: "token", expires: now - 1 };
 

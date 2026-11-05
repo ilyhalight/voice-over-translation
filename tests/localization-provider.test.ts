@@ -5,30 +5,15 @@ import {
   describe,
   expect,
   test,
-} from "bun:test";
-import { captureGlobal } from "./helpers/globals";
-import { memoryStorage } from "./helpers/storage";
+} from "vitest";
 
-const restoreGlobals = ["DEBUG_MODE", "VOT_VERSION", "localStorage"].map(
-  captureGlobal,
-);
-
-(globalThis as unknown as { DEBUG_MODE: boolean }).DEBUG_MODE = false;
-(globalThis as unknown as { VOT_VERSION: string }).VOT_VERSION = "1.0.0";
-
-Object.defineProperty(globalThis, "localStorage", {
-  configurable: true,
-  value: memoryStorage(),
-});
-
-const { localizationProvider } = await import(
-  "../src/localization/localizationProvider"
-);
-const { votStorage } = await import("../src/utils/storage");
+import { localizationProvider } from "../src/localization/localizationProvider";
+import { votStorage } from "../src/utils/storage";
 
 const originalFetch = globalThis.fetch;
 const originalLang = localizationProvider.lang;
 const LANG = "ru";
+const LOCALE_VERSION = globalThis.VOT_VERSION as string;
 const PHRASES = JSON.stringify({ hello: "privet" });
 let requestedUrls: string[] = [];
 
@@ -67,12 +52,11 @@ afterAll(async () => {
   // override and phrases; it must run while the in-memory storage is installed.
   await localizationProvider.reset();
   await localizationProvider.init();
-  for (const restore of restoreGlobals) restore();
 });
 
 describe("localizationProvider.checkUpdates", () => {
   test("fetches when version matches but phrases are empty", async () => {
-    await seedCache({ localeVersion: "1.0.0", localeLang: LANG });
+    await seedCache({ localeVersion: LOCALE_VERSION, localeLang: LANG });
 
     expect(await localizationProvider.checkUpdates()).toBe("hash-ru");
     expect(requestedUrls).toHaveLength(1);
@@ -80,7 +64,7 @@ describe("localizationProvider.checkUpdates", () => {
 
   test("fetches when version matches but cached language differs", async () => {
     await seedCache({
-      localeVersion: "1.0.0",
+      localeVersion: LOCALE_VERSION,
       localeLang: "de",
       localePhrases: PHRASES,
     });
@@ -91,7 +75,7 @@ describe("localizationProvider.checkUpdates", () => {
 
   test("skips the network when version, language and phrases match", async () => {
     await seedCache({
-      localeVersion: "1.0.0",
+      localeVersion: LOCALE_VERSION,
       localeLang: LANG,
       localePhrases: PHRASES,
     });
@@ -129,7 +113,7 @@ describe("localizationProvider.hasUsableCache", () => {
 
 describe("localizationProvider.update", () => {
   test("downloads the locale when the cache has no phrases", async () => {
-    await seedCache({ localeVersion: "1.0.0", localeLang: LANG });
+    await seedCache({ localeVersion: LOCALE_VERSION, localeLang: LANG });
 
     await localizationProvider.update();
 

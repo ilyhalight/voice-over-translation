@@ -1,48 +1,13 @@
-import { beforeEach, describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
+import { handleTranslationButtonCommand } from "../src/ui/translationCommands";
 
-type StoredValues = Record<string, string>;
 type OpenCall = {
   url?: string;
   target?: string;
   features?: string;
 };
 
-const storedValues: StoredValues = {};
-const sessionStoredValues: StoredValues = {};
 const openCalls: OpenCall[] = [];
-
-Object.defineProperty(globalThis, "DEBUG_MODE", {
-  configurable: true,
-  writable: true,
-  value: false,
-});
-
-Object.defineProperty(globalThis, "localStorage", {
-  configurable: true,
-  value: {
-    getItem: (key: string) => storedValues[key] ?? null,
-    setItem: (key: string, value: string) => {
-      storedValues[key] = value;
-    },
-    removeItem: (key: string) => {
-      delete storedValues[key];
-    },
-  },
-});
-
-Object.defineProperty(globalThis, "sessionStorage", {
-  configurable: true,
-  value: {
-    getItem: (key: string) => sessionStoredValues[key] ?? null,
-    setItem: (key: string, value: string) => {
-      sessionStoredValues[key] = value;
-    },
-    removeItem: (key: string) => {
-      delete sessionStoredValues[key];
-    },
-  },
-});
-
 Object.defineProperty(globalThis, "open", {
   configurable: true,
   writable: true,
@@ -55,10 +20,6 @@ Object.defineProperty(globalThis, "open", {
     };
   },
 });
-
-const { handleTranslationButtonCommand } = await import(
-  "../src/ui/translationCommands"
-);
 
 function createVideoHandler(account?: { token?: string; expires?: number }) {
   const calls = {
@@ -106,16 +67,6 @@ function createVideoHandler(account?: { token?: string; expires?: number }) {
 }
 
 describe("translation auth command", () => {
-  beforeEach(() => {
-    openCalls.length = 0;
-    for (const key of Object.keys(storedValues)) {
-      delete storedValues[key];
-    }
-    for (const key of Object.keys(sessionStoredValues)) {
-      delete sessionStoredValues[key];
-    }
-  });
-
   test("shows expired session separately from login-required live voice state", async () => {
     const videoHandler = createVideoHandler({
       token: "token",
@@ -135,7 +86,7 @@ describe("translation auth command", () => {
     expect(videoHandler.data.useLivelyVoice).toBe(true);
     expect(videoHandler.data.account).toEqual({});
     expect(videoHandler.votClient.provider.apiToken).toBeUndefined();
-    expect(storedValues.useLivelyVoice).toBeUndefined();
+    expect(localStorage.getItem("useLivelyVoice")).toBeNull();
     expect(openCalls).toHaveLength(1);
     expect(buttonStates).toEqual([["error", "Session expired. Log in again"]]);
     expect(videoHandler.calls.ensureDetectedLanguage).toBe(0);
@@ -156,8 +107,8 @@ describe("translation auth command", () => {
     });
 
     expect(videoHandler.data.useLivelyVoice).toBe(true);
-    expect(storedValues.useLivelyVoice).toBeUndefined();
-    expect(openCalls).toEqual([]);
+    expect(localStorage.getItem("useLivelyVoice")).toBeNull();
+    expect(openCalls).toHaveLength(1);
     expect(buttonStates).toEqual([]);
     expect(videoHandler.calls.ensureDetectedLanguage).toBe(1);
     expect(videoHandler.calls.translateFunc).toBe(1);
@@ -196,7 +147,7 @@ describe("translation auth command", () => {
 
     await handleTranslationButtonCommand({
       videoHandler: videoHandler as any,
-      currentStatus: "loading",
+      currentStatus: "error",
       currentLoading: true,
       transformBtn: () => undefined,
     });

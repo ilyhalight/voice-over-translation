@@ -1,15 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { emptyStorage } from "./helpers/storage";
-
-(globalThis as unknown as { DEBUG_MODE: boolean }).DEBUG_MODE = false;
-Object.defineProperty(globalThis, "localStorage", {
-  configurable: true,
-  value: emptyStorage(),
-});
-
-const { VOTTranslationHandler } = await import(
-  "../src/core/translationHandler"
-);
+import { describe, expect, test } from "vitest";
+import { VOTTranslationHandler } from "../src/core/translationHandler";
 
 const handlerCtor = VOTTranslationHandler as unknown as {
   AUDIO_UPLOAD_RETRY_DELAY_MS: number;

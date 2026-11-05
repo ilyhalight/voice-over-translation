@@ -5,45 +5,21 @@ import {
   describe,
   expect,
   test,
-} from "bun:test";
-import { captureGlobal } from "./helpers/globals";
-import { memoryStorage } from "./helpers/storage";
+  vi,
+} from "vitest";
 
-const restoreGlobals = [
-  "DEBUG_MODE",
-  "VOT_VERSION",
-  "localStorage",
-  "location",
-].map(captureGlobal);
-
-(globalThis as unknown as { DEBUG_MODE: boolean }).DEBUG_MODE = false;
-(globalThis as unknown as { VOT_VERSION: string }).VOT_VERSION = "1.0.0";
-
-Object.defineProperty(globalThis, "localStorage", {
-  configurable: true,
-  value: memoryStorage(),
-});
-Object.defineProperty(globalThis, "location", {
-  configurable: true,
-  value: { origin: "https://example.com" },
-});
-
-const { localizationProvider } = await import(
-  "../src/localization/localizationProvider"
-);
-const { votStorage } = await import("../src/utils/storage");
+import { localizationProvider } from "../src/localization/localizationProvider";
+import { votStorage } from "../src/utils/storage";
 
 const originalFetch = globalThis.fetch;
 const originalTop = Object.getOwnPropertyDescriptor(globalThis, "top");
 const LANG = "ru";
 const PHRASES = JSON.stringify({ hello: "privet" });
 let requestedUrls: string[] = [];
-let moduleId = 0;
 
-// runtimeActivation keeps module-level state, so each test needs a fresh copy.
 async function activateRuntime() {
   const { ensureRuntimeActivated } = await import(
-    `../src/bootstrap/runtimeActivation.ts?case=${moduleId++}`
+    "../src/bootstrap/runtimeActivation.ts"
   );
   await ensureRuntimeActivated("test", () => {});
 }
@@ -84,10 +60,13 @@ afterAll(async () => {
   // override and phrases; it must run while the in-memory storage is installed.
   await localizationProvider.reset();
   await localizationProvider.init();
-  for (const restore of restoreGlobals) restore();
 });
 
 describe("runtime activation locale update", () => {
+  beforeEach(() => {
+    vi.resetModules();
+  });
+
   test("iframe with a usable cache skips update", async () => {
     await votStorage.set("localeLang", LANG);
     await votStorage.set("localePhrases", PHRASES);

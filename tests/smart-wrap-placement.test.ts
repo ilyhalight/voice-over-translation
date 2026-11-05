@@ -1,13 +1,13 @@
-import { describe, expect, test } from "bun:test";
-import {
-  buildWordSlices,
-  computeTokenWrapPlan,
-} from "../src/subtitles/smartWrap.ts";
-import { segmentText } from "../src/subtitles/segmenter.ts";
+import { describe, expect, test } from "vitest";
 import {
   getLinguisticBreakPenalty,
   isScriptioContinua,
 } from "../src/subtitles/lineBreakRules.ts";
+import { segmentText } from "../src/subtitles/segmenter.ts";
+import {
+  buildWordSlices,
+  computeTokenWrapPlan,
+} from "../src/subtitles/smartWrap.ts";
 import type { SubtitleToken } from "../src/types/subtitles.ts";
 
 const tokenize = (text: string, locale?: string): SubtitleToken[] =>
@@ -150,7 +150,9 @@ describe("subtitle placement", () => {
   });
 
   test("empty and whitespace-only input produce no breaks", () => {
-    expect(computeTokenWrapPlan([], measure, 300).breakAfterTokenIndices).toEqual([]);
+    expect(
+      computeTokenWrapPlan([], measure, 300).breakAfterTokenIndices,
+    ).toEqual([]);
     expect(wrap("   ", 300)).toEqual([]);
   });
 });

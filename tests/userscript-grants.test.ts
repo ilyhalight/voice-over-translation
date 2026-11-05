@@ -1,7 +1,7 @@
-import { expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { expect, test } from "vitest";
 import { collectUsedUserscriptGrantsFromEntry } from "../vite/lib/userscript/grants";
 
 test("collects grants once through shared and cyclic local dependencies", async () => {
