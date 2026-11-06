@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Gwirio am ddiweddariadau...",
   "VOTUpdateCheckFailed": "Diweddaru pecyn",
   "VOTUpdateAvailable": "Fersiwn newydd {0} ar gael",
-  "VOTUpdatedDate": "Diweddarwyd {0}"
+  "VOTUpdatedDate": "Diweddarwyd {0}",
+  "udemyPreparingTranslation": "Paratoi cyfieithu",
+  "udemyCapturingAudio": "Recordio sain y ddarlith ar Gyfer Yandex",
+  "udemySendingAudio": "Anfon sain i Yandex"
 }

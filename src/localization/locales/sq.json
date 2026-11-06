@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Kontrollimi për përditësime...",
   "VOTUpdateCheckFailed": "Nuk mund të kontrolloni për përditësime",
   "VOTUpdateAvailable": "Versioni i ri {0} është në dispozicion",
-  "VOTUpdatedDate": "Përditësuar {0}"
+  "VOTUpdatedDate": "Përditësuar {0}",
+  "udemyPreparingTranslation": "Përgatitja e përkthimit",
+  "udemyCapturingAudio": "Regjistrimi i tingullit të leksionit Për Yandex",
+  "udemySendingAudio": "Dërgimi i audios Në Yandex"
 }

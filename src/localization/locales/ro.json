@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Verificarea actualizărilor...",
   "VOTUpdateCheckFailed": "Nu s-a putut verifica actualizările",
   "VOTUpdateAvailable": "Noua versiune {0} este disponibilă",
-  "VOTUpdatedDate": "Actualizat {0}"
+  "VOTUpdatedDate": "Actualizat {0}",
+  "udemyPreparingTranslation": "Pregătirea traducerii",
+  "udemyCapturingAudio": "Înregistrarea sunetului prelegerii pentru Yandex",
+  "udemySendingAudio": "Trimiterea audio către Yandex"
 }

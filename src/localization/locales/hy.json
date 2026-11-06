@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Ստուգեք թարմացումների համար:..",
   "VOTUpdateCheckFailed": "Հնարավոր չէ ստուգել թարմացումները",
   "VOTUpdateAvailable": "Նոր տարբերակը հասանելի է {0}",
-  "VOTUpdatedDate": "Թարմացվել է {0}"
+  "VOTUpdatedDate": "Թարմացվել է {0}",
+  "udemyPreparingTranslation": "Թարգմանության պատրաստում",
+  "udemyCapturingAudio": "Դասախոսությունների ձայնագրում Yandex-ի համար",
+  "udemySendingAudio": "Աուդիո ուղարկում Yandex-ին"
 }

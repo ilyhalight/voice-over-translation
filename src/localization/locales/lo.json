@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "ກວດເບິ່ງການປັບປຸງ...",
   "VOTUpdateCheckFailed": "ບໍ່ສາມາດກວດສອບການອັບເດດໄດ້",
   "VOTUpdateAvailable": "ສະບັບໃຫມ່{0}ສາມາດໃຊ້ໄດ້",
-  "VOTUpdatedDate": "ອັບເດດ{0}"
+  "VOTUpdatedDate": "ອັບເດດ{0}",
+  "udemyPreparingTranslation": "ການກະກຽມການແປພາສາ",
+  "udemyCapturingAudio": "ການບັນທຶກສຽງການບັນຍາຍສໍາລັບ Yandex",
+  "udemySendingAudio": "ການສົ່ງສຽງໄປຫາ Yandex"
 }

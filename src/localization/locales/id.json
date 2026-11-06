@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Memeriksa pembaruan...",
   "VOTUpdateCheckFailed": "Tidak dapat memeriksa pembaruan",
   "VOTUpdateAvailable": "Versi baru {0} tersedia",
-  "VOTUpdatedDate": "Diperbarui {0}"
+  "VOTUpdatedDate": "Diperbarui {0}",
+  "udemyPreparingTranslation": "Mempersiapkan terjemahan",
+  "udemyCapturingAudio": "Merekam suara kuliah untuk Yandex",
+  "udemySendingAudio": "Mengirim audio ke Yandex"
 }

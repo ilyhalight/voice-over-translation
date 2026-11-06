@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Comprovació d'actualitzacions...",
   "VOTUpdateCheckFailed": "No s ' ha pogut comprovar les actualitzacions",
   "VOTUpdateAvailable": "La nova versió {0} està disponible",
-  "VOTUpdatedDate": "Actualització {0}"
+  "VOTUpdatedDate": "Actualització {0}",
+  "udemyPreparingTranslation": "Preparació de la traducció",
+  "udemyCapturingAudio": "Gravació del so de la conferència Per A Yandex",
+  "udemySendingAudio": "Enviament d'àudio A Yandex"
 }

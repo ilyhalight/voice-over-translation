@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Шинэчлэлтүүдийг шалгах...",
   "VOTUpdateCheckFailed": "Шинэчлэлтүүдийг шалгаж чадахгүй байна",
   "VOTUpdateAvailable": "Шинэ хувилбар {0} байгаа",
-  "VOTUpdatedDate": "Шинэчлэгдсэн {0}"
+  "VOTUpdatedDate": "Шинэчлэгдсэн {0}",
+  "udemyPreparingTranslation": "Орчуулга бэлтгэх",
+  "udemyCapturingAudio": "Yandex-д зориулсан лекцийн дууг бүртгэх",
+  "udemySendingAudio": "Yandex руу аудио илгээх"
 }

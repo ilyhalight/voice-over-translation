@@ -30,6 +30,7 @@ import {
 import { hasAccountToken } from "../utils/account";
 import debug from "../utils/debug";
 import { getErrorMessage, isAbortError, makeAbortError } from "../utils/errors";
+import { votStorage } from "../utils/storage";
 import type { VideoHandler } from "../VideoHandler";
 import VOTLocalizedError from "../VOTLocalizedError";
 import {
@@ -40,6 +41,23 @@ import { mapVotClientErrorForUi } from "./translationClientError";
 import { notifyTranslationFailureIfNeeded } from "./translationErrors";
 import { TranslationEtaCountdown } from "./translationEtaCountdown";
 import { createTranslationPollState } from "./translationPollScheduler";
+import {
+  captureUdemyLectureAudio,
+  getUdemyLectureKey,
+  getUdemyRequestVideoId,
+  isProtectedUdemyLecture,
+  StreamingWavUploader,
+  UDEMY_AUDIO_RATE,
+} from "./udemyDrmAudio";
+
+function isPendingUdemyTranslation(response: VideoTranslationResponse) {
+  return (
+    !response.translated &&
+    (response.status === VideoTranslationStatus.WAITING ||
+      response.status === VideoTranslationStatus.LONG_WAITING ||
+      response.status === VideoTranslationStatus.AUDIO_REQUESTED)
+  );
+}
 
 type TranslateVideoImplOptions = {
   disableLivelyVoice?: boolean;
@@ -70,6 +88,25 @@ export class VOTTranslationHandler {
   private readonly etaCountdown: TranslationEtaCountdown;
   // Per-translation poll state (stale-ETA backoff); reset on a new translation.
   private readonly pollState = createTranslationPollState();
+  /** translationId whose audio was already uploaded for a DRM Udemy lecture. */
+  private udemyUploadedTranslationId: string | undefined;
+  /** Last captured DRM lecture audio, reused when the voice type changes. */
+  private udemyCapturedAudio:
+    | { videoId: string; samples: Int16Array }
+    | undefined;
+  /** Overridable in tests. */
+  udemyDrmAudio = {
+    capture: captureUdemyLectureAudio,
+    createUploader: (
+      ...args: ConstructorParameters<typeof StreamingWavUploader>
+    ) => new StreamingWavUploader(...args),
+    store: votStorage as {
+      getRaw<T>(name: string, def?: T): Promise<T>;
+      setRaw<T>(name: string, value: T): Promise<void>;
+    },
+    pollIntervalMs: 5_000,
+    pollLimitMs: 4 * 60_000,
+  };
 
   // Avoid spamming the fail-audio-js fallback for the same video URL.
   // In normal operation we should upload audio through the MSE proxy path.
@@ -579,6 +616,7 @@ export class VOTTranslationHandler {
           shouldSendFailedAudio,
           livelyDisabled,
           livelyVoiceAllowed,
+          signal,
         });
       livelyDisabled = translationAttempt.livelyDisabled;
       const useLivelyVoice = translationAttempt.useLivelyVoice;
@@ -816,6 +854,7 @@ export class VOTTranslationHandler {
     shouldSendFailedAudio,
     livelyDisabled,
     livelyVoiceAllowed,
+    signal = NEVER_ABORTED_SIGNAL,
   }: {
     videoData: VideoData;
     requestLang: RequestLang;
@@ -824,6 +863,7 @@ export class VOTTranslationHandler {
     shouldSendFailedAudio: boolean;
     livelyDisabled: boolean;
     livelyVoiceAllowed: boolean;
+    signal?: AbortSignal;
   }): Promise<{
     response?: VideoTranslationResponse;
     useLivelyVoice: boolean;
@@ -833,6 +873,36 @@ export class VOTTranslationHandler {
       !livelyDisabled &&
       livelyVoiceAllowed &&
       this.videoHandler.data?.useLivelyVoice !== false;
+
+    if (isProtectedUdemyLecture(videoData.host, translationHelp)) {
+      while (true) {
+        try {
+          const response = await this.requestProtectedUdemyTranslation({
+            videoData,
+            requestLang,
+            responseLang,
+            useLivelyVoice,
+            signal,
+          });
+          if (
+            !useLivelyVoice ||
+            response.translated ||
+            !this.isLivelyVoiceUnavailableError(response)
+          ) {
+            return { response, useLivelyVoice, livelyDisabled };
+          }
+        } catch (err) {
+          if (!useLivelyVoice || !this.isLivelyVoiceUnavailableError(err)) {
+            throw err;
+          }
+        }
+        debug.log("[Udemy DRM] lively voice unavailable, using classic", {
+          videoId: videoData.videoId,
+        });
+        livelyDisabled = true;
+        useLivelyVoice = false;
+      }
+    }
 
     debug.log("[Translation] requesting translation from VOT client", {
       videoId: videoData.videoId,
@@ -905,6 +975,205 @@ export class VOTTranslationHandler {
         responseLang,
       });
     }
+  }
+
+  /**
+   * DRM lectures: Yandex cannot read Udemy's encrypted streams, so the
+   * request goes under a youtu.be id derived from the lecture. Yandex then
+   * asks for audio (AUDIO_REQUESTED); we capture it silently from the page
+   * player and stream it up while capturing. Later polls return the finished
+   * voice-over as usual, and reopening the lecture hits Yandex's cache.
+   */
+  private async requestProtectedUdemyTranslation({
+    videoData,
+    requestLang,
+    responseLang,
+    useLivelyVoice,
+    signal,
+  }: {
+    videoData: VideoData;
+    requestLang: RequestLang;
+    responseLang: ResponseLang;
+    useLivelyVoice: boolean;
+    signal: AbortSignal;
+  }): Promise<VideoTranslationResponse> {
+    const voice = useLivelyVoice ? "lively" : "classic";
+    const key = `${getUdemyLectureKey(videoData.videoId)}|${requestLang}|${responseLang}|${voice}`;
+    const { store } = this.udemyDrmAudio;
+    const video = this.videoHandler.video;
+    const durationSeconds =
+      video && Number.isFinite(video.duration) && video.duration > 0
+        ? video.duration
+        : (videoData.duration ?? 0);
+    const requestId = await getUdemyRequestVideoId(key, { store });
+    const requestUrl = `https://youtu.be/${requestId}`;
+    const request = () =>
+      this.videoHandler.votClient.translateVideo({
+        videoData: {
+          ...videoData,
+          url: requestUrl,
+          videoId: requestId,
+          duration: durationSeconds,
+        },
+        requestLang,
+        responseLang,
+        translationHelp: null,
+        extraOpts: {
+          useLivelyVoice,
+          videoTitle: this.videoHandler.videoData?.title,
+        },
+        shouldSendFailedAudio: false,
+      });
+
+    try {
+      throwIfAborted(signal);
+      const response = await request();
+      if (useLivelyVoice && this.isLivelyVoiceUnavailableError(response)) {
+        return response;
+      }
+      const needsAudio =
+        response.status === VideoTranslationStatus.AUDIO_REQUESTED &&
+        this.udemyUploadedTranslationId !== response.translationId;
+      if (!needsAudio) {
+        return isPendingUdemyTranslation(response)
+          ? await this.pollProtectedUdemyTranslation(request, signal)
+          : response;
+      }
+
+      const started = Date.now();
+      const elapsed = () => Math.round((Date.now() - started) / 1000);
+      let capturePercent = 0;
+      let sent = 0;
+      let total = 0;
+      const show = () =>
+        void this.videoHandler.updateTranslationErrorMsg(
+          capturePercent < 100
+            ? `${t("udemyPreparingTranslation")}: ${capturePercent}%`
+            : `${t("udemySendingAudio")}: ${sent}/${total}`,
+          signal,
+          { countLongWait: false },
+        );
+      const uploadChunk = (
+        chunk: Uint8Array,
+        index: number,
+        partsLength: number,
+        fileId: string,
+      ) =>
+        this.videoHandler.votClient.provider.requestVtransAudio(
+          requestUrl,
+          response.translationId,
+          { audioFile: chunk, chunkId: index },
+          { audioPartsLength: partsLength, fileId, version: 1 },
+        );
+      const createUploader = (samples: Int16Array) => {
+        const uploader = this.udemyDrmAudio.createUploader(
+          samples,
+          UDEMY_AUDIO_RATE,
+          uploadChunk,
+          {
+            signal,
+            onSent: (count, parts) => {
+              sent = count;
+              logger.log(
+                `[Udemy DRM] chunk ${count}/${parts} uploaded at ${elapsed()}s`,
+              );
+              show();
+            },
+          },
+        );
+        total = uploader.partsLength;
+        return uploader;
+      };
+
+      let uploader: StreamingWavUploader | undefined;
+      let samples =
+        this.udemyCapturedAudio?.videoId === videoData.videoId
+          ? this.udemyCapturedAudio.samples
+          : undefined;
+      if (!samples) {
+        if (!video || !(durationSeconds > 0)) {
+          throw new VOTLocalizedError("VOTFailedDownloadAudio");
+        }
+        logger.log("[Udemy DRM] capturing lecture audio", {
+          videoId: videoData.videoId,
+          durationSeconds,
+          voice,
+        });
+        show();
+        samples = await this.udemyDrmAudio.capture(video, {
+          durationSeconds,
+          signal,
+          onProgress: (done) => {
+            capturePercent = Math.min(99, Math.floor(done * 100));
+            show();
+          },
+          onSamplesReady: (buffer, finalSamples) => {
+            uploader ??= createUploader(buffer);
+            uploader.offer(finalSamples);
+          },
+          createOverlay: (target) =>
+            this.videoHandler.mountUdemyCaptureOverlay(target),
+        });
+        logger.log(`[Udemy DRM] capture finished at ${elapsed()}s`);
+        // Keep only the current lecture: switching voices re-uploads it
+        // instead of recording the lecture again.
+        this.udemyCapturedAudio = { videoId: videoData.videoId, samples };
+      }
+      capturePercent = 100;
+      uploader ??= createUploader(samples);
+      show();
+      await uploader.finish();
+      this.udemyUploadedTranslationId = response.translationId;
+      logger.log(`[Udemy DRM] audio uploaded at ${elapsed()}s`, {
+        videoId: videoData.videoId,
+        voice,
+        chunks: uploader.partsLength,
+      });
+      return await this.pollProtectedUdemyTranslation(request, signal);
+    } catch (err) {
+      // Yandex caches a failed translation under this id: the next attempt
+      // must use a new one instead of getting the same failure back.
+      const status = (err as { data?: { status?: unknown } })?.data?.status;
+      if (status === VideoTranslationStatus.FAILED) {
+        await getUdemyRequestVideoId(key, { renew: true, store });
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * VOT waits ~80% of Yandex's remainingTime between polls. For uploaded
+   * lecture audio that estimate does not account for chunks streamed during
+   * capture, so the voice-over can be ready well before it: poll often for a
+   * while, then hand back to VOT's normal schedule.
+   */
+  private async pollProtectedUdemyTranslation(
+    request: () => Promise<VideoTranslationResponse>,
+    signal: AbortSignal,
+  ): Promise<VideoTranslationResponse> {
+    const { pollIntervalMs, pollLimitMs } = this.udemyDrmAudio;
+    const started = Date.now();
+    let response: VideoTranslationResponse;
+    do {
+      void this.videoHandler.updateTranslationErrorMsg(
+        t("translationTakeAboutMinute"),
+        signal,
+        { countLongWait: false },
+      );
+      await createAbortableDelay(pollIntervalMs, signal);
+      response = await request();
+      logger.log(
+        `[Udemy DRM] poll after ${Math.round((Date.now() - started) / 1000)}s: status=${response.status} remaining=${response.remainingTime}`,
+      );
+    } while (
+      isPendingUdemyTranslation(response) &&
+      !(
+        response.status === VideoTranslationStatus.AUDIO_REQUESTED &&
+        response.translationId !== this.udemyUploadedTranslationId
+      ) &&
+      Date.now() - started < pollLimitMs
+    );
+    return response;
   }
 
   private waitForAudioDownloadCompletion(

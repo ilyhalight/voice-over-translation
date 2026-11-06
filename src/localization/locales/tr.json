@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Güncellemeleri kontrol ediyorum...",
   "VOTUpdateCheckFailed": "Güncellemeler kontrol edilemedi",
   "VOTUpdateAvailable": "Yeni sürüm {0} kullanılabilir",
-  "VOTUpdatedDate": "Güncellendi {0}"
+  "VOTUpdatedDate": "Güncellendi {0}",
+  "udemyPreparingTranslation": "Çeviri hazırlama",
+  "udemyCapturingAudio": "Yandex için ders sesini kaydetme",
+  "udemySendingAudio": "Yandex'e ses gönderme"
 }

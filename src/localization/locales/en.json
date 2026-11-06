@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Checking for updates...",
   "VOTUpdateCheckFailed": "Couldn't check for updates",
   "VOTUpdateAvailable": "New version {0} is available",
-  "VOTUpdatedDate": "Updated {0}"
+  "VOTUpdatedDate": "Updated {0}",
+  "udemyPreparingTranslation": "Preparing translation",
+  "udemyCapturingAudio": "Recording the lecture sound for Yandex",
+  "udemySendingAudio": "Sending audio to Yandex"
 }

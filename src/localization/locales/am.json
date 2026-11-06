@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "ዝማኔዎችን በመፈተሽ ላይ ። ..",
   "VOTUpdateCheckFailed": "ዝማኔዎችን ማረጋገጥ አልተቻለም ። ",
   "VOTUpdateAvailable": "አዲስ ስሪት {0} ይገኛል",
-  "VOTUpdatedDate": "የዘመነ {0}"
+  "VOTUpdatedDate": "የዘመነ {0}",
+  "udemyPreparingTranslation": "የትርጉም ዝግጅት",
+  "udemyCapturingAudio": "የ Yandex ን ንግግር ድምፅ መቅዳት",
+  "udemySendingAudio": "ኦዲዮ ወደ Yandex በመላክ ላይ"
 }

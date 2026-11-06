@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Tarkistan päivitykset...",
   "VOTUpdateCheckFailed": "Päivityksiä ei voitu tarkistaa",
   "VOTUpdateAvailable": "Uusi versio {0} on saatavilla",
-  "VOTUpdatedDate": "Päivitetty {0}"
+  "VOTUpdatedDate": "Päivitetty {0}",
+  "udemyPreparingTranslation": "Valmistellaan käännöstä",
+  "udemyCapturingAudio": "Luennon äänen tallentaminen Yandexille",
+  "udemySendingAudio": "Äänen lähettäminen Yandexiin"
 }

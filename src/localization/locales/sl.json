@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Preverjanje posodobitev...",
   "VOTUpdateCheckFailed": "Ni bilo mogoče preveriti posodobitev",
   "VOTUpdateAvailable": "Na voljo je nova različica {0} ",
-  "VOTUpdatedDate": "Posodobljeno {0}"
+  "VOTUpdatedDate": "Posodobljeno {0}",
+  "udemyPreparingTranslation": "Priprava prevoda",
+  "udemyCapturingAudio": "Snemanje zvoka predavanja za Jandeksa",
+  "udemySendingAudio": "Pošiljanje zvoka v Slovenijo"
 }

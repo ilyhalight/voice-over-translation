@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Provjera ažuriranja...",
   "VOTUpdateCheckFailed": "Nisam mogao provjeriti ažuriranja",
   "VOTUpdateAvailable": "Dostupna je nova verzija {0} ",
-  "VOTUpdatedDate": "Ažurirano {0}"
+  "VOTUpdatedDate": "Ažurirano {0}",
+  "udemyPreparingTranslation": "Priprema prevoda",
+  "udemyCapturingAudio": "Snimanje zvuka predavanja za Yandex",
+  "udemySendingAudio": "Slanje zvuka na Yandex"
 }

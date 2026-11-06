@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Yeniləmələri yoxlayıram...",
   "VOTUpdateCheckFailed": "Yeniləmələri yoxlamaq mümkün olmadı",
   "VOTUpdateAvailable": "Yeni versiya {0}mövcuddur",
-  "VOTUpdatedDate": "Yenilənib {0}"
+  "VOTUpdatedDate": "Yenilənib {0}",
+  "udemyPreparingTranslation": "Tərcümənin hazırlanması",
+  "udemyCapturingAudio": "Yandex üçün mühazirə səs yazısı",
+  "udemySendingAudio": "Yandex-ə audio göndərmək"
 }

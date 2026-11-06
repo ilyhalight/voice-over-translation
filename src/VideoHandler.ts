@@ -15,6 +15,7 @@ import { FullscreenHelper } from "#modules/fullscreen/helper.ts";
 import { translate } from "#modules/translateText/service.ts";
 import { getHostElement } from "#utils/dom.ts";
 import logger from "#utils/logger.ts";
+import { mountUdemyCaptureOverlay } from "./components/UdemyCaptureOverlay/UdemyCaptureOverlay";
 import {
   minLongWaitingCount,
   PROXY_ONLY_COUNTRIES,
@@ -999,6 +1000,10 @@ export class VideoHandler {
    */
   toggleSubtitlesForCurrentLangPair() {
     return toggleSubtitlesForCurrentLangPairImpl.call(this);
+  }
+
+  mountUdemyCaptureOverlay(video: HTMLVideoElement) {
+    return mountUdemyCaptureOverlay(video);
   }
 
   isLivelyVoiceAllowed(

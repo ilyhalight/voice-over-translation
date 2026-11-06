@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "ನವೀಕರಣಗಳಿಗಾಗಿ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...",
   "VOTUpdateCheckFailed": "ನವೀಕರಣಗಳಿಗಾಗಿ ಪರಿಶೀಲಿಸಲಾಗಿಲ್ಲ",
   "VOTUpdateAvailable": "ಹೊಸ ಆವೃತ್ತಿ {0} ಲಭ್ಯವಿದೆ",
-  "VOTUpdatedDate": "ಅಪ್ಡೇಟ್ಗೊಳಿಸಲಾಗಿದೆ {0}"
+  "VOTUpdatedDate": "ಅಪ್ಡೇಟ್ಗೊಳಿಸಲಾಗಿದೆ {0}",
+  "udemyPreparingTranslation": "ಅನುವಾದ ಸಿದ್ಧತೆ",
+  "udemyCapturingAudio": "Yandex ಗಾಗಿ ಉಪನ್ಯಾಸ ಧ್ವನಿ ರೆಕಾರ್ಡಿಂಗ್",
+  "udemySendingAudio": "Yandex ಗೆ ಆಡಿಯೊ ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ"
 }

@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Έλεγχος για ενημερώσεις...",
   "VOTUpdateCheckFailed": "Δεν ήταν δυνατός ο έλεγχος για ενημερώσεις",
   "VOTUpdateAvailable": "Η νέα έκδοση {0} είναι διαθέσιμη",
-  "VOTUpdatedDate": "Ενημερώθηκε {0}"
+  "VOTUpdatedDate": "Ενημερώθηκε {0}",
+  "udemyPreparingTranslation": "Προετοιμασία μετάφρασης",
+  "udemyCapturingAudio": "Καταγραφή του ήχου διάλεξης για το Yandex",
+  "udemySendingAudio": "Αποστολή ήχου στο Yandex"
 }

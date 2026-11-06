@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "កំពុងពិនិត្យមើលភាពទាន់សម័យ...",
   "VOTUpdateCheckFailed": "មិនអាចពិនិត្យមើលភាពទាន់សម័យ",
   "VOTUpdateAvailable": "កំណែថ្មី{0}គឺអាចរកបាន",
-  "VOTUpdatedDate": "បន្ទាន់សម័យ{0}"
+  "VOTUpdatedDate": "បន្ទាន់សម័យ{0}",
+  "udemyPreparingTranslation": "កំពុងរៀបចំបកប្រែ",
+  "udemyCapturingAudio": "ការថតសំឡេងបង្រៀនសម្រាប់ Yandex",
+  "udemySendingAudio": "ផ្ញើសម្លេងទៅ Yandex"
 }

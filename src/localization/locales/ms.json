@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Menyemak kemas kini...",
   "VOTUpdateCheckFailed": "Tidak dapat menyemak kemas kini",
   "VOTUpdateAvailable": "Versi baru {0} Boleh didapati",
-  "VOTUpdatedDate": "Dikemaskini {0}"
+  "VOTUpdatedDate": "Dikemaskini {0}",
+  "udemyPreparingTranslation": "Menyediakan terjemahan",
+  "udemyCapturingAudio": "Merakam bunyi kuliah untuk Yandex",
+  "udemySendingAudio": "Menghantar audio ke Yandex"
 }

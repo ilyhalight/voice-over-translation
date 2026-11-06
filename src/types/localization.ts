@@ -339,7 +339,10 @@ export type Phrase =
   | "VOTCheckingForUpdate"
   | "VOTUpdateCheckFailed"
   | "VOTUpdateAvailable"
-  | "VOTUpdatedDate";
+  | "VOTUpdatedDate"
+  | "udemyPreparingTranslation"
+  | "udemyCapturingAudio"
+  | "udemySendingAudio";
 
 export type Phrases = {
   recommended: string;
@@ -622,6 +625,9 @@ export type Phrases = {
   VOTUpdateCheckFailed: string;
   VOTUpdateAvailable: string;
   VOTUpdatedDate: string;
+  udemyPreparingTranslation: string;
+  udemyCapturingAudio: string;
+  udemySendingAudio: string;
 };
 
 export type FlatPhrases = Record<Phrase, string>;

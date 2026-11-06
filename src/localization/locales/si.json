@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "යාවත්කාලීන කිරීම් සඳහා පරීක්ෂා කිරීම...",
   "VOTUpdateCheckFailed": "යාවත්කාලීන කිරීම් සඳහා පරීක්ෂා කළ නොහැකි විය",
   "VOTUpdateAvailable": "{0} නව අනුවාදය ලබා ගත හැක",
-  "VOTUpdatedDate": "{0}යාවත්කාලීන කර ඇත"
+  "VOTUpdatedDate": "{0}යාවත්කාලීන කර ඇත",
+  "udemyPreparingTranslation": "පරිවර්තනය සූදානම් කිරීම",
+  "udemyCapturingAudio": "යාන්ඩෙක්ස් සඳහා දේශන ශබ්දය පටිගත කිරීම",
+  "udemySendingAudio": "Yandex වෙත ශ්රව්ය යැවීම"
 }

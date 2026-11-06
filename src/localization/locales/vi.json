@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Kiểm tra các bản cập nhật...",
   "VOTUpdateCheckFailed": "Không thể kiểm tra các bản cập nhật",
   "VOTUpdateAvailable": "Phiên bản mới {0} có sẵn",
-  "VOTUpdatedDate": "Cập nhật {0}"
+  "VOTUpdatedDate": "Cập nhật {0}",
+  "udemyPreparingTranslation": "Chuẩn bị dịch thuật",
+  "udemyCapturingAudio": "Ghi âm bài giảng cho Yandex",
+  "udemySendingAudio": "Gửi âm thanh đến Yandex"
 }

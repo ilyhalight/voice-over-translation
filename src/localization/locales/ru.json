@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Проверяю наличие обновлений...",
   "VOTUpdateCheckFailed": "Не удалось проверить наличие обновлений",
   "VOTUpdateAvailable": "Доступна новая версия {0}",
-  "VOTUpdatedDate": "Обновлено {0}"
+  "VOTUpdatedDate": "Обновлено {0}",
+  "udemyPreparingTranslation": "Подготовка перевода",
+  "udemyCapturingAudio": "Запись звука лекции для Яндекса",
+  "udemySendingAudio": "Отправка аудио в Яндекс"
 }

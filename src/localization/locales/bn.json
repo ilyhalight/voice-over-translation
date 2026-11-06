@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "আপডেটের জন্য চেক করা হচ্ছে...",
   "VOTUpdateCheckFailed": "আপডেটের জন্য চেক করা যায়নি",
   "VOTUpdateAvailable": "নতুন সংস্করণ {0} উপলব্ধ",
-  "VOTUpdatedDate": "{0}আপডেট করা হয়েছে"
+  "VOTUpdatedDate": "{0}আপডেট করা হয়েছে",
+  "udemyPreparingTranslation": "অনুবাদ প্রস্তুত করা হচ্ছে",
+  "udemyCapturingAudio": "ইয়ানডেক্সের জন্য বক্তৃতা শব্দ রেকর্ডিং",
+  "udemySendingAudio": "ইয়ানডেক্সে অডিও প্রেরণ করা হচ্ছে"
 }

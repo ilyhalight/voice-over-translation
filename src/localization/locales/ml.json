@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "അപ്ഡേറ്റുകൾക്കായി പരിശോധിക്കുന്നു...",
   "VOTUpdateCheckFailed": "അപ്ഡേറ്റുകള്ക്കായി പരിശോധിക്കാന് കഴിഞ്ഞില്ല",
   "VOTUpdateAvailable": "പുതിയ പതിപ്പ് {0} ലഭ്യമാണ്",
-  "VOTUpdatedDate": "അപ്ഡേറ്റ് {0}"
+  "VOTUpdatedDate": "അപ്ഡേറ്റ് {0}",
+  "udemyPreparingTranslation": "പരിഭാഷ തയ്യാറാക്കുന്നു",
+  "udemyCapturingAudio": "യാൻഡെക്സിനായുള്ള പ്രഭാഷണ ശബ്ദം റെക്കോർഡുചെയ്യുന്നു",
+  "udemySendingAudio": "യാന്ഡെക്സിലേക്ക് ഓഡിയോ അയയ്ക്കുന്നു"
 }

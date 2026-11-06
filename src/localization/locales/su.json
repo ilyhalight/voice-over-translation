@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Pariksa pikeun apdet...",
   "VOTUpdateCheckFailed": "Tak sabar nak update",
   "VOTUpdateAvailable": "Versi anyar {0} geus sadia",
-  "VOTUpdatedDate": "Diropéa {0}"
+  "VOTUpdatedDate": "Diropéa {0}",
+  "udemyPreparingTranslation": "Nyiapkeun tarjamahan",
+  "udemyCapturingAudio": "Ngarekam sora ceramah Pikeun Yandex",
+  "udemySendingAudio": "Ngirim audio Ka Yandex"
 }

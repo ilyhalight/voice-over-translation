@@ -278,5 +278,8 @@
   "VOTCheckingForUpdate": "Iċċekkjar għal aġġornamenti...",
   "VOTUpdateCheckFailed": "Ma setgħetx tiċċekkja għal aġġornamenti",
   "VOTUpdateAvailable": "Verżjoni ġdida {0} hija disponibbli",
-  "VOTUpdatedDate": "Aġġornat {0}"
+  "VOTUpdatedDate": "Aġġornat {0}",
+  "udemyPreparingTranslation": "Tħejjija tat-traduzzjoni",
+  "udemyCapturingAudio": "Reġistrazzjoni tal-ħoss tal-lekċer Għal Yandex",
+  "udemySendingAudio": "Tibgħat awdjo Lil Yandex"
 }
