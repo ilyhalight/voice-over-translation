@@ -40,7 +40,6 @@
   "VOTVersion": "Versio",
   "VOTLoader": "Loader",
   "VOTBrowser": "Selain",
-  "VOTShowPiPButton": "Näytä piip-painike",
   "langs": {
     "auto": "Auto",
     "af": "Afrikaans",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Tarkistan päivitykset...",
   "VOTUpdateCheckFailed": "Päivityksiä ei voitu tarkistaa",
   "VOTUpdateAvailable": "Uusi versio {0} on saatavilla",
-  "VOTUpdatedDate": "Päivitetty {0}"
+  "VOTUpdatedDate": "Päivitetty {0}",
+  "QuickAction": "Nopea toiminto #{0}"
 }

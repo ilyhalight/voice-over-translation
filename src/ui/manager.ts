@@ -27,6 +27,7 @@ import type { VideoHandler } from "../VideoHandler";
 import { safeSetPlayerVolume } from "../videoHandler/translationVolume";
 import { applyOverlayMountUpdate } from "./mount";
 import { OverlayController } from "./overlayController";
+import type { QuickAction } from "./quickAction";
 import { SettingsController } from "./settingsController";
 import {
   createShadowMount,
@@ -204,6 +205,27 @@ export class UIManager {
     }
   }
 
+  async quickActionHandler(action: QuickAction) {
+    switch (action) {
+      case "subtitles":
+        await this.videoHandler?.toggleSubtitlesForCurrentLangPair();
+        break;
+      case "pip":
+        await this.togglePictureInPicture();
+        break;
+      case "autoPauseOnTranslate":
+        this.votSettingsView?.createAutoPauseOnTranslateHandler()(
+          !this.data.autoPauseOnTranslate,
+        );
+        break;
+      case "autoTranslate":
+        this.votSettingsView?.createAutoTranslateHandler()(
+          !this.data.autoTranslate,
+        );
+        break;
+    }
+  }
+
   private bindOverlayViewEvents() {
     const overlayView = this.votOverlayView;
     if (!overlayView) {
@@ -214,15 +236,8 @@ export class UIManager {
       .addEventListener("click:translate", async () => {
         await this.handleTranslationBtnClick();
       })
-      .addEventListener("click:pip", async () => {
-        await this.togglePictureInPicture();
-      })
-      .addEventListener("click:subtitles", async () => {
-        if (!this.videoHandler) {
-          return;
-        }
-
-        await this.videoHandler.toggleSubtitlesForCurrentLangPair();
+      .addEventListener("click:quickAction", async (action) => {
+        await this.quickActionHandler(action);
       })
       .addEventListener("click:settings", () => {
         this.videoHandler?.subtitlesWidget?.releaseTooltip();

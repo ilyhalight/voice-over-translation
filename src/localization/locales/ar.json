@@ -40,7 +40,6 @@
   "VOTVersion": "إصدار",
   "VOTLoader": "محمل",
   "VOTBrowser": "المتصفح",
-  "VOTShowPiPButton": "إظهار زر PiP",
   "langs": {
     "auto": "تلقائيا",
     "az": "الأذربيجانية",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "التحقق من وجود تحديثات...",
   "VOTUpdateCheckFailed": "تعذر التحقق من وجود تحديثات",
   "VOTUpdateAvailable": "الإصدار الجديد {0} متاح",
-  "VOTUpdatedDate": "تحديث {0}"
+  "VOTUpdatedDate": "تحديث {0}",
+  "QuickAction": "عمل سريع # {0}"
 }

@@ -40,7 +40,6 @@
   "VOTVersion": "Phiên bản",
   "VOTLoader": "Trình tải",
   "VOTBrowser": "Trình duyệt",
-  "VOTShowPiPButton": "Hiển thị nút PiP",
   "langs": {
     "auto": "Tự động",
     "az": "Azerbaijan",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Kiểm tra các bản cập nhật...",
   "VOTUpdateCheckFailed": "Không thể kiểm tra các bản cập nhật",
   "VOTUpdateAvailable": "Phiên bản mới {0} có sẵn",
-  "VOTUpdatedDate": "Cập nhật {0}"
+  "VOTUpdatedDate": "Cập nhật {0}",
+  "QuickAction": "Hành động nhanh #{0}"
 }

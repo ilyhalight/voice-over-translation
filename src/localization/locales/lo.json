@@ -40,7 +40,6 @@
   "VOTVersion": "ລຸ້ນ",
   "VOTLoader": "Loader",
   "VOTBrowser": "ຕົວທ່ອງເວັບ",
-  "VOTShowPiPButton": "ສະແດງປຸ່ມ PiP",
   "langs": {
     "auto": "ອັດຕະໂນມັດ",
     "af": "ອາຟຣິກາ",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "ກວດເບິ່ງການປັບປຸງ...",
   "VOTUpdateCheckFailed": "ບໍ່ສາມາດກວດສອບການອັບເດດໄດ້",
   "VOTUpdateAvailable": "ສະບັບໃຫມ່{0}ສາມາດໃຊ້ໄດ້",
-  "VOTUpdatedDate": "ອັບເດດ{0}"
+  "VOTUpdatedDate": "ອັບເດດ{0}",
+  "QuickAction": "ການປະຕິບັດດ່ວນ#{0}"
 }

@@ -40,7 +40,6 @@
   "VOTVersion": "Verzió",
   "VOTLoader": "Rakodó",
   "VOTBrowser": "Böngésző",
-  "VOTShowPiPButton": "PiP gomb megjelenítése",
   "langs": {
     "auto": "Autó",
     "af": "Afrikaans",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Frissítések keresése...",
   "VOTUpdateCheckFailed": "Nem sikerült ellenőrizni a frissítéseket",
   "VOTUpdateAvailable": "Új verzió {0} elérhető",
-  "VOTUpdatedDate": "Frissítve {0}"
+  "VOTUpdatedDate": "Frissítve {0}",
+  "QuickAction": "Gyors művelet # {0}"
 }

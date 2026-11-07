@@ -40,7 +40,6 @@
   "VOTVersion": "版本",
   "VOTLoader": "装载机/装载机",
   "VOTBrowser": "浏览器",
-  "VOTShowPiPButton": "显示PiP按钮",
   "langs": {
     "auto": "汽车",
     "af": "南非荷兰语",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "检查更新。..",
   "VOTUpdateCheckFailed": "无法检查更新",
   "VOTUpdateAvailable": "新版本{0}可用",
-  "VOTUpdatedDate": "更新{0}"
+  "VOTUpdatedDate": "更新{0}",
+  "QuickAction": "快速行动#{0}"
 }

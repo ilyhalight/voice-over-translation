@@ -40,7 +40,6 @@
   "VOTVersion": "Različica",
   "VOTLoader": "Nakladalnik",
   "VOTBrowser": "Brskalnik",
-  "VOTShowPiPButton": "Prikaži gumb PiP",
   "langs": {
     "auto": "Samodejno",
     "af": "Afrikaans",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Preverjanje posodobitev...",
   "VOTUpdateCheckFailed": "Ni bilo mogoče preveriti posodobitev",
   "VOTUpdateAvailable": "Na voljo je nova različica {0} ",
-  "VOTUpdatedDate": "Posodobljeno {0}"
+  "VOTUpdatedDate": "Posodobljeno {0}",
+  "QuickAction": "Hitro ukrepanje # {0}"
 }

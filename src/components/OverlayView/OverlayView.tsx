@@ -18,9 +18,9 @@ import {
   normalizeButtonPosition,
   resolveButtonPositionFromPointer,
 } from "../../ui/buttonPlacement";
+import type { QuickAction } from "../../ui/quickAction";
 import { clamp } from "../../utils/number";
 import { votStorage } from "../../utils/storage";
-import { isPiPAvailable } from "../../utils/utils";
 import type { SelectOption } from "../Control/Select";
 import { PreviewSegmentedButtonOverlay } from "../SegmentedButton/PreviewSegmentedButtonOverlay";
 import type { SegmentedButtonControls } from "../SegmentedButton/SegmentedButton";
@@ -103,11 +103,7 @@ export type OverlayViewProps = {
 } & Partial<
   Pick<
     SegmentedButtonOverlayProps,
-    | "status"
-    | "onTranslateClick"
-    | "onVoiceChange"
-    | "onPiPClick"
-    | "onSubtitlesClick"
+    "status" | "onTranslateClick" | "onVoiceChange" | "onQuickActionClick"
   >
 > &
   Partial<
@@ -136,6 +132,8 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
       responseLanguage: "ru",
       status: "none",
       baseOpacity: 0,
+      isQuickAction1Activated: false,
+      isQuickAction2Activated: false,
     } as Partial<OverlayViewProps>,
     props,
   );
@@ -292,6 +290,19 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
       if (version === subtitlesLoadVersion) {
         setSubtitlesLoading(false);
       }
+    }
+  };
+
+  const isQuickActionActivated = (action: QuickAction): boolean => {
+    switch (action) {
+      case "subtitles":
+        return selectedSubtitles() !== "disabled";
+      case "autoTranslate":
+        return settings.autoTranslate;
+      case "autoPauseOnTranslate":
+        return settings.autoPauseOnTranslate;
+      default:
+        return false;
     }
   };
 
@@ -623,11 +634,7 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
   });
 
   return (
-    <vot-block
-      ref={(element) => {
-        rootElement = element;
-      }}
-    >
+    <vot-block ref={rootElement}>
       <SegmentedButtonOverlay
         controlsRef={(controls) => (segmentedButtonControls = controls)}
         overlayRef={(element) => (buttonOverlay = element)}
@@ -640,10 +647,12 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
         tooltipPos={tooltipPos()}
         direction={direction()}
         isLoading={isLoading()}
-        isSubtitlesActive={selectedSubtitles() !== "disabled"}
-        showPipButton={isPiPAvailable() && settings.showPiPButton}
         menuOpened={!menuHidden()}
         ref={(element) => (segmentedButton = element)}
+        quickAction1={settings.quickAction1}
+        isQuickAction1Activated={isQuickActionActivated(settings.quickAction1)}
+        quickAction2={settings.quickAction2}
+        isQuickAction2Activated={isQuickActionActivated(settings.quickAction2)}
         onMenuClick={() => {
           setMenuHidden(!menuHidden());
         }}
@@ -651,13 +660,9 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
           setMenuHidden(true);
           finalProps.onTranslateClick?.();
         }}
-        onPiPClick={() => {
+        onQuickActionClick={(action) => {
           setMenuHidden(true);
-          finalProps.onPiPClick?.();
-        }}
-        onSubtitlesClick={() => {
-          setMenuHidden(true);
-          finalProps.onSubtitlesClick?.();
+          finalProps.onQuickActionClick?.(action);
         }}
         onVoiceChange={finalProps.onVoiceChange}
       />
@@ -667,7 +672,14 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
             position={position()}
             labelText={labelText()}
             direction={getButtonDirection(position())}
-            showPipButton={settings.showPiPButton}
+            quickAction1={settings.quickAction1}
+            isQuickAction1Activated={isQuickActionActivated(
+              settings.quickAction1,
+            )}
+            quickAction2={settings.quickAction2}
+            isQuickAction2Activated={isQuickActionActivated(
+              settings.quickAction2,
+            )}
           />
         )}
       </Show>

@@ -40,7 +40,6 @@
   "VOTVersion": "버전",
   "VOTLoader": "짐을 싣는 사람",
   "VOTBrowser": "브라우저",
-  "VOTShowPiPButton": "PiP 버튼 표시",
   "langs": {
     "auto": "자동으로",
     "lg": "간다어",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "업데이트 확인...",
   "VOTUpdateCheckFailed": "업데이트를 확인할 수 없습니다",
   "VOTUpdateAvailable": "새 버전{0}을 사용할 수 있습니다",
-  "VOTUpdatedDate": "업데이트{0}"
+  "VOTUpdatedDate": "업데이트{0}",
+  "QuickAction": "빠른 동작#{0}"
 }

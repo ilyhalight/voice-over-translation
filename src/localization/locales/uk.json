@@ -40,7 +40,6 @@
   "VOTVersion": "Версія",
   "VOTLoader": "Навантажувач",
   "VOTBrowser": "Браузер",
-  "VOTShowPiPButton": "Кнопка Показати пунктир",
   "langs": {
     "auto": "Авто",
     "af": "Африкаанс",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Перевіряю наявність оновлень...",
   "VOTUpdateCheckFailed": "Не вдалося перевірити наявність оновлень",
   "VOTUpdateAvailable": "Доступна нова версія {0}",
-  "VOTUpdatedDate": "Оновлено {0}"
+  "VOTUpdatedDate": "Оновлено {0}",
+  "QuickAction": "Швидка дія #{0}"
 }

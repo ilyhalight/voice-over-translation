@@ -40,7 +40,6 @@
   "VOTVersion": "Verżjoni",
   "VOTLoader": "Loader",
   "VOTBrowser": "Browser",
-  "VOTShowPiPButton": "Button l-buttuna PiP",
   "langs": {
     "auto": "Auto",
     "af": "Afrikani",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Iċċekkjar għal aġġornamenti...",
   "VOTUpdateCheckFailed": "Ma setgħetx tiċċekkja għal aġġornamenti",
   "VOTUpdateAvailable": "Verżjoni ġdida {0} hija disponibbli",
-  "VOTUpdatedDate": "Aġġornat {0}"
+  "VOTUpdatedDate": "Aġġornat {0}",
+  "QuickAction": "Azzjoni ta'malajr #{0}"
 }

@@ -1,27 +1,32 @@
 import {
   createEffect,
+  createMemo,
   createSignal,
   type JSX,
+  Match,
   mergeProps,
   on,
   Show,
+  Switch,
 } from "solid-js";
-
+import { RawButton } from "#components/Button/RawButton.tsx";
+import { AutoPauseIcon } from "#components/Icons/AutoPauseIcon.tsx";
+import { AutoTranslateIcon } from "#components/Icons/AutoTranslateIcon.tsx";
+import { ChevronIcon } from "#components/Icons/ChevronIcon.tsx";
+import { MenuIcon } from "#components/Icons/MenuIcon.tsx";
+import { PiPIcon } from "#components/Icons/PiPIcon.tsx";
+import { SubtitlesIcon } from "#components/Icons/SubtitlesIcon.tsx";
+import { TranslateIcon } from "#components/Icons/TranslateIcon.tsx";
+import { Tooltip } from "#components/Utils/Tooltip.tsx";
 import { t } from "../../localization/localizationProvider";
 import { setSettings, settings } from "../../stores/settings";
 import type { Direction, Status } from "../../types/components/votButton";
+import { type QuickAction, quickActions } from "../../ui/quickAction";
 import { isTouchFirstInput } from "../../utils/inputDevice";
-import { RawButton } from "../Button/RawButton";
 import {
   isKeyboardActivation,
   isPrimaryPointerAction,
 } from "../componentShared";
-import { ChevronIcon } from "../Icons/ChevronIcon";
-import { MenuIcon } from "../Icons/MenuIcon";
-import { PiPIcon } from "../Icons/PiPIcon";
-import { SubtitlesIcon } from "../Icons/SubtitlesIcon";
-import { TranslateIcon } from "../Icons/TranslateIcon";
-import { Tooltip } from "../Utils/Tooltip";
 import {
   VoicePopover,
   type VoicePopoverControls,
@@ -43,19 +48,103 @@ export type SegmentedButtonProps = {
   status?: Status;
   isLoading?: boolean;
   isTransparent?: boolean;
-  isSubtitlesActive?: boolean;
   isDragging?: boolean;
-  showPipButton?: boolean;
   layoutRoot?: HTMLElement;
   labelText: string;
   menuOpened?: boolean;
+  quickAction1?: QuickAction;
+  isQuickAction1Activated?: boolean;
+  quickAction2?: QuickAction;
+  isQuickAction2Activated?: boolean;
   onTranslateClick?: () => void;
   onVoiceChange?: (voice: VoiceType) => void;
-  onSubtitlesClick?: () => void;
   onMenuClick?: () => void;
-  onPiPClick?: () => void;
+  onQuickActionClick?: (action: QuickAction) => void;
   ref?: (element: HTMLElement) => void;
 };
+
+export type QuickActionButtonProps = {
+  action: QuickAction;
+  isActivated: boolean;
+  ref?: (element: HTMLElement) => void;
+  onQuickActionClick?: () => void;
+  tooltipLayoutRoot: HTMLElement;
+  tooltipHidden: boolean;
+  tooltipPos: SegmentedButtonTooltipPosition;
+};
+
+export function QuickActionIcon(props: { action: QuickAction }): JSX.Element {
+  return (
+    <Switch>
+      <Match when={props.action === "subtitles"}>
+        <SubtitlesIcon />
+      </Match>
+      <Match when={props.action === "pip"}>
+        <PiPIcon />
+      </Match>
+      <Match when={props.action === "autoPauseOnTranslate"}>
+        <AutoPauseIcon />
+      </Match>
+      <Match when={props.action === "autoTranslate"}>
+        <AutoTranslateIcon />
+      </Match>
+    </Switch>
+  );
+}
+
+export function QuickActionButton(props: QuickActionButtonProps): JSX.Element {
+  const [quickActionButton, setQuickActionButton] = createSignal<HTMLElement>();
+
+  const quickAction = createMemo(() =>
+    quickActions.find((qa) => qa.id === props.action),
+  );
+
+  return (
+    <Show when={props.action !== "none" && quickAction()}>
+      <vot-block class="vot-separator" />
+      <RawButton
+        class="vot-segment-only-icon"
+        ref={(element) => {
+          setQuickActionButton(element);
+          props.ref?.(element);
+        }}
+        buttonProps={{
+          "data-active": props.isActivated,
+          "aria-pressed": props.isActivated,
+          "aria-label": t(quickAction().phrase),
+          onKeyDown: (event) => {
+            if (!isKeyboardActivation(event)) {
+              return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            props.onQuickActionClick?.();
+          },
+          onPointerUp: (event) => {
+            if (!isPrimaryPointerAction(event)) {
+              return;
+            }
+
+            event.stopPropagation();
+            props.onQuickActionClick?.();
+          },
+        }}
+      >
+        <QuickActionIcon action={props.action} />
+        <Tooltip
+          content={t(quickAction().phrase)}
+          parentElement={props.tooltipLayoutRoot}
+          target={quickActionButton()}
+          position={props.tooltipPos}
+          autoLayout={false}
+          bordered={false}
+          hidden={props.tooltipHidden}
+        />
+      </RawButton>
+    </Show>
+  );
+}
 
 export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
   const finalProps = mergeProps(
@@ -64,10 +153,12 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
       tooltipPos: "bottom",
       status: "none",
       isLoading: false,
-      isSubtitlesActive: false,
       isTransparent: false,
       isDragging: false,
-      showPipButton: false,
+      quickAction1: "none",
+      isQuickAction1Activated: false,
+      quickAction2: "none",
+      isQuickAction2Activated: false,
       menuOpened: false,
     } as Partial<SegmentedButtonProps>,
     props,
@@ -77,8 +168,6 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
   const [translationButton, setTranslationButton] = createSignal<HTMLElement>();
   const [voiceSelectionButton, setVoiceSelectionButton] =
     createSignal<HTMLElement>();
-  const [subtitlesButton, setSubtitlesButton] = createSignal<HTMLElement>();
-  const [pipButton, setPiPButton] = createSignal<HTMLElement>();
   const [menuButton, setMenuButton] = createSignal<HTMLElement>();
 
   const [isVoicePopoverOpen, setIsVoicePopoverOpen] = createSignal(false);
@@ -86,7 +175,6 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
   let voicePopover: HTMLElement | undefined;
   let voicePopoverControls: VoicePopoverControls | undefined;
   let suppressRestoredVoiceTooltipFocus = false;
-
   const needHideTooltip = () =>
     finalProps.isTransparent || finalProps.isDragging;
   const isColumnDirection = () => finalProps.direction === "column";
@@ -316,81 +404,27 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
           </RawButton>
         </Show>
       </RawButton>
-      <vot-block class="vot-separator" />
-      <RawButton
-        class="vot-segment-only-icon"
-        ref={(element) => setSubtitlesButton(element)}
-        buttonProps={{
-          "data-active": finalProps.isSubtitlesActive,
-          "aria-label": t("VOTSubtitles"),
-          "aria-pressed": finalProps.isSubtitlesActive,
-          onKeyDown: (event) => {
-            if (!isKeyboardActivation(event)) {
-              return;
-            }
-
-            event.preventDefault();
-            event.stopPropagation();
-            finalProps.onSubtitlesClick?.();
-          },
-          onPointerUp: (event) => {
-            if (!isPrimaryPointerAction(event)) {
-              return;
-            }
-
-            event.stopPropagation();
-            finalProps.onSubtitlesClick?.();
-          },
-        }}
-      >
-        <SubtitlesIcon />
-        <Tooltip
-          content={t("VOTSubtitles")}
-          parentElement={tooltipLayoutRoot()}
-          target={subtitlesButton()}
-          position={finalProps.tooltipPos}
-          autoLayout={false}
-          bordered={false}
-          hidden={needHideTooltip()}
+      <QuickActionButton
+        action={finalProps.quickAction1}
+        isActivated={finalProps.isQuickAction1Activated}
+        tooltipLayoutRoot={tooltipLayoutRoot()}
+        tooltipHidden={needHideTooltip()}
+        tooltipPos={finalProps.tooltipPos}
+        onQuickActionClick={() =>
+          finalProps.onQuickActionClick?.(finalProps.quickAction1)
+        }
+      />
+      <Show when={finalProps.quickAction1 !== finalProps.quickAction2}>
+        <QuickActionButton
+          action={finalProps.quickAction2}
+          isActivated={finalProps.isQuickAction2Activated}
+          tooltipLayoutRoot={tooltipLayoutRoot()}
+          tooltipHidden={needHideTooltip()}
+          tooltipPos={finalProps.tooltipPos}
+          onQuickActionClick={() =>
+            finalProps.onQuickActionClick?.(finalProps.quickAction2)
+          }
         />
-      </RawButton>
-      <Show when={finalProps.showPipButton}>
-        <vot-block class="vot-separator" />
-        <RawButton
-          class="vot-segment-only-icon"
-          ref={(element) => setPiPButton(element)}
-          buttonProps={{
-            "aria-label": t("VOTPiP"),
-            onKeyDown: (event) => {
-              if (!isKeyboardActivation(event)) {
-                return;
-              }
-
-              event.preventDefault();
-              event.stopPropagation();
-              finalProps.onPiPClick?.();
-            },
-            onPointerUp: (event) => {
-              if (!isPrimaryPointerAction(event)) {
-                return;
-              }
-
-              event.stopPropagation();
-              finalProps.onPiPClick?.();
-            },
-          }}
-        >
-          <PiPIcon />
-          <Tooltip
-            content={t("VOTPiP")}
-            parentElement={tooltipLayoutRoot()}
-            target={pipButton()}
-            position={finalProps.tooltipPos}
-            autoLayout={false}
-            bordered={false}
-            hidden={needHideTooltip()}
-          />
-        </RawButton>
       </Show>
       <vot-block class="vot-separator" />
       <RawButton

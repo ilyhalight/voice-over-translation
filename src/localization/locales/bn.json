@@ -40,7 +40,6 @@
   "VOTVersion": "সংস্করণ",
   "VOTLoader": "লোডার",
   "VOTBrowser": "ব্রাউজার",
-  "VOTShowPiPButton": "PiP বোতাম দেখান",
   "langs": {
     "auto": "স্বয়ংক্রিয়ভাবে",
     "az": "আজারবাইজানী",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "আপডেটের জন্য চেক করা হচ্ছে...",
   "VOTUpdateCheckFailed": "আপডেটের জন্য চেক করা যায়নি",
   "VOTUpdateAvailable": "নতুন সংস্করণ {0} উপলব্ধ",
-  "VOTUpdatedDate": "{0}আপডেট করা হয়েছে"
+  "VOTUpdatedDate": "{0}আপডেট করা হয়েছে",
+  "QuickAction": "দ্রুত পদক্ষেপ # {0}"
 }

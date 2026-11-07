@@ -40,7 +40,6 @@
   "VOTVersion": "संस्करण",
   "VOTLoader": "लोडर",
   "VOTBrowser": "ब्राउज़र",
-  "VOTShowPiPButton": "PiP बटन दिखाएँ",
   "langs": {
     "auto": "खुद ब खुद",
     "az": "अज़रबैजानी",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "अद्यतन के लिए जाँच हो रही है । ..",
   "VOTUpdateCheckFailed": "अपडेट के लिए जाँच नहीं कर सका",
   "VOTUpdateAvailable": "नया संस्करण {0} उपलब्ध है",
-  "VOTUpdatedDate": "अद्यतन {0}"
+  "VOTUpdatedDate": "अद्यतन {0}",
+  "QuickAction": "त्वरित कार्रवाई #{0}"
 }

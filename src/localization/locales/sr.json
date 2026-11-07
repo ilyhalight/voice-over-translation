@@ -40,7 +40,6 @@
   "VOTVersion": "Верзија",
   "VOTLoader": "Утоваривач",
   "VOTBrowser": "Прегледник",
-  "VOTShowPiPButton": "Дугме Прикажи испрекидану тачку",
   "langs": {
     "auto": "Ауто",
     "af": "Африкаанс",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Проверавам ажурирања...",
   "VOTUpdateCheckFailed": "Провера ажурирања није успела",
   "VOTUpdateAvailable": "Доступна је нова верзија {0}",
-  "VOTUpdatedDate": "Ажурирано {0}"
+  "VOTUpdatedDate": "Ажурирано {0}",
+  "QuickAction": "Брза акција #{0}"
 }

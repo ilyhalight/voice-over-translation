@@ -40,7 +40,6 @@
   "VOTVersion": "Inguqulo",
   "VOTLoader": "Umthwali",
   "VOTBrowser": "Isiphequluli",
-  "VOTShowPiPButton": "Bonisa inkinobho PiP",
   "langs": {
     "auto": "Imoto",
     "af": "Isibhunu",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Ukuhlola izibuyekezo...",
   "VOTUpdateCheckFailed": "Ayikwazanga ukuhlola izibuyekezo",
   "VOTUpdateAvailable": "Inguqulo entsha {0} iyatholakala",
-  "VOTUpdatedDate": "Kubuyekeziwe {0}"
+  "VOTUpdatedDate": "Kubuyekeziwe {0}",
+  "QuickAction": "Isenzo esisheshayo #{0}"
 }

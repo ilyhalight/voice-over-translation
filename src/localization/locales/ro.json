@@ -40,7 +40,6 @@
   "VOTVersion": "Versiune",
   "VOTLoader": "Încărcător",
   "VOTBrowser": "Navigator",
-  "VOTShowPiPButton": "Afișează butonul PiP",
   "langs": {
     "auto": "Auto",
     "af": "Afrikaans",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Verificarea actualizărilor...",
   "VOTUpdateCheckFailed": "Nu s-a putut verifica actualizările",
   "VOTUpdateAvailable": "Noua versiune {0} este disponibilă",
-  "VOTUpdatedDate": "Actualizat {0}"
+  "VOTUpdatedDate": "Actualizat {0}",
+  "QuickAction": "Acțiune rapidă # {0}"
 }

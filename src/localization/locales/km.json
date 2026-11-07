@@ -40,7 +40,6 @@
   "VOTVersion": "កំណែ",
   "VOTLoader": "កម្មវិធី",
   "VOTBrowser": "កម្មវិធីរុករក",
-  "VOTShowPiPButton": "បង្ហាញប៊ូតុង PiP",
   "langs": {
     "auto": "ស្វ័យប្រវត្តិ",
     "af": "Afrikaans",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "កំពុងពិនិត្យមើលភាពទាន់សម័យ...",
   "VOTUpdateCheckFailed": "មិនអាចពិនិត្យមើលភាពទាន់សម័យ",
   "VOTUpdateAvailable": "កំណែថ្មី{0}គឺអាចរកបាន",
-  "VOTUpdatedDate": "បន្ទាន់សម័យ{0}"
+  "VOTUpdatedDate": "បន្ទាន់សម័យ{0}",
+  "QuickAction": "សកម្មភាពរហ័ស#{0}"
 }

@@ -40,7 +40,6 @@
   "VOTVersion": "ትርጉም",
   "VOTLoader": "ጫን",
   "VOTBrowser": "መቃኛ",
-  "VOTShowPiPButton": "አሳይ ፒፕ አዝራር",
   "langs": {
     "auto": "ራስ",
     "af": "አፍሪቃውያን",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "ዝማኔዎችን በመፈተሽ ላይ ። ..",
   "VOTUpdateCheckFailed": "ዝማኔዎችን ማረጋገጥ አልተቻለም ። ",
   "VOTUpdateAvailable": "አዲስ ስሪት {0} ይገኛል",
-  "VOTUpdatedDate": "የዘመነ {0}"
+  "VOTUpdatedDate": "የዘመነ {0}",
+  "QuickAction": "ፈጣን እርምጃ #{0}"
 }

@@ -40,7 +40,6 @@
   "VOTVersion": "ਵਰਜਨ",
   "VOTLoader": "ਲੋਡਰ",
   "VOTBrowser": "ਬਰਾਊਜ਼ਰ",
-  "VOTShowPiPButton": "ਪਾਈਪ ਬਟਨ ਵੇਖੋ",
   "langs": {
     "auto": "ਆਟੋ",
     "af": "ਅਫ਼ਰੀਕਾਂਸ",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "ਅੱਪਡੇਟ ਲਈ ਚੈੱਕ...",
   "VOTUpdateCheckFailed": "ਅੱਪਡੇਟ ਲਈ ਚੈੱਕ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਿਆ",
   "VOTUpdateAvailable": "{0} ਨਵਾਂ ਵਰਜਨ ਉਪਲੱਬਧ ਹੈ",
-  "VOTUpdatedDate": "{0}ਅੱਪਡੇਟ"
+  "VOTUpdatedDate": "{0}ਅੱਪਡੇਟ",
+  "QuickAction": "ਤੇਜ਼ ਕਾਰਵਾਈ # {0}"
 }

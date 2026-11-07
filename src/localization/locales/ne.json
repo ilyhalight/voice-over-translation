@@ -40,7 +40,6 @@
   "VOTVersion": "संस्करण",
   "VOTLoader": "लोडर",
   "VOTBrowser": "ब्राउजर",
-  "VOTShowPiPButton": "पिप बटन देखाउनुहोस्",
   "langs": {
     "auto": "स्वत:",
     "af": "अफ्रिकान्स",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "अपडेटका लागि जाँच गर्दैछ।..",
   "VOTUpdateCheckFailed": "अद्यावधिकका लागि जाँच गर्न सकिएन",
   "VOTUpdateAvailable": "नयाँ संस्करण {0} उपलब्ध छ",
-  "VOTUpdatedDate": "{0}अद्यावधिक गरियो"
+  "VOTUpdatedDate": "{0}अद्यावधिक गरियो",
+  "QuickAction": "द्रुत कार्य # {0}"
 }

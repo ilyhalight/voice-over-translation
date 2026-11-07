@@ -13,6 +13,7 @@ import { hasTouchScreen, isTouchFirstInput } from "../utils/inputDevice";
 import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
 import { votStorage } from "../utils/storage";
 import type { VideoHandler } from "../VideoHandler";
+import type { QuickAction } from "./quickAction";
 import {
   createShadowMount,
   destroyShadowMount,
@@ -31,8 +32,7 @@ type OverlayControllerProps = {
 
 type OverlayControllerEventMap = {
   "click:settings": [];
-  "click:pip": [];
-  "click:subtitles": [];
+  "click:quickAction": [action: QuickAction];
   "click:downloadTranslation": [];
   "click:downloadSubtitles": [];
   "click:translate": [];
@@ -69,9 +69,8 @@ export class OverlayController {
     "click:settings": new EventImpl<
       OverlayControllerEventMap["click:settings"]
     >(),
-    "click:pip": new EventImpl<OverlayControllerEventMap["click:pip"]>(),
-    "click:subtitles": new EventImpl<
-      OverlayControllerEventMap["click:subtitles"]
+    "click:quickAction": new EventImpl<
+      OverlayControllerEventMap["click:quickAction"]
     >(),
     "click:downloadTranslation": new EventImpl<
       OverlayControllerEventMap["click:downloadTranslation"]
@@ -242,11 +241,8 @@ export class OverlayController {
           onTranslateClick: () => {
             this.events["click:translate"].dispatch();
           },
-          onPiPClick: () => {
-            this.events["click:pip"].dispatch();
-          },
-          onSubtitlesClick: () => {
-            this.events["click:subtitles"].dispatch();
+          onQuickActionClick: (action) => {
+            this.events["click:quickAction"].dispatch(action);
           },
           onSubtitlesOpen: () =>
             this.videoHandler?.ensureSubtitlesForCurrentLangPair(),

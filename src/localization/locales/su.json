@@ -40,7 +40,6 @@
   "VOTVersion": "Versi",
   "VOTLoader": "Loader",
   "VOTBrowser": "Panyungsi",
-  "VOTShowPiPButton": "Témbongkeun tombol pip",
   "langs": {
     "auto": "Otomatis",
     "af": "Basa Afrikaans",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Pariksa pikeun apdet...",
   "VOTUpdateCheckFailed": "Tak sabar nak update",
   "VOTUpdateAvailable": "Versi anyar {0} geus sadia",
-  "VOTUpdatedDate": "Diropéa {0}"
+  "VOTUpdatedDate": "Diropéa {0}",
+  "QuickAction": "Aksi gancang #{0}"
 }

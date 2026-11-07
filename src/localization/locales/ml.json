@@ -40,7 +40,6 @@
   "VOTVersion": "പതിപ്പ്",
   "VOTLoader": "ലോഡർ",
   "VOTBrowser": "ബ്രൗസര്",
-  "VOTShowPiPButton": "പിപ് ബട്ടണ് കാണിക്കുക",
   "langs": {
     "auto": "ഓട്ടോ",
     "af": "ആഫ്രിക്കൻ",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "അപ്ഡേറ്റുകൾക്കായി പരിശോധിക്കുന്നു...",
   "VOTUpdateCheckFailed": "അപ്ഡേറ്റുകള്ക്കായി പരിശോധിക്കാന് കഴിഞ്ഞില്ല",
   "VOTUpdateAvailable": "പുതിയ പതിപ്പ് {0} ലഭ്യമാണ്",
-  "VOTUpdatedDate": "അപ്ഡേറ്റ് {0}"
+  "VOTUpdatedDate": "അപ്ഡേറ്റ് {0}",
+  "QuickAction": "ദ്രുത പ്രവർത്തനം # {0}"
 }

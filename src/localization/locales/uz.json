@@ -40,7 +40,6 @@
   "VOTVersion": "Versiya",
   "VOTLoader": "Yuklagich",
   "VOTBrowser": "Brauzer",
-  "VOTShowPiPButton": "PiP tugmasini ko'rsatish",
   "langs": {
     "auto": "Avto",
     "af": "Afrikaliklar",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Yangilanishlarni tekshirish...",
   "VOTUpdateCheckFailed": "Yangilanishlarni tekshirib bo'lmadi",
   "VOTUpdateAvailable": "Yangi versiya {0} mavjud",
-  "VOTUpdatedDate": "Yangilangan {0}"
+  "VOTUpdatedDate": "Yangilangan {0}",
+  "QuickAction": "Tezkor harakat # {0}"
 }

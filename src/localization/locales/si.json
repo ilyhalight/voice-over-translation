@@ -40,7 +40,6 @@
   "VOTVersion": "අනුවාදය",
   "VOTLoader": "බඩු පටවන යන්ත් රය",
   "VOTBrowser": "බ්රවුසරය",
-  "VOTShowPiPButton": "පෙප් බොත්තම පෙන්වන්න",
   "langs": {
     "auto": "ස්වයංක්රීය",
     "af": "අප් රිකාන්ස්",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "යාවත්කාලීන කිරීම් සඳහා පරීක්ෂා කිරීම...",
   "VOTUpdateCheckFailed": "යාවත්කාලීන කිරීම් සඳහා පරීක්ෂා කළ නොහැකි විය",
   "VOTUpdateAvailable": "{0} නව අනුවාදය ලබා ගත හැක",
-  "VOTUpdatedDate": "{0}යාවත්කාලීන කර ඇත"
+  "VOTUpdatedDate": "{0}යාවත්කාලීන කර ඇත",
+  "QuickAction": "ඉක්මන් පියවර #{0}"
 }

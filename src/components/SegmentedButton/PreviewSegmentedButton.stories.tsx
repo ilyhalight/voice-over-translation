@@ -37,14 +37,7 @@ export const PreviewSegmentedButtonSuccess: Story = {
 export const PreviewSegmentedButtonWithPip: Story = {
   args: {
     labelText: "Translate",
-    showPipButton: true,
-  },
-};
-
-export const PreviewSegmentedButtonWithActiveSubs: Story = {
-  args: {
-    labelText: "Translate",
-    isSubtitlesActive: true,
+    quickAction1: "pip",
   },
 };
 

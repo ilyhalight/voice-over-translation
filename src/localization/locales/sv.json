@@ -40,7 +40,6 @@
   "VOTVersion": "Version",
   "VOTLoader": "Lastare",
   "VOTBrowser": "Webbläsare",
-  "VOTShowPiPButton": "Visa pip-knapp",
   "langs": {
     "auto": "Auto",
     "af": "Afrikaans",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Söker efter uppdateringar...",
   "VOTUpdateCheckFailed": "Kunde inte söka efter uppdateringar",
   "VOTUpdateAvailable": "Ny version {0} är tillgänglig",
-  "VOTUpdatedDate": "Uppdaterad {0}"
+  "VOTUpdatedDate": "Uppdaterad {0}",
+  "QuickAction": "Snabb åtgärd # {0}"
 }

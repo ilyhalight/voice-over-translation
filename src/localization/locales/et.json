@@ -40,7 +40,6 @@
   "VOTVersion": "Versioon",
   "VOTLoader": "Loader",
   "VOTBrowser": "Veebibrauser",
-  "VOTShowPiPButton": "PIP-nupu näitamine",
   "langs": {
     "auto": "Auto",
     "af": "Afrikaani",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Värskenduste kontrollimine...",
   "VOTUpdateCheckFailed": "Värskendusi ei õnnestunud kontrollida",
   "VOTUpdateAvailable": "Uus versioon {0} on saadaval",
-  "VOTUpdatedDate": "Uuendatud {0}"
+  "VOTUpdatedDate": "Uuendatud {0}",
+  "QuickAction": "Kiire tegevus # {0}"
 }

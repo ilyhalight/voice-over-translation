@@ -40,7 +40,6 @@
   "VOTVersion": "Verzija",
   "VOTLoader": "Utovarivač",
   "VOTBrowser": "Preglednik",
-  "VOTShowPiPButton": "Gumb Prikaži isprekidanu crtu",
   "langs": {
     "auto": "Auto",
     "af": "Afrikaans",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Provjeravam ima li ažuriranja...",
   "VOTUpdateCheckFailed": "Provjera ažuriranja nije uspjela",
   "VOTUpdateAvailable": "Dostupna je nova verzija {0}",
-  "VOTUpdatedDate": "Ažurirano {0}"
+  "VOTUpdatedDate": "Ažurirano {0}",
+  "QuickAction": "Brza akcija #{0}"
 }

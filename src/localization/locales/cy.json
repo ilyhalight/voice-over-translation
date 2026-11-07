@@ -40,7 +40,6 @@
   "VOTVersion": "Fersiwn",
   "VOTLoader": "Llwythwr",
   "VOTBrowser": "Porwr",
-  "VOTShowPiPButton": "Dangos botwm PiP",
   "langs": {
     "auto": "Awto",
     "af": "Afrikaans",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Gwirio am ddiweddariadau...",
   "VOTUpdateCheckFailed": "Diweddaru pecyn",
   "VOTUpdateAvailable": "Fersiwn newydd {0} ar gael",
-  "VOTUpdatedDate": "Diweddarwyd {0}"
+  "VOTUpdatedDate": "Diweddarwyd {0}",
+  "QuickAction": "Gweithred gyflym #{0}"
 }

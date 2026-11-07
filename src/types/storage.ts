@@ -6,6 +6,7 @@ import type {
 } from "#modules/translateText/types.ts";
 import type { UpdaterInfoStore } from "#modules/updater/store.ts";
 import type { LangOverride } from "../localization/localizationProvider";
+import type { QuickAction } from "../ui/quickAction.ts";
 import type { LanguageSelectKey } from "./components/select";
 import type { Position } from "./components/votButton";
 import type { SubtitleFontFamily, SubtitleFormat } from "./subtitles.ts";
@@ -56,7 +57,8 @@ export const storageKeys = [
   "defaultVolume",
   "onlyBypassMediaCSP",
   "newAudioPlayer",
-  "showPiPButton",
+  "quickAction1",
+  "quickAction2",
   "translateAPIErrors",
   "sendErrorReports",
   "translationService",
@@ -146,7 +148,8 @@ export type StorageData = {
   defaultVolume: number;
   onlyBypassMediaCSP: boolean;
   newAudioPlayer: boolean;
-  showPiPButton: boolean;
+  quickAction1: QuickAction;
+  quickAction2: QuickAction;
   translateAPIErrors: boolean;
   sendErrorReports: boolean;
   translationService: TranslateTextService;

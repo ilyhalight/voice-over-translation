@@ -40,7 +40,6 @@
   "VOTVersion": "ورژن",
   "VOTLoader": "لوڈر",
   "VOTBrowser": "براؤزر",
-  "VOTShowPiPButton": "PiP بٹن دکھائیں۔",
   "langs": {
     "auto": "خود بخود",
     "az": "آذربائیجانی",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "اپ ڈیٹس کی جانچ پڑتال...",
   "VOTUpdateCheckFailed": "اپ ڈیٹس کے لئے چیک نہیں کر سکا",
   "VOTUpdateAvailable": "نیا ورژن {0} دستیاب ہے",
-  "VOTUpdatedDate": "اپ ڈیٹ {0}"
+  "VOTUpdatedDate": "اپ ڈیٹ {0}",
+  "QuickAction": "فوری کارروائی #{0}"
 }

@@ -40,7 +40,6 @@
   "VOTVersion": "Version",
   "VOTLoader": "Chargeur",
   "VOTBrowser": "Navigateur",
-  "VOTShowPiPButton": "Afficher le bouton PiP",
   "langs": {
     "auto": "Automatiquement",
     "af": "Afrikaans",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Vérification des mises à jour...",
   "VOTUpdateCheckFailed": "Impossible de vérifier les mises à jour",
   "VOTUpdateAvailable": "La nouvelle version {0} est disponible",
-  "VOTUpdatedDate": "Mise à jour {0}"
+  "VOTUpdatedDate": "Mise à jour {0}",
+  "QuickAction": "Action rapide #{0}"
 }

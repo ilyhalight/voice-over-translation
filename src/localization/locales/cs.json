@@ -40,7 +40,6 @@
   "VOTVersion": "Verze",
   "VOTLoader": "Nakladač",
   "VOTBrowser": "Prohlížeč",
-  "VOTShowPiPButton": "Zobrazit tlačítko PiP",
   "langs": {
     "auto": "Automaticky",
     "az": "Ázerbájdžánština",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Kontrola aktualizací...",
   "VOTUpdateCheckFailed": "Nelze zkontrolovat aktualizace",
   "VOTUpdateAvailable": "Nová verze {0} je k dispozici",
-  "VOTUpdatedDate": "Aktualizováno {0}"
+  "VOTUpdatedDate": "Aktualizováno {0}",
+  "QuickAction": "Rychlá akce # {0}"
 }

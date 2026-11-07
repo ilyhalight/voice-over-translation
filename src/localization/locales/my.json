@@ -40,7 +40,6 @@
   "VOTVersion": "ဗားရှင်း",
   "VOTLoader": "Loader ကို",
   "VOTBrowser": "ရှာဖွေရေးကိရိယာ",
-  "VOTShowPiPButton": "Pip ခလုတ်ကိုပြပါ",
   "langs": {
     "auto": "အော်တို",
     "af": "အာဖရိကန်",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "နောက်ဆုံးသတင်းတွေကိုစစ်ဆေးနေတယ်။..",
   "VOTUpdateCheckFailed": "အပ်ဒိတ်များကိုစစ်ဆေး၍မရပါ။",
   "VOTUpdateAvailable": "{0}ဗားရှင်းအသစ်ရရှိနိုင်သည်",
-  "VOTUpdatedDate": "{0}ကိုအပ်ဒိတ်လုပ်ထားသည်"
+  "VOTUpdatedDate": "{0}ကိုအပ်ဒိတ်လုပ်ထားသည်",
+  "QuickAction": "မြန်ဆန်သောလုပ်ဆောင်ချက်#{0}"
 }

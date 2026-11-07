@@ -40,7 +40,6 @@
   "VOTVersion": "نسخه",
   "VOTLoader": "لودر",
   "VOTBrowser": "مرورگر",
-  "VOTShowPiPButton": "نمایش دکمه PiP",
   "langs": {
     "auto": "بطور خودکار",
     "az": "آذربایجانی",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "چک کردن به روز رسانی ها..",
   "VOTUpdateCheckFailed": "نتونستم به روز رساني ها رو چک کنم",
   "VOTUpdateAvailable": "نسخه جدید {0} ",
-  "VOTUpdatedDate": "به روز شده {0}"
+  "VOTUpdatedDate": "به روز شده {0}",
+  "QuickAction": "اقدام سریع #{0}"
 }

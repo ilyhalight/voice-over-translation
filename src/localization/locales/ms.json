@@ -40,7 +40,6 @@
   "VOTVersion": "Versi",
   "VOTLoader": "Pemuat",
   "VOTBrowser": "Pelayar",
-  "VOTShowPiPButton": "Tunjukkan butang PiP",
   "langs": {
     "auto": "Secara automatik",
     "az": "Azerbaijan",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Menyemak kemas kini...",
   "VOTUpdateCheckFailed": "Tidak dapat menyemak kemas kini",
   "VOTUpdateAvailable": "Versi baru {0} Boleh didapati",
-  "VOTUpdatedDate": "Dikemaskini {0}"
+  "VOTUpdatedDate": "Dikemaskini {0}",
+  "QuickAction": "Tindakan pantas #{0}"
 }

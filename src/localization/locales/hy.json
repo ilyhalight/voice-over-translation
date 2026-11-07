@@ -40,7 +40,6 @@
   "VOTVersion": "Տարբերակ",
   "VOTLoader": "Բեռնիչ",
   "VOTBrowser": "Բրաուզեր",
-  "VOTShowPiPButton": "Ցուցադրել կետավոր կոճակը",
   "langs": {
     "auto": "Ավտո",
     "af": "Աֆրիկաանս",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Ստուգեք թարմացումների համար:..",
   "VOTUpdateCheckFailed": "Հնարավոր չէ ստուգել թարմացումները",
   "VOTUpdateAvailable": "Նոր տարբերակը հասանելի է {0}",
-  "VOTUpdatedDate": "Թարմացվել է {0}"
+  "VOTUpdatedDate": "Թարմացվել է {0}",
+  "QuickAction": "Արագ գործողություն #{0}"
 }

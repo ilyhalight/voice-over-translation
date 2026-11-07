@@ -40,7 +40,6 @@
   "VOTVersion": "バージョン",
   "VOTLoader": "ローダ",
   "VOTBrowser": "ブラウザ",
-  "VOTShowPiPButton": "PiP ボタンを表示",
   "langs": {
     "auto": "自動的に",
     "is": "アイスランド語",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "更新をチェックします。..",
   "VOTUpdateCheckFailed": "更新をチェックできませんでした",
   "VOTUpdateAvailable": "新しいバージョン{0}が利用可能です",
-  "VOTUpdatedDate": "更新された{0}"
+  "VOTUpdatedDate": "更新された{0}",
+  "QuickAction": "クイックアクション#{0}"
 }

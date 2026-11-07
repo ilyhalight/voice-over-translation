@@ -40,7 +40,6 @@
   "VOTVersion": "Versión",
   "VOTLoader": "Cargador",
   "VOTBrowser": "Navegador",
-  "VOTShowPiPButton": "Botón Mostrar PiP",
   "langs": {
     "auto": "Auto",
     "af": "Afrikáans",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Buscando actualizaciones...",
   "VOTUpdateCheckFailed": "No se pudieron buscar actualizaciones",
   "VOTUpdateAvailable": "Nueva versión {0} disponible",
-  "VOTUpdatedDate": "Actualizado {0}"
+  "VOTUpdatedDate": "Actualizado {0}",
+  "QuickAction": "Acción rápida # {0}"
 }

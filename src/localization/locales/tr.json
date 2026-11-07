@@ -40,7 +40,6 @@
   "VOTVersion": "Sürüm",
   "VOTLoader": "Yükleyici",
   "VOTBrowser": "Tarayıcı",
-  "VOTShowPiPButton": "PiP düğmesini göster",
   "langs": {
     "auto": "Otomatik olarak",
     "az": "Azerice",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Güncellemeleri kontrol ediyorum...",
   "VOTUpdateCheckFailed": "Güncellemeler kontrol edilemedi",
   "VOTUpdateAvailable": "Yeni sürüm {0} kullanılabilir",
-  "VOTUpdatedDate": "Güncellendi {0}"
+  "VOTUpdatedDate": "Güncellendi {0}",
+  "QuickAction": "Hızlı hareket #{0}"
 }

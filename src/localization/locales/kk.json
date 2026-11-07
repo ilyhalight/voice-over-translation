@@ -40,7 +40,6 @@
   "VOTVersion": "Нұсқа",
   "VOTLoader": "Жүктеуші",
   "VOTBrowser": "Браузер",
-  "VOTShowPiPButton": "PiP түймесін көрсету",
   "langs": {
     "auto": "Автоматты түрде",
     "az": "Әзербайжан",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Жаңартуларды тексеру...",
   "VOTUpdateCheckFailed": "Жаңартуларды тексеру мүмкін болмады",
   "VOTUpdateAvailable": "Жаңа нұсқасы {0} қол жетімді",
-  "VOTUpdatedDate": "Жаңартылған {0}"
+  "VOTUpdatedDate": "Жаңартылған {0}",
+  "QuickAction": "Жылдам әрекет #{0}"
 }

@@ -40,7 +40,6 @@
   "VOTVersion": "Версия",
   "VOTLoader": "Товарач",
   "VOTBrowser": "Браузър",
-  "VOTShowPiPButton": "Показване на Пип бутон",
   "langs": {
     "auto": "Авто",
     "af": "Африкаанал",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Проверка за актуализации...",
   "VOTUpdateCheckFailed": "Не може да се провери за актуализации",
   "VOTUpdateAvailable": "Нова версия {0} е налична",
-  "VOTUpdatedDate": "Обновено {0}"
+  "VOTUpdatedDate": "Обновено {0}",
+  "QuickAction": "Бързо действие # {0}"
 }

@@ -40,7 +40,6 @@
   "VOTVersion": "Versie",
   "VOTLoader": "Loader",
   "VOTBrowser": "Browser",
-  "VOTShowPiPButton": "Toon PiP knop",
   "langs": {
     "auto": "Auto",
     "af": "Afrikaans",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Controleren op updates...",
   "VOTUpdateCheckFailed": "Kon niet controleren op updates",
   "VOTUpdateAvailable": "Nieuwe versie {0} is beschikbaar",
-  "VOTUpdatedDate": "{0}bijgewerkt"
+  "VOTUpdatedDate": "{0}bijgewerkt",
+  "QuickAction": "Snelle actie #{0}"
 }

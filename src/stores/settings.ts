@@ -25,6 +25,7 @@ import {
   type TranslateProxyStatus,
 } from "../types/storage";
 import type { SubtitleFontFamily, SubtitleFormat } from "../types/subtitles";
+import type { QuickAction } from "../ui/quickAction";
 import { isSupportGMXhr } from "../utils/gm";
 import { calculatedResLang } from "../utils/localization";
 
@@ -56,7 +57,8 @@ export type SettingsStore = {
   sendErrorReports: boolean;
   newAudioPlayer: boolean;
   onlyBypassMediaCSP: boolean;
-  showPiPButton: boolean;
+  quickAction1: QuickAction;
+  quickAction2: QuickAction;
   autoHideButtonDelay: number;
   buttonPos: Position;
   proxyWorkerHost: string;
@@ -112,7 +114,8 @@ export function createDefaultSettings(
     sendErrorReports,
     newAudioPlayer: audioContextSupported,
     onlyBypassMediaCSP: audioContextSupported,
-    showPiPButton: false,
+    quickAction1: "subtitles",
+    quickAction2: "none",
     autoHideButtonDelay: DEFAULT_AUTO_HIDE_DELAY,
     buttonPos: "default",
     proxyWorkerHost: PROXY_WORKER_HOST,

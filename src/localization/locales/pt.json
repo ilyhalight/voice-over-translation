@@ -40,7 +40,6 @@
   "VOTVersion": "Versão",
   "VOTLoader": "Carregador",
   "VOTBrowser": "Navegador",
-  "VOTShowPiPButton": "Mostrar botão PiP",
   "langs": {
     "auto": "Automaticamente",
     "az": "Azerbaijano",
@@ -277,5 +276,6 @@
   "VOTCheckingForUpdate": "Verificando se há atualizações...",
   "VOTUpdateCheckFailed": "Não foi possível verificar se há atualizações",
   "VOTUpdateAvailable": "Nova versão {0} está disponível",
-  "VOTUpdatedDate": "Actualizado {0}"
+  "VOTUpdatedDate": "Actualizado {0}",
+  "QuickAction": "Acção rápida # {0}"
 }

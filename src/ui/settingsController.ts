@@ -15,7 +15,6 @@ const SETTINGS_EVENT_KEYS: Array<keyof SettingsControllerEventMap> = [
   "change:mediaProxyHost",
   "change:useNewAudioPlayer",
   "change:onlyBypassMediaCSP",
-  "change:showPiPButton",
   "input:subtitlesMaxLength",
   "input:subtitlesFontSize",
   "input:subtitlesBackgroundOpacity",
@@ -71,6 +70,7 @@ import { votStorage } from "../utils/storage";
 import { isPiPAvailable } from "../utils/utils";
 import type { VideoHandler } from "../VideoHandler";
 import { normalizeMediaProxyHost } from "../videoHandler/modules/proxyShared";
+import type { QuickAction } from "./quickAction";
 import { render } from "./solid/renderer";
 
 type SettingsControllerProps = {
@@ -96,7 +96,6 @@ type SettingsControllerEventMap = {
   "change:mediaProxyHost": [value: string];
   "change:useNewAudioPlayer": [checked: boolean];
   "change:onlyBypassMediaCSP": [checked: boolean];
-  "change:showPiPButton": [checked: boolean];
   "input:subtitlesMaxLength": [value: number];
   "input:subtitlesFontSize": [value: number];
   "input:subtitlesBackgroundOpacity": [value: number];
@@ -257,6 +256,26 @@ export class SettingsController {
     this.updateAccountInfo();
   }
 
+  createAutoTranslateHandler() {
+    return this.createPersistedSettingHandler({
+      storageKey: "autoTranslate",
+      dispatch: (checked) =>
+        this.events["change:autoTranslate"].dispatch(checked),
+      apply: (value) => {
+        setSettings("autoTranslate", value);
+      },
+    });
+  }
+
+  createAutoPauseOnTranslateHandler() {
+    return this.createPersistedSettingHandler({
+      storageKey: "autoPauseOnTranslate",
+      apply: (value) => {
+        setSettings("autoPauseOnTranslate", value);
+      },
+    });
+  }
+
   initUI() {
     if (this.isInitialized()) {
       throw new Error("[VOT] SettingsController is already initialized");
@@ -331,14 +350,9 @@ export class SettingsController {
         translation: {
           isAudioContextSupported: this.videoHandler?.isAudioContextSupported,
           isCanDetectMusic: this.videoHandler.site.host === "youtube",
-          onAutoTranslateChange: this.createPersistedSettingHandler({
-            storageKey: "autoTranslate",
-            dispatch: (checked) =>
-              this.events["change:autoTranslate"].dispatch(checked),
-          }),
-          onAutoPauseOnTranslateChange: this.createPersistedSettingHandler({
-            storageKey: "autoPauseOnTranslate",
-          }),
+          onAutoTranslateChange: this.createAutoTranslateHandler(),
+          onAutoPauseOnTranslateChange:
+            this.createAutoPauseOnTranslateHandler(),
           onAutoSubtitlesChange: this.createPersistedSettingHandler({
             storageKey: "autoSubtitles",
             dispatch: (checked) =>
@@ -492,11 +506,11 @@ export class SettingsController {
           },
         },
         appearance: {
-          onShowPiPButtonChange: this.createPersistedSettingHandler({
-            storageKey: "showPiPButton",
-            dispatch: (checked) =>
-              this.events["change:showPiPButton"].dispatch(checked),
-          }),
+          onQuickActionSelect: (slot, option) =>
+            this.createPersistedSettingHandler({
+              storageKey: slot,
+              apply: (value) => setSettings(slot, value),
+            })(option.value as QuickAction),
           onAutoHideButtonDelayInput: this.createBufferedNumericInputHandler({
             storageKey: "autoHideButtonDelay",
             dispatch: (value) =>

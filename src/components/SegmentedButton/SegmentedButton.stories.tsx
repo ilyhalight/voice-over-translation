@@ -43,14 +43,16 @@ export const SegmentedButtonDefault: Story = {
 export const SegmentedButtonLongLabel: Story = {
   args: {
     labelText: t("translateVideo").repeat(15),
-    showPipButton: true,
+    quickAction1: "subtitles",
+    quickAction2: "pip",
   },
   render: (args) => (
     <vot-block style="position: relative; width: 240px; max-width: 100%; height: 130px; background: gray;">
       <SegmentedButtonOverlay
         labelText={args.labelText}
-        showPipButton={args.showPipButton}
         position="default"
+        quickAction1="subtitles"
+        quickAction2="pip"
       />
     </vot-block>
   ),
@@ -217,14 +219,7 @@ export const SegmentedButtonSuccess: Story = {
 export const SegmentedButtonWithPip: Story = {
   args: {
     labelText: "Translate",
-    showPipButton: true,
-  },
-};
-
-export const SegmentedButtonWithActiveSubs: Story = {
-  args: {
-    labelText: "Translate",
-    isSubtitlesActive: true,
+    quickAction2: "pip",
   },
 };
 

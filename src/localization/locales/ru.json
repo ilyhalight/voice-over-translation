@@ -43,7 +43,6 @@
   "VOTVersion": "Версия",
   "VOTLoader": "Загрузчик",
   "VOTBrowser": "Браузер",
-  "VOTShowPiPButton": "Показывать кнопку «Картинка в картинке»",
   "langs": {
     "auto": "Авто",
     "az": "Азербайджанский",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Проверяю наличие обновлений...",
   "VOTUpdateCheckFailed": "Не удалось проверить наличие обновлений",
   "VOTUpdateAvailable": "Доступна новая версия {0}",
-  "VOTUpdatedDate": "Обновлено {0}"
+  "VOTUpdatedDate": "Обновлено {0}",
+  "QuickAction": "Быстрое действие #{0}"
 }

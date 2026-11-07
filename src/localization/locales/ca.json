@@ -40,7 +40,6 @@
   "VOTVersion": "Versió",
   "VOTLoader": "Carregador",
   "VOTBrowser": "Navegador",
-  "VOTShowPiPButton": "Mostra el botó pip",
   "langs": {
     "auto": "Automàtic",
     "af": "Asiàtiques",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Comprovació d'actualitzacions...",
   "VOTUpdateCheckFailed": "No s ' ha pogut comprovar les actualitzacions",
   "VOTUpdateAvailable": "La nova versió {0} està disponible",
-  "VOTUpdatedDate": "Actualització {0}"
+  "VOTUpdatedDate": "Actualització {0}",
+  "QuickAction": "Acció ràpida #{0}"
 }

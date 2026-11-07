@@ -40,7 +40,6 @@
   "VOTVersion": "Bertsioa",
   "VOTLoader": "Kargatzailea",
   "VOTBrowser": "Arakatzailea",
-  "VOTShowPiPButton": "Erakutsi PiP botoia",
   "langs": {
     "auto": "Automatikoa",
     "af": "Afrikaans",
@@ -278,5 +277,6 @@
   "VOTCheckingForUpdate": "Eguneraketak egiaztatzen...",
   "VOTUpdateCheckFailed": "Ezin izan da eguneraketarik begiratu",
   "VOTUpdateAvailable": "{0} bertsio berria eskuragarri dago",
-  "VOTUpdatedDate": "Eguneratua: {0}"
+  "VOTUpdatedDate": "Eguneratua: {0}",
+  "QuickAction": "Ekintza azkarra #{0}"
 }

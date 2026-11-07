@@ -113,7 +113,6 @@ export type Phrase =
   | "VOTVersion"
   | "VOTLoader"
   | "VOTBrowser"
-  | "VOTShowPiPButton"
   | "langs.auto"
   | "langs.af"
   | "langs.ak"
@@ -339,7 +338,8 @@ export type Phrase =
   | "VOTCheckingForUpdate"
   | "VOTUpdateCheckFailed"
   | "VOTUpdateAvailable"
-  | "VOTUpdatedDate";
+  | "VOTUpdatedDate"
+  | "QuickAction";
 
 export type Phrases = {
   recommended: string;
@@ -389,7 +389,6 @@ export type Phrases = {
   VOTVersion: string;
   VOTLoader: string;
   VOTBrowser: string;
-  VOTShowPiPButton: string;
   langs: {
     auto: string;
     af: string;
@@ -622,6 +621,7 @@ export type Phrases = {
   VOTUpdateCheckFailed: string;
   VOTUpdateAvailable: string;
   VOTUpdatedDate: string;
+  QuickAction: string;
 };
 
 export type FlatPhrases = Record<Phrase, string>;

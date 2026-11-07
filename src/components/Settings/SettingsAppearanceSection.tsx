@@ -5,7 +5,7 @@ import {
 } from "../../localization/localizationProvider";
 import { setSettings, settings } from "../../stores/settings";
 import { type Position, positions } from "../../types/components/votButton";
-import { isPiPAvailable } from "../../utils/utils";
+import { type QuickActionSlot, quickActions } from "../../ui/quickAction";
 import {
   genSelectOptionsByLangs,
   Select,
@@ -14,11 +14,10 @@ import {
 import { Slider } from "../Control/Slider";
 import { SliderLabel } from "../Control/SliderLabel";
 import { SliderWrapper } from "../Control/SliderWrapper";
-import { Switch } from "../Control/Switch";
 import { SettingsSection } from "./SettingsSection";
 
 export type SettingsAppearanceSectionProps = {
-  onShowPiPButtonChange?: (checked: boolean) => void;
+  onQuickActionSelect?: (slot: QuickActionSlot, option: SelectOption) => void;
   onAutoHideButtonDelayInput?: (delay: number) => void;
   onButtonPositionSelect?: (option: SelectOption) => void;
   onLangSelect?: (option: SelectOption) => void;
@@ -41,21 +40,38 @@ export function SettingsAppearanceSection(
     value: position,
   }));
 
+  const quickActionOptions: SelectOption[] = quickActions.map<SelectOption>(
+    (action) => ({
+      label: t(action.phrase),
+      value: action.id,
+      disabled: action.disabled,
+    }),
+  );
+
   const langsOptions = genSelectOptionsByLangs(
     localizationProvider.getAvailableLangs(),
   );
 
+  const QuickActionSelect = (opts: {
+    action: QuickActionSlot;
+    order: number;
+  }) => (
+    <Select
+      title={t("QuickAction").replace("{0}", opts.order)}
+      options={quickActionOptions}
+      selectedValue={settings[opts.action]}
+      onSelect={(option) => {
+        props.onQuickActionSelect?.(opts.action, option);
+      }}
+    >
+      {t("QuickAction").replace("{0}", opts.order)}
+    </Select>
+  );
+
   return (
     <SettingsSection title={t("appearance")}>
-      <Switch
-        heading={t("VOTShowPiPButton")}
-        checked={settings.showPiPButton}
-        hidden={!isPiPAvailable()}
-        onChange={(checked) => {
-          setSettings("showPiPButton", checked);
-          props.onShowPiPButtonChange?.(checked);
-        }}
-      />
+      <QuickActionSelect action="quickAction1" order={1} />
+      <QuickActionSelect action="quickAction2" order={2} />
       <SliderWrapper>
         <SliderLabel value={autoHideButtonDelayValueText()}>
           {t("autoHideButtonDelay")}
