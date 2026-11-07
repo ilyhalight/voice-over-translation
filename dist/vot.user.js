@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 配音翻译
 // @namespace      vot
-// @version        1.12.6
+// @version        1.12.7
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    Watch videos in other languages with voice-over translation and subtitles in any browser
 // @description:de Sieh dir Videos in anderen Sprachen mit Voice-over-Übersetzung und Untertiteln in jedem Browser an
@@ -278,7 +278,7 @@
 // @grant          GM.xmlHttpRequest
 // @grant          window.focus
 // ==/UserScript==
-(function(){try{var g=globalThis,k=Symbol.for("vot.debugIds"),s=(new Error().stack||"").replace(/(extension:\/\/)[^\/\s]+/g,"$1extension");if(s){g[k]||Object.defineProperty(g,k,{value:{}});g[k][s]={d:"ed6273ae-2d1a-4aa5-a94a-8f931168bfcf",l:281}}}catch(e){}})();
+(function(){try{var g=globalThis,k=Symbol.for("vot.debugIds"),s=(new Error().stack||"").replace(/(extension:\/\/)[^\/\s]+/g,"$1extension");if(s){g[k]||Object.defineProperty(g,k,{value:{}});g[k][s]={d:"9ebd89a5-f9a7-47a6-853a-47e2b4a3acfd",l:281}}}catch(e){}})();
 
 var vot = (function(exports) {
 	Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
@@ -9678,7 +9678,7 @@ var vot = (function(exports) {
 		"LT"
 	];
 	var DEFAULT_AUTO_HIDE_DELAY = 1e3;
-	var actualCompatVersion = "2026-08-18";
+	var ACTUAL_COMPAT_VERSION = "2026-11-07";
 	// src/utils/json.ts
 	function stringifyCircularSafe(value, { sortKeys = false } = {}) {
 		const seen = new WeakSet();
@@ -10606,7 +10606,8 @@ var vot = (function(exports) {
 		"defaultVolume",
 		"onlyBypassMediaCSP",
 		"newAudioPlayer",
-		"showPiPButton",
+		"quickAction1",
+		"quickAction2",
 		"translateAPIErrors",
 		"sendErrorReports",
 		"translationService",
@@ -10653,14 +10654,31 @@ var vot = (function(exports) {
 			dontTranslateLanguages
 		};
 	}
+	async function migrateNovember2026(data) {
+		const showPiPButton = await votStorage.getRaw("showPiPButton");
+		await votStorage.deleteRaw("showPiPButton");
+		if (!showPiPButton) return data;
+		await votStorage.set("quickAction2", "pip");
+		return {
+			...data,
+			quickAction2: "pip"
+		};
+	}
 	async function updateConfig(data) {
-		const sourceVersion = data.compatVersion;
-		if (sourceVersion === "2026-08-18") return data;
+		let sourceVersion = data.compatVersion;
+		if (sourceVersion === "2026-11-07") return data;
 		let migratedData = data;
-		if (sourceVersion === "" || sourceVersion === "2025-05-09") migratedData = await migrateAugust2026(migratedData);
+		if (sourceVersion === "" || sourceVersion === "2025-05-09") {
+			migratedData = await migrateAugust2026(migratedData);
+			sourceVersion = "2026-08-18";
+		}
+		if (sourceVersion === "2026-08-18") {
+			migratedData = await migrateNovember2026(migratedData);
+			sourceVersion = "2026-11-07";
+		}
 		return {
 			...migratedData,
-			compatVersion: actualCompatVersion
+			compatVersion: ACTUAL_COMPAT_VERSION
 		};
 	}
 	var VOTStorage = class {
@@ -11219,7 +11237,7 @@ var vot = (function(exports) {
 	}
 	function getRuntimeInfo() {
 		return {
-			version: "1.12.6",
+			version: "1.12.7",
 			environment: "master",
 			env: getEnvironmentInfo$1(),
 			debugIds: readDebugIdRegistry()
@@ -11230,7 +11248,7 @@ var vot = (function(exports) {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/x-sentry-envelope",
-				"X-Sentry-Auth": buildAuthHeader("1.12.6")
+				"X-Sentry-Auth": buildAuthHeader("1.12.7")
 			},
 			body: buildEnvelope(event),
 			forceGmXhr: true,
@@ -11359,7 +11377,6 @@ var vot = (function(exports) {
 		VOTVersion: "Version",
 		VOTLoader: "Loader",
 		VOTBrowser: "Browser",
-		VOTShowPiPButton: "Show PiP button",
 		langs: {
 			"auto": "Auto",
 			"af": "Afrikaans",
@@ -11591,7 +11608,8 @@ var vot = (function(exports) {
 		VOTCheckingForUpdate: "Checking for updates...",
 		VOTUpdateCheckFailed: "Couldn't check for updates",
 		VOTUpdateAvailable: "New version {0} is available",
-		VOTUpdatedDate: "Updated {0}"
+		VOTUpdatedDate: "Updated {0}",
+		QuickAction: "Quick action #{0}"
 	};
 	// src/localization/localizationProvider.ts
 	var LOCALE_STORAGE_KEYS = [
@@ -11740,7 +11758,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.12.6"), String(getGMInfo()?.script?.version || ""));
+		return resolveRuntimeLocaleVersion(String("1.12.7"), String(getGMInfo()?.script?.version || ""));
 	}
 	var LocalizationProvider = class {
 		lang;
@@ -35230,7 +35248,8 @@ var vot = (function(exports) {
 			sendErrorReports,
 			newAudioPlayer: audioContextSupported,
 			onlyBypassMediaCSP: audioContextSupported,
-			showPiPButton: false,
+			quickAction1: "subtitles",
+			quickAction2: "none",
 			autoHideButtonDelay: DEFAULT_AUTO_HIDE_DELAY,
 			buttonPos: "default",
 			proxyWorkerHost: PROXY_WORKER_HOST,
@@ -37928,7 +37947,7 @@ var vot = (function(exports) {
 		};
 	}
 	// src/ui/shadowMount.ts
-	var shadowScopedCssText = scopeCssForShadowRoots(":root{--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif;--vot-primary-rgb:139, 180, 245;--vot-onprimary-rgb:32, 33, 36;--vot-surface-rgb:32, 33, 36;--vot-secondary-rgb:43, 44, 48;--vot-onsurface-rgb:227, 227, 227;--vot-danger-rgb:255, 99, 99;--vot-error-rgb:242, 139, 130;--vot-subtitles-color:rgb(var(--vot-onsurface-rgb,227, 227, 227));--vot-subtitles-passed-color:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-space-1:4px;--vot-space-2:8px;--vot-space-3:12px;--vot-space-4:16px;--vot-space-5:20px;--vot-space-6:24px;--vot-radius-xs:6px;--vot-radius-s:10px;--vot-radius-m:14px;--vot-radius-l:18px;--vot-border-color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .14);--vot-border-color-hover:rgba(var(--vot-onsurface-rgb,227, 227, 227), .22);--vot-shadow-1:0 1px 2px #0000002e, 0 8px 24px #00000024;--vot-shadow-2:0 2px 4px #00000038, 0 12px 32px #00000038;--vot-duration-fast:.12s;--vot-duration-medium:.2s;--vot-duration-slow:.32s;--vot-easing-standard:cubic-bezier(.2, 0, 0, 1);--vot-focus-ring-color:rgba(var(--vot-primary-rgb,139, 180, 245), .9);--vot-focus-ring:0 0 0 2px var(--vot-focus-ring-color);--vot-focus-ring-offset:0 0 0 4px rgba(var(--vot-surface-rgb,32, 33, 36), .9)}vot-block,vot-block *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}vot-block[hidden]:not(.vot-menu),vot-block [hidden]:not(.vot-menu){display:none!important}vot-block{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizelegibility;-moz-text-size-adjust:100%;text-size-adjust:100%;display:block;--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;visibility:visible!important;font-weight:400!important}vot-block *{font-weight:inherit!important}.vot-portal-local,.vot-subtitles-widget{isolation:isolate}vot-block:focus,vot-block :focus{box-shadow:none!important;outline:none!important}html.vot-keyboard-nav vot-block:focus-visible,html.vot-keyboard-nav vot-block :focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav vot-block:focus,html.vot-keyboard-nav vot-block :focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}@media (prefers-reduced-motion:reduce){.vot-portal-local *,.vot-portal *,.vot-subtitles-widget *{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}.vot-portal{display:contents}.vot-portal-local{z-index:2147483647;position:fixed;top:0;left:0}.vot-segmented-button,.vot-menu{pointer-events:auto}.vot-about-item{justify-content:space-between;align-items:center;gap:.5em;font-size:.8em;display:flex}.vot-about-item__label{text-transform:lowercase;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-item__link{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .12);color:rgb(var(--vot-primary-rgb,33, 150, 243));font:inherit;cursor:pointer;border-radius:8px;align-items:center;padding:.125em .625em;font-weight:500;transition:background-color .15s;display:inline-flex}@media (hover:hover){.vot-about-item__link:hover{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .2)}}.vot-about-item__link:active{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .24)}.vot-about-item__value{text-align:end;color:rgba(var(--vot-primary-rgb,33, 150, 243), .9)}@media screen and (width>=450px){.vot-about-item__value[data-has-link=true]{flex-direction:row-reverse;align-items:center;gap:.25em;display:flex}}.vot-about-item__value_detail{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-item__value_detail[data-state=error]{color:rgba(var(--vot-error-rgb,255, 0, 0), .9)}.vot-about-item__value_detail[data-state=loading]{align-items:center;gap:.25em;display:flex}.vot-about-item__value_detail[data-state=loading] svg{font-size:1.25em}.vot-about-section{--vot-about-sep-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);flex-direction:column;gap:.5em;display:flex}.vot-about-section>.vot-about-item:not(:last-child){border-bottom:1px solid var(--vot-about-sep-color);padding-bottom:1em}.vot-account-info{--vot-account-label-color:rgba(var(--vot-onsurface-rgb,13, 1, 31), .68);--vot-account-username-color:rgb(var(--vot-primary-rgb,139, 180, 245));flex-direction:column;gap:1em;font-weight:600;display:flex}.vot-account-info__block{align-items:center;gap:.5em;display:flex}.vot-account-info__avatar{border-radius:50%;min-width:36px;max-width:36px;min-height:36px;max-height:36px;overflow:hidden}.vot-account-info__avatar--failed{background:var(--vot-account-label-color)}.vot-account-info__avatar--failed>.vot-account-info__avatar-img{display:none}.vot-account-info__avatar-img{object-fit:cover;width:36px;height:36px}.vot-account-info__content{flex-direction:column;line-height:1.125em;display:flex}.vot-account-info__label{color:var(--vot-account-label-color);font-size:.75em}.vot-account-info__username{color:var(--vot-account-username-color);font-weight:600}.vot-account-info__refresh{margin-left:auto}.vot-account-login{flex-direction:column;gap:1em;display:flex}.vot-account-login__btn{cursor:pointer;color:#0d011f;border-radius:var(--vot-space-5);background:#fff;align-items:center;gap:1em;min-width:194px;height:56px;padding:14px 16px;font-size:1em;line-height:1.25em;transition:background .25s;display:flex}.vot-account-login__btn:hover{background:#f1eeeb}.vot-account-login__btn-icon{background-image:url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='44' height='44' fill='%23FC3F1D'/%3E%3Cpath d='M22.9515 24.2897C24.2907 27.223 24.737 28.2433 24.737 31.7665V36.4375H19.9544V28.5621L10.9313 8.9375H15.9211L22.9515 24.2897ZM28.8501 8.9375L22.9994 22.2332H27.8617L33.7284 8.9375H28.8501Z' fill='white'/%3E%3C/svg%3E%0A\");background-position:50%;background-repeat:no-repeat;background-size:contain;border-radius:50%;flex-shrink:0;width:26px;height:26px;position:relative}.vot-account-login__btn-text{font-weight:600}.vot-account-login__btn[aria-disabled=true]{cursor:not-allowed;user-select:none;opacity:.5}.vot-account-login__token{align-items:center;gap:1em;width:100%;display:flex}.vot-account-login__token .vot-textfield{width:100%}.vot-account-logout{--vot-theme-rgb:var(--vot-danger-rgb,244, 67, 54);width:100%;display:flex}.vot-account-logout .vot-text-button{width:100%;font-weight:600!important}.vot-account-logout__content{align-items:center;gap:.5em;width:100%;font-size:1.125em;display:flex}.vot-account-logout__content svg{width:1.25em;height:1.25em}.vot-account-menu{flex-direction:column;gap:.5em;display:flex}.vot-icon-button{--vot-helper-onsurface:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:36px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:50%!important;margin:0!important;padding:0!important;font-weight:500!important}.vot-icon-button[hidden]{display:none!important}.vot-icon-button{width:36px;fill:var(--vot-helper-onsurface);color:var(--vot-helper-onsurface);background-color:#0000;border:none!important}.vot-icon-button:before,.vot-icon-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-icon-button:before{background-color:var(--vot-helper-onsurface);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-icon-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-icon-button:hover:before{opacity:.04}.vot-icon-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-icon-button[disabled=true],.vot-icon-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);fill:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-icon-button[disabled=true]:before,.vot-icon-button[disabled=true]:after,.vot-icon-button[aria-disabled=true]:before,.vot-icon-button[aria-disabled=true]:after{opacity:0}.vot-icon-button svg{fill:inherit;stroke:inherit;width:24px;height:36px}.vot-text-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-text-button[hidden]{display:none!important}.vot-text-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:none!important}.vot-text-button:before,.vot-text-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-text-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-text-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-text-button:hover:before{opacity:.04}.vot-text-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-text-button[disabled=true],.vot-text-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-text-button[disabled=true]:before,.vot-text-button[disabled=true]:after,.vot-text-button[aria-disabled=true]:before,.vot-text-button[aria-disabled=true]:after{opacity:0}.vot-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;font-weight:500!important}.vot-button[hidden]{display:none!important}.vot-button{color:rgb(var(--vot-helper-ontheme));background-color:rgb(var(--vot-helper-theme));box-shadow:var(--vot-shadow-1);transition:box-shadow var(--vot-duration-medium) var(--vot-easing-standard);border:none!important}.vot-button:before,.vot-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-button:before{background-color:rgb(var(--vot-helper-ontheme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-button:hover:before{opacity:.08}.vot-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-button:hover,.vot-button:active{box-shadow:var(--vot-shadow-2)}.vot-button[disabled=true]{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);box-shadow:none;cursor:initial}.vot-button[disabled=true]:before,.vot-button[disabled=true]:after{opacity:0}.vot-outlined-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:34px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-outlined-button[hidden]{display:none!important}.vot-outlined-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:solid 1px var(--vot-border-color)!important}.vot-outlined-button:before,.vot-outlined-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-outlined-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-outlined-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-outlined-button:hover:before{opacity:.04}.vot-outlined-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-outlined-button[disabled=true],.vot-outlined-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-outlined-button[disabled=true]:before,.vot-outlined-button[disabled=true]:after,.vot-outlined-button[aria-disabled=true]:before,.vot-outlined-button[aria-disabled=true]:after{opacity:0}.vot-details{color:rgba(var(--vot-onsurface-rgb), .87);text-align:start;cursor:pointer;user-select:none;transition:background var(--vot-duration-medium) var(--vot-easing-standard);justify-content:space-between;align-items:center;font-size:16px;line-height:1.5;display:flex;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:.5em!important;margin:-.5em!important;padding:.5em!important}.vot-details-arrow-icon{width:20px;height:32px;fill:rgba(var(--vot-onsurface-rgb), .87);justify-content:center;align-items:center;font-size:24px;display:flex;transform:scale(1.25)rotate(-90deg)}.vot-details:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .06)}.vot-details[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-hotkey{justify-content:flex-start;align-items:center;gap:var(--vot-space-3,12px);flex-wrap:wrap;display:flex}.vot-hotkey-label{overflow-wrap:anywhere;flex:1}.vot-hotkey-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:32px;height:fit-content;font-size:15px;line-height:1.5;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:400!important}.vot-hotkey-button[hidden]{display:none!important}.vot-hotkey-button{background-color:#0000;width:fit-content;border:solid 1px var(--vot-border-color)!important}.vot-hotkey-button:before,.vot-hotkey-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-hotkey-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-hotkey-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-hotkey-button:hover:before{opacity:.04}.vot-hotkey-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-hotkey-button[data-status=active]{color:rgb(var(--vot-helper-theme))}.vot-hotkey-button[data-status=active]:before{opacity:.04}.vot-hotkey-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-hotkey-button[disabled=true]:before,.vot-hotkey-button[disabled=true]:after{opacity:0}.vot-progress-icon{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));fill:none;stroke:rgb(var(--vot-helper-theme));stroke-width:2px;stroke-linecap:round;transform-origin:50%;transform:rotate(-90deg)}.vot-progress-icon_base{--vot-helper-theme:var(--vot-secondary-rgb,43, 44, 48)}.vot-select{user-select:none;justify-content:end;align-items:center;display:flex;position:relative}.vot-select-label{flex:1}.vot-select-label__description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-select-outer{cursor:pointer;border:1px solid var(--vot-border-color);width:120px;max-width:120px;color:rgba(var(--vot-onsurface-rgb), .87);transition:border-color var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.75em;align-items:center;padding:.5em;display:flex}.vot-select-outer__title{text-overflow:ellipsis;white-space:nowrap;flex:1;align-content:center;height:24px;margin-top:-2px;font-size:.8em;overflow:hidden}.vot-select-outer__arrow{fill:currentColor;transition:transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:1.5em;display:flex}.vot-select-outer[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-outer:not([aria-disabled=true]):hover{border-color:var(--vot-border-color-hover)}.vot-select-outer[aria-expanded=true] .vot-select-outer__arrow{transform:rotate(180deg)}.vot-select-inner{--vot-select-inner-primary-rgb:var(--vot-primary-rgb,33, 150, 243);z-index:2147483647;user-select:none;background:rgb(var(--vot-secondary-rgb,43, 44, 48));color:rgba(var(--vot-onsurface-rgb), .87);max-width:min(300px,100%);max-height:min(85vh, 350px, var(--vot-floating-available-height,100vh));pointer-events:auto;border-radius:.75em;flex-direction:column;padding:.5em;font-size:16px;display:flex;position:fixed;overflow:hidden}.vot-select-inner.vot-select-inner__static-width{width:100%}.vot-select-inner .vot-textfield{margin-bottom:.5em}.vot-select-inner__no-options{color:rgba(var(--vot-onsurface-rgb), .38);text-align:center;padding:.5em .75em}.vot-select-inner__no-options[data-searching=true]{color:rgba(var(--vot-onsurface-rgb), .68);padding:0;font-size:1.75em}.vot-select-inner__options{overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(var(--vot-onsurface-rgb), .38) transparent;min-height:0;margin-right:-8px;padding-right:8px;overflow-y:auto}.vot-select-inner__option{cursor:pointer;transition:background var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.5em;padding:.5em .75em}.vot-select-inner__option[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-inner__option:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb), .14)}.vot-select-inner__option[aria-selected=true]{color:rgb(var(--vot-select-inner-primary-rgb));background:rgba(var(--vot-select-inner-primary-rgb), .2)}.vot-select-inner__option[aria-selected=true]:not([aria-disabled=true]):hover{background:rgba(var(--vot-select-inner-primary-rgb), .1)}.vot-switch{--vot-switch-outline:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-switch-primary:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-switch-onprimary:rgb(var(--vot-onprimary-rgb,32, 33, 36));--vot-switch-track:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);--vot-switch-duration:var(--vot-duration-medium,.2s);--vot-switch-label-offset:24px;box-sizing:border-box;color:rgb(var(--vot-onsurface-rgb,0, 0, 0));cursor:pointer;align-items:center;gap:var(--vot-space-4,16px);width:100%;padding-block:var(--vot-space-2,8px);touch-action:manipulation;vertical-align:middle;display:inline-flex;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-switch[data-disabled=true]{cursor:not-allowed;user-select:none}.vot-switch_sub{padding-left:var(--vot-switch-label-offset)!important}.vot-switch-control{cursor:inherit;opacity:0;z-index:2;width:100%;height:100%;margin:0;position:absolute;inset:0}.vot-switch-control:focus-visible~.vot-switch-track{outline:2px solid var(--vot-focus-ring-color,rgba(var(--vot-primary-rgb,33, 150, 243), .9));outline-offset:2px}.vot-switch-control:hover:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:hover:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .12)}.vot-switch-control:disabled{cursor:not-allowed}.vot-switch-control:disabled~.vot-switch-track{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:disabled~.vot-switch-track .vot-switch-handle{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-control:disabled~.vot-switch-track[data-checked=true] .vot-switch-handle{background:rgb(var(--vot-surface-rgb,32, 33, 36))}.vot-switch-text{flex-direction:column;flex:auto;min-width:0;display:flex}.vot-switch-heading{letter-spacing:.5px;font-size:16px;font-weight:400;line-height:24px}.vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-switch[data-disabled=true] .vot-switch-heading,.vot-switch[data-disabled=true] .vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-track{background:var(--vot-switch-track);border:2px solid var(--vot-switch-outline);box-sizing:border-box;pointer-events:none;height:32px;transition-duration:var(--vot-switch-duration);transition-property:background-color,border-color;transition-timing-function:var(--vot-easing-standard);border-radius:16px;flex:none;align-items:center;width:52px;display:flex;position:relative}.vot-switch-track[data-checked=true]{background:var(--vot-switch-primary);border-color:var(--vot-switch-primary)}.vot-switch-track[data-checked=true] .vot-switch-handle{background:var(--vot-switch-onprimary);width:24px;height:24px;transform:translate(16px,-50%)}.vot-switch-handle{background:var(--vot-switch-outline);height:16px;transition-duration:var(--vot-switch-duration);transition-property:background-color,box-shadow,height,transform,width;transition-timing-function:var(--vot-easing-standard);inset-inline-start:6px;border-radius:50%;width:16px;position:absolute;top:50%;transform:translateY(-50%);box-shadow:0 0 #0000}@media (prefers-reduced-motion:reduce){.vot-switch-track,.vot-switch-handle{transition-duration:.01ms}}.vot-slider{--vot-slider-track-bg:rgba(var(--vot-onsurface-rgb,227, 227, 227), .15);--vot-slider-track-progress-bg:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-slider-size:1em;--vot-slider-border-radius:.5em;--vot-slider-handle-bg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-slider-handle-size:44px;--vot-slider-transition:var(--vot-duration-medium) var(--vot-easing-standard);height:var(--vot-slider-handle-size);align-items:center;display:flex;position:relative}.vot-slider[aria-disabled=true]{user-select:none;opacity:.5}.vot-slider[aria-disabled=true] .vot-slider__control{cursor:not-allowed}.vot-slider__control{opacity:0;appearance:none;cursor:pointer;width:100%;height:100%;position:absolute}.vot-slider__track{background:var(--vot-slider-track-bg);width:100%;height:var(--vot-slider-size);border-radius:var(--vot-slider-border-radius);pointer-events:none}.vot-slider__track-progress{background:var(--vot-slider-track-progress-bg);width:calc(100% * var(--vot-progress,0));transition:width var(--vot-slider-transition);border-top-right-radius:0;border-bottom-right-radius:0;position:absolute}.vot-slider__handle{left:calc(100% * var(--vot-progress,0));width:4px;height:var(--vot-slider-handle-size);background:var(--vot-slider-handle-bg);outline:4px solid var(--vot-slider-track-bg);pointer-events:none;will-change:transform;transition:transform var(--vot-slider-transition), left var(--vot-slider-transition);transform:translateX(calc(-100% * var(--vot-progress,0)));border-radius:4px;position:absolute}.vot-slider[data-dragging] .vot-slider__track-progress,.vot-slider[data-dragging] .vot-slider__handle{transition:none}.vot-slider-label{flex-wrap:nowrap;align-items:baseline;gap:.75em;display:flex}.vot-slider-label__text{text-align:left;flex:auto}.vot-slider-label__text-desc{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-slider-label__value{text-align:right;font-variant-numeric:tabular-nums;flex:none;font-weight:600!important}.vot-slider-label[aria-disabled=true]{opacity:.5;user-select:none;color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .5)}.vot-slider-wrapper{flex-direction:column;gap:.25em;display:flex}.vot-dialog{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-dialog-viewport-margin:16px;--vot-dialog-max-height:75vh;max-width:initial;max-height:initial;width:min(var(--vot-dialog-width,512px), 100%);border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);background-color:var(--vot-helper-surface);height:fit-content;color:var(--vot-helper-onsurface);box-shadow:var(--vot-shadow-2);user-select:none;visibility:visible;opacity:1;transform-origin:50%;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;display:block;position:fixed;inset-block:0;inset-inline:0;overflow:auto hidden;transform:scale(1);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:auto!important;padding:0!important}.vot-dialog[data-vertical-align=top]{inset-block-start:var(--vot-dialog-viewport-margin);inset-block-end:auto;margin:0 auto!important}.vot-dialog-container{visibility:visible;z-index:2147483647;position:absolute}.vot-dialog-container *{box-sizing:border-box!important}.vot-dialog-backdrop{opacity:1;background-color:#0009;transition:opacity .3s;position:fixed;inset:0}.vot-dialog-content-wrapper{max-height:var(--vot-dialog-max-height,75vh);flex-direction:column;display:flex;overflow:auto}.vot-dialog-header-container{flex-shrink:0;align-items:flex-start;min-height:31px;display:flex}.vot-dialog-header-container:empty{padding:0 0 20px}.vot-dialog-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-dialog-title-container{font-size:inherit;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-dialog-title{flex:1;font-size:115.385%;line-height:1;padding:var(--vot-space-5) var(--vot-space-5) var(--vot-space-4)!important;font-weight:700!important}.vot-dialog-body-container{box-sizing:border-box;gap:var(--vot-space-4);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-5)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-dialog-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-dialog-body-container:last-child{padding-block-end:var(--vot-space-5)!important}.vot-dialog-footer-container{justify-content:flex-end;gap:var(--vot-space-2);flex-wrap:wrap;flex-shrink:0;display:flex;padding:var(--vot-space-4)!important}@media (width<=480px){.vot-dialog-footer-container{flex-direction:column;align-items:stretch}.vot-dialog-footer-container>:is(.vot-button,.vot-outlined-button,.vot-text-button){white-space:normal;text-overflow:clip;text-align:center;justify-content:center;align-items:center;width:100%;height:auto;min-height:36px;padding:8px 16px;line-height:1.2;display:flex;overflow:visible}}.vot-settings-section{border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);padding:var(--vot-space-2);background:rgba(var(--vot-helper-onsurface-rgb), .03);flex-direction:column;display:flex}.vot-settings-section>*{margin:0!important}.vot-settings-section>*+*{margin-top:var(--vot-space-2)!important}.vot-settings-section__header{border-radius:var(--vot-radius-m);margin:0!important;padding:.45em .5em!important}.vot-settings-section__header .vot-details-arrow-icon{transition:transform var(--vot-duration-medium) var(--vot-easing-standard)}.vot-settings-section__header[data-open=true] .vot-details-arrow-icon{transform:scale(1.25)rotate(0)}.vot-settings-section__content{--vot-settings-control-width:200px;--vot-settings-row-gap:var(--vot-space-2);gap:var(--vot-settings-row-gap);padding:0 var(--vot-space-1) var(--vot-space-1);flex-direction:column;display:flex}.vot-settings-section__content>*{margin:0!important}.vot-settings-section__content>.vot-switch,.vot-settings-section__content>.vot-hotkey,.vot-settings-section__content>.vot-select,.vot-settings-section__content>.vot-slider-wrapper{padding:var(--vot-space-1);box-sizing:border-box;width:100%!important}.vot-settings-footer{gap:var(--vot-space-2);display:flex}.vot-textfield{display:inline-block;--vot-helper-theme:rgb(var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243)))!important;--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;--vot-helper-safari3:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:start!important;padding-top:6px!important;font-size:16px!important;line-height:1.5!important;position:relative!important}.vot-textfield>:is(input,textarea){box-sizing:border-box!important;border-style:solid!important;border-width:1px!important;border-color:transparent var(--vot-helper-safari2) var(--vot-helper-safari2)!important;width:100%!important;height:inherit!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;-webkit-text-fill-color:currentColor!important;font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;caret-color:var(--vot-helper-theme)!important;background-color:#0000!important;border-radius:4px!important;margin:0!important;padding:15px 13px!important;transition:border .2s,box-shadow .2s!important;box-shadow:inset 1px 0 #0000,inset -1px 0 #0000,inset 0 -1px #0000!important}.vot-textfield>:is(input,textarea):not(:focus):not(:is(.vot-show-placeholder,.vot-show-placeholer))::placeholder{color:#0000!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown{border-top-color:var(--vot-helper-safari2)!important}.vot-textfield>:is(input,textarea)+.vot-textfield__label{font-family:inherit;width:100%!important;max-height:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;cursor:text!important;pointer-events:none!important;font-size:75%!important;line-height:15px!important;transition:color .2s,font-size .2s,line-height .2s!important;display:flex!important;position:absolute!important;top:0!important;left:0!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown+.vot-textfield__label{font-size:inherit!important;line-height:68px!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{content:\"\"!important;box-sizing:border-box!important;border-top:solid 1px var(--vot-helper-safari2)!important;pointer-events:none!important;min-width:10px!important;height:8px!important;margin-top:6px!important;transition:border .2s,box-shadow .2s!important;display:block!important;box-shadow:inset 0 1px #0000!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:before{border-left:1px solid #0000!important;border-radius:4px 0!important;margin-right:4px!important}.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:after{border-right:1px solid #0000!important;border-radius:0 4px!important;flex-grow:1!important;margin-left:4px!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before{margin-right:0!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after{margin-left:0!important}.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}.vot-textfield>textarea{resize:none!important}.vot-textfield:hover>input:not(:disabled),.vot-textfield:hover>textarea:not(:disabled){border-color:transparent var(--vot-helper-safari3) var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:after,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:after{border-top-color:var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled):not(:focus):placeholder-shown,.vot-textfield:hover>textarea:not(:disabled):not(:focus):placeholder-shown{border-color:var(--vot-helper-safari3)!important}.vot-textfield>input:focus,.vot-textfield>textarea:focus{border-color:transparent var(--vot-helper-theme) var(--vot-helper-theme)!important;box-shadow:inset 1px 0 var(--vot-helper-theme), inset -1px 0 var(--vot-helper-theme), inset 0 -1px var(--vot-helper-theme)!important;outline:none!important}.vot-textfield>input:focus+.vot-textfield__label,.vot-textfield>textarea:focus+.vot-textfield__label{color:var(--vot-helper-theme)!important}.vot-textfield>input:focus+.vot-textfield__label:before,.vot-textfield>input:focus+.vot-textfield__label:after,.vot-textfield>textarea:focus+.vot-textfield__label:before,.vot-textfield>textarea:focus+.vot-textfield__label:after{border-top-color:var(--vot-helper-theme)!important;box-shadow:inset 0 1px var(--vot-helper-theme)!important}.vot-textfield>input:disabled,.vot-textfield>input:disabled+.vot-textfield__label,.vot-textfield>textarea:disabled,.vot-textfield>textarea:disabled+.vot-textfield__label{border-color:transparent var(--vot-helper-safari1) var(--vot-helper-safari1)!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;pointer-events:none!important}.vot-textfield>input:disabled+.vot-textfield__label:before,.vot-textfield>input:disabled+.vot-textfield__label:after,.vot-textfield>textarea:disabled+.vot-textfield__label:before,.vot-textfield>textarea:disabled+.vot-textfield__label:after,.vot-textfield>input:disabled:placeholder-shown,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label,.vot-textfield>textarea:disabled:placeholder-shown,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label{border-top-color:var(--vot-helper-safari1)!important}.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}@media not all and (resolution>=.001dpcm){@supports ((-webkit-appearance:none)){.vot-textfield>input,.vot-textfield>input+.vot-textfield__label,.vot-textfield>textarea,.vot-textfield>textarea+.vot-textfield__label,.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{transition-duration:.1s!important}}}.vot-segmented-button{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);cursor:default;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));max-width:100%;height:36px;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);align-items:center;font-size:16px;display:flex;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;box-shadow:var(--vot-shadow-1)!important}.vot-segmented-button[data-direction=column]{flex-direction:column;height:fit-content}.vot-segmented-button[data-direction=column] .vot-segment,.vot-segmented-button[data-direction=column] .vot-segment-only-icon{padding:var(--vot-space-2)!important}.vot-segmented-button[data-direction=column] .vot-separator{width:50%;height:1px}.vot-segmented-button[data-status=error] .vot-translate-button{color:rgb(var(--vot-error-rgb,242, 139, 130))}.vot-segmented-button[data-status=success] .vot-translate-button{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment,.vot-segmented-button .vot-segment-only-icon{min-width:0;height:100%;color:inherit;transition:background-color var(--vot-duration-fast) var(--vot-easing-standard);-webkit-tap-highlight-color:transparent;background-color:#0000;outline:none;flex:auto;justify-content:center;align-items:center;display:flex;position:relative;overflow:hidden;gap:var(--vot-space-2)!important;padding:0 var(--vot-space-2)!important;border:none!important}.vot-segmented-button .vot-segment:focus,.vot-segmented-button .vot-segment-only-icon:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color);outline:none}.vot-segmented-button .vot-segment:focus:not(:focus-visible),.vot-segmented-button .vot-segment-only-icon:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before{background-color:rgb(var(--vot-helper-theme-rgb));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-segmented-button .vot-segment:hover:before,.vot-segmented-button .vot-segment-only-icon:hover:before{opacity:.04}.vot-segmented-button .vot-segment:active:after,.vot-segmented-button .vot-segment-only-icon:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{pointer-events:none}.vot-segmented-button .vot-segment svg,.vot-segmented-button .vot-segment-only-icon svg{font-size:24px}.vot-segmented-button .vot-segment>svg,.vot-segmented-button .vot-segment-only-icon>svg,.vot-segmented-button .vot-segment-label,.vot-segmented-button .vot-segment .vot-dropdown-arrow,.vot-segmented-button .vot-segment-only-icon .vot-dropdown-arrow{z-index:1;position:relative}.vot-segmented-button .vot-segment-only-icon{min-width:36px;padding:0!important}.vot-segmented-button .vot-segment-only-icon[data-active=true]{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment-label{text-overflow:ellipsis;white-space:nowrap;min-width:0;color:inherit;flex:auto;line-height:1;overflow:hidden;font-weight:400!important}.vot-segmented-button .vot-dropdown-arrow{width:30px;min-width:30px;height:100%;color:inherit;fill:inherit;opacity:.95;cursor:default;-webkit-tap-highlight-color:transparent;outline:none;flex:none;justify-content:center;align-items:center;display:inline-flex;position:relative;border-radius:var(--vot-radius-s)!important;margin-inline-end:-4px!important;margin-top:2px!important}.vot-segmented-button .vot-dropdown-arrow:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color)}.vot-segmented-button .vot-dropdown-arrow:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-dropdown-arrow:hover{background:rgba(var(--vot-helper-theme-rgb), .04)}.vot-segmented-button .vot-dropdown-arrow:before,.vot-segmented-button .vot-dropdown-arrow:after{display:none}.vot-segmented-button .vot-dropdown-arrow svg{transform-origin:50%;transition:transform var(--vot-duration-fast) var(--vot-easing-standard);font-size:28px;transform:scale(1.08)}.vot-segmented-button .vot-dropdown-arrow[aria-expanded=true] svg{transform:rotate(180deg)scale(1.08)}.vot-segmented-button .vot-separator{background:rgba(var(--vot-helper-theme-rgb), .1);width:1px;height:50%}.vot-overlay.vot-overlay__segmented-button{--vot-overlay-default-top:5rem;--vot-overlay-top-offset:max(16px, env(safe-area-inset-top,0px));--vot-overlay-side-offset:max(16px, env(safe-area-inset-left,0px));--vot-overlay-side-offset-right:max(16px, env(safe-area-inset-right,0px));--vot-overlay-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px));transition:opacity var(--vot-duration-slow) var(--vot-easing-standard);pointer-events:auto;touch-action:none;max-width:100%;left:50%;transform:translate(-50%)}.vot-overlay.vot-overlay__segmented-button[data-dragging=true]{cursor:grabbing;will-change:transform;transform:translate3d(var(--vot-button-drag-left,0px), var(--vot-button-drag-top,0px), 0)!important;opacity:.96!important;transition:none!important;top:0!important;left:0!important;right:auto!important}.vot-overlay.vot-overlay__segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segment,.vot-overlay.vot-overlay__segmented-button .vot-segment-only-icon,.vot-overlay.vot-overlay__segmented-button .vot-dropdown-arrow{touch-action:none}.vot-overlay.vot-overlay__segmented-button[data-position=left]{left:var(--vot-overlay-side-offset);right:auto;top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=right]{left:auto;right:var(--vot-overlay-side-offset-right);top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=leftCenter]{left:var(--vot-overlay-side-offset);top:50%;right:auto;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button[data-position=rightCenter]{left:auto;right:var(--vot-overlay-side-offset-right);top:50%;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button.vot-segmented-button--dock-preview{z-index:2147483646;transition:left var(--vot-duration-medium) var(--vot-easing-standard), right var(--vot-duration-medium) var(--vot-easing-standard), top var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard), opacity var(--vot-duration-fast) var(--vot-easing-standard);opacity:.72!important;pointer-events:none!important}.vot-voice-icon{display:block;overflow:visible}.vot-voice-icon .vot-eq-bar{transform-origin:50% 100%;transform-box:fill-box;transform:scaleY(1)}.vot-voice-icon--standard .vot-eq-bar{fill:rgba(var(--vot-onsurface-rgb,227, 227, 227), .4)}.vot-voice-icon--live .vot-eq-bar{fill:#e040a0}.vot-voice-popover{--vot-helper-surface-rgb:var(--vot-surface-rgb,32, 33, 36);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,227, 227, 227);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-helper-onsurface-secondary:rgba(var(--vot-helper-onsurface-rgb), .55);--vot-voice-active-standard-bg:rgba(var(--vot-primary-rgb,139, 180, 245), .1);--vot-voice-active-standard-fg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-voice-active-live-bg:#e040a01a;--vot-voice-active-live-fg:#e040a0;z-index:2147483647;background:var(--vot-helper-surface);min-width:230px;max-width:var(--vot-voice-popover-max-width,310px);max-height:var(--vot-voice-popover-max-height,calc(100vh - 16px));cursor:default;user-select:none;overscroll-behavior:contain;transform-origin:0 0;width:max-content;display:block;position:absolute;top:0;left:0;overflow:hidden auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:left!important}.vot-voice-popover,.vot-voice-popover *{box-sizing:border-box!important}.vot-voice-popover{opacity:0;visibility:hidden;pointer-events:none;transition:none;transform:none}.vot-voice-popover[hidden]{display:none!important}.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{opacity:1;visibility:visible;pointer-events:auto;transform:none}.vot-voice-popover[data-placement=top]{transform-origin:bottom}.vot-voice-popover[data-placement=bottom]{transform-origin:top}.vot-voice-popover[data-placement=left]{transform-origin:100%}.vot-voice-popover[data-placement=right]{transform-origin:0}.vot-voice-popover.is-closing{opacity:0;visibility:visible;pointer-events:none;transform:none}.vot-voice-popover__item{cursor:pointer;min-height:62px;color:var(--vot-helper-onsurface);outline:none;gap:12px;transition:none;display:flex;position:relative;overflow:hidden;padding:14px 44px 14px 16px!important}.vot-voice-popover__item:before{content:\"\";opacity:0;pointer-events:none;background:linear-gradient(180deg, rgba(var(--vot-helper-onsurface-rgb), .045), rgba(var(--vot-helper-onsurface-rgb), .06));transition:none;position:absolute;inset:0}.vot-voice-popover__item:hover,.vot-voice-popover__item:focus-visible{box-shadow:inset 0 1px #ffffff08,inset 0 -1px #0000000a}.vot-voice-popover__item:hover:before,.vot-voice-popover__item:focus-visible:before{opacity:1}.vot-voice-popover__item:focus-visible{box-shadow:inset 0 0 0 1px rgba(var(--vot-primary-rgb,139, 180, 245), .18)}.vot-voice-popover__item:after{content:\"\";opacity:0;background-color:currentColor;width:18px;height:18px;transition:none;position:absolute;top:50%;right:14px;transform:translateY(-50%)scale(.88);-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat;mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat}.vot-voice-popover__item--active{font-weight:500!important}.vot-voice-popover__item--active:after{opacity:1;transform:translateY(-50%)scale(1)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active{background-color:var(--vot-voice-active-standard-bg);color:var(--vot-voice-active-standard-fg)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-icon--standard .vot-eq-bar{fill:currentColor}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active{background-color:var(--vot-voice-active-live-bg);color:var(--vot-voice-active-live-fg)}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item-icon{font-size:20px}.vot-voice-popover__item-text{flex-direction:column;gap:2px;min-width:0;display:flex}.vot-voice-popover__item-title{color:inherit;white-space:nowrap;font-size:15px;line-height:1.3;transition:none;font-weight:400!important}.vot-voice-popover__item-subtitle{color:var(--vot-helper-onsurface-secondary);white-space:normal;font-size:12px;line-height:1.4}.vot-voice-popover__divider{background:var(--vot-border-color);height:1px;margin:0!important}@media (prefers-reduced-motion:reduce){.vot-voice-icon .vot-eq-bar{animation:none!important;transform:scaleY(1)!important}.vot-voice-popover,.vot-voice-popover *,.vot-voice-popover:before,.vot-voice-popover:after{transition:none!important;animation:none!important}.vot-voice-popover,.vot-voice-popover.is-closing,.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{transform:none!important}}.vot-segmented-button__menu-header{align-items:center;gap:var(--vot-space-2);margin-left:auto;display:flex}.vot-langpair-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);color:var(--vot-helper-theme);justify-content:space-between;align-items:center;display:flex}.vot-langpair-select__icon{justify-content:center;align-items:center;font-size:24px;display:flex}.vot-overlay.vot-overlay__segmented-button-menu{--vot-overlay-default-top:calc(5rem + 48px);--vot-menu-side-offset:max(76px, calc(env(safe-area-inset-left,0px) + 64px));--vot-menu-side-offset-right:max(76px, calc(env(safe-area-inset-right,0px) + 64px));--vot-menu-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px))}@media (pointer:coarse){.vot-overlay.vot-overlay__segmented-button-menu{--vot-menu-default-top:calc(3rem + 48px);--vot-menu-side-offset:max(64px, calc(env(safe-area-inset-left,0px) + 54px));--vot-menu-side-offset-right:max(64px, calc(env(safe-area-inset-right,0px) + 54px))}}.vot-overlay.vot-overlay__segmented-button-menu{transform-origin:top;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);left:50%;right:auto;transform:translate(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[aria-hidden=true]{transform:translate(-50%,-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left] .vot-menu,.vot-overlay.vot-overlay__segmented-button-menu[data-position=right] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - var(--vot-menu-side-top-offset,48px) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter] .vot-menu,.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left]{left:var(--vot-menu-side-offset);right:auto;top:var(--vot-menu-side-top-offset);transform-origin:0 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=right]{left:auto;right:var(--vot-menu-side-offset-right);top:var(--vot-menu-side-top-offset);transform-origin:100% 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter]{left:var(--vot-menu-side-offset);transform-origin:0;top:50%;right:auto;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter]{left:auto;right:var(--vot-menu-side-offset-right);transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left]{transform-origin:0;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right]{transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=right][aria-hidden=true]{transform:translateY(-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right][aria-hidden=true]{transform:translateY(calc(-50% - 4px))scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-menu__header{flex-wrap:wrap}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-menu__header .vot-segmented-button__menu-header:has(>:nth-child(2)){margin-left:inherit}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-menu__body{max-height:275px}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-langpair-select{gap:var(--vot-space-1);flex-direction:column}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-langpair-select__icon{transform:rotate(90deg)}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-select{justify-content:start;gap:var(--vot-space-1);flex-direction:column;align-items:start;width:100%}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-select-outer{justify-content:space-around;width:100%;max-width:100%}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-select-outer__title{min-width:0;max-width:120px}@property --vot-subtitles-opacity{syntax:\"<number>\";inherits:true;initial-value:.8}@property --vot-subtitles-scale-compensation{syntax:\"<number>\";inherits:true;initial-value:1}.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), var(--vot-subtitles-opacity,.8));--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);background:var(--vot-subtitles-background,#2e2f34cc);width:max-content;inline-size:max-content;color:var(--vot-subtitles-color,#e3e3e3);pointer-events:all;touch-action:none;font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2.2vw), 50px)) * var(--vot-subtitles-scale-compensation,1));-webkit-text-stroke:var(--vot-subtitles-text-stroke-width,clamp(1px, .08em, 2px)) var(--vot-subtitles-text-stroke-color,#000000eb);paint-order:stroke fill;text-shadow:var(--vot-subtitles-text-shadow,0 1px 2px #00000073, 0 2px 8px #00000040);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis:none;position:relative;--vot-subtitles-font-family:var(--vot-subtitles-font-family-custom,var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif))!important;font-family:var(--vot-subtitles-font-family)!important;font-style:normal!important;font-weight:var(--vot-subtitles-font-weight,500)!important;text-transform:none!important;letter-spacing:normal!important;border-radius:.5em!important;padding:.5em .75em!important;line-height:1.25!important}.vot-subtitles,.vot-subtitles *{-webkit-text-stroke:inherit;paint-order:inherit;font-family:var(--vot-subtitles-font-family)!important}.vot-subtitles{box-sizing:border-box;user-select:none;contain:layout paint;isolation:isolate;text-align:center;text-wrap:balance;white-space:normal;overflow-wrap:anywhere;unicode-bidi:plaintext;margin:0 auto;display:block}.vot-subtitles-widget{--vot-subtitles-anchor-width:100vw;--vot-subtitles-anchor-height:100vh;--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));--vot-subtitles-smart-target-width:48ch;--vot-subtitles-smart-min-width-ratio:.62;--vot-subtitles-smart-max-width-ratio:.78;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333);--vot-subtitles-smart-max-width:clamp(calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-min-width-ratio)), var(--vot-subtitles-smart-target-width), calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-max-width-ratio)));box-sizing:border-box;z-index:2147483647;--vot-subtitles-fallback-bottom-inset:calc(env(safe-area-inset-bottom,0px) + clamp(56px, 10vh, 220px) + 10px);left:50%;top:calc(100% - var(--vot-subtitles-fallback-bottom-inset));width:max-content;inline-size:max-content;max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);pointer-events:none;will-change:left, top, transform;max-height:100%;display:block;position:absolute;transform:translate(-50%,-100%)}.vot-subtitles-info{color:#f5f7fa;-webkit-backdrop-filter:blur(18px);text-align:start;background:#1f2023f5;border:1px solid #ffffff14;flex-direction:column;gap:10px;min-width:min(360px,100vw - 32px);max-width:min(720px,100vw - 32px);display:flex;box-shadow:0 18px 48px #00000057,0 4px 16px #00000038;border-radius:18px!important;padding:18px 22px 20px!important}.vot-subtitles-info-service{display:none!important}.vot-subtitles-info-title{letter-spacing:-.01em;align-items:baseline;gap:8px;min-width:0;max-width:100%;display:flex;font-size:clamp(18px,2.4vw,26px)!important;line-height:1.18!important}.vot-subtitles-info-source,.vot-subtitles-info-divider,.vot-subtitles-info-header,.vot-subtitles-info-context{overflow-wrap:anywhere;white-space:normal!important}.vot-subtitles-info-source{color:#f5f7faad;flex:0 auto;font-weight:650!important}.vot-subtitles-info-divider{color:#f5f7fa61;flex:none;font-weight:500!important}.vot-subtitles-info-header{color:#fff;flex:auto;min-width:0;font-weight:750!important}.vot-subtitles-info-context{color:#dee4ecb8;max-width:100%;font-size:clamp(14px,1.45vw,17px)!important;line-height:1.42!important}.vot-subtitles span[data-vot-highlight-index].passed{color:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"]{cursor:pointer;white-space:normal;overflow-wrap:inherit;word-break:normal;position:relative;font-size:inherit!important;font-family:inherit!important;font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-transform:inherit!important;text-decoration:none!important}.vot-subtitles span[data-vot-token=\"1\"]:before{content:\"\";z-index:-1;position:absolute;inset:2px -2px;border-radius:4px!important}.vot-subtitles span[data-vot-token=\"1\"]:hover:before,.vot-subtitles span[data-vot-token=\"1\"]:focus-visible:before{background:var(--vot-subtitles-hover-color,#ffffff8c)}.vot-subtitles span[data-vot-token=\"1\"].selected:before{background:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"].passed.selected:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .4)}.vot-subtitles span[data-vot-token=\"1\"].passed:hover:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .3)}.vot-subtitles span[data-vot-style-italic=\"1\"]{font-style:italic!important}.vot-subtitles span[data-vot-style-bold=\"1\"]{font-weight:700!important}.vot-subtitles span[data-vot-style-underline=\"1\"]{text-decoration:underline!important}.vot-subtitles span[data-vot-style-color=\"1\"]{color:var(--vot-subtitles-inline-color)!important}.vot-subtitles-layer{pointer-events:none;z-index:2147483647;contain:layout paint;width:100vw!important;height:100vh!important;position:fixed!important;inset:0!important}.vot-subtitles-guides{pointer-events:none;z-index:2147483646;position:absolute;inset:0}.vot-subtitles-guide{background:rgba(var(--vot-primary-rgb,33, 150, 243), .7);box-shadow:0 0 0 1px rgba(var(--vot-primary-rgb,33, 150, 243), .12);opacity:0;transition:opacity .12s linear;position:absolute}.vot-subtitles-guide[data-visible=true]{opacity:1}.vot-subtitles-guide--vertical{width:2px;transform:translate(-50%)}.vot-subtitles-guide--horizontal{height:2px;transform:translateY(-50%)}@media (aspect-ratio<=1){.vot-subtitles-widget{--vot-subtitles-smart-target-width:28ch;--vot-subtitles-smart-min-width-ratio:.8;--vot-subtitles-smart-max-width-ratio:.92;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0296)}}@media (aspect-ratio>=1) and (aspect-ratio<=7/5){.vot-subtitles-widget{--vot-subtitles-smart-target-width:32ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.9;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333)}}@media (width<=900px) and (pointer:coarse){.vot-subtitles-widget{--vot-subtitles-fallback-bottom-inset:env(safe-area-inset-bottom,0px)}}@media (prefers-contrast:more){.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), .92);--vot-subtitles-text-stroke-width:max(2px, .1em);--vot-subtitles-text-shadow:0 2px 10px #0000008c}}:is(:fullscreen .vot-subtitles-widget,:fullscreen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:is(:fullscreen .vot-subtitles,:fullscreen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}#vot-subtitles-info.vot-subtitles-info *{user-select:text!important}.vot-or-block{--vot-or-block-line:rgba(var(--vot-primary-rgb,139, 180, 245), .5);color:rgb(var(--vot-primary-rgb));align-items:center;gap:12px;font-size:.75em;font-weight:600;display:flex}.vot-or-block:before,.vot-or-block:after{background:var(--vot-or-block-line);content:\"\";flex:1;height:1px}.vot-menu{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);background:var(--vot-helper-surface);color:var(--vot-helper-onsurface);width:fit-content;min-width:min(320px, 100% - var(--vot-menu-side-offset,0px));max-width:min(90vw,560px);min-height:100px;max-height:calc(var(--vot-container-height,75vh) - var(--vot-overlay-default-top,0px) - 16px);flex-direction:column;font-size:16px;line-height:1.5;display:flex;overflow:auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-menu__header{align-items:center;gap:var(--vot-space-2);flex-shrink:0;min-height:32px;display:flex;padding:var(--vot-space-2) var(--vot-space-4)!important}.vot-menu__body{box-sizing:border-box;gap:var(--vot-space-2);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-4)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-menu__body::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-menu__footer{flex-shrink:0;justify-content:flex-end;display:flex;padding:var(--vot-space-4)!important}.vot-menu__footer:empty{padding:var(--vot-space-4) 0 0 0!important}.vot-tooltip{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-border:rgb(var(--vot-tooltip-border,69, 69, 69));user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));color:var(--vot-helper-theme);fill:var(--vot-helper-theme);font-family:var(--vot-font-family);cursor:default;z-index:2147483647;overflow-wrap:anywhere;white-space:normal;opacity:0;align-items:center;width:max-content;max-width:calc(100vw - 10px);height:max-content;font-size:14px;line-height:1.5;transition:opacity .5s;display:flex;position:absolute;inset:0;overflow:hidden;box-shadow:0 1px 3px #0000001f;border-radius:4px!important;padding:4px 8px!important}.vot-tooltip[data-trigger=hover]:not([data-mode=follow]){pointer-events:none}.vot-tooltip[data-trigger=click]{user-select:text}.vot-tooltip[data-mode=follow]{pointer-events:auto;user-select:text;align-items:stretch}.vot-tooltip[data-mode=follow],.vot-tooltip[data-mode=follow] *{user-select:text!important}.vot-tooltip.vot-tooltip-bordered{border:1px solid var(--vot-helper-border)}.vot-tooltip *{box-sizing:border-box!important;font-family:inherit!important}.vot-tooltip.vot-tooltip--subtitles-info{overflow:visible;box-shadow:none!important;background:0 0!important;border-radius:18px!important;padding:0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info{flex-direction:column;gap:8px;width:max-content;max-width:min(420px,100vw - 24px);display:flex;color:#ffffffeb!important;letter-spacing:0!important;background:#1f2024f5!important;border:1px solid #ffffff14!important;border-radius:16px!important;padding:14px 16px!important;font-size:13px!important;line-height:1.35!important;box-shadow:0 12px 30px #00000047,0 2px 6px #00000038!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-title{flex-wrap:wrap;align-items:center;gap:6px;min-width:0;display:flex;font-size:15px!important;font-weight:600!important;line-height:1.35!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-source{overflow-wrap:anywhere;color:#fffffff0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-divider{color:#ffffff6b!important;font-weight:500!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-header{overflow-wrap:anywhere;color:rgb(var(--vot-primary-rgb,255, 83, 151))!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-context{overflow-wrap:anywhere;max-width:100%;color:#ffffffad!important;font-size:13px!important;font-weight:400!important;line-height:1.45!important}.vot-overlay{--vot-overlay-default-top:0;user-select:none;width:fit-content;max-width:100vw;right:auto;top:var(--vot-overlay-default-top);z-index:2147483646;font-size:16px;line-height:1.5;position:absolute;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-overlay[aria-hidden=true]{pointer-events:none;opacity:0;display:none;visibility:hidden!important}");
+	var shadowScopedCssText = scopeCssForShadowRoots(":root{--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif;--vot-primary-rgb:139, 180, 245;--vot-onprimary-rgb:32, 33, 36;--vot-surface-rgb:32, 33, 36;--vot-secondary-rgb:43, 44, 48;--vot-onsurface-rgb:227, 227, 227;--vot-danger-rgb:255, 99, 99;--vot-error-rgb:242, 139, 130;--vot-subtitles-color:rgb(var(--vot-onsurface-rgb,227, 227, 227));--vot-subtitles-passed-color:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-space-1:4px;--vot-space-2:8px;--vot-space-3:12px;--vot-space-4:16px;--vot-space-5:20px;--vot-space-6:24px;--vot-radius-xs:6px;--vot-radius-s:10px;--vot-radius-m:14px;--vot-radius-l:18px;--vot-border-color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .14);--vot-border-color-hover:rgba(var(--vot-onsurface-rgb,227, 227, 227), .22);--vot-shadow-1:0 1px 2px #0000002e, 0 8px 24px #00000024;--vot-shadow-2:0 2px 4px #00000038, 0 12px 32px #00000038;--vot-duration-fast:.12s;--vot-duration-medium:.2s;--vot-duration-slow:.32s;--vot-easing-standard:cubic-bezier(.2, 0, 0, 1);--vot-focus-ring-color:rgba(var(--vot-primary-rgb,139, 180, 245), .9);--vot-focus-ring:0 0 0 2px var(--vot-focus-ring-color);--vot-focus-ring-offset:0 0 0 4px rgba(var(--vot-surface-rgb,32, 33, 36), .9)}vot-block,vot-block *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}vot-block[hidden]:not(.vot-menu),vot-block [hidden]:not(.vot-menu){display:none!important}vot-block{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizelegibility;-moz-text-size-adjust:100%;text-size-adjust:100%;display:block;--vot-font-family:\"Roboto\", \"Segoe UI\", system-ui, sans-serif!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;visibility:visible!important;font-weight:400!important}vot-block *{font-weight:inherit!important}.vot-portal-local,.vot-subtitles-widget{isolation:isolate}vot-block:focus,vot-block :focus{box-shadow:none!important;outline:none!important}html.vot-keyboard-nav vot-block:focus-visible,html.vot-keyboard-nav vot-block :focus-visible{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}@supports not selector(:focus-visible){html.vot-keyboard-nav vot-block:focus,html.vot-keyboard-nav vot-block :focus{box-shadow:var(--vot-focus-ring), var(--vot-focus-ring-offset)!important}}@media (prefers-reduced-motion:reduce){.vot-portal-local *,.vot-portal *,.vot-subtitles-widget *{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}}.vot-portal{display:contents}.vot-portal-local{z-index:2147483647;position:fixed;top:0;left:0}.vot-segmented-button,.vot-menu{pointer-events:auto}.vot-about-item{justify-content:space-between;align-items:center;gap:.5em;font-size:.8em;display:flex}.vot-about-item__label{text-transform:lowercase;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-item__link{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .12);color:rgb(var(--vot-primary-rgb,33, 150, 243));font:inherit;cursor:pointer;border-radius:8px;align-items:center;padding:.125em .625em;font-weight:500;transition:background-color .15s;display:inline-flex}@media (hover:hover){.vot-about-item__link:hover{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .2)}}.vot-about-item__link:active{background-color:rgba(var(--vot-primary-rgb,33, 150, 243), .24)}.vot-about-item__value{text-align:end;color:rgba(var(--vot-primary-rgb,33, 150, 243), .9)}@media screen and (width>=450px){.vot-about-item__value[data-has-link=true]{flex-direction:row-reverse;align-items:center;gap:.25em;display:flex}}.vot-about-item__value_detail{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68)}.vot-about-item__value_detail[data-state=error]{color:rgba(var(--vot-error-rgb,255, 0, 0), .9)}.vot-about-item__value_detail[data-state=loading]{align-items:center;gap:.25em;display:flex}.vot-about-item__value_detail[data-state=loading] svg{font-size:1.25em}.vot-about-section{--vot-about-sep-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);flex-direction:column;gap:.5em;display:flex}.vot-about-section>.vot-about-item:not(:last-child){border-bottom:1px solid var(--vot-about-sep-color);padding-bottom:1em}.vot-account-info{--vot-account-label-color:rgba(var(--vot-onsurface-rgb,13, 1, 31), .68);--vot-account-username-color:rgb(var(--vot-primary-rgb,139, 180, 245));flex-direction:column;gap:1em;font-weight:600;display:flex}.vot-account-info__block{align-items:center;gap:.5em;display:flex}.vot-account-info__avatar{border-radius:50%;min-width:36px;max-width:36px;min-height:36px;max-height:36px;overflow:hidden}.vot-account-info__avatar--failed{background:var(--vot-account-label-color)}.vot-account-info__avatar--failed>.vot-account-info__avatar-img{display:none}.vot-account-info__avatar-img{object-fit:cover;width:36px;height:36px}.vot-account-info__content{flex-direction:column;line-height:1.125em;display:flex}.vot-account-info__label{color:var(--vot-account-label-color);font-size:.75em}.vot-account-info__username{color:var(--vot-account-username-color);font-weight:600}.vot-account-info__refresh{margin-left:auto}.vot-account-login{flex-direction:column;gap:1em;display:flex}.vot-account-login__btn{cursor:pointer;color:#0d011f;border-radius:var(--vot-space-5);background:#fff;align-items:center;gap:1em;min-width:194px;height:56px;padding:14px 16px;font-size:1em;line-height:1.25em;transition:background .25s;display:flex}.vot-account-login__btn:hover{background:#f1eeeb}.vot-account-login__btn-icon{background-image:url(\"data:image/svg+xml,%3Csvg width='44' height='44' viewBox='0 0 44 44' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='44' height='44' fill='%23FC3F1D'/%3E%3Cpath d='M22.9515 24.2897C24.2907 27.223 24.737 28.2433 24.737 31.7665V36.4375H19.9544V28.5621L10.9313 8.9375H15.9211L22.9515 24.2897ZM28.8501 8.9375L22.9994 22.2332H27.8617L33.7284 8.9375H28.8501Z' fill='white'/%3E%3C/svg%3E%0A\");background-position:50%;background-repeat:no-repeat;background-size:contain;border-radius:50%;flex-shrink:0;width:26px;height:26px;position:relative}.vot-account-login__btn-text{font-weight:600}.vot-account-login__btn[aria-disabled=true]{cursor:not-allowed;user-select:none;opacity:.5}.vot-account-login__token{align-items:center;gap:1em;width:100%;display:flex}.vot-account-login__token .vot-textfield{width:100%}.vot-account-logout{--vot-theme-rgb:var(--vot-danger-rgb,244, 67, 54);width:100%;display:flex}.vot-account-logout .vot-text-button{width:100%;font-weight:600!important}.vot-account-logout__content{align-items:center;gap:.5em;width:100%;font-size:1.125em;display:flex}.vot-account-logout__content svg{width:1.25em;height:1.25em}.vot-account-menu{flex-direction:column;gap:.5em;display:flex}.vot-icon-button{--vot-helper-onsurface:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87);box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:36px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:50%!important;margin:0!important;padding:0!important;font-weight:500!important}.vot-icon-button[hidden]{display:none!important}.vot-icon-button{width:36px;fill:var(--vot-helper-onsurface);color:var(--vot-helper-onsurface);background-color:#0000;border:none!important}.vot-icon-button:before,.vot-icon-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-icon-button:before{background-color:var(--vot-helper-onsurface);transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-icon-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-icon-button:hover:before{opacity:.04}.vot-icon-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-icon-button[disabled=true],.vot-icon-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);fill:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-icon-button[disabled=true]:before,.vot-icon-button[disabled=true]:after,.vot-icon-button[aria-disabled=true]:before,.vot-icon-button[aria-disabled=true]:after{opacity:0}.vot-icon-button svg{fill:inherit;stroke:inherit;width:24px;height:36px}.vot-text-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-text-button[hidden]{display:none!important}.vot-text-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:none!important}.vot-text-button:before,.vot-text-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-text-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-text-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-text-button:hover:before{opacity:.04}.vot-text-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-text-button[disabled=true],.vot-text-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-text-button[disabled=true]:before,.vot-text-button[disabled=true]:after,.vot-text-button[aria-disabled=true]:before,.vot-text-button[aria-disabled=true]:after{opacity:0}.vot-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));--vot-helper-ontheme:var(--vot-ontheme-rgb,var(--vot-onprimary-rgb,255, 255, 255));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:36px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;font-weight:500!important}.vot-button[hidden]{display:none!important}.vot-button{color:rgb(var(--vot-helper-ontheme));background-color:rgb(var(--vot-helper-theme));box-shadow:var(--vot-shadow-1);transition:box-shadow var(--vot-duration-medium) var(--vot-easing-standard);border:none!important}.vot-button:before,.vot-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-button:before{background-color:rgb(var(--vot-helper-ontheme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-button:hover:before{opacity:.08}.vot-button:active:after{opacity:.32;background-size:100% 100%;transition:background-size}.vot-button:hover,.vot-button:active{box-shadow:var(--vot-shadow-2)}.vot-button[disabled=true]{background-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);box-shadow:none;cursor:initial}.vot-button[disabled=true]:before,.vot-button[disabled=true]:after{opacity:0}.vot-outlined-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:64px;height:36px;font-size:14px;line-height:34px;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-4)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:500!important}.vot-outlined-button[hidden]{display:none!important}.vot-outlined-button{color:rgb(var(--vot-helper-theme));background-color:#0000;border:solid 1px var(--vot-border-color)!important}.vot-outlined-button:before,.vot-outlined-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-outlined-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-outlined-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-outlined-button:hover:before{opacity:.04}.vot-outlined-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-outlined-button[disabled=true],.vot-outlined-button[aria-disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-outlined-button[disabled=true]:before,.vot-outlined-button[disabled=true]:after,.vot-outlined-button[aria-disabled=true]:before,.vot-outlined-button[aria-disabled=true]:after{opacity:0}.vot-details{color:rgba(var(--vot-onsurface-rgb), .87);text-align:start;cursor:pointer;user-select:none;transition:background var(--vot-duration-medium) var(--vot-easing-standard);justify-content:space-between;align-items:center;font-size:16px;line-height:1.5;display:flex;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border-radius:.5em!important;margin:-.5em!important;padding:.5em!important}.vot-details-arrow-icon{width:20px;height:32px;fill:rgba(var(--vot-onsurface-rgb), .87);justify-content:center;align-items:center;font-size:24px;display:flex;transform:scale(1.25)rotate(-90deg)}.vot-details:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .06)}.vot-details[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-hotkey{justify-content:flex-start;align-items:center;gap:var(--vot-space-3,12px);flex-wrap:wrap;display:flex}.vot-hotkey-label{overflow-wrap:anywhere;flex:1}.vot-hotkey-button{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));box-sizing:border-box;vertical-align:middle;text-align:center;text-overflow:ellipsis;cursor:pointer;outline:none;min-width:32px;height:fit-content;font-size:15px;line-height:1.5;display:inline-block;position:relative;border-radius:var(--vot-radius-s)!important;padding:0 var(--vot-space-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:0!important;font-weight:400!important}.vot-hotkey-button[hidden]{display:none!important}.vot-hotkey-button{background-color:#0000;width:fit-content;border:solid 1px var(--vot-border-color)!important}.vot-hotkey-button:before,.vot-hotkey-button:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-hotkey-button:before{background-color:rgb(var(--vot-helper-theme));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-hotkey-button:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-hotkey-button:hover:before{opacity:.04}.vot-hotkey-button:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-hotkey-button[data-status=active]{color:rgb(var(--vot-helper-theme))}.vot-hotkey-button[data-status=active]:before{opacity:.04}.vot-hotkey-button[disabled=true]{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38);cursor:initial;background-color:#0000}.vot-hotkey-button[disabled=true]:before,.vot-hotkey-button[disabled=true]:after{opacity:0}.vot-progress-icon{--vot-helper-theme:var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243));fill:none;stroke:rgb(var(--vot-helper-theme));stroke-width:2px;stroke-linecap:round;transform-origin:50%;transform:rotate(-90deg)}.vot-progress-icon_base{--vot-helper-theme:var(--vot-secondary-rgb,43, 44, 48)}.vot-select{user-select:none;justify-content:end;align-items:center;display:flex;position:relative}.vot-select-label{flex:1}.vot-select-label__description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-select-outer{cursor:pointer;border:1px solid var(--vot-border-color);width:120px;max-width:120px;color:rgba(var(--vot-onsurface-rgb), .87);transition:border-color var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.75em;align-items:center;padding:.5em;display:flex}.vot-select-outer__title{text-overflow:ellipsis;white-space:nowrap;flex:1;align-content:center;height:24px;margin-top:-2px;font-size:.8em;overflow:hidden}.vot-select-outer__arrow{fill:currentColor;transition:transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:1.5em;display:flex}.vot-select-outer[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-outer:not([aria-disabled=true]):hover{border-color:var(--vot-border-color-hover)}.vot-select-outer[aria-expanded=true] .vot-select-outer__arrow{transform:rotate(180deg)}.vot-select-inner{--vot-select-inner-primary-rgb:var(--vot-primary-rgb,33, 150, 243);z-index:2147483647;user-select:none;background:rgb(var(--vot-secondary-rgb,43, 44, 48));color:rgba(var(--vot-onsurface-rgb), .87);max-width:min(300px,100%);max-height:min(85vh, 350px, var(--vot-floating-available-height,100vh));pointer-events:auto;border-radius:.75em;flex-direction:column;padding:.5em;font-size:16px;display:flex;position:fixed;overflow:hidden}.vot-select-inner.vot-select-inner__static-width{width:100%}.vot-select-inner .vot-textfield{margin-bottom:.5em}.vot-select-inner__no-options{color:rgba(var(--vot-onsurface-rgb), .38);text-align:center;padding:.5em .75em}.vot-select-inner__no-options[data-searching=true]{color:rgba(var(--vot-onsurface-rgb), .68);padding:0;font-size:1.75em}.vot-select-inner__options{overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:rgba(var(--vot-onsurface-rgb), .38) transparent;min-height:0;margin-right:-8px;padding-right:8px;overflow-y:auto}.vot-select-inner__option{cursor:pointer;transition:background var(--vot-duration-medium) var(--vot-easing-standard);border-radius:.5em;padding:.5em .75em}.vot-select-inner__option[aria-disabled=true]{cursor:not-allowed;opacity:.38}.vot-select-inner__option:not([aria-disabled=true]):hover{background:rgba(var(--vot-onsurface-rgb), .14)}.vot-select-inner__option[aria-selected=true]{color:rgb(var(--vot-select-inner-primary-rgb));background:rgba(var(--vot-select-inner-primary-rgb), .2)}.vot-select-inner__option[aria-selected=true]:not([aria-disabled=true]):hover{background:rgba(var(--vot-select-inner-primary-rgb), .1)}.vot-switch{--vot-switch-outline:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6);--vot-switch-primary:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-switch-onprimary:rgb(var(--vot-onprimary-rgb,32, 33, 36));--vot-switch-track:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);--vot-switch-duration:var(--vot-duration-medium,.2s);--vot-switch-label-offset:24px;box-sizing:border-box;color:rgb(var(--vot-onsurface-rgb,0, 0, 0));cursor:pointer;align-items:center;gap:var(--vot-space-4,16px);width:100%;padding-block:var(--vot-space-2,8px);touch-action:manipulation;vertical-align:middle;display:inline-flex;position:relative;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-switch[data-disabled=true]{cursor:not-allowed;user-select:none}.vot-switch_sub{padding-left:var(--vot-switch-label-offset)!important}.vot-switch-control{cursor:inherit;opacity:0;z-index:2;width:100%;height:100%;margin:0;position:absolute;inset:0}.vot-switch-control:focus-visible~.vot-switch-track{outline:2px solid var(--vot-focus-ring-color,rgba(var(--vot-primary-rgb,33, 150, 243), .9));outline-offset:2px}.vot-switch-control:hover:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track .vot-switch-handle{box-shadow:0 0 0 12px rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:hover:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .08)}.vot-switch-control:active:not(:disabled)~.vot-switch-track[data-checked=true] .vot-switch-handle{box-shadow:0 0 0 8px rgba(var(--vot-primary-rgb,33, 150, 243), .12)}.vot-switch-control:disabled{cursor:not-allowed}.vot-switch-control:disabled~.vot-switch-track{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12);border-color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .12)}.vot-switch-control:disabled~.vot-switch-track .vot-switch-handle{background:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-control:disabled~.vot-switch-track[data-checked=true] .vot-switch-handle{background:rgb(var(--vot-surface-rgb,32, 33, 36))}.vot-switch-text{flex-direction:column;flex:auto;min-width:0;display:flex}.vot-switch-heading{letter-spacing:.5px;font-size:16px;font-weight:400;line-height:24px}.vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-switch[data-disabled=true] .vot-switch-heading,.vot-switch[data-disabled=true] .vot-switch-description{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)}.vot-switch-track{background:var(--vot-switch-track);border:2px solid var(--vot-switch-outline);box-sizing:border-box;pointer-events:none;height:32px;transition-duration:var(--vot-switch-duration);transition-property:background-color,border-color;transition-timing-function:var(--vot-easing-standard);border-radius:16px;flex:none;align-items:center;width:52px;display:flex;position:relative}.vot-switch-track[data-checked=true]{background:var(--vot-switch-primary);border-color:var(--vot-switch-primary)}.vot-switch-track[data-checked=true] .vot-switch-handle{background:var(--vot-switch-onprimary);width:24px;height:24px;transform:translate(16px,-50%)}.vot-switch-handle{background:var(--vot-switch-outline);height:16px;transition-duration:var(--vot-switch-duration);transition-property:background-color,box-shadow,height,transform,width;transition-timing-function:var(--vot-easing-standard);inset-inline-start:6px;border-radius:50%;width:16px;position:absolute;top:50%;transform:translateY(-50%);box-shadow:0 0 #0000}@media (prefers-reduced-motion:reduce){.vot-switch-track,.vot-switch-handle{transition-duration:.01ms}}.vot-slider{--vot-slider-track-bg:rgba(var(--vot-onsurface-rgb,227, 227, 227), .15);--vot-slider-track-progress-bg:rgb(var(--vot-primary-rgb,33, 150, 243));--vot-slider-size:1em;--vot-slider-border-radius:.5em;--vot-slider-handle-bg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-slider-handle-size:44px;--vot-slider-transition:var(--vot-duration-medium) var(--vot-easing-standard);--vot-slider-handle-width:4px;--vot-slider-handle-outline:4px;--vot-slider-thumb-width:calc(var(--vot-slider-handle-width) + 2 * var(--vot-slider-handle-outline));--vot-slider-thumb-center:calc(var(--vot-slider-thumb-width) / 2 + (100% - var(--vot-slider-thumb-width)) * var(--vot-progress,0));height:var(--vot-slider-handle-size);cursor:pointer;touch-action:pan-y;align-items:center;display:flex;position:relative}.vot-slider[aria-disabled=true]{user-select:none;opacity:.5;cursor:not-allowed}.vot-slider__control{opacity:0;appearance:none;pointer-events:none;margin:0;position:absolute;inset:0}.vot-slider__track{background:var(--vot-slider-track-bg);width:100%;height:var(--vot-slider-size);border-radius:var(--vot-slider-border-radius);pointer-events:none}.vot-slider__track-progress{background:var(--vot-slider-track-progress-bg);width:var(--vot-slider-thumb-center);transition:width var(--vot-slider-transition);border-top-right-radius:0;border-bottom-right-radius:0;position:absolute}.vot-slider__handle{left:var(--vot-slider-thumb-center);width:var(--vot-slider-handle-width);height:var(--vot-slider-handle-size);background:var(--vot-slider-handle-bg);outline:var(--vot-slider-handle-outline) solid var(--vot-slider-track-bg);pointer-events:none;transition:left var(--vot-slider-transition);border-radius:4px;position:absolute;transform:translate(-50%)}.vot-slider__handle-hitbox{inset:calc(-1 * var(--vot-slider-handle-outline));pointer-events:none;position:absolute}.vot-slider[data-dragging] .vot-slider__track-progress,.vot-slider[data-dragging] .vot-slider__handle{transition:none}.vot-slider-label{flex-wrap:nowrap;align-items:baseline;gap:.75em;display:flex}.vot-slider-label__text{text-align:left;flex:auto}.vot-slider-label__text-desc{color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .68);letter-spacing:.25px;font-size:14px;font-weight:400;line-height:20px}.vot-slider-label__value{text-align:right;font-variant-numeric:tabular-nums;flex:none;font-weight:600!important}.vot-slider-label[aria-disabled=true]{opacity:.5;user-select:none;color:rgba(var(--vot-onsurface-rgb,227, 227, 227), .5)}.vot-slider-wrapper{flex-direction:column;gap:.25em;display:flex}.vot-dialog{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-dialog-viewport-margin:16px;--vot-dialog-max-height:75vh;max-width:initial;max-height:initial;width:min(var(--vot-dialog-width,512px), 100%);border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);background-color:var(--vot-helper-surface);height:fit-content;color:var(--vot-helper-onsurface);box-shadow:var(--vot-shadow-2);user-select:none;visibility:visible;opacity:1;transform-origin:50%;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);font-size:16px;line-height:1.5;display:block;position:fixed;inset-block:0;inset-inline:0;overflow:auto hidden;transform:scale(1);font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;margin:auto!important;padding:0!important}.vot-dialog[data-vertical-align=top]{inset-block-start:var(--vot-dialog-viewport-margin);inset-block-end:auto;margin:0 auto!important}.vot-dialog-container{visibility:visible;z-index:2147483647;position:absolute}.vot-dialog-container *{box-sizing:border-box!important}.vot-dialog-backdrop{opacity:1;background-color:#0009;transition:opacity .3s;position:fixed;inset:0}.vot-dialog-content-wrapper{max-height:var(--vot-dialog-max-height,75vh);flex-direction:column;display:flex;overflow:auto}.vot-dialog-header-container{flex-shrink:0;align-items:flex-start;min-height:31px;display:flex}.vot-dialog-header-container:empty{padding:0 0 20px}.vot-dialog-header-container>.vot-icon-button{margin-inline-end:var(--vot-space-1)!important;margin-top:var(--vot-space-1)!important}.vot-dialog-title-container{font-size:inherit;outline:0;flex:1;display:flex;font-weight:inherit!important;margin:0!important}.vot-dialog-title{flex:1;font-size:115.385%;line-height:1;padding:var(--vot-space-5) var(--vot-space-5) var(--vot-space-4)!important;font-weight:700!important}.vot-dialog-body-container{box-sizing:border-box;gap:var(--vot-space-4);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-5)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-dialog-body-container::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-dialog-body-container::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-dialog-body-container::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-dialog-body-container:last-child{padding-block-end:var(--vot-space-5)!important}.vot-dialog-footer-container{justify-content:flex-end;gap:var(--vot-space-2);flex-wrap:wrap;flex-shrink:0;display:flex;padding:var(--vot-space-4)!important}@media (width<=480px){.vot-dialog-footer-container{flex-direction:column;align-items:stretch}.vot-dialog-footer-container>:is(.vot-button,.vot-outlined-button,.vot-text-button){white-space:normal;text-overflow:clip;text-align:center;justify-content:center;align-items:center;width:100%;height:auto;min-height:36px;padding:8px 16px;line-height:1.2;display:flex;overflow:visible}}.vot-settings-section{border:1px solid var(--vot-border-color);border-radius:var(--vot-radius-l);padding:var(--vot-space-2);background:rgba(var(--vot-helper-onsurface-rgb), .03);flex-direction:column;display:flex}.vot-settings-section>*{margin:0!important}.vot-settings-section>*+*{margin-top:var(--vot-space-2)!important}.vot-settings-section__header{border-radius:var(--vot-radius-m);margin:0!important;padding:.45em .5em!important}.vot-settings-section__header .vot-details-arrow-icon{transition:transform var(--vot-duration-medium) var(--vot-easing-standard)}.vot-settings-section__header[data-open=true] .vot-details-arrow-icon{transform:scale(1.25)rotate(0)}.vot-settings-section__content{--vot-settings-control-width:200px;--vot-settings-row-gap:var(--vot-space-2);gap:var(--vot-settings-row-gap);padding:0 var(--vot-space-1) var(--vot-space-1);flex-direction:column;display:flex}.vot-settings-section__content>*{margin:0!important}.vot-settings-section__content>.vot-switch,.vot-settings-section__content>.vot-hotkey,.vot-settings-section__content>.vot-select,.vot-settings-section__content>.vot-slider-wrapper{padding:var(--vot-space-1);box-sizing:border-box;width:100%!important}.vot-settings-footer{gap:var(--vot-space-2);display:flex}.vot-textfield{display:inline-block;--vot-helper-theme:rgb(var(--vot-theme-rgb,var(--vot-primary-rgb,33, 150, 243)))!important;--vot-helper-safari1:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;--vot-helper-safari2:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;--vot-helper-safari3:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:start!important;padding-top:6px!important;font-size:16px!important;line-height:1.5!important;position:relative!important}.vot-textfield>:is(input,textarea){box-sizing:border-box!important;border-style:solid!important;border-width:1px!important;border-color:transparent var(--vot-helper-safari2) var(--vot-helper-safari2)!important;width:100%!important;height:inherit!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .87)!important;-webkit-text-fill-color:currentColor!important;font-family:inherit!important;font-size:inherit!important;line-height:inherit!important;caret-color:var(--vot-helper-theme)!important;background-color:#0000!important;border-radius:4px!important;margin:0!important;padding:15px 13px!important;transition:border .2s,box-shadow .2s!important;box-shadow:inset 1px 0 #0000,inset -1px 0 #0000,inset 0 -1px #0000!important}.vot-textfield>:is(input,textarea):not(:focus):not(:is(.vot-show-placeholder,.vot-show-placeholer))::placeholder{color:#0000!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown{border-top-color:var(--vot-helper-safari2)!important}.vot-textfield>:is(input,textarea)+.vot-textfield__label{font-family:inherit;width:100%!important;max-height:100%!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .6)!important;cursor:text!important;pointer-events:none!important;font-size:75%!important;line-height:15px!important;transition:color .2s,font-size .2s,line-height .2s!important;display:flex!important;position:absolute!important;top:0!important;left:0!important}.vot-textfield>:is(input,textarea):not(:focus):placeholder-shown+.vot-textfield__label{font-size:inherit!important;line-height:68px!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{content:\"\"!important;box-sizing:border-box!important;border-top:solid 1px var(--vot-helper-safari2)!important;pointer-events:none!important;min-width:10px!important;height:8px!important;margin-top:6px!important;transition:border .2s,box-shadow .2s!important;display:block!important;box-shadow:inset 0 1px #0000!important}.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:before{border-left:1px solid #0000!important;border-radius:4px 0!important;margin-right:4px!important}.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:after{border-right:1px solid #0000!important;border-radius:0 4px!important;flex-grow:1!important;margin-left:4px!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:before{margin-right:0!important}.vot-textfield>input:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after,.vot-textfield>textarea:is(.vot-show-placeholder,.vot-show-placeholer)+.vot-textfield__label:after{margin-left:0!important}.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:not(:focus):placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:not(:focus):placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}.vot-textfield>textarea{resize:none!important}.vot-textfield:hover>input:not(:disabled),.vot-textfield:hover>textarea:not(:disabled){border-color:transparent var(--vot-helper-safari3) var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>input:not(:disabled)+.vot-textfield__label:after,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:before,.vot-textfield:hover>textarea:not(:disabled)+.vot-textfield__label:after{border-top-color:var(--vot-helper-safari3)!important}.vot-textfield:hover>input:not(:disabled):not(:focus):placeholder-shown,.vot-textfield:hover>textarea:not(:disabled):not(:focus):placeholder-shown{border-color:var(--vot-helper-safari3)!important}.vot-textfield>input:focus,.vot-textfield>textarea:focus{border-color:transparent var(--vot-helper-theme) var(--vot-helper-theme)!important;box-shadow:inset 1px 0 var(--vot-helper-theme), inset -1px 0 var(--vot-helper-theme), inset 0 -1px var(--vot-helper-theme)!important;outline:none!important}.vot-textfield>input:focus+.vot-textfield__label,.vot-textfield>textarea:focus+.vot-textfield__label{color:var(--vot-helper-theme)!important}.vot-textfield>input:focus+.vot-textfield__label:before,.vot-textfield>input:focus+.vot-textfield__label:after,.vot-textfield>textarea:focus+.vot-textfield__label:before,.vot-textfield>textarea:focus+.vot-textfield__label:after{border-top-color:var(--vot-helper-theme)!important;box-shadow:inset 0 1px var(--vot-helper-theme)!important}.vot-textfield>input:disabled,.vot-textfield>input:disabled+.vot-textfield__label,.vot-textfield>textarea:disabled,.vot-textfield>textarea:disabled+.vot-textfield__label{border-color:transparent var(--vot-helper-safari1) var(--vot-helper-safari1)!important;color:rgba(var(--vot-onsurface-rgb,0, 0, 0), .38)!important;pointer-events:none!important}.vot-textfield>input:disabled+.vot-textfield__label:before,.vot-textfield>input:disabled+.vot-textfield__label:after,.vot-textfield>textarea:disabled+.vot-textfield__label:before,.vot-textfield>textarea:disabled+.vot-textfield__label:after,.vot-textfield>input:disabled:placeholder-shown,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label,.vot-textfield>textarea:disabled:placeholder-shown,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label{border-top-color:var(--vot-helper-safari1)!important}.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>input:disabled:placeholder-shown+.vot-textfield__label:after,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:before,.vot-textfield>textarea:disabled:placeholder-shown+.vot-textfield__label:after{border-top-color:#0000!important}@media not all and (resolution>=.001dpcm){@supports ((-webkit-appearance:none)){.vot-textfield>input,.vot-textfield>input+.vot-textfield__label,.vot-textfield>textarea,.vot-textfield>textarea+.vot-textfield__label,.vot-textfield>input+.vot-textfield__label:before,.vot-textfield>input+.vot-textfield__label:after,.vot-textfield>textarea+.vot-textfield__label:before,.vot-textfield>textarea+.vot-textfield__label:after{transition-duration:.1s!important}}}.vot-segmented-button{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);cursor:default;user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));max-width:100%;height:36px;color:var(--vot-helper-theme);fill:var(--vot-helper-theme);align-items:center;font-size:16px;display:flex;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-s)!important;box-shadow:var(--vot-shadow-1)!important}.vot-segmented-button[data-direction=column]{flex-direction:column;height:fit-content}.vot-segmented-button[data-direction=column] .vot-segment,.vot-segmented-button[data-direction=column] .vot-segment-only-icon{padding:var(--vot-space-2)!important}.vot-segmented-button[data-direction=column] .vot-separator{width:50%;height:1px}.vot-segmented-button[data-status=error] .vot-translate-button{color:rgb(var(--vot-error-rgb,242, 139, 130))}.vot-segmented-button[data-status=success] .vot-translate-button{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment,.vot-segmented-button .vot-segment-only-icon{min-width:0;height:100%;color:inherit;transition:background-color var(--vot-duration-fast) var(--vot-easing-standard);-webkit-tap-highlight-color:transparent;background-color:#0000;outline:none;flex:auto;justify-content:center;align-items:center;display:flex;position:relative;overflow:hidden;gap:var(--vot-space-2)!important;padding:0 var(--vot-space-2)!important;border:none!important}.vot-segmented-button .vot-segment:focus,.vot-segmented-button .vot-segment-only-icon:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color);outline:none}.vot-segmented-button .vot-segment:focus:not(:focus-visible),.vot-segmented-button .vot-segment-only-icon:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{content:\"\";opacity:0;position:absolute;inset:0;border-radius:inherit!important}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before{background-color:rgb(var(--vot-helper-theme-rgb));transition:opacity var(--vot-duration-medium) var(--vot-easing-standard)}.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{transition:opacity var(--vot-duration-slow) var(--vot-easing-standard), background-size var(--vot-duration-slow) var(--vot-easing-standard);background:radial-gradient(circle,currentColor 1%,#0000 1%) 50%/10000% 10000% no-repeat}.vot-segmented-button .vot-segment:hover:before,.vot-segmented-button .vot-segment-only-icon:hover:before{opacity:.04}.vot-segmented-button .vot-segment:active:after,.vot-segmented-button .vot-segment-only-icon:active:after{opacity:.16;background-size:100% 100%;transition:background-size}.vot-segmented-button .vot-segment:before,.vot-segmented-button .vot-segment-only-icon:before,.vot-segmented-button .vot-segment:after,.vot-segmented-button .vot-segment-only-icon:after{pointer-events:none}.vot-segmented-button .vot-segment svg,.vot-segmented-button .vot-segment-only-icon svg{font-size:24px}.vot-segmented-button .vot-segment>svg,.vot-segmented-button .vot-segment-only-icon>svg,.vot-segmented-button .vot-segment-label,.vot-segmented-button .vot-segment .vot-dropdown-arrow,.vot-segmented-button .vot-segment-only-icon .vot-dropdown-arrow{z-index:1;position:relative}.vot-segmented-button .vot-segment-only-icon{min-width:36px;padding:0!important}.vot-segmented-button .vot-segment-only-icon[data-active=true]{color:rgb(var(--vot-primary-rgb,33, 150, 243))}.vot-segmented-button .vot-segment-label{text-overflow:ellipsis;white-space:nowrap;min-width:0;color:inherit;flex:auto;line-height:1;overflow:hidden;font-weight:400!important}.vot-segmented-button .vot-dropdown-arrow{width:30px;min-width:30px;height:100%;color:inherit;fill:inherit;opacity:.95;cursor:default;-webkit-tap-highlight-color:transparent;outline:none;flex:none;justify-content:center;align-items:center;display:inline-flex;position:relative;border-radius:var(--vot-radius-s)!important;margin-inline-end:-4px!important;margin-top:2px!important}.vot-segmented-button .vot-dropdown-arrow:focus{box-shadow:inset 0 0 0 2px var(--vot-focus-ring-color)}.vot-segmented-button .vot-dropdown-arrow:focus:not(:focus-visible){box-shadow:none}.vot-segmented-button .vot-dropdown-arrow:hover{background:rgba(var(--vot-helper-theme-rgb), .04)}.vot-segmented-button .vot-dropdown-arrow:before,.vot-segmented-button .vot-dropdown-arrow:after{display:none}.vot-segmented-button .vot-dropdown-arrow svg{transform-origin:50%;transition:transform var(--vot-duration-fast) var(--vot-easing-standard);font-size:28px;transform:scale(1.08)}.vot-segmented-button .vot-dropdown-arrow[aria-expanded=true] svg{transform:rotate(180deg)scale(1.08)}.vot-segmented-button .vot-separator{background:rgba(var(--vot-helper-theme-rgb), .1);width:1px;height:50%}.vot-overlay.vot-overlay__segmented-button{--vot-overlay-default-top:5rem;--vot-overlay-top-offset:max(16px, env(safe-area-inset-top,0px));--vot-overlay-side-offset:max(16px, env(safe-area-inset-left,0px));--vot-overlay-side-offset-right:max(16px, env(safe-area-inset-right,0px));--vot-overlay-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px));transition:opacity var(--vot-duration-slow) var(--vot-easing-standard);pointer-events:auto;touch-action:none;max-width:100%;left:50%;transform:translate(-50%)}.vot-overlay.vot-overlay__segmented-button[data-dragging=true]{cursor:grabbing;will-change:transform;transform:translate3d(var(--vot-button-drag-left,0px), var(--vot-button-drag-top,0px), 0)!important;opacity:.96!important;transition:none!important;top:0!important;left:0!important;right:auto!important}.vot-overlay.vot-overlay__segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segmented-button,.vot-overlay.vot-overlay__segmented-button .vot-segment,.vot-overlay.vot-overlay__segmented-button .vot-segment-only-icon,.vot-overlay.vot-overlay__segmented-button .vot-dropdown-arrow{touch-action:none}.vot-overlay.vot-overlay__segmented-button[data-position=left]{left:var(--vot-overlay-side-offset);right:auto;top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=right]{left:auto;right:var(--vot-overlay-side-offset-right);top:var(--vot-overlay-side-top-offset);transform:none}.vot-overlay.vot-overlay__segmented-button[data-position=leftCenter]{left:var(--vot-overlay-side-offset);top:50%;right:auto;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button[data-position=rightCenter]{left:auto;right:var(--vot-overlay-side-offset-right);top:50%;transform:translateY(-50%)}.vot-overlay.vot-overlay__segmented-button.vot-segmented-button--dock-preview{z-index:2147483646;transition:left var(--vot-duration-medium) var(--vot-easing-standard), right var(--vot-duration-medium) var(--vot-easing-standard), top var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard), opacity var(--vot-duration-fast) var(--vot-easing-standard);opacity:.72!important;pointer-events:none!important}.vot-voice-icon{display:block;overflow:visible}.vot-voice-icon .vot-eq-bar{transform-origin:50% 100%;transform-box:fill-box;transform:scaleY(1)}.vot-voice-icon--standard .vot-eq-bar{fill:rgba(var(--vot-onsurface-rgb,227, 227, 227), .4)}.vot-voice-icon--live .vot-eq-bar{fill:#e040a0}.vot-voice-popover{--vot-helper-surface-rgb:var(--vot-surface-rgb,32, 33, 36);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,227, 227, 227);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);--vot-helper-onsurface-secondary:rgba(var(--vot-helper-onsurface-rgb), .55);--vot-voice-active-standard-bg:rgba(var(--vot-primary-rgb,139, 180, 245), .1);--vot-voice-active-standard-fg:rgb(var(--vot-primary-rgb,139, 180, 245));--vot-voice-active-live-bg:#e040a01a;--vot-voice-active-live-fg:#e040a0;z-index:2147483647;background:var(--vot-helper-surface);min-width:230px;max-width:var(--vot-voice-popover-max-width,310px);max-height:var(--vot-voice-popover-max-height,calc(100vh - 16px));cursor:default;user-select:none;overscroll-behavior:contain;transform-origin:0 0;width:max-content;display:block;position:absolute;top:0;left:0;overflow:hidden auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important;text-align:left!important}.vot-voice-popover,.vot-voice-popover *{box-sizing:border-box!important}.vot-voice-popover{opacity:0;visibility:hidden;pointer-events:none;transition:none;transform:none}.vot-voice-popover[hidden]{display:none!important}.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{opacity:1;visibility:visible;pointer-events:auto;transform:none}.vot-voice-popover[data-placement=top]{transform-origin:bottom}.vot-voice-popover[data-placement=bottom]{transform-origin:top}.vot-voice-popover[data-placement=left]{transform-origin:100%}.vot-voice-popover[data-placement=right]{transform-origin:0}.vot-voice-popover.is-closing{opacity:0;visibility:visible;pointer-events:none;transform:none}.vot-voice-popover__item{cursor:pointer;min-height:62px;color:var(--vot-helper-onsurface);outline:none;gap:12px;transition:none;display:flex;position:relative;overflow:hidden;padding:14px 44px 14px 16px!important}.vot-voice-popover__item:before{content:\"\";opacity:0;pointer-events:none;background:linear-gradient(180deg, rgba(var(--vot-helper-onsurface-rgb), .045), rgba(var(--vot-helper-onsurface-rgb), .06));transition:none;position:absolute;inset:0}.vot-voice-popover__item:hover,.vot-voice-popover__item:focus-visible{box-shadow:inset 0 1px #ffffff08,inset 0 -1px #0000000a}.vot-voice-popover__item:hover:before,.vot-voice-popover__item:focus-visible:before{opacity:1}.vot-voice-popover__item:focus-visible{box-shadow:inset 0 0 0 1px rgba(var(--vot-primary-rgb,139, 180, 245), .18)}.vot-voice-popover__item:after{content:\"\";opacity:0;background-color:currentColor;width:18px;height:18px;transition:none;position:absolute;top:50%;right:14px;transform:translateY(-50%)scale(.88);-webkit-mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat;mask:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E\") 50%/contain no-repeat}.vot-voice-popover__item--active{font-weight:500!important}.vot-voice-popover__item--active:after{opacity:1;transform:translateY(-50%)scale(1)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active{background-color:var(--vot-voice-active-standard-bg);color:var(--vot-voice-active-standard-fg)}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item[data-voice=standard].vot-voice-popover__item--active .vot-voice-icon--standard .vot-eq-bar{fill:currentColor}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active{background-color:var(--vot-voice-active-live-bg);color:var(--vot-voice-active-live-fg)}.vot-voice-popover__item[data-voice=live].vot-voice-popover__item--active .vot-voice-popover__item-title{color:inherit}.vot-voice-popover__item-icon{font-size:20px}.vot-voice-popover__item-text{flex-direction:column;gap:2px;min-width:0;display:flex}.vot-voice-popover__item-title{color:inherit;white-space:nowrap;font-size:15px;line-height:1.3;transition:none;font-weight:400!important}.vot-voice-popover__item-subtitle{color:var(--vot-helper-onsurface-secondary);white-space:normal;font-size:12px;line-height:1.4}.vot-voice-popover__divider{background:var(--vot-border-color);height:1px;margin:0!important}@media (prefers-reduced-motion:reduce){.vot-voice-icon .vot-eq-bar{animation:none!important;transform:scaleY(1)!important}.vot-voice-popover,.vot-voice-popover *,.vot-voice-popover:before,.vot-voice-popover:after{transition:none!important;animation:none!important}.vot-voice-popover,.vot-voice-popover.is-closing,.vot-voice-popover:not([hidden]),.vot-voice-popover.is-open,.vot-voice-popover[aria-hidden=false]{transform:none!important}}.vot-segmented-button__menu-header{align-items:center;gap:var(--vot-space-2);margin-left:auto;display:flex}.vot-langpair-select{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);color:var(--vot-helper-theme);justify-content:space-between;align-items:center;display:flex}.vot-langpair-select__icon{justify-content:center;align-items:center;font-size:24px;display:flex}.vot-overlay.vot-overlay__segmented-button-menu{--vot-overlay-default-top:calc(5rem + 48px);--vot-menu-side-offset:max(76px, calc(env(safe-area-inset-left,0px) + 64px));--vot-menu-side-offset-right:max(76px, calc(env(safe-area-inset-right,0px) + 64px));--vot-menu-side-top-offset:max(clamp(48px, 12.5vh, 128px), env(safe-area-inset-top,0px))}@media (pointer:coarse){.vot-overlay.vot-overlay__segmented-button-menu{--vot-menu-default-top:calc(3rem + 48px);--vot-menu-side-offset:max(64px, calc(env(safe-area-inset-left,0px) + 54px));--vot-menu-side-offset-right:max(64px, calc(env(safe-area-inset-right,0px) + 54px))}}.vot-overlay.vot-overlay__segmented-button-menu{transform-origin:top;transition:opacity var(--vot-duration-medium) var(--vot-easing-standard), transform var(--vot-duration-medium) var(--vot-easing-standard);left:50%;right:auto;transform:translate(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[aria-hidden=true]{transform:translate(-50%,-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left] .vot-menu,.vot-overlay.vot-overlay__segmented-button-menu[data-position=right] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - var(--vot-menu-side-top-offset,48px) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter] .vot-menu,.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left]{left:var(--vot-menu-side-offset);right:auto;top:var(--vot-menu-side-top-offset);transform-origin:0 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=right]{left:auto;right:var(--vot-menu-side-offset-right);top:var(--vot-menu-side-top-offset);transform-origin:100% 0;transform:scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter]{left:var(--vot-menu-side-offset);transform-origin:0;top:50%;right:auto;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter]{left:auto;right:var(--vot-menu-side-offset-right);transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left]{transform-origin:0;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right]{transform-origin:100%;top:50%;transform:translateY(-50%)scale(1)}.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right] .vot-menu{max-height:calc(var(--vot-container-height,75vh) - 16px)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=left][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=right][aria-hidden=true]{transform:translateY(-4px)scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-position=leftCenter][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-position=rightCenter][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=left][aria-hidden=true],.vot-overlay.vot-overlay__segmented-button-menu[data-compact][data-position=right][aria-hidden=true]{transform:translateY(calc(-50% - 4px))scale(.98)}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-menu__header{flex-wrap:wrap}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-menu__header .vot-segmented-button__menu-header:has(>:nth-child(2)){margin-left:inherit}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-menu__body{max-height:275px}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-langpair-select{gap:var(--vot-space-1);flex-direction:column}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-langpair-select__icon{transform:rotate(90deg)}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-select{justify-content:start;gap:var(--vot-space-1);flex-direction:column;align-items:start;width:100%}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-select-outer{justify-content:space-around;width:100%;max-width:100%}.vot-overlay.vot-overlay__segmented-button-menu[data-vertical]:not([data-position=default])>.vot-menu .vot-select-outer__title{min-width:0;max-width:120px}@property --vot-subtitles-opacity{syntax:\"<number>\";inherits:true;initial-value:.8}@property --vot-subtitles-scale-compensation{syntax:\"<number>\";inherits:true;initial-value:1}.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), var(--vot-subtitles-opacity,.8));--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);background:var(--vot-subtitles-background,#2e2f34cc);width:max-content;inline-size:max-content;color:var(--vot-subtitles-color,#e3e3e3);pointer-events:all;touch-action:none;font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2.2vw), 50px)) * var(--vot-subtitles-scale-compensation,1));-webkit-text-stroke:var(--vot-subtitles-text-stroke-width,clamp(1px, .08em, 2px)) var(--vot-subtitles-text-stroke-color,#000000eb);paint-order:stroke fill;text-shadow:var(--vot-subtitles-text-shadow,0 1px 2px #00000073, 0 2px 8px #00000040);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-synthesis:none;position:relative;--vot-subtitles-font-family:var(--vot-subtitles-font-family-custom,var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif))!important;font-family:var(--vot-subtitles-font-family)!important;font-style:normal!important;font-weight:var(--vot-subtitles-font-weight,500)!important;text-transform:none!important;letter-spacing:normal!important;border-radius:.5em!important;padding:.5em .75em!important;line-height:1.25!important}.vot-subtitles,.vot-subtitles *{-webkit-text-stroke:inherit;paint-order:inherit;font-family:var(--vot-subtitles-font-family)!important}.vot-subtitles{box-sizing:border-box;user-select:none;contain:layout paint;isolation:isolate;text-align:center;text-wrap:balance;white-space:normal;overflow-wrap:anywhere;unicode-bidi:plaintext;margin:0 auto;display:block}.vot-subtitles-widget{--vot-subtitles-anchor-width:100vw;--vot-subtitles-anchor-height:100vh;--vot-subtitles-effective-max-width:var(--vot-subtitles-max-width,var(--vot-subtitles-smart-max-width,70vw));--vot-subtitles-smart-target-width:48ch;--vot-subtitles-smart-min-width-ratio:.62;--vot-subtitles-smart-max-width-ratio:.78;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333);--vot-subtitles-smart-max-width:clamp(calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-min-width-ratio)), var(--vot-subtitles-smart-target-width), calc(var(--vot-subtitles-anchor-width) * var(--vot-subtitles-smart-max-width-ratio)));box-sizing:border-box;z-index:2147483647;--vot-subtitles-fallback-bottom-inset:calc(env(safe-area-inset-bottom,0px) + clamp(56px, 10vh, 220px) + 10px);left:50%;top:calc(100% - var(--vot-subtitles-fallback-bottom-inset));width:max-content;inline-size:max-content;max-width:var(--vot-subtitles-effective-max-width);max-inline-size:var(--vot-subtitles-effective-max-width);pointer-events:none;will-change:left, top, transform;max-height:100%;display:block;position:absolute;transform:translate(-50%,-100%)}.vot-subtitles-info{color:#f5f7fa;-webkit-backdrop-filter:blur(18px);text-align:start;background:#1f2023f5;border:1px solid #ffffff14;flex-direction:column;gap:10px;min-width:min(360px,100vw - 32px);max-width:min(720px,100vw - 32px);display:flex;box-shadow:0 18px 48px #00000057,0 4px 16px #00000038;border-radius:18px!important;padding:18px 22px 20px!important}.vot-subtitles-info-service{display:none!important}.vot-subtitles-info-title{letter-spacing:-.01em;align-items:baseline;gap:8px;min-width:0;max-width:100%;display:flex;font-size:clamp(18px,2.4vw,26px)!important;line-height:1.18!important}.vot-subtitles-info-source,.vot-subtitles-info-divider,.vot-subtitles-info-header,.vot-subtitles-info-context{overflow-wrap:anywhere;white-space:normal!important}.vot-subtitles-info-source{color:#f5f7faad;flex:0 auto;font-weight:650!important}.vot-subtitles-info-divider{color:#f5f7fa61;flex:none;font-weight:500!important}.vot-subtitles-info-header{color:#fff;flex:auto;min-width:0;font-weight:750!important}.vot-subtitles-info-context{color:#dee4ecb8;max-width:100%;font-size:clamp(14px,1.45vw,17px)!important;line-height:1.42!important}.vot-subtitles span[data-vot-highlight-index].passed{color:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"]{cursor:pointer;white-space:normal;overflow-wrap:inherit;word-break:normal;position:relative;font-size:inherit!important;font-family:inherit!important;font-style:inherit!important;font-weight:inherit!important;line-height:inherit!important;text-transform:inherit!important;text-decoration:none!important}.vot-subtitles span[data-vot-token=\"1\"]:before{content:\"\";z-index:-1;position:absolute;inset:2px -2px;border-radius:4px!important}.vot-subtitles span[data-vot-token=\"1\"]:hover:before,.vot-subtitles span[data-vot-token=\"1\"]:focus-visible:before{background:var(--vot-subtitles-hover-color,#ffffff8c)}.vot-subtitles span[data-vot-token=\"1\"].selected:before{background:var(--vot-subtitles-passed-color,#8bb4f5)}.vot-subtitles span[data-vot-token=\"1\"].passed.selected:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .4)}.vot-subtitles span[data-vot-token=\"1\"].passed:hover:before{background:rgba(var(--vot-primary-rgb,139, 180, 245), .3)}.vot-subtitles span[data-vot-style-italic=\"1\"]{font-style:italic!important}.vot-subtitles span[data-vot-style-bold=\"1\"]{font-weight:700!important}.vot-subtitles span[data-vot-style-underline=\"1\"]{text-decoration:underline!important}.vot-subtitles span[data-vot-style-color=\"1\"]{color:var(--vot-subtitles-inline-color)!important}.vot-subtitles-layer{pointer-events:none;z-index:2147483647;contain:layout paint;width:100vw!important;height:100vh!important;position:fixed!important;inset:0!important}.vot-subtitles-guides{pointer-events:none;z-index:2147483646;position:absolute;inset:0}.vot-subtitles-guide{background:rgba(var(--vot-primary-rgb,33, 150, 243), .7);box-shadow:0 0 0 1px rgba(var(--vot-primary-rgb,33, 150, 243), .12);opacity:0;transition:opacity .12s linear;position:absolute}.vot-subtitles-guide[data-visible=true]{opacity:1}.vot-subtitles-guide--vertical{width:2px;transform:translate(-50%)}.vot-subtitles-guide--horizontal{height:2px;transform:translateY(-50%)}@media (aspect-ratio<=1){.vot-subtitles-widget{--vot-subtitles-smart-target-width:28ch;--vot-subtitles-smart-min-width-ratio:.8;--vot-subtitles-smart-max-width-ratio:.92;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0296)}}@media (aspect-ratio>=1) and (aspect-ratio<=7/5){.vot-subtitles-widget{--vot-subtitles-smart-target-width:32ch;--vot-subtitles-smart-min-width-ratio:.55;--vot-subtitles-smart-max-width-ratio:.9;--vot-subtitles-smart-font-preferred:calc(var(--vot-subtitles-anchor-height) * .0333)}}@media (width<=900px) and (pointer:coarse){.vot-subtitles-widget{--vot-subtitles-fallback-bottom-inset:env(safe-area-inset-bottom,0px)}}@media (prefers-contrast:more){.vot-subtitles{--vot-subtitles-background:rgba(var(--vot-surface-rgb,46, 47, 52), .92);--vot-subtitles-text-stroke-width:max(2px, .1em);--vot-subtitles-text-shadow:0 2px 10px #0000008c}}:is(:fullscreen .vot-subtitles-widget,:fullscreen .vot-subtitles-widget){--vot-subtitles-smart-max-width-ratio:.8}:is(:fullscreen .vot-subtitles,:fullscreen .vot-subtitles){font-size:calc(var(--vot-subtitles-font-size,clamp(18px, var(--vot-subtitles-smart-font-preferred,2vw), 50px)) * var(--vot-subtitles-fullscreen-scale,1) * .95 * var(--vot-subtitles-scale-compensation,1))}#vot-subtitles-info.vot-subtitles-info *{user-select:text!important}.vot-or-block{--vot-or-block-line:rgba(var(--vot-primary-rgb,139, 180, 245), .5);color:rgb(var(--vot-primary-rgb));align-items:center;gap:12px;font-size:.75em;font-weight:600;display:flex}.vot-or-block:before,.vot-or-block:after{background:var(--vot-or-block-line);content:\"\";flex:1;height:1px}.vot-menu{--vot-helper-surface-rgb:var(--vot-surface-rgb,255, 255, 255);--vot-helper-surface:rgb(var(--vot-helper-surface-rgb));--vot-helper-onsurface-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-onsurface:rgba(var(--vot-helper-onsurface-rgb), .87);background:var(--vot-helper-surface);color:var(--vot-helper-onsurface);width:fit-content;min-width:min(320px, 100% - var(--vot-menu-side-offset,0px));max-width:min(90vw,560px);min-height:100px;max-height:calc(var(--vot-container-height,75vh) - var(--vot-overlay-default-top,0px) - 16px);flex-direction:column;font-size:16px;line-height:1.5;display:flex;overflow:auto;border:1px solid var(--vot-border-color)!important;border-radius:var(--vot-radius-m)!important;box-shadow:var(--vot-shadow-2)!important;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-menu__header{align-items:center;gap:var(--vot-space-2);flex-shrink:0;min-height:32px;display:flex;padding:var(--vot-space-2) var(--vot-space-4)!important}.vot-menu__body{box-sizing:border-box;gap:var(--vot-space-2);overscroll-behavior:contain;flex-direction:column;min-height:1.375rem;display:flex;overflow:auto;padding:0 var(--vot-space-4)!important;scrollbar-color:rgba(var(--vot-helper-onsurface-rgb), .1) var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-track{background:var(--vot-helper-surface)!important;width:12px!important;height:12px!important}.vot-menu__body::-webkit-scrollbar-thumb{border-radius:1ex;background:rgba(var(--vot-helper-onsurface-rgb), .1)!important;border:5px solid var(--vot-helper-surface)!important}.vot-menu__body::-webkit-scrollbar-thumb:hover{border-width:3px!important}.vot-menu__body::-webkit-scrollbar-corner{background:var(--vot-helper-surface)!important}.vot-menu__footer{flex-shrink:0;justify-content:flex-end;display:flex;padding:var(--vot-space-4)!important}.vot-menu__footer:empty{padding:var(--vot-space-4) 0 0 0!important}.vot-tooltip{--vot-helper-theme-rgb:var(--vot-onsurface-rgb,0, 0, 0);--vot-helper-theme:rgba(var(--vot-helper-theme-rgb), .87);--vot-helper-border:rgb(var(--vot-tooltip-border,69, 69, 69));user-select:none;background:rgb(var(--vot-surface-rgb,255, 255, 255));color:var(--vot-helper-theme);fill:var(--vot-helper-theme);font-family:var(--vot-font-family);cursor:default;z-index:2147483647;overflow-wrap:anywhere;white-space:normal;opacity:0;align-items:center;width:max-content;max-width:calc(100vw - 10px);height:max-content;font-size:14px;line-height:1.5;transition:opacity .5s;display:flex;position:absolute;inset:0;overflow:hidden;box-shadow:0 1px 3px #0000001f;border-radius:4px!important;padding:4px 8px!important}.vot-tooltip[data-trigger=hover]:not([data-mode=follow]){pointer-events:none}.vot-tooltip[data-trigger=click]{user-select:text}.vot-tooltip[data-mode=follow]{pointer-events:auto;user-select:text;align-items:stretch}.vot-tooltip[data-mode=follow],.vot-tooltip[data-mode=follow] *{user-select:text!important}.vot-tooltip.vot-tooltip-bordered{border:1px solid var(--vot-helper-border)}.vot-tooltip *{box-sizing:border-box!important;font-family:inherit!important}.vot-tooltip.vot-tooltip--subtitles-info{overflow:visible;box-shadow:none!important;background:0 0!important;border-radius:18px!important;padding:0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info{flex-direction:column;gap:8px;width:max-content;max-width:min(420px,100vw - 24px);display:flex;color:#ffffffeb!important;letter-spacing:0!important;background:#1f2024f5!important;border:1px solid #ffffff14!important;border-radius:16px!important;padding:14px 16px!important;font-size:13px!important;line-height:1.35!important;box-shadow:0 12px 30px #00000047,0 2px 6px #00000038!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-title{flex-wrap:wrap;align-items:center;gap:6px;min-width:0;display:flex;font-size:15px!important;font-weight:600!important;line-height:1.35!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-source{overflow-wrap:anywhere;color:#fffffff0!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-divider{color:#ffffff6b!important;font-weight:500!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-header{overflow-wrap:anywhere;color:rgb(var(--vot-primary-rgb,255, 83, 151))!important}.vot-tooltip.vot-tooltip--subtitles-info .vot-subtitles-info-context{overflow-wrap:anywhere;max-width:100%;color:#ffffffad!important;font-size:13px!important;font-weight:400!important;line-height:1.45!important}.vot-overlay{--vot-overlay-default-top:0;user-select:none;width:fit-content;max-width:100vw;right:auto;top:var(--vot-overlay-default-top);z-index:2147483646;font-size:16px;line-height:1.5;position:absolute;overflow:hidden;font-family:var(--vot-font-family,\"Roboto\", \"Segoe UI\", system-ui, sans-serif)!important}.vot-overlay[aria-hidden=true]{pointer-events:none;opacity:0;display:none;visibility:hidden!important}");
 	var sharedShadowStyleSheet = null;
 	var sharedShadowStyleSheetReady = false;
 	function scopeCssForShadowRoots(cssText) {
@@ -40764,33 +40783,6 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
-	// src/components/Icons/PiPIcon.tsx
-	function PiPIcon() {
-		return (() => {
-			var _el$ = createElement("svg"), _el$2 = createElement("path");
-			insertNode(_el$, _el$2);
-			setProp(_el$, "aria-hidden", "true");
-			setProp(_el$, "height", "1em");
-			setProp(_el$, "width", "1em");
-			setProp(_el$, "viewBox", "0 -960 960 960");
-			setProp(_el$2, "d", "M120-520q-17 0-28.5-11.5T80-560q0-17 11.5-28.5T120-600h104L80-743q-12-12-12-28.5T80-800q12-12 28.5-12t28.5 12l143 144v-104q0-17 11.5-28.5T320-800q17 0 28.5 11.5T360-760v200q0 17-11.5 28.5T320-520H120Zm40 360q-33 0-56.5-23.5T80-240v-160q0-17 11.5-28.5T120-440q17 0 28.5 11.5T160-400v160h280q17 0 28.5 11.5T480-200q0 17-11.5 28.5T440-160H160Zm680-280q-17 0-28.5-11.5T800-480v-240H480q-17 0-28.5-11.5T440-760q0-17 11.5-28.5T480-800h320q33 0 56.5 23.5T880-720v240q0 17-11.5 28.5T840-440ZM600-160q-17 0-28.5-11.5T560-200v-120q0-17 11.5-28.5T600-360h240q17 0 28.5 11.5T880-320v120q0 17-11.5 28.5T840-160H600Z");
-			return _el$;
-		})();
-	}
-	// src/components/Icons/SubtitlesIcon.tsx
-	function SubtitlesIcon() {
-		return (() => {
-			var _el$ = createElement("svg"), _el$2 = createElement("path");
-			insertNode(_el$, _el$2);
-			setProp(_el$, "aria-hidden", "true");
-			setProp(_el$, "width", "1em");
-			setProp(_el$, "height", "100%");
-			setProp(_el$, "viewBox", "0 0 24 24");
-			setProp(_el$, "fill", "currentColor");
-			setProp(_el$2, "d", "M4 20q-.825 0-1.413-.588T2 18V6q0-.825.588-1.413T4 4h16q.825 0 1.413.588T22 6v12q0 .825-.588 1.413T20 20H4Zm2-4h8v-2H6v2Zm10 0h2v-2h-2v2ZM6 12h2v-2H6v2Zm4 0h8v-2h-8v2Z");
-			return _el$;
-		})();
-	}
 	// src/components/Icons/TranslateIcon.tsx
 	function TranslateIcon(props) {
 		return (() => {
@@ -40823,23 +40815,950 @@ var vot = (function(exports) {
 			return _el$;
 		})();
 	}
+	// src/components/Icons/AutoPauseIcon.tsx
+	function AutoPauseIcon() {
+		return (() => {
+			var _el$ = createElement("svg"), _el$2 = createElement("path"), _el$3 = createElement("path");
+			insertNode(_el$, _el$2);
+			insertNode(_el$, _el$3);
+			setProp(_el$, "xmlns", "http://www.w3.org/2000/svg");
+			setProp(_el$, "aria-hidden", "true");
+			setProp(_el$, "width", "1em");
+			setProp(_el$, "height", "100%");
+			setProp(_el$, "viewBox", "0 0 24 24");
+			setProp(_el$, "fill", "currentColor");
+			setProp(_el$2, "d", "M19.79 7.5A9 9 0 1 1 12 3V.5L16 4l-4 3.5V5a7 7 0 1 0 6.06 3.5Z");
+			setProp(_el$3, "d", "M8.5 8h2.25v8H8.5Zm4.75 0h2.25v8h-2.25Z");
+			return _el$;
+		})();
+	}
+	// src/components/Icons/AutoTranslateIcon.tsx
+	function AutoTranslateIcon() {
+		return (() => {
+			var _el$ = createElement("svg"), _el$2 = createElement("path"), _el$3 = createElement("path");
+			insertNode(_el$, _el$2);
+			insertNode(_el$, _el$3);
+			setProp(_el$, "xmlns", "http://www.w3.org/2000/svg");
+			setProp(_el$, "aria-hidden", "true");
+			setProp(_el$, "width", "1em");
+			setProp(_el$, "height", "1em");
+			setProp(_el$, "viewBox", "0 0 24 24");
+			setProp(_el$, "fill", "currentColor");
+			setProp(_el$2, "d", "M17.5 9h4l-2 5h3L16 23l1.5-6h-3Z");
+			setProp(_el$3, "d", "M9 14L4.7 18.3C4.51667 18.4833 4.28333 18.575 4 18.575C3.71667 18.575 3.48333 18.4833 3.3 18.3C3.11667 18.1167 3.025 17.8833 3.025 17.6C3.025 17.3167 3.11667 17.0833 3.3 16.9L7.65 12.55C7.01667 11.85 6.4625 11.125 5.9875 10.375C5.5125 9.625 5.1 8.83333 4.75 8H6.85C7.15 8.6 7.47083 9.14167 7.8125 9.625C8.15417 10.1083 8.56667 10.6167 9.05 11.15C9.78333 10.35 10.3917 9.52917 10.875 8.6875C11.3583 7.84583 11.7667 6.95 12.1 6H2C1.71667 6 1.47917 5.90417 1.2875 5.7125C1.09583 5.52083 1 5.28333 1 5C1 4.71667 1.09583 4.47917 1.2875 4.2875C1.47917 4.09583 1.71667 4 2 4H8V3C8 2.71667 8.09583 2.47917 8.2875 2.2875C8.47917 2.09583 8.71667 2 9 2C9.28333 2 9.52083 2.09583 9.7125 2.2875C9.90417 2.47917 10 2.71667 10 3V4H16C16.2833 4 16.5208 4.09583 16.7125 4.2875C16.9042 4.47917 17 4.71667 17 5C17 5.28333 16.9042 5.52083 16.7125 5.7125C16.5208 5.90417 16.2833 6 16 6H14.1C13.75 7.18333 13.275 8.33333 12.675 9.45C12.075 10.5667 11.3333 11.6167 10.45 12.6L12.85 15.05L12.1 17.1L9 14Z");
+			return _el$;
+		})();
+	}
+	// src/components/Icons/PiPIcon.tsx
+	function PiPIcon() {
+		return (() => {
+			var _el$ = createElement("svg"), _el$2 = createElement("path");
+			insertNode(_el$, _el$2);
+			setProp(_el$, "aria-hidden", "true");
+			setProp(_el$, "height", "1em");
+			setProp(_el$, "width", "1em");
+			setProp(_el$, "viewBox", "0 -960 960 960");
+			setProp(_el$2, "d", "M120-520q-17 0-28.5-11.5T80-560q0-17 11.5-28.5T120-600h104L80-743q-12-12-12-28.5T80-800q12-12 28.5-12t28.5 12l143 144v-104q0-17 11.5-28.5T320-800q17 0 28.5 11.5T360-760v200q0 17-11.5 28.5T320-520H120Zm40 360q-33 0-56.5-23.5T80-240v-160q0-17 11.5-28.5T120-440q17 0 28.5 11.5T160-400v160h280q17 0 28.5 11.5T480-200q0 17-11.5 28.5T440-160H160Zm680-280q-17 0-28.5-11.5T800-480v-240H480q-17 0-28.5-11.5T440-760q0-17 11.5-28.5T480-800h320q33 0 56.5 23.5T880-720v240q0 17-11.5 28.5T840-440ZM600-160q-17 0-28.5-11.5T560-200v-120q0-17 11.5-28.5T600-360h240q17 0 28.5 11.5T880-320v120q0 17-11.5 28.5T840-160H600Z");
+			return _el$;
+		})();
+	}
+	// src/components/Icons/SubtitlesIcon.tsx
+	function SubtitlesIcon() {
+		return (() => {
+			var _el$ = createElement("svg"), _el$2 = createElement("path");
+			insertNode(_el$, _el$2);
+			setProp(_el$, "aria-hidden", "true");
+			setProp(_el$, "width", "1em");
+			setProp(_el$, "height", "100%");
+			setProp(_el$, "viewBox", "0 0 24 24");
+			setProp(_el$, "fill", "currentColor");
+			setProp(_el$2, "d", "M4 20q-.825 0-1.413-.588T2 18V6q0-.825.588-1.413T4 4h16q.825 0 1.413.588T22 6v12q0 .825-.588 1.413T20 20H4Zm2-4h8v-2H6v2Zm10 0h2v-2h-2v2ZM6 12h2v-2H6v2Zm4 0h8v-2h-8v2Z");
+			return _el$;
+		})();
+	}
+	// src/ui/quickAction.ts
+	var quickActions = [
+		{
+			id: "none",
+			phrase: "None"
+		},
+		{
+			id: "subtitles",
+			phrase: "VOTSubtitles"
+		},
+		{
+			id: "pip",
+			phrase: "VOTPiP",
+			disabled: !isPiPAvailable()
+		},
+		{
+			id: "autoTranslate",
+			phrase: "VOTAutoTranslate"
+		},
+		{
+			id: "autoPauseOnTranslate",
+			phrase: "VOTAutoPauseOnTranslate"
+		}
+	];
+	// src/components/Icons/LiveVoiceIcon.tsx
+	function LiveVoiceIcon() {
+		return (() => {
+			var _el$ = createElement("svg"), _el$2 = createElement("circle"), _el$3 = createElement("circle"), _el$4 = createElement("circle"), _el$5 = createElement("circle"), _el$6 = createElement("circle"), _el$7 = createElement("circle"), _el$8 = createElement("circle");
+			insertNode(_el$, _el$2);
+			insertNode(_el$, _el$3);
+			insertNode(_el$, _el$4);
+			insertNode(_el$, _el$5);
+			insertNode(_el$, _el$6);
+			insertNode(_el$, _el$7);
+			insertNode(_el$, _el$8);
+			setProp(_el$, "aria-hidden", "true");
+			setProp(_el$, "width", "24");
+			setProp(_el$, "height", "24");
+			setProp(_el$, "viewBox", "0 0 24 24");
+			setProp(_el$, "fill", "currentColor");
+			setProp(_el$2, "cx", "10");
+			setProp(_el$2, "cy", "4.5");
+			setProp(_el$2, "r", "1.4");
+			setProp(_el$3, "cx", "10");
+			setProp(_el$3, "cy", "9");
+			setProp(_el$3, "r", "1.9");
+			setProp(_el$4, "cx", "15");
+			setProp(_el$4, "cy", "9");
+			setProp(_el$4, "r", "1.65");
+			setProp(_el$5, "cx", "5.5");
+			setProp(_el$5, "cy", "14");
+			setProp(_el$5, "r", "1.55");
+			setProp(_el$6, "cx", "10");
+			setProp(_el$6, "cy", "14");
+			setProp(_el$6, "r", "2");
+			setProp(_el$7, "cx", "15");
+			setProp(_el$7, "cy", "14");
+			setProp(_el$7, "r", "2.15");
+			setProp(_el$8, "cx", "20");
+			setProp(_el$8, "cy", "14");
+			setProp(_el$8, "r", "1.55");
+			return _el$;
+		})();
+	}
+	// src/components/Icons/StandartVoiceIcon.tsx
+	function StandardVoiceIcon() {
+		return (() => {
+			var _el$ = createElement("svg"), _el$2 = createElement("circle"), _el$3 = createElement("circle"), _el$4 = createElement("circle"), _el$5 = createElement("circle");
+			insertNode(_el$, _el$2);
+			insertNode(_el$, _el$3);
+			insertNode(_el$, _el$4);
+			insertNode(_el$, _el$5);
+			setProp(_el$, "aria-hidden", "true");
+			setProp(_el$, "width", "24");
+			setProp(_el$, "height", "24");
+			setProp(_el$, "viewBox", "0 0 24 24");
+			setProp(_el$, "fill", "currentColor");
+			setProp(_el$2, "cx", "5");
+			setProp(_el$2, "cy", "12");
+			setProp(_el$2, "r", "1.25");
+			setProp(_el$3, "cx", "9.5");
+			setProp(_el$3, "cy", "12");
+			setProp(_el$3, "r", "2.25");
+			setProp(_el$4, "cx", "15");
+			setProp(_el$4, "cy", "12");
+			setProp(_el$4, "r", "2.75");
+			setProp(_el$5, "cx", "20");
+			setProp(_el$5, "cy", "12");
+			setProp(_el$5, "r", "1.75");
+			return _el$;
+		})();
+	}
+	// src/components/SegmentedButton/VoicePopover.tsx
+	var DEFAULT_SHOW_DELAY_MS = 80;
+	var DEFAULT_HIDE_DELAY_MS = 80;
+	var POPOVER_GAP = 8;
+	var MIN_POPOVER_WIDTH = 160;
+	var MAX_POPOVER_WIDTH = 310;
+	var MIN_POPOVER_HEIGHT = 96;
+	function getColumnPlacement(position, spaceLeft, spaceRight) {
+		return (position === "right" || position === "rightCenter") && spaceLeft >= MIN_POPOVER_WIDTH || spaceLeft >= spaceRight ? "left" : "right";
+	}
+	function VoicePopover(props) {
+		const finalProps = mergeProps$1({
+			isOpen: false,
+			showDelay: DEFAULT_SHOW_DELAY_MS,
+			hideDelay: DEFAULT_HIDE_DELAY_MS
+		}, props);
+		const popoverId = `vot-voice-popover-${createUniqueId()}`;
+		const portalHost = document.createElement("vot-block");
+		portalHost.style.display = "contents";
+		const [popover, setPopover] = createSignal();
+		const [isOpen, setIsOpen] = createSignal(finalProps.isOpen);
+		const [activeVoice, setActiveVoice] = createSignal(finalProps.activeVoice);
+		let showTimer;
+		let hideTimer;
+		const anchor = () => {
+			if (!(finalProps.anchor instanceof HTMLElement)) throw new TypeError("anchor must be a valid HTMLElement");
+			return finalProps.anchor;
+		};
+		const layoutRoot = () => {
+			if (!(finalProps.layoutRoot instanceof HTMLElement)) throw new TypeError("layoutRoot must be a valid HTMLElement");
+			return finalProps.layoutRoot;
+		};
+		const buttonContainer = () => anchor().closest("[data-direction]") ?? anchor();
+		function clearShowTimer() {
+			if (showTimer !== void 0) {
+				clearTimeout(showTimer);
+				showTimer = void 0;
+			}
+		}
+		function clearHideTimer() {
+			if (hideTimer !== void 0) {
+				clearTimeout(hideTimer);
+				hideTimer = void 0;
+			}
+		}
+		function updateOpen(nextIsOpen) {
+			if (isOpen() === nextIsOpen) {
+				if (nextIsOpen) floatingPosition.update();
+				return;
+			}
+			setIsOpen(nextIsOpen);
+			finalProps.onOpenChange?.(nextIsOpen);
+		}
+		function showNow() {
+			clearShowTimer();
+			clearHideTimer();
+			updateOpen(true);
+		}
+		function hideNow() {
+			clearShowTimer();
+			clearHideTimer();
+			updateOpen(false);
+		}
+		function scheduleShow() {
+			clearShowTimer();
+			clearHideTimer();
+			if (isOpen()) {
+				floatingPosition.update();
+				return;
+			}
+			showTimer = setTimeout(() => {
+				showTimer = void 0;
+				updateOpen(true);
+			}, finalProps.showDelay);
+		}
+		function scheduleHide() {
+			clearShowTimer();
+			if (!isOpen()) return;
+			clearHideTimer();
+			hideTimer = setTimeout(() => {
+				hideTimer = void 0;
+				updateOpen(false);
+			}, finalProps.hideDelay);
+		}
+		function toggle() {
+			if (isOpen()) hideNow();
+			else showNow();
+		}
+		const controls = {
+			isOpen,
+			scheduleShow,
+			scheduleHide,
+			showNow,
+			hideNow,
+			toggle,
+			cancelShow: clearShowTimer,
+			cancelHide: clearHideTimer
+		};
+		function positionPopover(element) {
+			if (!isOpen()) return;
+			const rootRect = layoutRoot().getBoundingClientRect();
+			const container = buttonContainer();
+			const containerRect = container.getBoundingClientRect();
+			const maxRootWidth = Math.max(MIN_POPOVER_WIDTH, rootRect.width - 16);
+			const maxRootHeight = Math.max(MIN_POPOVER_HEIGHT, rootRect.height - 16);
+			element.style.setProperty("--vot-voice-popover-max-width", `${Math.min(MAX_POPOVER_WIDTH, maxRootWidth)}px`);
+			element.style.setProperty("--vot-voice-popover-max-height", `${maxRootHeight}px`);
+			const direction = container.dataset.direction ?? "row";
+			const position = container.dataset.position ?? "default";
+			let placement;
+			let left;
+			let top;
+			if (direction === "column") {
+				const spaceLeft = containerRect.left - rootRect.left - POPOVER_GAP;
+				const spaceRight = rootRect.right - containerRect.right - POPOVER_GAP;
+				placement = getColumnPlacement(position, spaceLeft, spaceRight);
+				const availableWidth = placement === "left" ? spaceLeft : spaceRight;
+				element.style.setProperty("--vot-voice-popover-max-width", `${Math.max(MIN_POPOVER_WIDTH, Math.min(MAX_POPOVER_WIDTH, availableWidth))}px`);
+				const popoverRect = element.getBoundingClientRect();
+				top = containerRect.top + containerRect.height / 2 - popoverRect.height / 2;
+				left = placement === "left" ? containerRect.left - popoverRect.width - POPOVER_GAP : containerRect.right + POPOVER_GAP;
+			} else {
+				const spaceAbove = containerRect.top - rootRect.top - POPOVER_GAP;
+				const spaceBelow = rootRect.bottom - containerRect.bottom - POPOVER_GAP;
+				placement = spaceBelow >= element.getBoundingClientRect().height || spaceBelow >= spaceAbove ? "bottom" : "top";
+				element.style.setProperty("--vot-voice-popover-max-height", `${Math.max(MIN_POPOVER_HEIGHT, placement === "top" ? spaceAbove : spaceBelow)}px`);
+				const popoverRect = element.getBoundingClientRect();
+				left = containerRect.left + containerRect.width / 2 - popoverRect.width / 2;
+				top = placement === "top" ? containerRect.top - popoverRect.height - POPOVER_GAP : containerRect.bottom + POPOVER_GAP;
+			}
+			const popoverRect = element.getBoundingClientRect();
+			const minLeft = rootRect.left + POPOVER_GAP;
+			const maxLeft = Math.max(minLeft, rootRect.right - popoverRect.width - POPOVER_GAP);
+			const minTop = rootRect.top + POPOVER_GAP;
+			const maxTop = Math.max(minTop, rootRect.bottom - popoverRect.height - POPOVER_GAP);
+			left = clamp(left, minLeft, maxLeft) - rootRect.left;
+			top = clamp(top, minTop, maxTop) - rootRect.top;
+			element.dataset.placement = placement;
+			element.style.left = `${left}px`;
+			element.style.top = `${top}px`;
+		}
+		const floatingPosition = createFloatingPosition({
+			anchor,
+			popup: popover,
+			isOpen,
+			mount: layoutRoot,
+			mountElement: () => portalHost,
+			removeOnCleanup: false,
+			resizeTargets: () => [layoutRoot(), buttonContainer()],
+			updatePosition: ({ popup }) => positionPopover(popup)
+		});
+		finalProps.controlsRef?.(controls);
+		function selectVoice(voice) {
+			setActiveVoice(voice);
+			clearHideTimer();
+			finalProps.onVoiceChange?.(voice);
+			finalProps.onTranslate?.();
+			hideNow();
+		}
+		createEffect(() => {
+			setActiveVoice(finalProps.activeVoice);
+		});
+		createEffect(() => {
+			setIsOpen(finalProps.isOpen);
+		});
+		createEffect(() => {
+			const currentAnchor = anchor();
+			const previousControls = currentAnchor.getAttribute("aria-controls");
+			const previousHasPopup = currentAnchor.getAttribute("aria-haspopup");
+			const previousExpanded = currentAnchor.getAttribute("aria-expanded");
+			const handleAnchorKeyDown = (event) => {
+				if (event.key === "Escape" && isOpen()) {
+					event.preventDefault();
+					hideNow();
+				}
+			};
+			currentAnchor.setAttribute("aria-controls", popoverId);
+			currentAnchor.setAttribute("aria-haspopup", "menu");
+			currentAnchor.addEventListener("keydown", handleAnchorKeyDown);
+			onCleanup(() => {
+				currentAnchor.removeEventListener("keydown", handleAnchorKeyDown);
+				if (previousControls === null) currentAnchor.removeAttribute("aria-controls");
+				else currentAnchor.setAttribute("aria-controls", previousControls);
+				if (previousHasPopup === null) currentAnchor.removeAttribute("aria-haspopup");
+				else currentAnchor.setAttribute("aria-haspopup", previousHasPopup);
+				if (previousExpanded === null) currentAnchor.removeAttribute("aria-expanded");
+				else currentAnchor.setAttribute("aria-expanded", previousExpanded);
+			});
+		});
+		createEffect(() => {
+			anchor().setAttribute("aria-expanded", isOpen().toString());
+		});
+		createEffect(() => {
+			const element = popover();
+			if (!isOpen() || !element) return;
+			const currentAnchor = anchor();
+			const handleOutsidePointerDown = (event) => {
+				const path = event.composedPath();
+				if (path.includes(element) || path.includes(currentAnchor)) return;
+				hideNow();
+			};
+			const updatePosition = () => floatingPosition.update();
+			document.addEventListener("pointerdown", handleOutsidePointerDown, {
+				capture: true,
+				passive: true
+			});
+			window.visualViewport?.addEventListener("scroll", updatePosition);
+			window.visualViewport?.addEventListener("resize", updatePosition);
+			onCleanup(() => {
+				document.removeEventListener("pointerdown", handleOutsidePointerDown, { capture: true });
+				window.visualViewport?.removeEventListener("scroll", updatePosition);
+				window.visualViewport?.removeEventListener("resize", updatePosition);
+			});
+		});
+		createEffect(on(() => [
+			finalProps.activeVoice,
+			finalProps.anchor,
+			finalProps.layoutRoot,
+			isOpen()
+		], () => {
+			if (isOpen()) floatingPosition.update();
+		}));
+		onCleanup(() => {
+			clearShowTimer();
+			clearHideTimer();
+		});
+		const voiceItem = (voice, title, subtitle, icon) => {
+			const isActive = () => activeVoice() === voice;
+			return (() => {
+				var _el$ = createElement("vot-block"), _el$2 = createElement("vot-block"), _el$3 = createElement("vot-block"), _el$4 = createElement("vot-block"), _el$5 = createElement("vot-block");
+				insertNode(_el$, _el$2);
+				insertNode(_el$, _el$3);
+				setProp(_el$, "role", "menuitemradio");
+				setProp(_el$, "data-voice", voice);
+				setProp(_el$, "onClick", (event) => {
+					event.preventDefault();
+					event.stopPropagation();
+					selectVoice(voice);
+					queueMicrotask(() => anchor().focus());
+				});
+				setProp(_el$2, "class", `vot-voice-popover__item-icon vot-voice-popover__item-icon--${voice}`);
+				insert(_el$2, icon);
+				insertNode(_el$3, _el$4);
+				insertNode(_el$3, _el$5);
+				setProp(_el$3, "class", "vot-voice-popover__item-text");
+				setProp(_el$4, "class", "vot-voice-popover__item-title");
+				insert(_el$4, title);
+				setProp(_el$5, "class", "vot-voice-popover__item-subtitle");
+				insert(_el$5, subtitle);
+				effect((_p$) => {
+					var _v$ = {
+						"vot-voice-popover__item": true,
+						"vot-voice-popover__item--active": isActive()
+					}, _v$2 = isActive() ? 0 : -1, _v$3 = isActive();
+					_v$ !== _p$.e && (_p$.e = setProp(_el$, "classList", _v$, _p$.e));
+					_v$2 !== _p$.t && (_p$.t = setProp(_el$, "tabIndex", _v$2, _p$.t));
+					_v$3 !== _p$.a && (_p$.a = setProp(_el$, "aria-checked", _v$3, _p$.a));
+					return _p$;
+				}, {
+					e: void 0,
+					t: void 0,
+					a: void 0
+				});
+				return _el$;
+			})();
+		};
+		const popoverView = () => (() => {
+			var _el$6 = createElement("vot-block"), _el$7 = createElement("vot-block");
+			insertNode(_el$6, _el$7);
+			use((element) => {
+				setPopover(element);
+				finalProps.ref?.(element);
+			}, _el$6);
+			setProp(_el$6, "id", popoverId);
+			setProp(_el$6, "class", "vot-voice-popover");
+			setProp(_el$6, "role", "menu");
+			setProp(_el$6, "onPointerEnter", (event) => {
+				if (event.pointerType !== "touch") clearHideTimer();
+			});
+			setProp(_el$6, "onPointerLeave", (event) => {
+				if (event.pointerType !== "touch") scheduleHide();
+			});
+			setProp(_el$6, "onFocusOut", (event) => {
+				const nextTarget = event.relatedTarget;
+				if (nextTarget instanceof Node && (event.currentTarget.contains(nextTarget) || anchor().contains(nextTarget))) return;
+				hideNow();
+			});
+			setProp(_el$6, "onKeyDown", (event) => {
+				if (event.key === "Escape") {
+					event.preventDefault();
+					hideNow();
+					queueMicrotask(() => anchor().focus());
+				}
+			});
+			insert(_el$6, () => voiceItem("standard", t$1("VOTStandardVoicesTitle"), t$1("VOTStandardVoicesSubtitle"), createComponent(StandardVoiceIcon, {})), _el$7);
+			setProp(_el$7, "class", "vot-voice-popover__divider");
+			insert(_el$6, () => voiceItem("live", t$1("VOTLiveVoicesTitle"), t$1("VOTLiveVoicesSubtitle"), createComponent(LiveVoiceIcon, {})), null);
+			effect((_p$) => {
+				var _v$4 = t$1("VOTVoiceSelection"), _v$5 = !isOpen(), _v$6 = !isOpen(), _v$7 = !isOpen();
+				_v$4 !== _p$.e && (_p$.e = setProp(_el$6, "aria-label", _v$4, _p$.e));
+				_v$5 !== _p$.t && (_p$.t = setProp(_el$6, "aria-hidden", _v$5, _p$.t));
+				_v$6 !== _p$.a && (_p$.a = setProp(_el$6, "hidden", _v$6, _p$.a));
+				_v$7 !== _p$.o && (_p$.o = setProp(_el$6, "inert", _v$7, _p$.o));
+				return _p$;
+			}, {
+				e: void 0,
+				t: void 0,
+				a: void 0,
+				o: void 0
+			});
+			return _el$6;
+		})();
+		const disposePopover = render(() => popoverView(), portalHost);
+		onCleanup(() => {
+			disposePopover();
+			portalHost.remove();
+		});
+		return document.createTextNode("");
+	}
+	// src/components/SegmentedButton/SegmentedButton.tsx
+	function QuickActionIcon(props) {
+		return createComponent(Switch$1, { get children() {
+			return [
+				createComponent(Match, {
+					get when() {
+						return props.action === "subtitles";
+					},
+					get children() {
+						return createComponent(SubtitlesIcon, {});
+					}
+				}),
+				createComponent(Match, {
+					get when() {
+						return props.action === "pip";
+					},
+					get children() {
+						return createComponent(PiPIcon, {});
+					}
+				}),
+				createComponent(Match, {
+					get when() {
+						return props.action === "autoPauseOnTranslate";
+					},
+					get children() {
+						return createComponent(AutoPauseIcon, {});
+					}
+				}),
+				createComponent(Match, {
+					get when() {
+						return props.action === "autoTranslate";
+					},
+					get children() {
+						return createComponent(AutoTranslateIcon, {});
+					}
+				})
+			];
+		} });
+	}
+	function QuickActionButton(props) {
+		const [quickActionButton, setQuickActionButton] = createSignal();
+		const quickAction = createMemo(() => quickActions.find((qa) => qa.id === props.action));
+		return createComponent(Show, {
+			get when() {
+				return memo(() => props.action !== "none")() && quickAction();
+			},
+			get children() {
+				return [(() => {
+					var _el$ = createElement("vot-block");
+					setProp(_el$, "class", "vot-separator");
+					return _el$;
+				})(), createComponent(RawButton, {
+					"class": "vot-segment-only-icon",
+					ref: (element) => {
+						setQuickActionButton(element);
+						props.ref?.(element);
+					},
+					get buttonProps() {
+						return {
+							"data-active": props.isActivated,
+							"aria-pressed": props.isActivated,
+							"aria-label": t$1(quickAction().phrase),
+							onKeyDown: (event) => {
+								if (!isKeyboardActivation(event)) return;
+								event.preventDefault();
+								event.stopPropagation();
+								props.onQuickActionClick?.();
+							},
+							onPointerUp: (event) => {
+								if (!isPrimaryPointerAction(event)) return;
+								event.stopPropagation();
+								props.onQuickActionClick?.();
+							}
+						};
+					},
+					get children() {
+						return [createComponent(QuickActionIcon, { get action() {
+							return props.action;
+						} }), createComponent(Tooltip, {
+							get content() {
+								return t$1(quickAction().phrase);
+							},
+							get parentElement() {
+								return props.tooltipLayoutRoot;
+							},
+							get target() {
+								return quickActionButton();
+							},
+							get position() {
+								return props.tooltipPos;
+							},
+							autoLayout: false,
+							bordered: false,
+							get hidden() {
+								return props.tooltipHidden;
+							}
+						})];
+					}
+				})];
+			}
+		});
+	}
+	function SegmentedButton(props) {
+		const finalProps = mergeProps$1({
+			direction: "default",
+			tooltipPos: "bottom",
+			status: "none",
+			isLoading: false,
+			isTransparent: false,
+			isDragging: false,
+			quickAction1: "none",
+			isQuickAction1Activated: false,
+			quickAction2: "none",
+			isQuickAction2Activated: false,
+			menuOpened: false
+		}, props);
+		const [segmentedButton, setSegmentedButton] = createSignal();
+		const [translationButton, setTranslationButton] = createSignal();
+		const [voiceSelectionButton, setVoiceSelectionButton] = createSignal();
+		const [menuButton, setMenuButton] = createSignal();
+		const [isVoicePopoverOpen, setIsVoicePopoverOpen] = createSignal(false);
+		const [suppressVoiceTooltip, setSuppressVoiceTooltip] = createSignal(false);
+		let voicePopover;
+		let voicePopoverControls;
+		let suppressRestoredVoiceTooltipFocus = false;
+		const needHideTooltip = () => finalProps.isTransparent || finalProps.isDragging;
+		const isColumnDirection = () => finalProps.direction === "column";
+		const allowsVoicePopover = () => !isColumnDirection() || finalProps.status !== "error";
+		const shouldUseTouchVoiceInteraction = (event) => event.pointerType === "touch" || isTouchFirstInput();
+		const shouldUseHoverVoiceInteraction = (event) => event.pointerType !== "touch" && !isTouchFirstInput();
+		const voicePopoverAnchor = () => isColumnDirection() ? translationButton() : voiceSelectionButton();
+		const activeVoice = () => settings.useLivelyVoice ? "live" : "standard";
+		const tooltipLayoutRoot = () => finalProps.layoutRoot ?? segmentedButton()?.closest(".vot-overlay-root") ?? document.body;
+		const handleVoiceChange = (voice) => {
+			if (voice === activeVoice()) return;
+			setSettings("useLivelyVoice", voice === "live");
+			finalProps.onVoiceChange?.(voice);
+		};
+		const handleVoiceTooltipFocus = () => {
+			if (finalProps.isDragging) return;
+			if (suppressRestoredVoiceTooltipFocus) return;
+			setSuppressVoiceTooltip(false);
+		};
+		const handleVoiceTooltipPointerEnter = () => {
+			if (finalProps.isDragging) return;
+			suppressRestoredVoiceTooltipFocus = false;
+			setSuppressVoiceTooltip(false);
+		};
+		const handleVoiceTooltipFocusOut = () => {
+			suppressRestoredVoiceTooltipFocus = false;
+		};
+		const handleVoicePopoverOpenChange = (isOpen) => {
+			setSuppressVoiceTooltip(true);
+			setIsVoicePopoverOpen(isOpen);
+			suppressRestoredVoiceTooltipFocus = !isOpen;
+		};
+		finalProps.controlsRef?.({
+			closeFloatingUI: () => {
+				voicePopoverControls?.hideNow();
+				setSuppressVoiceTooltip(true);
+			},
+			getVoicePopoverEl: () => voicePopover,
+			isVoicePopoverOpen
+		});
+		createEffect(on(() => finalProps.status, (status, previousStatus) => {
+			if (finalProps.direction !== "column") return;
+			if (status === "error") {
+				voicePopoverControls?.hideNow();
+				setSuppressVoiceTooltip(false);
+			} else if (previousStatus === "error" && translationButton()?.matches(":hover")) voicePopoverControls?.showNow();
+		}, { defer: true }));
+		return (() => {
+			var _el$2 = createElement("vot-block"), _el$4 = createElement("vot-block");
+			insertNode(_el$2, _el$4);
+			use((element) => {
+				setSegmentedButton(element);
+				finalProps.ref?.(element);
+			}, _el$2);
+			setProp(_el$2, "class", "vot-segmented-button");
+			setProp(_el$2, "onClick", (event) => {
+				event.preventDefault();
+				event.stopPropagation();
+				event.stopImmediatePropagation();
+			});
+			insert(_el$2, createComponent(RawButton, {
+				ref: (element) => setTranslationButton(element),
+				"class": "vot-segment vot-translate-button",
+				get buttonProps() {
+					return {
+						"aria-label": finalProps.labelText,
+						onPointerEnter: (event) => {
+							handleVoiceTooltipPointerEnter();
+							if (isColumnDirection() && allowsVoicePopover() && shouldUseHoverVoiceInteraction(event)) voicePopoverControls?.scheduleShow();
+						},
+						onPointerLeave: (event) => {
+							if (isColumnDirection() && shouldUseHoverVoiceInteraction(event)) voicePopoverControls?.scheduleHide();
+						},
+						onFocusIn: handleVoiceTooltipFocus,
+						onFocusOut: handleVoiceTooltipFocusOut,
+						onKeyDown: (event) => {
+							if (event.target !== event.currentTarget || !isKeyboardActivation(event)) return;
+							event.preventDefault();
+							finalProps.onTranslateClick?.();
+						},
+						onPointerUp: (event) => {
+							if (!isPrimaryPointerAction(event)) return;
+							if (isColumnDirection() && allowsVoicePopover() && shouldUseTouchVoiceInteraction(event)) {
+								event.preventDefault();
+								event.stopPropagation();
+								voicePopoverControls?.toggle();
+								return;
+							}
+							finalProps.onTranslateClick?.();
+						}
+					};
+				},
+				get children() {
+					return [createComponent(TranslateIcon, { get loading() {
+						return finalProps.isLoading;
+					} }), createComponent(Show, {
+						get when() {
+							return !isColumnDirection();
+						},
+						get fallback() {
+							return createComponent(Tooltip, {
+								get content() {
+									return finalProps.labelText;
+								},
+								get parentElement() {
+									return tooltipLayoutRoot();
+								},
+								get target() {
+									return translationButton();
+								},
+								get position() {
+									return finalProps.tooltipPos;
+								},
+								autoLayout: false,
+								bordered: false,
+								get hidden() {
+									return needHideTooltip() || isVoicePopoverOpen() || suppressVoiceTooltip();
+								}
+							});
+						},
+						get children() {
+							return [(() => {
+								var _el$3 = createElement("vot-block");
+								setProp(_el$3, "class", "vot-segment-label");
+								insert(_el$3, () => finalProps.labelText);
+								return _el$3;
+							})(), createComponent(RawButton, {
+								"class": "vot-dropdown-arrow",
+								ref: (element) => setVoiceSelectionButton(element),
+								get buttonProps() {
+									return {
+										"aria-label": t$1("VOTVoiceSelection"),
+										"aria-haspopup": "menu",
+										"aria-expanded": isVoicePopoverOpen(),
+										onPointerEnter: handleVoiceTooltipPointerEnter,
+										onFocusIn: handleVoiceTooltipFocus,
+										onFocusOut: handleVoiceTooltipFocusOut,
+										onKeyDown: (event) => {
+											if (!isKeyboardActivation(event)) return;
+											event.preventDefault();
+											event.stopPropagation();
+											voicePopoverControls?.toggle();
+										},
+										onPointerDown: (event) => {
+											if (isPrimaryPointerAction(event)) event.stopPropagation();
+										},
+										onPointerUp: (event) => {
+											if (!isPrimaryPointerAction(event)) return;
+											event.stopPropagation();
+											voicePopoverControls?.toggle();
+										}
+									};
+								},
+								get children() {
+									return [createComponent(ChevronIcon, {}), createComponent(Tooltip, {
+										get content() {
+											return t$1("VOTVoiceSelection");
+										},
+										get parentElement() {
+											return tooltipLayoutRoot();
+										},
+										get target() {
+											return voiceSelectionButton();
+										},
+										get edgeAnchor() {
+											return translationButton();
+										},
+										get position() {
+											return finalProps.tooltipPos;
+										},
+										autoLayout: false,
+										bordered: false,
+										get hidden() {
+											return needHideTooltip() || isVoicePopoverOpen() || suppressVoiceTooltip();
+										}
+									})];
+								}
+							})];
+						}
+					})];
+				}
+			}), _el$4);
+			insert(_el$2, createComponent(QuickActionButton, {
+				get action() {
+					return finalProps.quickAction1;
+				},
+				get isActivated() {
+					return finalProps.isQuickAction1Activated;
+				},
+				get tooltipLayoutRoot() {
+					return tooltipLayoutRoot();
+				},
+				get tooltipHidden() {
+					return needHideTooltip();
+				},
+				get tooltipPos() {
+					return finalProps.tooltipPos;
+				},
+				onQuickActionClick: () => finalProps.onQuickActionClick?.(finalProps.quickAction1)
+			}), _el$4);
+			insert(_el$2, createComponent(Show, {
+				get when() {
+					return finalProps.quickAction1 !== finalProps.quickAction2;
+				},
+				get children() {
+					return createComponent(QuickActionButton, {
+						get action() {
+							return finalProps.quickAction2;
+						},
+						get isActivated() {
+							return finalProps.isQuickAction2Activated;
+						},
+						get tooltipLayoutRoot() {
+							return tooltipLayoutRoot();
+						},
+						get tooltipHidden() {
+							return needHideTooltip();
+						},
+						get tooltipPos() {
+							return finalProps.tooltipPos;
+						},
+						onQuickActionClick: () => finalProps.onQuickActionClick?.(finalProps.quickAction2)
+					});
+				}
+			}), _el$4);
+			setProp(_el$4, "class", "vot-separator");
+			insert(_el$2, createComponent(RawButton, {
+				"class": "vot-segment-only-icon",
+				ref: (element) => setMenuButton(element),
+				get buttonProps() {
+					return {
+						"aria-label": t$1("VOTMenu"),
+						"aria-haspopup": "dialog",
+						"aria-expanded": finalProps.menuOpened,
+						onKeyDown: (event) => {
+							if (!isKeyboardActivation(event)) return;
+							event.preventDefault();
+							event.stopPropagation();
+							finalProps.onMenuClick?.();
+						},
+						onPointerUp: (event) => {
+							if (!isPrimaryPointerAction(event)) return;
+							event.stopPropagation();
+							finalProps.onMenuClick?.();
+						}
+					};
+				},
+				get children() {
+					return [createComponent(MenuIcon, {}), createComponent(Tooltip, {
+						get content() {
+							return t$1("VOTMenu");
+						},
+						get parentElement() {
+							return tooltipLayoutRoot();
+						},
+						get target() {
+							return menuButton();
+						},
+						get position() {
+							return finalProps.tooltipPos;
+						},
+						autoLayout: false,
+						bordered: false,
+						get hidden() {
+							return needHideTooltip();
+						}
+					})];
+				}
+			}), null);
+			insert(_el$2, createComponent(Show, {
+				get when() {
+					return voicePopoverAnchor();
+				},
+				children: (anchor) => createComponent(VoicePopover, {
+					ref: (element) => voicePopover = element,
+					get activeVoice() {
+						return activeVoice();
+					},
+					get anchor() {
+						return anchor();
+					},
+					get layoutRoot() {
+						return tooltipLayoutRoot();
+					},
+					controlsRef: (controls) => voicePopoverControls = controls,
+					onOpenChange: handleVoicePopoverOpenChange,
+					get onTranslate() {
+						return finalProps.onTranslateClick;
+					},
+					onVoiceChange: handleVoiceChange
+				})
+			}), null);
+			effect((_p$) => {
+				var _v$ = finalProps.direction, _v$2 = finalProps.status, _v$3 = finalProps.isLoading;
+				_v$ !== _p$.e && (_p$.e = setProp(_el$2, "data-direction", _v$, _p$.e));
+				_v$2 !== _p$.t && (_p$.t = setProp(_el$2, "data-status", _v$2, _p$.t));
+				_v$3 !== _p$.a && (_p$.a = setProp(_el$2, "data-loading", _v$3, _p$.a));
+				return _p$;
+			}, {
+				e: void 0,
+				t: void 0,
+				a: void 0
+			});
+			return _el$2;
+		})();
+	}
 	// src/components/SegmentedButton/PreviewSegmentedButton.tsx
+	function PreviewQuickActionButton(props) {
+		return createComponent(Show, {
+			get when() {
+				return props.action !== "none";
+			},
+			get children() {
+				return [(() => {
+					var _el$ = createElement("vot-block");
+					setProp(_el$, "class", "vot-separator");
+					return _el$;
+				})(), createComponent(RawButton, {
+					"class": "vot-segment-only-icon",
+					get buttonProps() {
+						return { "data-active": props.isActivated };
+					},
+					get children() {
+						return createComponent(QuickActionIcon, { get action() {
+							return props.action;
+						} });
+					}
+				})];
+			}
+		});
+	}
 	function PreviewSegmentedButton(props) {
 		const finalProps = mergeProps$1({
 			direction: "default",
 			status: "none",
 			isLoading: false,
-			isSubtitlesActive: false,
-			showPipButton: false
+			quickAction1: "none",
+			isQuickAction1Activated: false,
+			quickAction2: "none",
+			isQuickAction2Activated: false
 		}, props);
 		return (() => {
-			var _el$ = createElement("vot-block"), _el$3 = createElement("vot-block"), _el$5 = createElement("vot-block");
-			insertNode(_el$, _el$3);
-			insertNode(_el$, _el$5);
+			var _el$2 = createElement("vot-block"), _el$4 = createElement("vot-block");
+			insertNode(_el$2, _el$4);
 			var _ref$ = finalProps.ref;
-			typeof _ref$ === "function" ? use(_ref$, _el$) : finalProps.ref = _el$;
-			setProp(_el$, "class", "vot-segmented-button");
-			insert(_el$, createComponent(RawButton, {
+			typeof _ref$ === "function" ? use(_ref$, _el$2) : finalProps.ref = _el$2;
+			setProp(_el$2, "class", "vot-segmented-button");
+			insert(_el$2, createComponent(RawButton, {
 				"class": "vot-segment vot-translate-button",
 				get children() {
 					return [createComponent(TranslateIcon, { get loading() {
@@ -40850,10 +41769,10 @@ var vot = (function(exports) {
 						},
 						get children() {
 							return [(() => {
-								var _el$2 = createElement("vot-block");
-								setProp(_el$2, "class", "vot-segment-label");
-								insert(_el$2, () => finalProps.labelText);
-								return _el$2;
+								var _el$3 = createElement("vot-block");
+								setProp(_el$3, "class", "vot-segment-label");
+								insert(_el$3, () => finalProps.labelText);
+								return _el$3;
 							})(), createComponent(RawButton, {
 								"class": "vot-dropdown-arrow",
 								get children() {
@@ -40863,36 +41782,32 @@ var vot = (function(exports) {
 						}
 					})];
 				}
-			}), _el$3);
-			setProp(_el$3, "class", "vot-separator");
-			insert(_el$, createComponent(RawButton, {
-				"class": "vot-segment-only-icon",
-				get buttonProps() {
-					return { "data-active": finalProps.isSubtitlesActive };
+			}), _el$4);
+			insert(_el$2, createComponent(PreviewQuickActionButton, {
+				get action() {
+					return finalProps.quickAction1;
 				},
-				get children() {
-					return createComponent(SubtitlesIcon, {});
+				get isActivated() {
+					return finalProps.isQuickAction1Activated;
 				}
-			}), _el$5);
-			insert(_el$, createComponent(Show, {
+			}), _el$4);
+			insert(_el$2, createComponent(Show, {
 				get when() {
-					return finalProps.showPipButton;
+					return finalProps.quickAction1 !== finalProps.quickAction2;
 				},
 				get children() {
-					return [(() => {
-						var _el$4 = createElement("vot-block");
-						setProp(_el$4, "class", "vot-separator");
-						return _el$4;
-					})(), createComponent(RawButton, {
-						"class": "vot-segment-only-icon",
-						get children() {
-							return createComponent(PiPIcon, {});
+					return createComponent(PreviewQuickActionButton, {
+						get action() {
+							return finalProps.quickAction2;
+						},
+						get isActivated() {
+							return finalProps.isQuickAction2Activated;
 						}
-					})];
+					});
 				}
-			}), _el$5);
-			setProp(_el$5, "class", "vot-separator");
-			insert(_el$, createComponent(RawButton, {
+			}), _el$4);
+			setProp(_el$4, "class", "vot-separator");
+			insert(_el$2, createComponent(RawButton, {
 				"class": "vot-segment-only-icon",
 				get children() {
 					return createComponent(MenuIcon, {});
@@ -40900,16 +41815,16 @@ var vot = (function(exports) {
 			}), null);
 			effect((_p$) => {
 				var _v$ = finalProps.direction, _v$2 = finalProps.status, _v$3 = finalProps.isLoading;
-				_v$ !== _p$.e && (_p$.e = setProp(_el$, "data-direction", _v$, _p$.e));
-				_v$2 !== _p$.t && (_p$.t = setProp(_el$, "data-status", _v$2, _p$.t));
-				_v$3 !== _p$.a && (_p$.a = setProp(_el$, "data-loading", _v$3, _p$.a));
+				_v$ !== _p$.e && (_p$.e = setProp(_el$2, "data-direction", _v$, _p$.e));
+				_v$2 !== _p$.t && (_p$.t = setProp(_el$2, "data-status", _v$2, _p$.t));
+				_v$3 !== _p$.a && (_p$.a = setProp(_el$2, "data-loading", _v$3, _p$.a));
 				return _p$;
 			}, {
 				e: void 0,
 				t: void 0,
 				a: void 0
 			});
-			return _el$;
+			return _el$2;
 		})();
 	}
 	// src/components/SegmentedButton/PreviewSegmentedButtonOverlay.tsx
@@ -41437,6 +42352,7 @@ var vot = (function(exports) {
 	}
 	// src/components/Control/Slider.tsx
 	var DRAG_THRESHOLD = 4;
+	var decimalPlaces = (num) => String(num).split(".")[1]?.length ?? 0;
 	function Slider(props) {
 		const finalProps = mergeProps$1({
 			min: 0,
@@ -41446,12 +42362,29 @@ var vot = (function(exports) {
 			disabled: false
 		}, props);
 		let pointerStart;
+		let handleHitbox;
+		let input;
 		const clampVal = (val) => clamp(val, finalProps.min, finalProps.max);
 		const [value, setValue] = createSignal(clampVal(finalProps.value));
 		const [dragging, setDragging] = createSignal(false);
 		const progress = () => {
 			const range = finalProps.max - finalProps.min;
 			return clamp(range <= 0 ? 0 : (value() - finalProps.min) / range, 0, 1);
+		};
+		const updateValue = (next) => {
+			if (next === value()) return;
+			setValue(next);
+			finalProps.onInput?.(next);
+		};
+		const updateValueFromPointer = (clientX) => {
+			if (!pointerStart) return;
+			const { origin, trackWidth } = pointerStart;
+			const ratio = trackWidth <= 0 ? 0 : clamp((clientX - origin) / trackWidth, 0, 1);
+			const { min, max, step } = finalProps;
+			const raw = min + ratio * (max - min);
+			const snapped = step > 0 ? min + Math.round((raw - min) / step) * step : raw;
+			const precision = Math.max(decimalPlaces(step), decimalPlaces(min));
+			updateValue(clampVal(Number(snapped.toFixed(precision))));
 		};
 		const stopDragging = () => {
 			pointerStart = void 0;
@@ -41461,7 +42394,7 @@ var vot = (function(exports) {
 			setValue(clampVal(finalProps.value));
 		});
 		return (() => {
-			var _el$ = createElement("vot-block"), _el$2 = createElement("input"), _el$3 = createElement("vot-block"), _el$4 = createElement("vot-block"), _el$5 = createElement("vot-block");
+			var _el$ = createElement("vot-block"), _el$2 = createElement("input"), _el$3 = createElement("vot-block"), _el$4 = createElement("vot-block"), _el$5 = createElement("vot-block"), _el$6 = createElement("vot-block");
 			insertNode(_el$, _el$2);
 			insertNode(_el$, _el$3);
 			insertNode(_el$, _el$4);
@@ -41469,29 +42402,45 @@ var vot = (function(exports) {
 			var _ref$ = finalProps.ref;
 			typeof _ref$ === "function" ? use(_ref$, _el$) : finalProps.ref = _el$;
 			setProp(_el$, "class", "vot-slider");
-			setProp(_el$2, "class", "vot-slider__control");
-			setProp(_el$2, "type", "range");
-			setProp(_el$2, "onpointerdown", (event) => {
+			setProp(_el$, "onpointerdown", (event) => {
+				if (finalProps.disabled || event.button !== 0 || !handleHitbox) return;
+				const root = event.currentTarget;
+				event.preventDefault();
+				input?.focus({ preventScroll: true });
+				root.setPointerCapture(event.pointerId);
+				const rect = root.getBoundingClientRect();
+				const hitbox = handleHitbox.getBoundingClientRect();
+				const thumbWidth = hitbox.width;
+				const offset = event.clientX - (hitbox.left + thumbWidth / 2);
+				const grabbed = Math.abs(offset) <= thumbWidth / 2;
 				pointerStart = {
 					id: event.pointerId,
 					x: event.clientX,
-					y: event.clientY
+					y: event.clientY,
+					origin: rect.left + thumbWidth / 2 + (grabbed ? offset : 0),
+					trackWidth: rect.width - thumbWidth
 				};
+				if (!grabbed) updateValueFromPointer(event.clientX);
 			});
-			setProp(_el$2, "onpointermove", (event) => {
+			setProp(_el$, "onpointermove", (event) => {
 				if (!pointerStart || pointerStart.id !== event.pointerId) return;
 				if (Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y) >= DRAG_THRESHOLD) setDragging(true);
+				updateValueFromPointer(event.clientX);
 			});
-			setProp(_el$2, "onpointerup", stopDragging);
-			setProp(_el$2, "onpointercancel", stopDragging);
-			setProp(_el$2, "oninput", (e) => {
-				const newValue = e.target.valueAsNumber;
-				setValue(newValue);
-				finalProps.onInput?.(newValue);
-			});
+			setProp(_el$, "onpointerup", stopDragging);
+			setProp(_el$, "onpointercancel", stopDragging);
+			setProp(_el$, "onlostpointercapture", stopDragging);
+			var _ref$2 = input;
+			typeof _ref$2 === "function" ? use(_ref$2, _el$2) : input = _el$2;
+			setProp(_el$2, "class", "vot-slider__control");
+			setProp(_el$2, "type", "range");
+			setProp(_el$2, "oninput", (e) => updateValue(e.currentTarget.valueAsNumber));
 			setProp(_el$3, "class", "vot-slider__track");
 			setProp(_el$4, "class", "vot-slider__track vot-slider__track-progress");
+			insertNode(_el$5, _el$6);
 			setProp(_el$5, "class", "vot-slider__handle");
+			use((element) => handleHitbox = element, _el$6);
+			setProp(_el$6, "class", "vot-slider__handle-hitbox");
 			effect((_p$) => {
 				var _v$ = dragging() ? "" : void 0, _v$2 = { "--vot-progress": progress() }, _v$3 = finalProps.disabled, _v$4 = finalProps.min, _v$5 = finalProps.max, _v$6 = value(), _v$7 = finalProps.step, _v$8 = finalProps.disabled;
 				_v$ !== _p$.e && (_p$.e = setProp(_el$, "data-dragging", _v$, _p$.e));
@@ -41961,776 +42910,6 @@ var vot = (function(exports) {
 			}
 		});
 	}
-	// src/components/Icons/LiveVoiceIcon.tsx
-	function LiveVoiceIcon() {
-		return (() => {
-			var _el$ = createElement("svg"), _el$2 = createElement("circle"), _el$3 = createElement("circle"), _el$4 = createElement("circle"), _el$5 = createElement("circle"), _el$6 = createElement("circle"), _el$7 = createElement("circle"), _el$8 = createElement("circle");
-			insertNode(_el$, _el$2);
-			insertNode(_el$, _el$3);
-			insertNode(_el$, _el$4);
-			insertNode(_el$, _el$5);
-			insertNode(_el$, _el$6);
-			insertNode(_el$, _el$7);
-			insertNode(_el$, _el$8);
-			setProp(_el$, "aria-hidden", "true");
-			setProp(_el$, "width", "24");
-			setProp(_el$, "height", "24");
-			setProp(_el$, "viewBox", "0 0 24 24");
-			setProp(_el$, "fill", "currentColor");
-			setProp(_el$2, "cx", "10");
-			setProp(_el$2, "cy", "4.5");
-			setProp(_el$2, "r", "1.4");
-			setProp(_el$3, "cx", "10");
-			setProp(_el$3, "cy", "9");
-			setProp(_el$3, "r", "1.9");
-			setProp(_el$4, "cx", "15");
-			setProp(_el$4, "cy", "9");
-			setProp(_el$4, "r", "1.65");
-			setProp(_el$5, "cx", "5.5");
-			setProp(_el$5, "cy", "14");
-			setProp(_el$5, "r", "1.55");
-			setProp(_el$6, "cx", "10");
-			setProp(_el$6, "cy", "14");
-			setProp(_el$6, "r", "2");
-			setProp(_el$7, "cx", "15");
-			setProp(_el$7, "cy", "14");
-			setProp(_el$7, "r", "2.15");
-			setProp(_el$8, "cx", "20");
-			setProp(_el$8, "cy", "14");
-			setProp(_el$8, "r", "1.55");
-			return _el$;
-		})();
-	}
-	// src/components/Icons/StandartVoiceIcon.tsx
-	function StandardVoiceIcon() {
-		return (() => {
-			var _el$ = createElement("svg"), _el$2 = createElement("circle"), _el$3 = createElement("circle"), _el$4 = createElement("circle"), _el$5 = createElement("circle");
-			insertNode(_el$, _el$2);
-			insertNode(_el$, _el$3);
-			insertNode(_el$, _el$4);
-			insertNode(_el$, _el$5);
-			setProp(_el$, "aria-hidden", "true");
-			setProp(_el$, "width", "24");
-			setProp(_el$, "height", "24");
-			setProp(_el$, "viewBox", "0 0 24 24");
-			setProp(_el$, "fill", "currentColor");
-			setProp(_el$2, "cx", "5");
-			setProp(_el$2, "cy", "12");
-			setProp(_el$2, "r", "1.25");
-			setProp(_el$3, "cx", "9.5");
-			setProp(_el$3, "cy", "12");
-			setProp(_el$3, "r", "2.25");
-			setProp(_el$4, "cx", "15");
-			setProp(_el$4, "cy", "12");
-			setProp(_el$4, "r", "2.75");
-			setProp(_el$5, "cx", "20");
-			setProp(_el$5, "cy", "12");
-			setProp(_el$5, "r", "1.75");
-			return _el$;
-		})();
-	}
-	// src/components/SegmentedButton/VoicePopover.tsx
-	var DEFAULT_SHOW_DELAY_MS = 80;
-	var DEFAULT_HIDE_DELAY_MS = 80;
-	var POPOVER_GAP = 8;
-	var MIN_POPOVER_WIDTH = 160;
-	var MAX_POPOVER_WIDTH = 310;
-	var MIN_POPOVER_HEIGHT = 96;
-	function getColumnPlacement(position, spaceLeft, spaceRight) {
-		return (position === "right" || position === "rightCenter") && spaceLeft >= MIN_POPOVER_WIDTH || spaceLeft >= spaceRight ? "left" : "right";
-	}
-	function VoicePopover(props) {
-		const finalProps = mergeProps$1({
-			isOpen: false,
-			showDelay: DEFAULT_SHOW_DELAY_MS,
-			hideDelay: DEFAULT_HIDE_DELAY_MS
-		}, props);
-		const popoverId = `vot-voice-popover-${createUniqueId()}`;
-		const portalHost = document.createElement("vot-block");
-		portalHost.style.display = "contents";
-		const [popover, setPopover] = createSignal();
-		const [isOpen, setIsOpen] = createSignal(finalProps.isOpen);
-		const [activeVoice, setActiveVoice] = createSignal(finalProps.activeVoice);
-		let showTimer;
-		let hideTimer;
-		const anchor = () => {
-			if (!(finalProps.anchor instanceof HTMLElement)) throw new TypeError("anchor must be a valid HTMLElement");
-			return finalProps.anchor;
-		};
-		const layoutRoot = () => {
-			if (!(finalProps.layoutRoot instanceof HTMLElement)) throw new TypeError("layoutRoot must be a valid HTMLElement");
-			return finalProps.layoutRoot;
-		};
-		const buttonContainer = () => anchor().closest("[data-direction]") ?? anchor();
-		function clearShowTimer() {
-			if (showTimer !== void 0) {
-				clearTimeout(showTimer);
-				showTimer = void 0;
-			}
-		}
-		function clearHideTimer() {
-			if (hideTimer !== void 0) {
-				clearTimeout(hideTimer);
-				hideTimer = void 0;
-			}
-		}
-		function updateOpen(nextIsOpen) {
-			if (isOpen() === nextIsOpen) {
-				if (nextIsOpen) floatingPosition.update();
-				return;
-			}
-			setIsOpen(nextIsOpen);
-			finalProps.onOpenChange?.(nextIsOpen);
-		}
-		function showNow() {
-			clearShowTimer();
-			clearHideTimer();
-			updateOpen(true);
-		}
-		function hideNow() {
-			clearShowTimer();
-			clearHideTimer();
-			updateOpen(false);
-		}
-		function scheduleShow() {
-			clearShowTimer();
-			clearHideTimer();
-			if (isOpen()) {
-				floatingPosition.update();
-				return;
-			}
-			showTimer = setTimeout(() => {
-				showTimer = void 0;
-				updateOpen(true);
-			}, finalProps.showDelay);
-		}
-		function scheduleHide() {
-			clearShowTimer();
-			if (!isOpen()) return;
-			clearHideTimer();
-			hideTimer = setTimeout(() => {
-				hideTimer = void 0;
-				updateOpen(false);
-			}, finalProps.hideDelay);
-		}
-		function toggle() {
-			if (isOpen()) hideNow();
-			else showNow();
-		}
-		const controls = {
-			isOpen,
-			scheduleShow,
-			scheduleHide,
-			showNow,
-			hideNow,
-			toggle,
-			cancelShow: clearShowTimer,
-			cancelHide: clearHideTimer
-		};
-		function positionPopover(element) {
-			if (!isOpen()) return;
-			const rootRect = layoutRoot().getBoundingClientRect();
-			const container = buttonContainer();
-			const containerRect = container.getBoundingClientRect();
-			const maxRootWidth = Math.max(MIN_POPOVER_WIDTH, rootRect.width - 16);
-			const maxRootHeight = Math.max(MIN_POPOVER_HEIGHT, rootRect.height - 16);
-			element.style.setProperty("--vot-voice-popover-max-width", `${Math.min(MAX_POPOVER_WIDTH, maxRootWidth)}px`);
-			element.style.setProperty("--vot-voice-popover-max-height", `${maxRootHeight}px`);
-			const direction = container.dataset.direction ?? "row";
-			const position = container.dataset.position ?? "default";
-			let placement;
-			let left;
-			let top;
-			if (direction === "column") {
-				const spaceLeft = containerRect.left - rootRect.left - POPOVER_GAP;
-				const spaceRight = rootRect.right - containerRect.right - POPOVER_GAP;
-				placement = getColumnPlacement(position, spaceLeft, spaceRight);
-				const availableWidth = placement === "left" ? spaceLeft : spaceRight;
-				element.style.setProperty("--vot-voice-popover-max-width", `${Math.max(MIN_POPOVER_WIDTH, Math.min(MAX_POPOVER_WIDTH, availableWidth))}px`);
-				const popoverRect = element.getBoundingClientRect();
-				top = containerRect.top + containerRect.height / 2 - popoverRect.height / 2;
-				left = placement === "left" ? containerRect.left - popoverRect.width - POPOVER_GAP : containerRect.right + POPOVER_GAP;
-			} else {
-				const spaceAbove = containerRect.top - rootRect.top - POPOVER_GAP;
-				const spaceBelow = rootRect.bottom - containerRect.bottom - POPOVER_GAP;
-				placement = spaceBelow >= element.getBoundingClientRect().height || spaceBelow >= spaceAbove ? "bottom" : "top";
-				element.style.setProperty("--vot-voice-popover-max-height", `${Math.max(MIN_POPOVER_HEIGHT, placement === "top" ? spaceAbove : spaceBelow)}px`);
-				const popoverRect = element.getBoundingClientRect();
-				left = containerRect.left + containerRect.width / 2 - popoverRect.width / 2;
-				top = placement === "top" ? containerRect.top - popoverRect.height - POPOVER_GAP : containerRect.bottom + POPOVER_GAP;
-			}
-			const popoverRect = element.getBoundingClientRect();
-			const minLeft = rootRect.left + POPOVER_GAP;
-			const maxLeft = Math.max(minLeft, rootRect.right - popoverRect.width - POPOVER_GAP);
-			const minTop = rootRect.top + POPOVER_GAP;
-			const maxTop = Math.max(minTop, rootRect.bottom - popoverRect.height - POPOVER_GAP);
-			left = clamp(left, minLeft, maxLeft) - rootRect.left;
-			top = clamp(top, minTop, maxTop) - rootRect.top;
-			element.dataset.placement = placement;
-			element.style.left = `${left}px`;
-			element.style.top = `${top}px`;
-		}
-		const floatingPosition = createFloatingPosition({
-			anchor,
-			popup: popover,
-			isOpen,
-			mount: layoutRoot,
-			mountElement: () => portalHost,
-			removeOnCleanup: false,
-			resizeTargets: () => [layoutRoot(), buttonContainer()],
-			updatePosition: ({ popup }) => positionPopover(popup)
-		});
-		finalProps.controlsRef?.(controls);
-		function selectVoice(voice) {
-			setActiveVoice(voice);
-			clearHideTimer();
-			finalProps.onVoiceChange?.(voice);
-			finalProps.onTranslate?.();
-			hideNow();
-		}
-		createEffect(() => {
-			setActiveVoice(finalProps.activeVoice);
-		});
-		createEffect(() => {
-			setIsOpen(finalProps.isOpen);
-		});
-		createEffect(() => {
-			const currentAnchor = anchor();
-			const previousControls = currentAnchor.getAttribute("aria-controls");
-			const previousHasPopup = currentAnchor.getAttribute("aria-haspopup");
-			const previousExpanded = currentAnchor.getAttribute("aria-expanded");
-			const handleAnchorKeyDown = (event) => {
-				if (event.key === "Escape" && isOpen()) {
-					event.preventDefault();
-					hideNow();
-				}
-			};
-			currentAnchor.setAttribute("aria-controls", popoverId);
-			currentAnchor.setAttribute("aria-haspopup", "menu");
-			currentAnchor.addEventListener("keydown", handleAnchorKeyDown);
-			onCleanup(() => {
-				currentAnchor.removeEventListener("keydown", handleAnchorKeyDown);
-				if (previousControls === null) currentAnchor.removeAttribute("aria-controls");
-				else currentAnchor.setAttribute("aria-controls", previousControls);
-				if (previousHasPopup === null) currentAnchor.removeAttribute("aria-haspopup");
-				else currentAnchor.setAttribute("aria-haspopup", previousHasPopup);
-				if (previousExpanded === null) currentAnchor.removeAttribute("aria-expanded");
-				else currentAnchor.setAttribute("aria-expanded", previousExpanded);
-			});
-		});
-		createEffect(() => {
-			anchor().setAttribute("aria-expanded", isOpen().toString());
-		});
-		createEffect(() => {
-			const element = popover();
-			if (!isOpen() || !element) return;
-			const currentAnchor = anchor();
-			const handleOutsidePointerDown = (event) => {
-				const path = event.composedPath();
-				if (path.includes(element) || path.includes(currentAnchor)) return;
-				hideNow();
-			};
-			const updatePosition = () => floatingPosition.update();
-			document.addEventListener("pointerdown", handleOutsidePointerDown, {
-				capture: true,
-				passive: true
-			});
-			window.visualViewport?.addEventListener("scroll", updatePosition);
-			window.visualViewport?.addEventListener("resize", updatePosition);
-			onCleanup(() => {
-				document.removeEventListener("pointerdown", handleOutsidePointerDown, { capture: true });
-				window.visualViewport?.removeEventListener("scroll", updatePosition);
-				window.visualViewport?.removeEventListener("resize", updatePosition);
-			});
-		});
-		createEffect(on(() => [
-			finalProps.activeVoice,
-			finalProps.anchor,
-			finalProps.layoutRoot,
-			isOpen()
-		], () => {
-			if (isOpen()) floatingPosition.update();
-		}));
-		onCleanup(() => {
-			clearShowTimer();
-			clearHideTimer();
-		});
-		const voiceItem = (voice, title, subtitle, icon) => {
-			const isActive = () => activeVoice() === voice;
-			return (() => {
-				var _el$ = createElement("vot-block"), _el$2 = createElement("vot-block"), _el$3 = createElement("vot-block"), _el$4 = createElement("vot-block"), _el$5 = createElement("vot-block");
-				insertNode(_el$, _el$2);
-				insertNode(_el$, _el$3);
-				setProp(_el$, "role", "menuitemradio");
-				setProp(_el$, "data-voice", voice);
-				setProp(_el$, "onClick", (event) => {
-					event.preventDefault();
-					event.stopPropagation();
-					selectVoice(voice);
-					queueMicrotask(() => anchor().focus());
-				});
-				setProp(_el$2, "class", `vot-voice-popover__item-icon vot-voice-popover__item-icon--${voice}`);
-				insert(_el$2, icon);
-				insertNode(_el$3, _el$4);
-				insertNode(_el$3, _el$5);
-				setProp(_el$3, "class", "vot-voice-popover__item-text");
-				setProp(_el$4, "class", "vot-voice-popover__item-title");
-				insert(_el$4, title);
-				setProp(_el$5, "class", "vot-voice-popover__item-subtitle");
-				insert(_el$5, subtitle);
-				effect((_p$) => {
-					var _v$ = {
-						"vot-voice-popover__item": true,
-						"vot-voice-popover__item--active": isActive()
-					}, _v$2 = isActive() ? 0 : -1, _v$3 = isActive();
-					_v$ !== _p$.e && (_p$.e = setProp(_el$, "classList", _v$, _p$.e));
-					_v$2 !== _p$.t && (_p$.t = setProp(_el$, "tabIndex", _v$2, _p$.t));
-					_v$3 !== _p$.a && (_p$.a = setProp(_el$, "aria-checked", _v$3, _p$.a));
-					return _p$;
-				}, {
-					e: void 0,
-					t: void 0,
-					a: void 0
-				});
-				return _el$;
-			})();
-		};
-		const popoverView = () => (() => {
-			var _el$6 = createElement("vot-block"), _el$7 = createElement("vot-block");
-			insertNode(_el$6, _el$7);
-			use((element) => {
-				setPopover(element);
-				finalProps.ref?.(element);
-			}, _el$6);
-			setProp(_el$6, "id", popoverId);
-			setProp(_el$6, "class", "vot-voice-popover");
-			setProp(_el$6, "role", "menu");
-			setProp(_el$6, "onPointerEnter", (event) => {
-				if (event.pointerType !== "touch") clearHideTimer();
-			});
-			setProp(_el$6, "onPointerLeave", (event) => {
-				if (event.pointerType !== "touch") scheduleHide();
-			});
-			setProp(_el$6, "onFocusOut", (event) => {
-				const nextTarget = event.relatedTarget;
-				if (nextTarget instanceof Node && (event.currentTarget.contains(nextTarget) || anchor().contains(nextTarget))) return;
-				hideNow();
-			});
-			setProp(_el$6, "onKeyDown", (event) => {
-				if (event.key === "Escape") {
-					event.preventDefault();
-					hideNow();
-					queueMicrotask(() => anchor().focus());
-				}
-			});
-			insert(_el$6, () => voiceItem("standard", t$1("VOTStandardVoicesTitle"), t$1("VOTStandardVoicesSubtitle"), createComponent(StandardVoiceIcon, {})), _el$7);
-			setProp(_el$7, "class", "vot-voice-popover__divider");
-			insert(_el$6, () => voiceItem("live", t$1("VOTLiveVoicesTitle"), t$1("VOTLiveVoicesSubtitle"), createComponent(LiveVoiceIcon, {})), null);
-			effect((_p$) => {
-				var _v$4 = t$1("VOTVoiceSelection"), _v$5 = !isOpen(), _v$6 = !isOpen(), _v$7 = !isOpen();
-				_v$4 !== _p$.e && (_p$.e = setProp(_el$6, "aria-label", _v$4, _p$.e));
-				_v$5 !== _p$.t && (_p$.t = setProp(_el$6, "aria-hidden", _v$5, _p$.t));
-				_v$6 !== _p$.a && (_p$.a = setProp(_el$6, "hidden", _v$6, _p$.a));
-				_v$7 !== _p$.o && (_p$.o = setProp(_el$6, "inert", _v$7, _p$.o));
-				return _p$;
-			}, {
-				e: void 0,
-				t: void 0,
-				a: void 0,
-				o: void 0
-			});
-			return _el$6;
-		})();
-		const disposePopover = render(() => popoverView(), portalHost);
-		onCleanup(() => {
-			disposePopover();
-			portalHost.remove();
-		});
-		return document.createTextNode("");
-	}
-	// src/components/SegmentedButton/SegmentedButton.tsx
-	function SegmentedButton(props) {
-		const finalProps = mergeProps$1({
-			direction: "default",
-			tooltipPos: "bottom",
-			status: "none",
-			isLoading: false,
-			isSubtitlesActive: false,
-			isTransparent: false,
-			isDragging: false,
-			showPipButton: false,
-			menuOpened: false
-		}, props);
-		const [segmentedButton, setSegmentedButton] = createSignal();
-		const [translationButton, setTranslationButton] = createSignal();
-		const [voiceSelectionButton, setVoiceSelectionButton] = createSignal();
-		const [subtitlesButton, setSubtitlesButton] = createSignal();
-		const [pipButton, setPiPButton] = createSignal();
-		const [menuButton, setMenuButton] = createSignal();
-		const [isVoicePopoverOpen, setIsVoicePopoverOpen] = createSignal(false);
-		const [suppressVoiceTooltip, setSuppressVoiceTooltip] = createSignal(false);
-		let voicePopover;
-		let voicePopoverControls;
-		let suppressRestoredVoiceTooltipFocus = false;
-		const needHideTooltip = () => finalProps.isTransparent || finalProps.isDragging;
-		const isColumnDirection = () => finalProps.direction === "column";
-		const allowsVoicePopover = () => !isColumnDirection() || finalProps.status !== "error";
-		const shouldUseTouchVoiceInteraction = (event) => event.pointerType === "touch" || isTouchFirstInput();
-		const shouldUseHoverVoiceInteraction = (event) => event.pointerType !== "touch" && !isTouchFirstInput();
-		const voicePopoverAnchor = () => isColumnDirection() ? translationButton() : voiceSelectionButton();
-		const activeVoice = () => settings.useLivelyVoice ? "live" : "standard";
-		const tooltipLayoutRoot = () => finalProps.layoutRoot ?? segmentedButton()?.closest(".vot-overlay-root") ?? document.body;
-		const handleVoiceChange = (voice) => {
-			if (voice === activeVoice()) return;
-			setSettings("useLivelyVoice", voice === "live");
-			finalProps.onVoiceChange?.(voice);
-		};
-		const handleVoiceTooltipFocus = () => {
-			if (finalProps.isDragging) return;
-			if (suppressRestoredVoiceTooltipFocus) return;
-			setSuppressVoiceTooltip(false);
-		};
-		const handleVoiceTooltipPointerEnter = () => {
-			if (finalProps.isDragging) return;
-			suppressRestoredVoiceTooltipFocus = false;
-			setSuppressVoiceTooltip(false);
-		};
-		const handleVoiceTooltipFocusOut = () => {
-			suppressRestoredVoiceTooltipFocus = false;
-		};
-		const handleVoicePopoverOpenChange = (isOpen) => {
-			setSuppressVoiceTooltip(true);
-			setIsVoicePopoverOpen(isOpen);
-			suppressRestoredVoiceTooltipFocus = !isOpen;
-		};
-		finalProps.controlsRef?.({
-			closeFloatingUI: () => {
-				voicePopoverControls?.hideNow();
-				setSuppressVoiceTooltip(true);
-			},
-			getVoicePopoverEl: () => voicePopover,
-			isVoicePopoverOpen
-		});
-		createEffect(on(() => finalProps.status, (status, previousStatus) => {
-			if (finalProps.direction !== "column") return;
-			if (status === "error") {
-				voicePopoverControls?.hideNow();
-				setSuppressVoiceTooltip(false);
-			} else if (previousStatus === "error" && translationButton()?.matches(":hover")) voicePopoverControls?.showNow();
-		}, { defer: true }));
-		return (() => {
-			var _el$ = createElement("vot-block"), _el$3 = createElement("vot-block"), _el$5 = createElement("vot-block");
-			insertNode(_el$, _el$3);
-			insertNode(_el$, _el$5);
-			use((element) => {
-				setSegmentedButton(element);
-				finalProps.ref?.(element);
-			}, _el$);
-			setProp(_el$, "class", "vot-segmented-button");
-			setProp(_el$, "onClick", (event) => {
-				event.preventDefault();
-				event.stopPropagation();
-				event.stopImmediatePropagation();
-			});
-			insert(_el$, createComponent(RawButton, {
-				ref: (element) => setTranslationButton(element),
-				"class": "vot-segment vot-translate-button",
-				get buttonProps() {
-					return {
-						"aria-label": finalProps.labelText,
-						onPointerEnter: (event) => {
-							handleVoiceTooltipPointerEnter();
-							if (isColumnDirection() && allowsVoicePopover() && shouldUseHoverVoiceInteraction(event)) voicePopoverControls?.scheduleShow();
-						},
-						onPointerLeave: (event) => {
-							if (isColumnDirection() && shouldUseHoverVoiceInteraction(event)) voicePopoverControls?.scheduleHide();
-						},
-						onFocusIn: handleVoiceTooltipFocus,
-						onFocusOut: handleVoiceTooltipFocusOut,
-						onKeyDown: (event) => {
-							if (event.target !== event.currentTarget || !isKeyboardActivation(event)) return;
-							event.preventDefault();
-							finalProps.onTranslateClick?.();
-						},
-						onPointerUp: (event) => {
-							if (!isPrimaryPointerAction(event)) return;
-							if (isColumnDirection() && allowsVoicePopover() && shouldUseTouchVoiceInteraction(event)) {
-								event.preventDefault();
-								event.stopPropagation();
-								voicePopoverControls?.toggle();
-								return;
-							}
-							finalProps.onTranslateClick?.();
-						}
-					};
-				},
-				get children() {
-					return [createComponent(TranslateIcon, { get loading() {
-						return finalProps.isLoading;
-					} }), createComponent(Show, {
-						get when() {
-							return !isColumnDirection();
-						},
-						get fallback() {
-							return createComponent(Tooltip, {
-								get content() {
-									return finalProps.labelText;
-								},
-								get parentElement() {
-									return tooltipLayoutRoot();
-								},
-								get target() {
-									return translationButton();
-								},
-								get position() {
-									return finalProps.tooltipPos;
-								},
-								autoLayout: false,
-								bordered: false,
-								get hidden() {
-									return needHideTooltip() || isVoicePopoverOpen() || suppressVoiceTooltip();
-								}
-							});
-						},
-						get children() {
-							return [(() => {
-								var _el$2 = createElement("vot-block");
-								setProp(_el$2, "class", "vot-segment-label");
-								insert(_el$2, () => finalProps.labelText);
-								return _el$2;
-							})(), createComponent(RawButton, {
-								"class": "vot-dropdown-arrow",
-								ref: (element) => setVoiceSelectionButton(element),
-								get buttonProps() {
-									return {
-										"aria-label": t$1("VOTVoiceSelection"),
-										"aria-haspopup": "menu",
-										"aria-expanded": isVoicePopoverOpen(),
-										onPointerEnter: handleVoiceTooltipPointerEnter,
-										onFocusIn: handleVoiceTooltipFocus,
-										onFocusOut: handleVoiceTooltipFocusOut,
-										onKeyDown: (event) => {
-											if (!isKeyboardActivation(event)) return;
-											event.preventDefault();
-											event.stopPropagation();
-											voicePopoverControls?.toggle();
-										},
-										onPointerDown: (event) => {
-											if (isPrimaryPointerAction(event)) event.stopPropagation();
-										},
-										onPointerUp: (event) => {
-											if (!isPrimaryPointerAction(event)) return;
-											event.stopPropagation();
-											voicePopoverControls?.toggle();
-										}
-									};
-								},
-								get children() {
-									return [createComponent(ChevronIcon, {}), createComponent(Tooltip, {
-										get content() {
-											return t$1("VOTVoiceSelection");
-										},
-										get parentElement() {
-											return tooltipLayoutRoot();
-										},
-										get target() {
-											return voiceSelectionButton();
-										},
-										get edgeAnchor() {
-											return translationButton();
-										},
-										get position() {
-											return finalProps.tooltipPos;
-										},
-										autoLayout: false,
-										bordered: false,
-										get hidden() {
-											return needHideTooltip() || isVoicePopoverOpen() || suppressVoiceTooltip();
-										}
-									})];
-								}
-							})];
-						}
-					})];
-				}
-			}), _el$3);
-			setProp(_el$3, "class", "vot-separator");
-			insert(_el$, createComponent(RawButton, {
-				"class": "vot-segment-only-icon",
-				ref: (element) => setSubtitlesButton(element),
-				get buttonProps() {
-					return {
-						"data-active": finalProps.isSubtitlesActive,
-						"aria-label": t$1("VOTSubtitles"),
-						"aria-pressed": finalProps.isSubtitlesActive,
-						onKeyDown: (event) => {
-							if (!isKeyboardActivation(event)) return;
-							event.preventDefault();
-							event.stopPropagation();
-							finalProps.onSubtitlesClick?.();
-						},
-						onPointerUp: (event) => {
-							if (!isPrimaryPointerAction(event)) return;
-							event.stopPropagation();
-							finalProps.onSubtitlesClick?.();
-						}
-					};
-				},
-				get children() {
-					return [createComponent(SubtitlesIcon, {}), createComponent(Tooltip, {
-						get content() {
-							return t$1("VOTSubtitles");
-						},
-						get parentElement() {
-							return tooltipLayoutRoot();
-						},
-						get target() {
-							return subtitlesButton();
-						},
-						get position() {
-							return finalProps.tooltipPos;
-						},
-						autoLayout: false,
-						bordered: false,
-						get hidden() {
-							return needHideTooltip();
-						}
-					})];
-				}
-			}), _el$5);
-			insert(_el$, createComponent(Show, {
-				get when() {
-					return finalProps.showPipButton;
-				},
-				get children() {
-					return [(() => {
-						var _el$4 = createElement("vot-block");
-						setProp(_el$4, "class", "vot-separator");
-						return _el$4;
-					})(), createComponent(RawButton, {
-						"class": "vot-segment-only-icon",
-						ref: (element) => setPiPButton(element),
-						get buttonProps() {
-							return {
-								"aria-label": t$1("VOTPiP"),
-								onKeyDown: (event) => {
-									if (!isKeyboardActivation(event)) return;
-									event.preventDefault();
-									event.stopPropagation();
-									finalProps.onPiPClick?.();
-								},
-								onPointerUp: (event) => {
-									if (!isPrimaryPointerAction(event)) return;
-									event.stopPropagation();
-									finalProps.onPiPClick?.();
-								}
-							};
-						},
-						get children() {
-							return [createComponent(PiPIcon, {}), createComponent(Tooltip, {
-								get content() {
-									return t$1("VOTPiP");
-								},
-								get parentElement() {
-									return tooltipLayoutRoot();
-								},
-								get target() {
-									return pipButton();
-								},
-								get position() {
-									return finalProps.tooltipPos;
-								},
-								autoLayout: false,
-								bordered: false,
-								get hidden() {
-									return needHideTooltip();
-								}
-							})];
-						}
-					})];
-				}
-			}), _el$5);
-			setProp(_el$5, "class", "vot-separator");
-			insert(_el$, createComponent(RawButton, {
-				"class": "vot-segment-only-icon",
-				ref: (element) => setMenuButton(element),
-				get buttonProps() {
-					return {
-						"aria-label": t$1("VOTMenu"),
-						"aria-haspopup": "dialog",
-						"aria-expanded": finalProps.menuOpened,
-						onKeyDown: (event) => {
-							if (!isKeyboardActivation(event)) return;
-							event.preventDefault();
-							event.stopPropagation();
-							finalProps.onMenuClick?.();
-						},
-						onPointerUp: (event) => {
-							if (!isPrimaryPointerAction(event)) return;
-							event.stopPropagation();
-							finalProps.onMenuClick?.();
-						}
-					};
-				},
-				get children() {
-					return [createComponent(MenuIcon, {}), createComponent(Tooltip, {
-						get content() {
-							return t$1("VOTMenu");
-						},
-						get parentElement() {
-							return tooltipLayoutRoot();
-						},
-						get target() {
-							return menuButton();
-						},
-						get position() {
-							return finalProps.tooltipPos;
-						},
-						autoLayout: false,
-						bordered: false,
-						get hidden() {
-							return needHideTooltip();
-						}
-					})];
-				}
-			}), null);
-			insert(_el$, createComponent(Show, {
-				get when() {
-					return voicePopoverAnchor();
-				},
-				children: (anchor) => createComponent(VoicePopover, {
-					ref: (element) => voicePopover = element,
-					get activeVoice() {
-						return activeVoice();
-					},
-					get anchor() {
-						return anchor();
-					},
-					get layoutRoot() {
-						return tooltipLayoutRoot();
-					},
-					controlsRef: (controls) => voicePopoverControls = controls,
-					onOpenChange: handleVoicePopoverOpenChange,
-					get onTranslate() {
-						return finalProps.onTranslateClick;
-					},
-					onVoiceChange: handleVoiceChange
-				})
-			}), null);
-			effect((_p$) => {
-				var _v$ = finalProps.direction, _v$2 = finalProps.status, _v$3 = finalProps.isLoading;
-				_v$ !== _p$.e && (_p$.e = setProp(_el$, "data-direction", _v$, _p$.e));
-				_v$2 !== _p$.t && (_p$.t = setProp(_el$, "data-status", _v$2, _p$.t));
-				_v$3 !== _p$.a && (_p$.a = setProp(_el$, "data-loading", _v$3, _p$.a));
-				return _p$;
-			}, {
-				e: void 0,
-				t: void 0,
-				a: void 0
-			});
-			return _el$;
-		})();
-	}
 	// src/components/SegmentedButton/SegmentedButtonOverlay.tsx
 	function SegmentedButtonOverlay(props) {
 		const [local, rest] = splitProps(mergeProps$1({
@@ -42781,7 +42960,9 @@ var vot = (function(exports) {
 			detectedLanguage: "en",
 			responseLanguage: "ru",
 			status: "none",
-			baseOpacity: 0
+			baseOpacity: 0,
+			isQuickAction1Activated: false,
+			isQuickAction2Activated: false
 		}, props);
 		const [dockPreviewPosition, setDockPreviewPosition] = createSignal();
 		const [menuHidden, setMenuHiddenState] = createSignal(true);
@@ -42896,6 +43077,14 @@ var vot = (function(exports) {
 				logger_default.error("Failed to prepare subtitles:", error);
 			} finally {
 				if (version === subtitlesLoadVersion) setSubtitlesLoading(false);
+			}
+		};
+		const isQuickActionActivated = (action) => {
+			switch (action) {
+				case "subtitles": return selectedSubtitles() !== "disabled";
+				case "autoTranslate": return settings.autoTranslate;
+				case "autoPauseOnTranslate": return settings.autoPauseOnTranslate;
+				default: return false;
 			}
 		};
 		const updateDraggingButtonPosition = () => {
@@ -43095,9 +43284,8 @@ var vot = (function(exports) {
 		});
 		return (() => {
 			var _el$ = createElement("vot-block");
-			use((element) => {
-				rootElement = element;
-			}, _el$);
+			var _ref$ = rootElement;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : rootElement = _el$;
 			insert(_el$, createComponent(SegmentedButtonOverlay, {
 				controlsRef: (controls) => segmentedButtonControls = controls,
 				overlayRef: (element) => buttonOverlay = element,
@@ -43128,16 +43316,22 @@ var vot = (function(exports) {
 				get isLoading() {
 					return isLoading();
 				},
-				get isSubtitlesActive() {
-					return selectedSubtitles() !== "disabled";
-				},
-				get showPipButton() {
-					return memo(() => !!isPiPAvailable())() && settings.showPiPButton;
-				},
 				get menuOpened() {
 					return !menuHidden();
 				},
 				ref: (element) => segmentedButton = element,
+				get quickAction1() {
+					return settings.quickAction1;
+				},
+				get isQuickAction1Activated() {
+					return isQuickActionActivated(settings.quickAction1);
+				},
+				get quickAction2() {
+					return settings.quickAction2;
+				},
+				get isQuickAction2Activated() {
+					return isQuickActionActivated(settings.quickAction2);
+				},
 				onMenuClick: () => {
 					setMenuHidden(!menuHidden());
 				},
@@ -43145,13 +43339,9 @@ var vot = (function(exports) {
 					setMenuHidden(true);
 					finalProps.onTranslateClick?.();
 				},
-				onPiPClick: () => {
+				onQuickActionClick: (action) => {
 					setMenuHidden(true);
-					finalProps.onPiPClick?.();
-				},
-				onSubtitlesClick: () => {
-					setMenuHidden(true);
-					finalProps.onSubtitlesClick?.();
+					finalProps.onQuickActionClick?.(action);
 				},
 				get onVoiceChange() {
 					return finalProps.onVoiceChange;
@@ -43171,8 +43361,17 @@ var vot = (function(exports) {
 					get direction() {
 						return getButtonDirection(position());
 					},
-					get showPipButton() {
-						return settings.showPiPButton;
+					get quickAction1() {
+						return settings.quickAction1;
+					},
+					get isQuickAction1Activated() {
+						return isQuickActionActivated(settings.quickAction1);
+					},
+					get quickAction2() {
+						return settings.quickAction2;
+					},
+					get isQuickAction2Activated() {
+						return isQuickActionActivated(settings.quickAction2);
 					}
 				})
 			}), null);
@@ -43269,8 +43468,7 @@ var vot = (function(exports) {
 		disposeOverlay;
 		events = {
 			"click:settings": new EventImpl(),
-			"click:pip": new EventImpl(),
-			"click:subtitles": new EventImpl(),
+			"click:quickAction": new EventImpl(),
 			"click:downloadTranslation": new EventImpl(),
 			"click:downloadSubtitles": new EventImpl(),
 			"click:translate": new EventImpl(),
@@ -43367,11 +43565,8 @@ var vot = (function(exports) {
 				onTranslateClick: () => {
 					this.events["click:translate"].dispatch();
 				},
-				onPiPClick: () => {
-					this.events["click:pip"].dispatch();
-				},
-				onSubtitlesClick: () => {
-					this.events["click:subtitles"].dispatch();
+				onQuickActionClick: (action) => {
+					this.events["click:quickAction"].dispatch(action);
 				},
 				onSubtitlesOpen: () => this.videoHandler?.ensureSubtitlesForCurrentLangPair(),
 				onSubtitlesSelect: (value) => {
@@ -43537,7 +43732,7 @@ var vot = (function(exports) {
 	function createDefaultUpdaterInfo() {
 		return {
 			checkedAt: 0,
-			remoteVersion: "1.12.6"
+			remoteVersion: "1.12.7"
 		};
 	}
 	var [updaterInfo, setUpdaterInfo] = createStore(createDefaultUpdaterInfo());
@@ -43553,7 +43748,7 @@ var vot = (function(exports) {
 	function canCheckUpdate() {
 		return Date.now() - updaterInfo.checkedAt >= UPDATE_CHECK_INTERVAL;
 	}
-	var getAvailableUpdate = (version) => compareVersions(version, "1.12.6") > 0 ? version : false;
+	var getAvailableUpdate = (version) => compareVersions(version, "1.12.7") > 0 ? version : false;
 	async function checkUpdate() {
 		if (!canCheckUpdate()) return getAvailableUpdate(updaterInfo.remoteVersion);
 		let remoteVersion;
@@ -44152,97 +44347,6 @@ var vot = (function(exports) {
 		"leftCenter",
 		"rightCenter"
 	];
-	// src/components/Control/Switch.tsx
-	function Switch(props) {
-		const finalProps = mergeProps$1({
-			checked: false,
-			disabled: false,
-			isSubSwitch: false
-		}, props);
-		const textId = createUniqueId();
-		const [checked, setChecked] = createSignal(finalProps.checked);
-		createRenderEffect(() => {
-			setChecked(finalProps.checked);
-		});
-		return (() => {
-			var _el$ = createElement("label"), _el$2 = createElement("input"), _el$6 = createElement("vot-block"), _el$7 = createElement("vot-block");
-			insertNode(_el$, _el$2);
-			insertNode(_el$, _el$6);
-			var _ref$ = finalProps.ref;
-			typeof _ref$ === "function" ? use(_ref$, _el$) : finalProps.ref = _el$;
-			setProp(_el$, "class", "vot-switch");
-			setProp(_el$2, "class", "vot-switch-control");
-			setProp(_el$2, "role", "switch");
-			setProp(_el$2, "type", "checkbox");
-			setProp(_el$2, "name", textId);
-			setProp(_el$2, "onChange", (event) => {
-				const nextChecked = event.currentTarget.checked;
-				setChecked(nextChecked);
-				finalProps.onChange?.(nextChecked);
-			});
-			insert(_el$, createComponent(Show, {
-				get when() {
-					return finalProps.heading || finalProps.description;
-				},
-				get children() {
-					var _el$3 = createElement("vot-block");
-					setProp(_el$3, "class", "vot-switch-text");
-					insert(_el$3, createComponent(Show, {
-						get when() {
-							return finalProps.heading;
-						},
-						get children() {
-							var _el$4 = createElement("vot-block");
-							setProp(_el$4, "class", "vot-switch-heading");
-							setProp(_el$4, "id", `${textId}-heading`);
-							insert(_el$4, () => finalProps.heading);
-							return _el$4;
-						}
-					}), null);
-					insert(_el$3, createComponent(Show, {
-						get when() {
-							return finalProps.description;
-						},
-						get children() {
-							var _el$5 = createElement("vot-block");
-							setProp(_el$5, "class", "vot-switch-description");
-							setProp(_el$5, "id", `${textId}-description`);
-							insert(_el$5, () => finalProps.description);
-							return _el$5;
-						}
-					}), null);
-					return _el$3;
-				}
-			}), _el$6);
-			insertNode(_el$6, _el$7);
-			setProp(_el$6, "class", "vot-switch-track");
-			setProp(_el$7, "class", "vot-switch-handle");
-			effect((_p$) => {
-				var _v$ = { "vot-switch_sub": finalProps.isSubSwitch }, _v$2 = finalProps.hidden, _v$3 = finalProps.disabled, _v$4 = checked(), _v$5 = finalProps.description ? `${textId}-description` : void 0, _v$6 = finalProps.heading ? `${textId}-heading` : void 0, _v$7 = checked(), _v$8 = finalProps.disabled, _v$9 = checked();
-				_v$ !== _p$.e && (_p$.e = setProp(_el$, "classList", _v$, _p$.e));
-				_v$2 !== _p$.t && (_p$.t = setProp(_el$, "hidden", _v$2, _p$.t));
-				_v$3 !== _p$.a && (_p$.a = setProp(_el$, "data-disabled", _v$3, _p$.a));
-				_v$4 !== _p$.o && (_p$.o = setProp(_el$2, "aria-checked", _v$4, _p$.o));
-				_v$5 !== _p$.i && (_p$.i = setProp(_el$2, "aria-describedby", _v$5, _p$.i));
-				_v$6 !== _p$.n && (_p$.n = setProp(_el$2, "aria-labelledby", _v$6, _p$.n));
-				_v$7 !== _p$.s && (_p$.s = setProp(_el$2, "checked", _v$7, _p$.s));
-				_v$8 !== _p$.h && (_p$.h = setProp(_el$2, "disabled", _v$8, _p$.h));
-				_v$9 !== _p$.r && (_p$.r = setProp(_el$6, "data-checked", _v$9, _p$.r));
-				return _p$;
-			}, {
-				e: void 0,
-				t: void 0,
-				a: void 0,
-				o: void 0,
-				i: void 0,
-				n: void 0,
-				s: void 0,
-				h: void 0,
-				r: void 0
-			});
-			return _el$;
-		})();
-	}
 	// src/components/Settings/SettingsSection.tsx
 	function SettingsSection(props) {
 		const finalProps = mergeProps$1({ isOpen: false }, props);
@@ -44311,27 +44415,40 @@ var vot = (function(exports) {
 			label: t$1(`position.${position}`),
 			value: position
 		}));
+		const quickActionOptions = quickActions.map((action) => ({
+			label: t$1(action.phrase),
+			value: action.id,
+			disabled: action.disabled
+		}));
 		const langsOptions = genSelectOptionsByLangs(localizationProvider.getAvailableLangs());
+		const QuickActionSelect = (opts) => createComponent(Select, {
+			get title() {
+				return t$1("QuickAction").replace("{0}", opts.order);
+			},
+			options: quickActionOptions,
+			get selectedValue() {
+				return settings[opts.action];
+			},
+			onSelect: (option) => {
+				props.onQuickActionSelect?.(opts.action, option);
+			},
+			get children() {
+				return t$1("QuickAction").replace("{0}", opts.order);
+			}
+		});
 		return createComponent(SettingsSection, {
 			get title() {
 				return t$1("appearance");
 			},
 			get children() {
 				return [
-					createComponent(Switch, {
-						get heading() {
-							return t$1("VOTShowPiPButton");
-						},
-						get checked() {
-							return settings.showPiPButton;
-						},
-						get hidden() {
-							return !isPiPAvailable();
-						},
-						onChange: (checked) => {
-							setSettings("showPiPButton", checked);
-							props.onShowPiPButtonChange?.(checked);
-						}
+					createComponent(QuickActionSelect, {
+						action: "quickAction1",
+						order: 1
+					}),
+					createComponent(QuickActionSelect, {
+						action: "quickAction2",
+						order: 2
 					}),
 					createComponent(SliderWrapper, { get children() {
 						return [createComponent(SliderLabel, {
@@ -44556,6 +44673,97 @@ var vot = (function(exports) {
 				});
 			}
 		});
+	}
+	// src/components/Control/Switch.tsx
+	function Switch(props) {
+		const finalProps = mergeProps$1({
+			checked: false,
+			disabled: false,
+			isSubSwitch: false
+		}, props);
+		const textId = createUniqueId();
+		const [checked, setChecked] = createSignal(finalProps.checked);
+		createRenderEffect(() => {
+			setChecked(finalProps.checked);
+		});
+		return (() => {
+			var _el$ = createElement("label"), _el$2 = createElement("input"), _el$6 = createElement("vot-block"), _el$7 = createElement("vot-block");
+			insertNode(_el$, _el$2);
+			insertNode(_el$, _el$6);
+			var _ref$ = finalProps.ref;
+			typeof _ref$ === "function" ? use(_ref$, _el$) : finalProps.ref = _el$;
+			setProp(_el$, "class", "vot-switch");
+			setProp(_el$2, "class", "vot-switch-control");
+			setProp(_el$2, "role", "switch");
+			setProp(_el$2, "type", "checkbox");
+			setProp(_el$2, "name", textId);
+			setProp(_el$2, "onChange", (event) => {
+				const nextChecked = event.currentTarget.checked;
+				setChecked(nextChecked);
+				finalProps.onChange?.(nextChecked);
+			});
+			insert(_el$, createComponent(Show, {
+				get when() {
+					return finalProps.heading || finalProps.description;
+				},
+				get children() {
+					var _el$3 = createElement("vot-block");
+					setProp(_el$3, "class", "vot-switch-text");
+					insert(_el$3, createComponent(Show, {
+						get when() {
+							return finalProps.heading;
+						},
+						get children() {
+							var _el$4 = createElement("vot-block");
+							setProp(_el$4, "class", "vot-switch-heading");
+							setProp(_el$4, "id", `${textId}-heading`);
+							insert(_el$4, () => finalProps.heading);
+							return _el$4;
+						}
+					}), null);
+					insert(_el$3, createComponent(Show, {
+						get when() {
+							return finalProps.description;
+						},
+						get children() {
+							var _el$5 = createElement("vot-block");
+							setProp(_el$5, "class", "vot-switch-description");
+							setProp(_el$5, "id", `${textId}-description`);
+							insert(_el$5, () => finalProps.description);
+							return _el$5;
+						}
+					}), null);
+					return _el$3;
+				}
+			}), _el$6);
+			insertNode(_el$6, _el$7);
+			setProp(_el$6, "class", "vot-switch-track");
+			setProp(_el$7, "class", "vot-switch-handle");
+			effect((_p$) => {
+				var _v$ = { "vot-switch_sub": finalProps.isSubSwitch }, _v$2 = finalProps.hidden, _v$3 = finalProps.disabled, _v$4 = checked(), _v$5 = finalProps.description ? `${textId}-description` : void 0, _v$6 = finalProps.heading ? `${textId}-heading` : void 0, _v$7 = checked(), _v$8 = finalProps.disabled, _v$9 = checked();
+				_v$ !== _p$.e && (_p$.e = setProp(_el$, "classList", _v$, _p$.e));
+				_v$2 !== _p$.t && (_p$.t = setProp(_el$, "hidden", _v$2, _p$.t));
+				_v$3 !== _p$.a && (_p$.a = setProp(_el$, "data-disabled", _v$3, _p$.a));
+				_v$4 !== _p$.o && (_p$.o = setProp(_el$2, "aria-checked", _v$4, _p$.o));
+				_v$5 !== _p$.i && (_p$.i = setProp(_el$2, "aria-describedby", _v$5, _p$.i));
+				_v$6 !== _p$.n && (_p$.n = setProp(_el$2, "aria-labelledby", _v$6, _p$.n));
+				_v$7 !== _p$.s && (_p$.s = setProp(_el$2, "checked", _v$7, _p$.s));
+				_v$8 !== _p$.h && (_p$.h = setProp(_el$2, "disabled", _v$8, _p$.h));
+				_v$9 !== _p$.r && (_p$.r = setProp(_el$6, "data-checked", _v$9, _p$.r));
+				return _p$;
+			}, {
+				e: void 0,
+				t: void 0,
+				a: void 0,
+				o: void 0,
+				i: void 0,
+				n: void 0,
+				s: void 0,
+				h: void 0,
+				r: void 0
+			});
+			return _el$;
+		})();
 	}
 	// src/components/Settings/SettingsMiscSection.tsx
 	function SettingsMiscSection(props) {
@@ -45313,7 +45521,6 @@ var vot = (function(exports) {
 		"change:mediaProxyHost",
 		"change:useNewAudioPlayer",
 		"change:onlyBypassMediaCSP",
-		"change:showPiPButton",
 		"input:subtitlesMaxLength",
 		"input:subtitlesFontSize",
 		"input:subtitlesBackgroundOpacity",
@@ -45410,6 +45617,23 @@ var vot = (function(exports) {
 			updateAccount(this.data.account);
 			this.updateAccountInfo();
 		}
+		createAutoTranslateHandler() {
+			return this.createPersistedSettingHandler({
+				storageKey: "autoTranslate",
+				dispatch: (checked) => this.events["change:autoTranslate"].dispatch(checked),
+				apply: (value) => {
+					setSettings("autoTranslate", value);
+				}
+			});
+		}
+		createAutoPauseOnTranslateHandler() {
+			return this.createPersistedSettingHandler({
+				storageKey: "autoPauseOnTranslate",
+				apply: (value) => {
+					setSettings("autoPauseOnTranslate", value);
+				}
+			});
+		}
 		initUI() {
 			if (this.isInitialized()) throw new Error("[VOT] SettingsController is already initialized");
 			const getSettingsData = () => this.data;
@@ -45466,11 +45690,8 @@ var vot = (function(exports) {
 					translation: {
 						isAudioContextSupported: this.videoHandler?.isAudioContextSupported,
 						isCanDetectMusic: this.videoHandler.site.host === "youtube",
-						onAutoTranslateChange: this.createPersistedSettingHandler({
-							storageKey: "autoTranslate",
-							dispatch: (checked) => this.events["change:autoTranslate"].dispatch(checked)
-						}),
-						onAutoPauseOnTranslateChange: this.createPersistedSettingHandler({ storageKey: "autoPauseOnTranslate" }),
+						onAutoTranslateChange: this.createAutoTranslateHandler(),
+						onAutoPauseOnTranslateChange: this.createAutoPauseOnTranslateHandler(),
 						onAutoSubtitlesChange: this.createPersistedSettingHandler({
 							storageKey: "autoSubtitles",
 							dispatch: (checked) => this.events["change:autoSubtitles"].dispatch(checked)
@@ -45574,10 +45795,10 @@ var vot = (function(exports) {
 						}
 					},
 					appearance: {
-						onShowPiPButtonChange: this.createPersistedSettingHandler({
-							storageKey: "showPiPButton",
-							dispatch: (checked) => this.events["change:showPiPButton"].dispatch(checked)
-						}),
+						onQuickActionSelect: (slot, option) => this.createPersistedSettingHandler({
+							storageKey: slot,
+							apply: (value) => setSettings(slot, value)
+						})(option.value),
 						onAutoHideButtonDelayInput: this.createBufferedNumericInputHandler({
 							storageKey: "autoHideButtonDelay",
 							dispatch: (value) => this.events["input:autoHideButtonDelay"].dispatch(value)
@@ -45833,16 +46054,27 @@ var vot = (function(exports) {
 				logger_default.warn("Failed to toggle Picture-in-Picture", err);
 			}
 		}
+		async quickActionHandler(action) {
+			switch (action) {
+				case "subtitles":
+					await this.videoHandler?.toggleSubtitlesForCurrentLangPair();
+					break;
+				case "pip":
+					await this.togglePictureInPicture();
+					break;
+				case "autoPauseOnTranslate":
+					this.votSettingsView?.createAutoPauseOnTranslateHandler()(!this.data.autoPauseOnTranslate);
+					break;
+				case "autoTranslate": this.votSettingsView?.createAutoTranslateHandler()(!this.data.autoTranslate);
+			}
+		}
 		bindOverlayViewEvents() {
 			const overlayView = this.votOverlayView;
 			if (!overlayView) return;
 			overlayView.addEventListener("click:translate", async () => {
 				await this.handleTranslationBtnClick();
-			}).addEventListener("click:pip", async () => {
-				await this.togglePictureInPicture();
-			}).addEventListener("click:subtitles", async () => {
-				if (!this.videoHandler) return;
-				await this.videoHandler.toggleSubtitlesForCurrentLangPair();
+			}).addEventListener("click:quickAction", async (action) => {
+				await this.quickActionHandler(action);
 			}).addEventListener("click:settings", () => {
 				this.videoHandler?.subtitlesWidget?.releaseTooltip();
 				this.videoHandler?.overlayVisibility?.cancel();
@@ -45973,7 +46205,7 @@ var vot = (function(exports) {
 			}).addEventListener("click:resetSettings", async () => {
 				const valuesForClear = await votStorage.list();
 				await Promise.all(valuesForClear.map((key) => votStorage.delete(key)));
-				await votStorage.set("compatVersion", actualCompatVersion);
+				await votStorage.set("compatVersion", ACTUAL_COMPAT_VERSION);
 				globalThis.location.reload();
 			});
 		}
@@ -47734,9 +47966,9 @@ var vot = (function(exports) {
 			localeUpdatedAt: 0,
 			updaterInfo: createDefaultUpdaterInfo()
 		});
-		if (this.data.compatVersion !== "2026-08-18") {
+		if (this.data.compatVersion !== "2026-11-07") {
 			this.data = await updateConfig(this.data);
-			await votStorage.set("compatVersion", actualCompatVersion);
+			await votStorage.set("compatVersion", ACTUAL_COMPAT_VERSION);
 		}
 		updateAccount(this.data.account);
 		setLocale({
@@ -49565,4 +49797,4 @@ var vot = (function(exports) {
 	exports.bootstrapContentScript = bootstrapContentScript;
 	return exports;
 })({});
-//# debugId=ed6273ae-2d1a-4aa5-a94a-8f931168bfcf
+//# debugId=9ebd89a5-f9a7-47a6-853a-47e2b4a3acfd

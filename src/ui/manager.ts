@@ -1,6 +1,6 @@
 import { matchesMedia } from "#utils/inputDevice.ts";
 import logger from "#utils/logger.ts";
-import { actualCompatVersion, repositoryUrl } from "../config/config";
+import { ACTUAL_COMPAT_VERSION, repositoryUrl } from "../config/config";
 import { t } from "../localization/localizationProvider";
 import { captureException } from "../modules/telemetry/client";
 import {
@@ -531,7 +531,7 @@ export class UIManager {
       .addEventListener("click:resetSettings", async () => {
         const valuesForClear = await votStorage.list();
         await Promise.all(valuesForClear.map((key) => votStorage.delete(key)));
-        await votStorage.set("compatVersion", actualCompatVersion);
+        await votStorage.set("compatVersion", ACTUAL_COMPAT_VERSION);
 
         globalThis.location.reload();
       });

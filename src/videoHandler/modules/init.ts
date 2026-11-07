@@ -3,7 +3,7 @@ import {
   setUpdaterInfo,
 } from "#modules/updater/store.ts";
 import logger from "#utils/logger.ts";
-import { actualCompatVersion, m3u8ProxyHost } from "../../config/config";
+import { ACTUAL_COMPAT_VERSION, m3u8ProxyHost } from "../../config/config";
 import { getDefaultSendErrorReports } from "../../modules/telemetry/consent";
 import { updateAccount } from "../../stores/account";
 import { setLocale } from "../../stores/locale";
@@ -39,9 +39,9 @@ export async function init(this: VideoHandler) {
     updaterInfo: createDefaultUpdaterInfo(),
   });
 
-  if (this.data.compatVersion !== actualCompatVersion) {
+  if (this.data.compatVersion !== ACTUAL_COMPAT_VERSION) {
     this.data = await updateConfig(this.data);
-    await votStorage.set("compatVersion", actualCompatVersion);
+    await votStorage.set("compatVersion", ACTUAL_COMPAT_VERSION);
   }
 
   updateAccount(this.data.account);

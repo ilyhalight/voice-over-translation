@@ -56,4 +56,4 @@ export const PROXY_ONLY_COUNTRIES: string[] = ["UA", "LV", "LT"];
  */
 export const DEFAULT_AUTO_HIDE_DELAY = 1000;
 
-export const actualCompatVersion: CompatibilityVersion = "2026-08-18";
+export const ACTUAL_COMPAT_VERSION: CompatibilityVersion = "2026-11-07";

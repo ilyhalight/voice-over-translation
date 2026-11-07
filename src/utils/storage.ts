@@ -1,4 +1,4 @@
-import { actualCompatVersion } from "../config/config";
+import { ACTUAL_COMPAT_VERSION } from "../config/config";
 import {
   type CompatibilityVersion,
   type StorageKey,
@@ -60,30 +60,51 @@ async function migrateAugust2026(
 
   await votStorage.deleteRaw("enabledDontTranslateLanguages");
 
-  const migratedData = {
+  return {
     ...data,
     dontTranslateLanguages,
   };
+}
 
-  return migratedData;
+async function migrateNovember2026(
+  data: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const showPiPButton = await votStorage.getRaw<unknown>("showPiPButton");
+  await votStorage.deleteRaw("showPiPButton");
+  if (!showPiPButton) {
+    return data;
+  }
+
+  await votStorage.set("quickAction2", "pip");
+
+  return {
+    ...data,
+    quickAction2: "pip",
+  };
 }
 
 export async function updateConfig<T>(
   data: Record<string, unknown>,
 ): Promise<T> {
-  const sourceVersion = data.compatVersion as CompatibilityVersion;
-  if (sourceVersion === actualCompatVersion) {
+  let sourceVersion = data.compatVersion as CompatibilityVersion;
+  if (sourceVersion === ACTUAL_COMPAT_VERSION) {
     return data as T;
   }
 
   let migratedData = data;
   if (sourceVersion === "" || sourceVersion === "2025-05-09") {
     migratedData = await migrateAugust2026(migratedData);
+    sourceVersion = "2026-08-18";
+  }
+
+  if (sourceVersion === "2026-08-18") {
+    migratedData = await migrateNovember2026(migratedData);
+    sourceVersion = "2026-11-07";
   }
 
   return {
     ...migratedData,
-    compatVersion: actualCompatVersion,
+    compatVersion: ACTUAL_COMPAT_VERSION,
   } as T;
 }
 

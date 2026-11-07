@@ -87,7 +87,11 @@ export const storageKeys = [
 ] as const;
 
 export type TranslateProxyStatus = 0 | 1 | 2;
-export type CompatibilityVersion = "" | "2025-05-09" | "2026-08-18";
+export type CompatibilityVersion =
+  | ""
+  | "2025-05-09"
+  | "2026-08-18"
+  | "2026-11-07";
 
 export type Account = {
   username: string | undefined;
