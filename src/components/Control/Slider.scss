@@ -13,6 +13,9 @@
   --vot-slider-thumb-width: calc(
     var(--vot-slider-handle-width) + 2 * var(--vot-slider-handle-outline)
   );
+  --vot-slider-height: calc(
+    var(--vot-slider-handle-size) + 2 * var(--vot-slider-handle-outline)
+  );
   // Must match the pointer mapping in Slider.tsx
   // (origin = left + thumb / 2, trackWidth = width - thumb).
   --vot-slider-thumb-center: calc(
@@ -23,7 +26,7 @@
   display: flex;
   align-items: center;
   position: relative;
-  height: var(--vot-slider-handle-size);
+  height: var(--vot-slider-height);
   cursor: pointer;
   touch-action: pan-y;
 
