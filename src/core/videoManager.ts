@@ -37,7 +37,7 @@ const FORCED_DETECTED_LANGUAGE_BY_HOST: Record<string, RequestLang> = {
 };
 
 const YT_PLAYER_VOLUME_STORAGE_KEY = "yt-player-volume";
-const MIN_DETECT_TEXT_LENGTH = 35;
+const MIN_DETECT_TEXT_LENGTH = 10;
 const MAX_SHARED_LANGUAGE_STATES = 500;
 const REQUEST_LANG_SET = new Set<RequestLang>(
   availableLangs as readonly RequestLang[],
