@@ -5,6 +5,7 @@ declare global {
   const DEBUG_MODE: boolean;
   /** `true` in the WXT extension build, `false` in the userscript build. */
   const IS_EXTENSION: boolean;
+  const VOT_LOCAL_FILE: boolean;
   const AVAILABLE_LOCALES: import("./types/localization").LangOverride[];
   const REPO_BRANCH: "master" | "dev";
 

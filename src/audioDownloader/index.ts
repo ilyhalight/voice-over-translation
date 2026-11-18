@@ -5,6 +5,7 @@ import {
   toErrorMessage,
 } from "#utils/errors.ts";
 import logger from "#utils/logger.ts";
+import { isLocalFileRequest } from "../core/localFile";
 import { captureException } from "../modules/telemetry/client";
 import {
   getAudioFailureTags,
@@ -22,6 +23,7 @@ import { EventImpl } from "../utils/eventImpl";
 
 import {
   type AvailableAudioDownloadType,
+  LOCAL_FILE_STRATEGY,
   SABR_STRATEGY,
   strategies,
   WEB_ABR_STRATEGY,
@@ -369,10 +371,13 @@ export class AudioDownloader {
       collecting = [];
       this.collectingChunks.set(videoId, collecting);
       this.collectingLanguages.set(videoId, languageKey);
-      const attempts: AvailableAudioDownloadType[] =
-        this.strategy === "auto"
-          ? [SABR_STRATEGY, WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY]
-          : [this.strategy];
+      // Local files have a single source and stay out of telemetry.
+      const isLocalFile = isLocalFileRequest(videoId);
+      let attempts: AvailableAudioDownloadType[];
+      if (isLocalFile) attempts = [LOCAL_FILE_STRATEGY];
+      else if (this.strategy === "auto")
+        attempts = [SABR_STRATEGY, WEB_ABR_STRATEGY, WEB_MSE_PROXY_STRATEGY];
+      else attempts = [this.strategy];
       const failures: StrategyFailure[] = [];
       let signInSuggested = false;
       for (const attemptedStrategy of attempts) {
@@ -390,7 +395,7 @@ export class AudioDownloader {
             sourceLanguage,
             audioDownloadType: attemptedStrategy,
           });
-          reportStrategyFailures(failures, true);
+          if (!isLocalFile) reportStrategyFailures(failures, true);
           return;
         } catch (error) {
           if (signal.aborted || isAbortError(error)) {
@@ -428,6 +433,10 @@ export class AudioDownloader {
         failures.findLast(({ error }) => categorizeFailure(error) !== "abort")
           ?.error ??
         failures.at(-1)?.error;
+      if (isLocalFile) {
+        this.onDownloadAudioError.dispatch(translationId, videoId, false);
+        return;
+      }
       reportStrategyFailures(failures, false, representativeError);
       captureException(representativeError, {
         source: "audio",

@@ -1,8 +1,8 @@
+import { browser } from "wxt/browser";
 import {
   createTerminalXhrError,
   type XhrResponse,
 } from "#extension/shared/xhr.ts";
-import { browser } from "wxt/browser";
 import { toErrorMessage } from "#utils/errors.ts";
 import { normalizeHttpMethod } from "#utils/http.ts";
 import logger from "#utils/logger.ts";
@@ -22,6 +22,7 @@ import {
   ensureDnrStripRuleForGooglevideo,
   isForbiddenToSetViaFetch,
 } from "./dnr-rules";
+import { isRequestUrlAllowed } from "./fileAccess";
 import { isTelemetryBlocked } from "./telemetry-guard";
 
 type XhrStartMessage = {
@@ -240,9 +241,13 @@ async function parseBinaryResponse(
   postMessage: (msg: unknown) => void,
 ): Promise<ParsedFetchResponse> {
   const contentLength = Number(res.headers.get("content-length") || 0);
+  // A file:// response has no content-length, and a whole video does not fit
+  // into a single port message.
+  const isLocalFile = VOT_LOCAL_FILE && res.url.startsWith("file:");
   const shouldStream =
     !!res.body &&
-    (!Number.isFinite(contentLength) ||
+    (isLocalFile ||
+      !Number.isFinite(contentLength) ||
       contentLength > MAX_INLINE_BINARY_RESPONSE_BYTES);
 
   if (shouldStream) {
@@ -577,6 +582,9 @@ export function registerXhrPortListener(): void {
         if (body !== undefined) init.body = body;
         if (cache !== undefined) init.cache = cache;
 
+        if (!isRequestUrlAllowed(url, typedPort.sender?.url, VOT_LOCAL_FILE)) {
+          throw new Error("Local file access denied");
+        }
         const res = await fetch(url, init);
         await handleFetchSuccess({ url, method, responseType, res });
       } catch (err) {

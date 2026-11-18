@@ -1,7 +1,12 @@
 import { defineConfig } from "wxt";
 import headers from "./src/headers.json";
 import { debugIdPlugin } from "./vite/lib/debug-id";
-import { buildDefine, getBuildConfig, resolveDebugMode } from "./vite/lib/env";
+import {
+  buildDefine,
+  getBuildConfig,
+  resolveDebugMode,
+  resolveLocalFileExperiment,
+} from "./vite/lib/env";
 import {
   getFirefoxSpecificSettings,
   getLocaleCodes,
@@ -12,6 +17,8 @@ import {
   getAllMatches,
   getDevContentScriptMatches,
   iconPathFn,
+  LOCAL_FILE_MATCH,
+  LOCAL_FILE_VIDEO_MATCHES,
   splitMatchesForOriginFallback,
 } from "./vite/lib/extension/manifest-helpers";
 import {
@@ -92,8 +99,20 @@ export default defineConfig({
 
     // content_scripts `world: "MAIN"` requires Chrome 111+; older Chrome
     // ignores the key and would run MAIN-world scripts in ISOLATED.
-    const chromeManifest = { ...manifest, minimum_chrome_version: "111" };
+    const chromeManifest = {
+      ...manifest,
+      host_permissions:
+        resolveLocalFileExperiment(mode) && !config.IS_STORE_BUILD
+          ? [...manifest.host_permissions, LOCAL_FILE_MATCH]
+          : manifest.host_permissions,
+      minimum_chrome_version: "111",
+    };
     if (config.IS_STORE_BUILD) return chromeManifest;
+    // No release key or update url: the experimental build installs next to
+    // the release one under its own id and never updates over it.
+    if (resolveLocalFileExperiment(mode)) {
+      return { ...chromeManifest, name: `${manifest.name} (local file)` };
+    }
 
     return {
       ...chromeManifest,
@@ -134,6 +153,8 @@ export default defineConfig({
         repoBranch: getBuildConfig(env.mode).REPO_BRANCH,
         version,
         authors: String(headers.author || ""),
+        localFile:
+          env.browser !== "firefox" && resolveLocalFileExperiment(env.mode),
       }),
       build: {
         target: ["chrome106", "firefox106"],
@@ -150,10 +171,24 @@ export default defineConfig({
     // options, so path-specific matches added in build:manifestGenerated never
     // reach dev. Give dev the full production list + direct video files + Udemy.
     "entrypoints:resolved": (wxt, entrypoints) => {
+      const localFile =
+        wxt.config.browser !== "firefox" &&
+        resolveLocalFileExperiment(wxt.config.mode);
+      if (localFile) {
+        // headers.json excludes local video files; the experimental build
+        // has to run on them.
+        for (const entry of entrypoints) {
+          if (entry.type !== "content-script") continue;
+          entry.options.excludeMatches = entry.options.excludeMatches?.filter(
+            (pattern) => !pattern.startsWith("file://"),
+          );
+        }
+      }
       if (wxt.config.command !== "serve") return;
       const devMatches = getDevContentScriptMatches(
         getAllMatches(extensionHeaders),
       );
+      if (localFile) devMatches.push(...LOCAL_FILE_VIDEO_MATCHES);
       for (const entry of entrypoints) {
         if (entry.type !== "content-script") continue;
         entry.options.matches = [...devMatches];
@@ -169,6 +204,12 @@ export default defineConfig({
       const { directMatches } = splitMatchesForOriginFallback(
         getAllMatches(extensionHeaders),
       );
+      if (
+        wxt.config.browser !== "firefox" &&
+        resolveLocalFileExperiment(wxt.config.mode)
+      ) {
+        directMatches.push(...LOCAL_FILE_VIDEO_MATCHES);
+      }
       if (!directMatches.length) return;
 
       const directScripts = manifest.content_scripts.map((script) => {
