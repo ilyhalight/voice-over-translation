@@ -17,6 +17,7 @@ import { isIframe } from "../../utils/iframeConnector";
 import { clampPercentInt } from "../../utils/volume";
 import type { VideoHandler } from "../../VideoHandler";
 import { handlePlaybackResumedTranslationRefresh } from "./translation";
+import { createTranslationAudioGuard } from "./translationAudioGuard";
 
 type ScopedAddListener = (
   element: EventTarget,
@@ -358,6 +359,16 @@ function bindPlaybackRefreshOnResume(ctx: ExtraEventsContext): void {
   add(self.video, "loadstart", resetPauseState);
   add(self.video, "emptied", resetPauseState);
 }
+function bindTranslationAudioGuard(ctx: ExtraEventsContext): void {
+  const { self, add, addMany } = ctx;
+  const guard = createTranslationAudioGuard(self);
+
+  add(self.video, "timeupdate", () => guard.tick(), { passive: true });
+  addMany(document, ["pointerup", "touchend"], () => guard.force(), {
+    capture: true,
+    passive: true,
+  });
+}
 function bindVideoLifecycleEvents(ctx: ExtraEventsContext): void {
   const { self, overlayView, add } = ctx;
   const safeSetCanPlay = async () => {
@@ -465,6 +476,7 @@ export function initExtraEvents(this: VideoHandler) {
     addMany,
   };
   bindPlaybackRefreshOnResume(ctx);
+  bindTranslationAudioGuard(ctx);
   bindOverlayMountEvents(ctx);
   bindYouTubeVolumeSync(ctx);
   bindAudioTrackLanguageSync(ctx);
