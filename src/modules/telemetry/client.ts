@@ -1,4 +1,5 @@
 import logger from "#utils/logger.ts";
+import { isLocalFileUrl } from "../../core/localFile";
 import { browserInfo } from "../../utils/browserInfo";
 import { GM_fetch, getGMInfo, setGmFetchFailureHandler } from "../../utils/gm";
 import { isIframe } from "../../utils/iframeConnector";
@@ -79,6 +80,8 @@ export function captureException(
   error: unknown,
   options: CaptureOptions,
 ): void {
+  // Errors on a local file can carry its path: they are never reported.
+  if (isLocalFileUrl(globalThis.location?.href)) return;
   report(error, options).catch((err) => {
     logger.info("[telemetry] failed to report error", err);
   });

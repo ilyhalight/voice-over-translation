@@ -1,3 +1,5 @@
+import { VideoService } from "@vot.js/core/types/service";
+import sites from "@vot.js/ext/sites";
 import type { ServiceConf } from "@vot.js/ext/types/service";
 import { getService } from "@vot.js/ext/utils/videoData";
 import { YANDEX_AUTH_ORIGIN } from "#modules/auth/consts.ts";
@@ -9,6 +11,7 @@ import { ensureRuntimeActivated } from "./bootstrap/runtimeActivation";
 import { bindObserverListeners } from "./bootstrap/videoObserverBinding";
 import { resolveBootstrapMode } from "./core/bootstrapPolicy";
 import { findConnectedContainerBySelector } from "./core/containerResolution";
+import { isLocalFileUrl } from "./core/localFile";
 import debug from "./utils/debug";
 import { isIframe } from "./utils/iframeConnector";
 import { createIntervalIdleChecker } from "./utils/intervalIdleChecker";
@@ -44,7 +47,13 @@ function logBootstrap(
 }
 
 function getServicesCached(): ServiceConf[] {
-  servicesCache ??= getService();
+  if (!servicesCache) {
+    // vot.js skips local pages; the experimental build treats a local video
+    // as a direct file link.
+    servicesCache = isLocalFileUrl(globalThis.location.href)
+      ? sites.filter((site) => site.host === VideoService.custom)
+      : getService();
+  }
   return servicesCache;
 }
 
