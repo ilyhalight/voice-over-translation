@@ -1,4 +1,5 @@
-import { type JSX, mergeProps } from "solid-js";
+import type { JSX } from "@solidjs/web";
+import { merge } from "solid-js";
 
 import { clamp } from "../../utils/number";
 
@@ -7,7 +8,7 @@ export type ProgressIconProps = {
 };
 
 export function ProgressIcon(props: ProgressIconProps): JSX.Element {
-  const finalProps = mergeProps(
+  const finalProps = merge(
     { progress: 0 } as Partial<ProgressIconProps>,
     props,
   );

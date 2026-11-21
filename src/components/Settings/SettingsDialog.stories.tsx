@@ -45,7 +45,12 @@ export const SubtitleTranslationLanguagePersistence: Story = {
     let controller: SettingsController | undefined;
     const openSettings = async () => {
       const data = await votStorage.getValues(createDefaultSettings());
-      setSettings(pickSettings(data));
+      setSettings((draft) => {
+        return {
+          ...draft,
+          ...pickSettings(data),
+        };
+      });
       controller = new SettingsController({
         globalPortal: portal,
         data,
@@ -120,7 +125,9 @@ export const SubtitleTranslationLanguagePersistence: Story = {
         originalSubtitleLanguage,
       );
       controller?.release();
-      setSettings("subtitlesTranslationLanguage", "auto");
+      setSettings((draft) => {
+        draft.subtitlesTranslationLanguage = "auto";
+      });
 
       trigger = await openSettings();
       await expect(trigger).toHaveTextContent(
@@ -135,7 +142,12 @@ export const SubtitleTranslationLanguagePersistence: Story = {
     } finally {
       controller?.release();
       portal.remove();
-      setSettings(previousSettings);
+      setSettings((draft) => {
+        return {
+          ...draft,
+          ...previousSettings,
+        };
+      });
       if (storedLanguage === undefined)
         await votStorage.delete("subtitlesTranslationLanguage");
       else await votStorage.set("subtitlesTranslationLanguage", storedLanguage);

@@ -1,4 +1,5 @@
-import type { JSX } from "solid-js";
+import type { JSX } from "@solidjs/web";
+
 import { t } from "../../localization/localizationProvider";
 import { AccountLogout } from "./AccountLogout";
 import { AccountRefreshButton } from "./AccountRefreshButton";
@@ -18,7 +19,7 @@ export function AccountInfo(props: AccountInfoProps): JSX.Element {
             class="vot-account-info__avatar-img"
             src={props.avatarUrl}
             alt=""
-            onerror={(e) => {
+            onError={(e) => {
               e.currentTarget.parentElement?.classList.add(
                 "vot-account-info__avatar--failed",
               );

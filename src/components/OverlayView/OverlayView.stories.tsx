@@ -1,6 +1,7 @@
+import { flush } from "solid-js";
 import { expect, fn, userEvent } from "storybook/test";
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
-import { setSettings, settings } from "../../stores/settings";
+import { setSettings } from "../../stores/settings";
 import { OverlayView, type OverlayViewControls } from "./OverlayView";
 
 const onSettingsClick = fn();
@@ -20,10 +21,10 @@ const meta = {
         type="button"
         style="height:32px;"
         onClick={() => {
-          setSettings(
-            "buttonPos",
-            settings.buttonPos === "default" ? "left" : "default",
-          );
+          setSettings((draft) => {
+            draft.buttonPos =
+              draft.buttonPos === "default" ? "left" : "default";
+          });
         }}
       >
         change direction
@@ -82,13 +83,21 @@ export const SmallVideoLayout: Story = {
       ".vot-overlay__segmented-button",
     );
 
-    setSettings("buttonPos", "left");
+    setSettings((draft) => {
+      draft.buttonPos = "left";
+    });
+    flush();
     smallLayoutControls?.setContainerSize(400, 300);
     // setContainerSize only sizes the menu; button position follows settings.
+    flush();
     await expect(buttonOverlay).toHaveAttribute("data-position", "left");
 
     smallLayoutControls?.setContainerSize(700, 450);
+    flush();
     await expect(buttonOverlay).toHaveAttribute("data-position", "left");
-    setSettings("buttonPos", "default");
+    setSettings((draft) => {
+      draft.buttonPos = "default";
+    });
+    flush();
   },
 };

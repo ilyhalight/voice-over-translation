@@ -1,6 +1,7 @@
-import { type JSX, mergeProps, splitProps } from "solid-js";
+import type { JSX } from "@solidjs/web";
+import { merge, omit } from "solid-js";
 
-import type { Position } from "../../types/components/votButton";
+import type { Position } from "#types/components/votButton.ts";
 import { Overlay } from "../Utils/Overlay";
 import { SegmentedButton, type SegmentedButtonProps } from "./SegmentedButton";
 
@@ -16,43 +17,44 @@ export type SegmentedButtonOverlayProps = SegmentedButtonProps & {
 export function SegmentedButtonOverlay(
   props: SegmentedButtonOverlayProps,
 ): JSX.Element {
-  const finalProps = mergeProps(
+  const finalProps = merge(
     {
       position: "default",
       isDragging: false,
     } as Partial<SegmentedButtonOverlayProps>,
     props,
   );
-  const [local, rest] = splitProps(finalProps, [
+  const rest = omit(
+    finalProps,
     "overlayRef",
     "position",
     "isDragging",
     "hidden",
     "opacity",
     "isTransparent",
-  ]);
+  );
   const isTransparent = () =>
-    local.opacity !== undefined && local.opacity < 0.05;
+    finalProps.opacity !== undefined && finalProps.opacity < 0.05;
 
   return (
     <Overlay
-      ref={local.overlayRef}
-      hidden={local.hidden}
-      classList={{
+      ref={finalProps.overlayRef}
+      hidden={finalProps.hidden}
+      class={{
         "vot-overlay__segmented-button": true,
       }}
       blockProps={{
-        "data-position": local.position,
-        "data-dragging": local.isDragging ? "true" : undefined,
+        "data-position": finalProps.position,
+        "data-dragging": finalProps.isDragging ? "true" : undefined,
         style: {
-          opacity: local.opacity,
+          opacity: finalProps.opacity,
         },
       }}
     >
       <SegmentedButton
         {...rest}
         isTransparent={isTransparent()}
-        isDragging={local.isDragging}
+        isDragging={finalProps.isDragging}
       />
     </Overlay>
   );

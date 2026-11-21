@@ -1,4 +1,4 @@
-import { JSX } from "solid-js";
+import { JSX } from "@solidjs/web";
 
 declare global {
   // Build-time globals injected by Vite define config.
@@ -47,13 +47,11 @@ declare module "*.scss?inline" {
   export default content;
 }
 
-declare module "solid-js" {
+declare module "@solidjs/web" {
   namespace JSX {
-    interface ExplicitAttributes {
-      lang: string;
-    }
     interface IntrinsicElements {
-      "vot-block": JSX.HTMLAttributes<HTMLElement>;
+      "vot-block": import("./types/components/shared").VOTElementAttributes<HTMLElement>;
+      "input": import("./types/components/shared").VOTElementAttributes<HTMLInputElement, JSX.InputHTMLAttributes<HTMLInputElement>>;
     }
   }
 }

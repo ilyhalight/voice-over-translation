@@ -1,8 +1,8 @@
-import { createComponent, createSignal } from "solid-js";
+import { createComponent, createSignal, flush } from "solid-js";
 import { expect } from "storybook/test";
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
-import { render } from "../../ui/solid/renderer";
 
+import { render } from "#solid/renderer.ts";
 import { Switch } from "./Switch";
 
 const meta = {
@@ -88,8 +88,10 @@ export const DisabledPreservesSelection: Story = {
     try {
       const control = host.querySelector<HTMLInputElement>("input");
       control?.click();
+      flush();
       await expect(control).toBeChecked();
       setDisabled(true);
+      flush();
       await expect(control).toBeDisabled();
       await expect(control).toBeChecked();
       await expect(host.querySelector(".vot-switch-track")).toHaveAttribute(
@@ -97,6 +99,7 @@ export const DisabledPreservesSelection: Story = {
         "true",
       );
       setDisabled(false);
+      flush();
       await expect(control).toBeEnabled();
       await expect(control).toBeChecked();
     } finally {

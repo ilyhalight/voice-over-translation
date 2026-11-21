@@ -42,36 +42,33 @@ function createSettingsEvents(): {
 }
 
 import { type Accessor, createSignal, type Setter } from "solid-js";
+import { SettingsDialog } from "#components/Settings/SettingsDialog.tsx";
+import { type LangOverride, localizationProvider } from "#localizationProvider";
+import { isAuthDataMessage } from "#modules/auth/message.ts";
+import { openAuthWindow } from "#modules/auth/window.ts";
+import { updateAccountByCallbackData } from "#modules/auth/yandex.ts";
+import type { HotkeyActionItem } from "#modules/hotkeys/types.ts";
 import type { TranslateTextService } from "#modules/translateText/types.ts";
-import { SettingsDialog } from "../components/Settings/SettingsDialog";
-import { PROXY_WORKER_HOST } from "../config/config";
-import {
-  type LangOverride,
-  localizationProvider,
-} from "../localization/localizationProvider";
-import { isAuthDataMessage } from "../modules/auth/message";
-import { openAuthWindow } from "../modules/auth/window";
-import { updateAccountByCallbackData } from "../modules/auth/yandex";
-import type { HotkeyActionItem } from "../modules/hotkeys/types";
-import { account, resetAccount, updateAccount } from "../stores/account";
-import { setLocale } from "../stores/locale";
-import { setSettings } from "../stores/settings";
-import type { Position } from "../types/components/votButton";
+import { render } from "#solid/renderer.ts";
+import type { Position } from "#types/components/votButton.ts";
 import type {
   Account,
   ResponseLanguageSubtitles,
   StorageData,
   TranslateProxyStatus,
-} from "../types/storage";
-import type { SubtitleFontFamily, SubtitleFormat } from "../types/subtitles";
-import debug from "../utils/debug";
-import { EventImpl } from "../utils/eventImpl";
-import { votStorage } from "../utils/storage";
-import { isPiPAvailable } from "../utils/utils";
+} from "#types/storage.ts";
+import type { SubtitleFontFamily, SubtitleFormat } from "#types/subtitles.ts";
+import debug from "#utils/debug.ts";
+import { EventImpl } from "#utils/eventImpl.ts";
+import { votStorage } from "#utils/storage.ts";
+import { isPiPAvailable } from "#utils/utils.ts";
+import { PROXY_WORKER_HOST } from "../config/config";
+import { account, resetAccount, updateAccount } from "../stores/account";
+import { setLocale } from "../stores/locale";
+import { setSettings } from "../stores/settings";
 import type { VideoHandler } from "../VideoHandler";
 import { normalizeMediaProxyHost } from "../videoHandler/modules/proxyShared";
 import type { QuickAction } from "./quickAction";
-import { render } from "./solid/renderer";
 
 type SettingsControllerProps = {
   globalPortal: HTMLElement;
@@ -262,7 +259,9 @@ export class SettingsController {
       dispatch: (checked) =>
         this.events["change:autoTranslate"].dispatch(checked),
       apply: (value) => {
-        setSettings("autoTranslate", value);
+        setSettings((draft) => {
+          draft.autoTranslate = value;
+        });
       },
     });
   }
@@ -271,7 +270,9 @@ export class SettingsController {
     return this.createPersistedSettingHandler({
       storageKey: "autoPauseOnTranslate",
       apply: (value) => {
-        setSettings("autoPauseOnTranslate", value);
+        setSettings((draft) => {
+          draft.autoPauseOnTranslate = value;
+        });
       },
     });
   }
@@ -465,7 +466,9 @@ export class SettingsController {
         proxy: {
           onProxyWorkerHostChange: async (value) => {
             this.data.proxyWorkerHost = value || PROXY_WORKER_HOST;
-            setSettings("proxyWorkerHost", this.data.proxyWorkerHost);
+            setSettings((draft) => {
+              draft.proxyWorkerHost = this.data.proxyWorkerHost;
+            });
             await votStorage.set("proxyWorkerHost", this.data.proxyWorkerHost);
             debug.log(
               "proxyWorkerHost value changed. New value:",
@@ -475,7 +478,9 @@ export class SettingsController {
           },
           onMediaProxyHostChange: async (value) => {
             this.data.mediaProxyHost = normalizeMediaProxyHost(value);
-            setSettings("mediaProxyHost", this.data.mediaProxyHost);
+            setSettings((draft) => {
+              draft.mediaProxyHost = this.data.mediaProxyHost;
+            });
             await votStorage.set("mediaProxyHost", this.data.mediaProxyHost);
             debug.log(
               "mediaProxyHost value changed. New value:",
@@ -489,10 +494,9 @@ export class SettingsController {
             const value = option.value as TranslateProxyStatus;
             this.data.translateProxyEnabled = value;
             this.data.translateProxyEnabledDefault = false;
-            setSettings(
-              "translateProxyEnabled",
-              this.data.translateProxyEnabled,
-            );
+            setSettings((draft) => {
+              draft.translateProxyEnabled = this.data.translateProxyEnabled;
+            });
             await votStorage.set(
               "translateProxyEnabled",
               this.data.translateProxyEnabled,
@@ -509,7 +513,10 @@ export class SettingsController {
           onQuickActionSelect: (slot, option) =>
             this.createPersistedSettingHandler({
               storageKey: slot,
-              apply: (value) => setSettings(slot, value),
+              apply: (value) =>
+                setSettings((draft) => {
+                  draft[slot] = value;
+                }),
             })(option.value as QuickAction),
           onAutoHideButtonDelayInput: this.createBufferedNumericInputHandler({
             storageKey: "autoHideButtonDelay",
@@ -530,7 +537,9 @@ export class SettingsController {
               "localeUpdatedAt",
               0,
             );
-            setLocale("updatedAt", 0);
+            setLocale((draft) => {
+              draft.updatedAt = 0;
+            });
             this.events["select:menuLanguage"].dispatch(item);
           },
         },

@@ -1,12 +1,5 @@
-import {
-  createEffect,
-  createSignal,
-  createUniqueId,
-  type JSX,
-  mergeProps,
-  onCleanup,
-  Show,
-} from "solid-js";
+import type { JSX } from "@solidjs/web";
+import { createSignal, createUniqueId, merge, onCleanup, Show } from "solid-js";
 
 export type TextfieldProps = {
   labelText: JSX.Element;
@@ -22,7 +15,7 @@ export type TextfieldProps = {
 };
 
 export function Textfield(props: TextfieldProps): JSX.Element {
-  const finalProps = mergeProps(
+  const finalProps = merge(
     {
       value: "",
       placeholder: "",
@@ -32,9 +25,7 @@ export function Textfield(props: TextfieldProps): JSX.Element {
     props,
   );
   const labelId = createUniqueId();
-  const [value, setValue] = createSignal(finalProps.value);
-
-  createEffect(() => setValue(finalProps.value));
+  const [value, setValue] = createSignal(() => finalProps.value);
 
   const stopKeyEvent = (event: KeyboardEvent) => event.stopPropagation();
   const removeHostKeyboardListeners = () => {

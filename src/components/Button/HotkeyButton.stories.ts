@@ -1,8 +1,8 @@
-import { createComponent } from "solid-js";
+import { createComponent, flush } from "solid-js";
 import { expect, fn } from "storybook/test";
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
-import { render } from "../../ui/solid/renderer";
 
+import { render } from "#solid/renderer.ts";
 import { HotkeyButton } from "./HotkeyButton";
 
 const meta = {
@@ -41,6 +41,7 @@ export const RecordingCleanup: Story = {
     );
     try {
       host.querySelector<HTMLElement>(".vot-hotkey-button")?.click();
+      flush();
       const pressed = new KeyboardEvent("keydown", {
         code: "KeyK",
         bubbles: true,

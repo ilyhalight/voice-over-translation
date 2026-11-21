@@ -1,4 +1,5 @@
-import { createUniqueId, type JSX, Show } from "solid-js";
+import type { JSX } from "@solidjs/web";
+import { createUniqueId, Show } from "solid-js";
 
 export type MenuProps = {
   title: JSX.Element;

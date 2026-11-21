@@ -45,7 +45,7 @@ export async function checkUpdate(): Promise<string | false> {
     checkedAt: Date.now(),
   };
   await votStorage.set("updaterInfo", newData);
-  setUpdaterInfo(newData);
+  setUpdaterInfo(() => newData);
 
   return getAvailableUpdate(remoteVersion);
 }

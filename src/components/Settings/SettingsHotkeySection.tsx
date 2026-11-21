@@ -1,8 +1,9 @@
-import { For, type JSX } from "solid-js";
+import type { JSX } from "@solidjs/web";
+import { For } from "solid-js";
 
-import { t } from "../../localization/localizationProvider";
-import type { HotkeyController } from "../../modules/hotkeys/controller";
-import type { RawHotkey } from "../../modules/hotkeys/types";
+import { t } from "#localizationProvider";
+import type { HotkeyController } from "#modules/hotkeys/controller.ts";
+import type { RawHotkey } from "#modules/hotkeys/types.ts";
 import { setSettings, settings } from "../../stores/settings";
 import { HotkeyButton } from "../Button/HotkeyButton";
 import { SettingsSection } from "./SettingsSection";
@@ -21,7 +22,9 @@ export function SettingsHotkeySection(
           <HotkeyButton
             key={settings[action.settingsKey] as RawHotkey}
             onChange={(newKey) => {
-              setSettings(action.settingsKey, newKey);
+              setSettings((draft) => {
+                draft[action.settingsKey as RawHotkey] = newKey;
+              });
               action.onchange?.(newKey);
             }}
           >

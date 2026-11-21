@@ -1,5 +1,7 @@
+import type { JSX } from "@solidjs/web";
 import type { TMInfoScriptMeta } from "@toil/gm-types/types/info/tampermonkey";
-import { createResource, type JSX, Match, Show, Switch } from "solid-js";
+import { createSignal, Match, onSettled, Show, Switch } from "solid-js";
+
 import { LoadingDotsIcon } from "#components/Icons/LoadingDotsIcon.tsx";
 import { LATEST_RELEASE_URL } from "#modules/updater/const.ts";
 import { checkUpdate } from "#modules/updater/service.ts";
@@ -19,8 +21,11 @@ export type AboutSectionProps = {
   ref?: (element: HTMLElement) => void;
 };
 
+export type UpdaterState = "loading" | "error" | "available" | "latest";
+
 export function AboutSection(props: AboutSectionProps): JSX.Element {
-  const [updaterResult] = createResource(checkUpdate);
+  const [updaterState, setUpdaterState] = createSignal<UpdaterState>("loading");
+  const [availableVersion, setAvailableVersion] = createSignal("");
 
   const envInfo = getEnvironmentInfo();
   const safeGMInfo = getGMInfo();
@@ -41,15 +46,25 @@ export function AboutSection(props: AboutSectionProps): JSX.Element {
       ? formatDateTime(locale.updatedAt, localizationProvider.lang)
       : undefined;
   const localeHashValue = () => locale.hash || t("notFound");
-  const updaterState = () => {
-    if (updaterResult.loading) return "loading";
-    if (updaterResult.error) return "error";
-    return updaterResult() ? "available" : "latest";
-  };
 
   function openLatestRelease() {
     globalThis.open(LATEST_RELEASE_URL, "_blank", "noopener,noreferrer");
   }
+
+  onSettled(() => {
+    checkUpdate()
+      .then((result) => {
+        setUpdaterState(result ? "available" : "latest");
+        if (!result) {
+          return;
+        }
+
+        setAvailableVersion(result);
+      })
+      .catch(() => {
+        setUpdaterState("error");
+      });
+  });
 
   return (
     <vot-block ref={props.ref} class="vot-about-section">
@@ -63,18 +78,18 @@ export function AboutSection(props: AboutSectionProps): JSX.Element {
           data-state={updaterState()}
         >
           <Switch>
-            <Match when={updaterResult.loading}>
+            <Match when={updaterState() === "loading"}>
               <LoadingDotsIcon />
               {t("VOTCheckingForUpdate")}
             </Match>
-            <Match when={updaterResult.error}>
+            <Match when={updaterState() === "error"}>
               {t("VOTUpdateCheckFailed")}
             </Match>
-            <Match when={updaterResult()}>
+            <Match when={updaterState() === "available"}>
               <vot-block
                 class="vot-about-item__link"
                 role="link"
-                tabIndex={0}
+                tabindex="0"
                 onPointerUp={() => openLatestRelease()}
                 onKeyDown={(event) => {
                   if (event.key !== "Enter") return;
@@ -82,7 +97,7 @@ export function AboutSection(props: AboutSectionProps): JSX.Element {
                   openLatestRelease();
                 }}
               >
-                {t("VOTUpdateAvailable").replace("{0}", updaterResult())}
+                {t("VOTUpdateAvailable").replace("{0}", availableVersion())}
               </vot-block>
             </Match>
           </Switch>

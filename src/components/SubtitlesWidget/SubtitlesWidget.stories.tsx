@@ -1,3 +1,4 @@
+import { flush } from "solid-js";
 import { expect, fn, waitFor } from "storybook/test";
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
 
@@ -327,7 +328,10 @@ export const TokenTranslationLanguage: Story = {
 
     try {
       localizationProvider.lang = "en";
-      setSettings("subtitlesTranslationLanguage", "auto");
+      setSettings((draft) => {
+        draft.subtitlesTranslationLanguage = "auto";
+      });
+      flush();
       words[0].click();
       await activation;
       await expect(translateText).toHaveBeenLastCalledWith(
@@ -339,7 +343,10 @@ export const TokenTranslationLanguage: Story = {
       await activation;
       await expect(translateText).toHaveBeenLastCalledWith("world", "en", "en");
 
-      setSettings("subtitlesTranslationLanguage", "ru");
+      setSettings((draft) => {
+        draft.subtitlesTranslationLanguage = "ru";
+      });
+      flush();
       words[1].click();
       await activation;
       await expect(translateText).toHaveBeenLastCalledWith(
@@ -354,7 +361,10 @@ export const TokenTranslationLanguage: Story = {
       await activation;
       await expect(translateText).toHaveBeenLastCalledWith("hello", "en", "ru");
 
-      setSettings("subtitlesTranslationLanguage", "auto");
+      setSettings((draft) => {
+        draft.subtitlesTranslationLanguage = "auto";
+      });
+      flush();
       localizationProvider.lang = "fr";
       words[0].click();
       await activation;
@@ -368,7 +378,10 @@ export const TokenTranslationLanguage: Story = {
       words[0].click();
       await waitFor(() => expect(resolveOldTranslation).toBeDefined());
       await expect(tooltipText()).not.toContain("fr: hello world");
-      setSettings("subtitlesTranslationLanguage", "ru");
+      setSettings((draft) => {
+        draft.subtitlesTranslationLanguage = "ru";
+      });
+      flush();
       resolveOldTranslation?.(["de: hello world", "de: hello"]);
       await activation;
       await expect(tooltipText()).not.toContain("de: hello");
@@ -385,7 +398,10 @@ export const TokenTranslationLanguage: Story = {
       subtitlesBlock.removeEventListener("click", onClick);
       controller.release();
       container.remove();
-      setSettings("subtitlesTranslationLanguage", previousLanguage);
+      setSettings((draft) => {
+        draft.subtitlesTranslationLanguage = previousLanguage;
+      });
+      flush();
       localizationProvider.lang = previousMenuLanguage;
     }
   },

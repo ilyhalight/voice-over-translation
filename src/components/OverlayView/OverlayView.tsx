@@ -1,26 +1,25 @@
+import type { JSX } from "@solidjs/web";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
 import {
   createEffect,
   createMemo,
   createSignal,
-  type JSX,
-  mergeProps,
-  onCleanup,
-  onMount,
+  merge,
+  onSettled,
   Show,
 } from "solid-js";
-import logger from "#utils/logger.ts";
-import { t } from "../../localization/localizationProvider";
-import { setSettings, settings } from "../../stores/settings";
-import type { Position, Status } from "../../types/components/votButton";
+import { t } from "#localizationProvider";
+import type { Position, Status } from "#types/components/votButton.ts";
 import {
   getButtonDirection,
   normalizeButtonPosition,
   resolveButtonPositionFromPointer,
-} from "../../ui/buttonPlacement";
-import type { QuickAction } from "../../ui/quickAction";
-import { clamp } from "../../utils/number";
-import { votStorage } from "../../utils/storage";
+} from "#ui/buttonPlacement.ts";
+import type { QuickAction } from "#ui/quickAction.ts";
+import logger from "#utils/logger.ts";
+import { clamp } from "#utils/number.ts";
+import { votStorage } from "#utils/storage.ts";
+import { setSettings, settings } from "../../stores/settings";
 import type { SelectOption } from "../Control/Select";
 import { PreviewSegmentedButtonOverlay } from "../SegmentedButton/PreviewSegmentedButtonOverlay";
 import type { SegmentedButtonControls } from "../SegmentedButton/SegmentedButton";
@@ -126,7 +125,7 @@ const DRAG_ACTION_SUPPRESS_MS = 350;
 const DRAG_THRESHOLD_PX = 6;
 
 export function OverlayView(props: OverlayViewProps): JSX.Element {
-  const finalProps = mergeProps(
+  const finalProps = merge(
     {
       detectedLanguage: "en",
       responseLanguage: "ru",
@@ -425,7 +424,9 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
       return;
     }
     if (commit) {
-      setSettings("buttonPos", state.targetPosition);
+      setSettings((draft) => {
+        draft.buttonPos = state.targetPosition;
+      });
       finalProps.onButtonPositionChange?.(state.targetPosition);
       void votStorage.set("buttonPos", state.targetPosition);
     }
@@ -562,75 +563,81 @@ export function OverlayView(props: OverlayViewProps): JSX.Element {
     }
   });
 
-  createEffect(() => {
-    if (menuHidden() || !buttonOverlay || !menuOverlay) {
-      return;
-    }
-
-    const onOutsideClickHandle = (event: MouseEvent) => {
-      if (menuHidden()) {
+  createEffect(
+    () => menuHidden() || !buttonOverlay || !menuOverlay,
+    (isHidden) => {
+      if (isHidden) {
         return;
       }
 
-      const path = event.composedPath();
-      // Select options can be portaled outside of these overlays.
-      const isClickInsideSelect = path.some(
-        (element) =>
-          element instanceof HTMLElement &&
-          element.classList.contains("vot-select-inner"),
-      );
-      if (
-        path.includes(buttonOverlay) ||
-        path.includes(menuOverlay) ||
-        isClickInsideSelect
-      ) {
-        return;
-      }
+      const onOutsideClickHandle = (event: MouseEvent) => {
+        if (menuHidden()) {
+          return;
+        }
 
-      setMenuHidden(true);
-    };
+        const path = event.composedPath();
+        // Select options can be portaled outside of these overlays.
+        const isClickInsideSelect = path.some(
+          (element) =>
+            element instanceof HTMLElement &&
+            element.classList.contains("vot-select-inner"),
+        );
+        if (
+          path.includes(buttonOverlay) ||
+          path.includes(menuOverlay) ||
+          isClickInsideSelect
+        ) {
+          return;
+        }
 
-    const onEscHandle = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || event.defaultPrevented) {
-        return;
-      }
+        setMenuHidden(true);
+      };
 
-      event.preventDefault();
-      event.stopPropagation();
-      setMenuHidden(true);
-    };
+      const onEscHandle = (event: KeyboardEvent) => {
+        if (event.key !== "Escape" || event.defaultPrevented) {
+          return;
+        }
 
-    document.addEventListener("pointerdown", onOutsideClickHandle, {
-      capture: true,
-      passive: true,
-    });
-    rootElement.addEventListener("keydown", onEscHandle);
+        event.preventDefault();
+        event.stopPropagation();
+        setMenuHidden(true);
+      };
 
-    onCleanup(() => {
-      document.removeEventListener("pointerdown", onOutsideClickHandle, {
+      document.addEventListener("pointerdown", onOutsideClickHandle, {
         capture: true,
+        passive: true,
       });
-      rootElement.removeEventListener("keydown", onEscHandle);
-    });
-  });
+      rootElement.addEventListener("keydown", onEscHandle);
 
-  onMount(() => {
+      return () => {
+        document.removeEventListener("pointerdown", onOutsideClickHandle, {
+          capture: true,
+        });
+        rootElement.removeEventListener("keydown", onEscHandle);
+      };
+    },
+  );
+
+  onSettled(() => {
     if (!segmentedButton) return;
 
     // No lostpointercapture listener: touch implicitly captures the nested button,
     // and Document pointerup/pointercancel cover the drag lifecycle.
     segmentedButton.addEventListener("pointerdown", onButtonDragPointerDown);
     segmentedButton.addEventListener("click", suppressClickAfterDrag, true);
-  });
-
-  onCleanup(() => {
-    subtitlesLoadVersion += 1;
-    finishButtonDrag(false, false);
-    segmentedButton?.removeEventListener(
-      "pointerdown",
-      onButtonDragPointerDown,
-    );
-    segmentedButton?.removeEventListener("click", suppressClickAfterDrag, true);
+    return () => {
+      subtitlesLoadVersion += 1;
+      finishButtonDrag(false, false);
+      segmentedButton?.removeEventListener(
+        "pointerdown",
+        onButtonDragPointerDown,
+      );
+      segmentedButton?.removeEventListener(
+        "click",
+        suppressClickAfterDrag,
+        true,
+      );
+    };
   });
 
   return (

@@ -1,10 +1,10 @@
+import solidPlugin from "@solidjs/vite-plugin";
 import {
   normalizePath,
   type Plugin,
   type UserConfig,
   build as viteBuild,
 } from "vite";
-import solidPlugin from "vite-plugin-solid";
 import {
   ROOT_DIR,
   SOURCE_DIR,
@@ -76,7 +76,7 @@ export function createBaseViteConfig({
     plugins: [solidPlugin(solidPluginOptions), ...sharedVitePlugins],
     resolve: {
       alias: sharedResolveAlias,
-      dedupe: ["solid-js", "solid-js/web", "solid-js/store"],
+      dedupe: ["solid-js", "@solidjs/web"],
     },
     css: sharedCssOptions,
     build: sharedBuildOptions,

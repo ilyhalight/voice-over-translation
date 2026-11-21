@@ -1,5 +1,7 @@
 import type { ResponseLang } from "@vot.js/shared/types/data";
-import { createStore } from "solid-js/store";
+import { createStore } from "solid-js";
+import type { LangOverride } from "#localizationProvider";
+import type { RawHotkey } from "#modules/hotkeys/types.ts";
 import {
   DEFAULT_DETECT_SERVICE,
   DEFAULT_TRANSLATION_SERVICE,
@@ -8,6 +10,17 @@ import type {
   DetectService,
   TranslateTextService,
 } from "#modules/translateText/types.ts";
+import type { LanguageSelectKey } from "#types/components/select.ts";
+import type { Position } from "#types/components/votButton.ts";
+import {
+  AUTO_SUBTITLE_LANGUAGE_VALUE,
+  type ResponseLanguageSubtitles,
+  type TranslateProxyStatus,
+} from "#types/storage.ts";
+import type { SubtitleFontFamily, SubtitleFormat } from "#types/subtitles.ts";
+import type { QuickAction } from "#ui/quickAction.ts";
+import { isSupportGMXhr } from "#utils/gm.ts";
+import { calculatedResLang } from "#utils/localization.ts";
 import {
   DEFAULT_AUTO_HIDE_DELAY,
   DEFAULT_AUTO_VOLUME,
@@ -15,19 +28,6 @@ import {
   MEDIA_PROXY_HOST,
   PROXY_WORKER_HOST,
 } from "../config/config";
-import type { LangOverride } from "../localization/localizationProvider";
-import type { RawHotkey } from "../modules/hotkeys/types";
-import type { LanguageSelectKey } from "../types/components/select";
-import type { Position } from "../types/components/votButton";
-import {
-  AUTO_SUBTITLE_LANGUAGE_VALUE,
-  type ResponseLanguageSubtitles,
-  type TranslateProxyStatus,
-} from "../types/storage";
-import type { SubtitleFontFamily, SubtitleFormat } from "../types/subtitles";
-import type { QuickAction } from "../ui/quickAction";
-import { isSupportGMXhr } from "../utils/gm";
-import { calculatedResLang } from "../utils/localization";
 
 export type SettingsStore = {
   // menu

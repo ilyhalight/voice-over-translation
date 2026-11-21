@@ -1,8 +1,7 @@
-import { type JSX, mergeProps } from "solid-js";
-import {
-  localizationProvider,
-  t,
-} from "../../localization/localizationProvider";
+import type { JSX } from "@solidjs/web";
+import { merge } from "solid-js";
+
+import { localizationProvider, t } from "#localizationProvider";
 import { setSettings, settings } from "../../stores/settings";
 import { Switch } from "../Control/Switch";
 import { SettingsSection } from "./SettingsSection";
@@ -19,7 +18,7 @@ export type SettingsMiscSectionProps = {
 export function SettingsMiscSection(
   props: SettingsMiscSectionProps,
 ): JSX.Element {
-  const finalProps = mergeProps(
+  const finalProps = merge(
     { isAudioContextSupported: false, needBypassCSP: false },
     props,
   );
@@ -33,7 +32,9 @@ export function SettingsMiscSection(
         hidden={localizationProvider.lang === "ru"}
         checked={settings.translateAPIErrors}
         onChange={(checked) => {
-          setSettings("translateAPIErrors", checked);
+          setSettings((draft) => {
+            draft.translateAPIErrors = checked;
+          });
           finalProps.onChangeTranslateAPIErrors?.(checked);
         }}
       />
@@ -42,7 +43,9 @@ export function SettingsMiscSection(
         description={t("sendErrorReportsDescription")}
         checked={settings.sendErrorReports}
         onChange={(checked) => {
-          setSettings("sendErrorReports", checked);
+          setSettings((draft) => {
+            draft.sendErrorReports = checked;
+          });
           finalProps.onChangeSendErrorReports?.(checked);
         }}
       />
@@ -54,7 +57,9 @@ export function SettingsMiscSection(
         disabled={isWithoutAudioContext()}
         checked={settings.newAudioPlayer}
         onChange={(checked) => {
-          setSettings("newAudioPlayer", checked);
+          setSettings((draft) => {
+            draft.newAudioPlayer = checked;
+          });
           finalProps.onChangeNewAudioPlayer?.(checked);
         }}
       />
@@ -68,7 +73,9 @@ export function SettingsMiscSection(
         disabled={!settings.newAudioPlayer}
         isSubSwitch={true}
         onChange={(checked) => {
-          setSettings("onlyBypassMediaCSP", checked);
+          setSettings((draft) => {
+            draft.onlyBypassMediaCSP = checked;
+          });
           finalProps.onChangeOnlyBypassMediaCSP?.(checked);
         }}
       />

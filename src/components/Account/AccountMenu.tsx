@@ -1,4 +1,5 @@
-import { type JSX, Show } from "solid-js";
+import type { JSX } from "@solidjs/web";
+import { Show } from "solid-js";
 
 import { YANDEX_AUTH_AVATAR_BASE } from "#modules/auth/consts.ts";
 import { account } from "../../stores/account";
@@ -8,7 +9,6 @@ import { AccountLogin } from "./AccountLogin";
 export type AccountMenuProps = {
   disableExternalLogin?: boolean;
   onClickLogin?: () => void;
-  ref?: (element: HTMLElement) => void;
 };
 
 export function AccountMenu(props: AccountMenuProps): JSX.Element {
@@ -18,7 +18,7 @@ export function AccountMenu(props: AccountMenuProps): JSX.Element {
     `${YANDEX_AUTH_AVATAR_BASE}/${avatarId()}/islands-retina-middle`;
 
   return (
-    <vot-block ref={props.ref} class="vot-account-menu">
+    <vot-block class="vot-account-menu">
       <Show
         when={account.isLoggedIn}
         fallback={

@@ -1,7 +1,8 @@
 import { createSignal, type Setter } from "solid-js";
 import { expect, fn, userEvent, waitFor } from "storybook/test";
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
-import { getDeepActiveElement } from "../../utils/dom";
+
+import { getDeepActiveElement } from "#utils/dom.ts";
 import { RawButton } from "../Button/RawButton";
 import { Dialog } from "./Dialog";
 

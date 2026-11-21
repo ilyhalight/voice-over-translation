@@ -73,7 +73,10 @@ async function resumePlayerAudioContextIfNeeded(
   return result;
 }
 
-const translationSourceOwners = new WeakMap<object, ActionContext | undefined>();
+const translationSourceOwners = new WeakMap<
+  object,
+  ActionContext | undefined
+>();
 
 async function rollbackStaleAppliedSourceIfStillCurrent(
   handler: VideoHandler,
@@ -514,7 +517,7 @@ export async function updateTranslation(
   this.clearVolumeLinkState();
   this.setupAudioSettings();
   this.transformBtn("success", getTranslationActiveVoiceLabel(usedLivelyVoice));
-  this.afterUpdateTranslation(resolvedAudioUrl);
+  this.afterUpdateTranslation(resolvedAudioUrl, true);
 }
 
 export function syncTranslationPlaybackVolume(this: VideoHandler): void {

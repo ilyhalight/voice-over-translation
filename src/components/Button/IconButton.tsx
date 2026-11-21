@@ -1,4 +1,5 @@
-import { type JSX, splitProps } from "solid-js";
+import type { JSX } from "@solidjs/web";
+import { omit } from "solid-js";
 
 import { RawButton, type RawButtonProps } from "./RawButton";
 
@@ -7,15 +8,15 @@ export type IconButtonProps = Omit<RawButtonProps, "class" | "ariaLabel"> & {
 };
 
 export function IconButton(props: IconButtonProps): JSX.Element {
-  const [local, rest] = splitProps(props, ["ariaLabel", "buttonProps"]);
+  const rest = omit(props, "ariaLabel", "buttonProps");
 
   return (
     <RawButton
       {...rest}
       class="vot-icon-button"
       buttonProps={{
-        "aria-label": local.ariaLabel,
-        ...local.buttonProps,
+        "aria-label": props.ariaLabel,
+        ...props.buttonProps,
       }}
     />
   );

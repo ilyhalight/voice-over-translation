@@ -124,6 +124,29 @@ function bindOverlayMountEvents(ctx: ExtraEventsContext): void {
   const { self } = ctx;
   self.refreshOverlayMount();
 }
+
+function syncVideoVolumeHandler(
+  ctx: ExtraEventsContext,
+  skipYouTubeLikeHosts?: boolean,
+): void {
+  const { self } = ctx;
+  const videoVolume = self.syncVideoVolumeSlider();
+  if (videoVolume === null) {
+    return;
+  }
+
+  const overlayViewControls =
+    self.uiManager.votOverlayView?.overlayViewControls;
+  if (!overlayViewControls) {
+    return;
+  }
+
+  const videoPercent = toPercentInt(videoVolume);
+  syncAudioTranslationVolumeFromVideo(self, videoPercent, {
+    skipYouTubeLikeHosts,
+  });
+}
+
 function bindYouTubeVolumeSync(ctx: ExtraEventsContext): void {
   const { self } = ctx;
   if (!isDesktopYouTubeLikeSite(self.site)) return;
@@ -140,14 +163,7 @@ function bindYouTubeVolumeSync(ctx: ExtraEventsContext): void {
       hasVolumeMutation = true;
     }
     if (!hasVolumeMutation) return;
-    self.syncVideoVolumeSlider();
-    const overlayViewControls =
-      self.uiManager.votOverlayView?.overlayViewControls;
-    if (!overlayViewControls) {
-      return;
-    }
-    const videoPercent = toPercentInt(overlayViewControls.getVideoVolume());
-    syncAudioTranslationVolumeFromVideo(self, videoPercent);
+    syncVideoVolumeHandler(ctx);
   });
   const ytpVolumePanel = document.querySelector(".ytp-volume-panel");
   if (!ytpVolumePanel) return;
@@ -413,16 +429,7 @@ function bindVideoLifecycleEvents(ctx: ExtraEventsContext): void {
   });
   if (!isMuteSyncDisabledHost(self.site.host)) {
     add(self.video, "volumechange", () => {
-      self.syncVideoVolumeSlider();
-      const overlayViewControls =
-        self.uiManager.votOverlayView?.overlayViewControls;
-      if (!overlayViewControls) {
-        return;
-      }
-      const videoPercent = toPercentInt(overlayViewControls.getVideoVolume());
-      syncAudioTranslationVolumeFromVideo(self, videoPercent, {
-        skipYouTubeLikeHosts: true,
-      });
+      syncVideoVolumeHandler(ctx, true);
     });
   }
   if (self.site.host === "youtube" && !self.site.additionalData) {

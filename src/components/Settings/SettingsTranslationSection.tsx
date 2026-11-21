@@ -1,6 +1,7 @@
+import type { JSX } from "@solidjs/web";
 import { availableLangs } from "@vot.js/shared/consts";
-import { type JSX, mergeProps } from "solid-js";
-
+import { merge } from "solid-js";
+import { localizationProvider, t } from "#localizationProvider";
 import {
   DETECT_SERVICES,
   TRANSLATE_TEXT_SERVICES,
@@ -9,13 +10,9 @@ import type {
   DetectService,
   TranslateTextService,
 } from "#modules/translateText/types.ts";
-import {
-  localizationProvider,
-  t,
-} from "../../localization/localizationProvider";
+import type { LanguageSelectKey } from "#types/components/select.ts";
+import { isSupportGMXhr } from "#utils/gm.ts";
 import { setSettings, settings } from "../../stores/settings";
-import type { LanguageSelectKey } from "../../types/components/select";
-import { isSupportGMXhr } from "../../utils/gm";
 import {
   genSelectOptionsByLangs,
   Select,
@@ -55,7 +52,7 @@ export type SettingsTranslationSectionProps = {
 export function SettingsTranslationSection(
   props: SettingsTranslationSectionProps,
 ): JSX.Element {
-  const finalProps = mergeProps(
+  const finalProps = merge(
     {
       isAudioContextSupported: false,
       isCanDetectMusic: false,
@@ -88,7 +85,9 @@ export function SettingsTranslationSection(
         heading={t("VOTAutoTranslate")}
         checked={settings.autoTranslate}
         onChange={(checked) => {
-          setSettings("autoTranslate", checked);
+          setSettings((draft) => {
+            draft.autoTranslate = checked;
+          });
           finalProps.onAutoTranslateChange?.(checked);
         }}
       />
@@ -96,7 +95,9 @@ export function SettingsTranslationSection(
         heading={t("VOTAutoPauseOnTranslate")}
         checked={settings.autoPauseOnTranslate}
         onChange={(checked) => {
-          setSettings("autoPauseOnTranslate", checked);
+          setSettings((draft) => {
+            draft.autoPauseOnTranslate = checked;
+          });
           finalProps.onAutoPauseOnTranslateChange?.(checked);
         }}
       />
@@ -104,7 +105,9 @@ export function SettingsTranslationSection(
         heading={t("VOTAutoSubtitles")}
         checked={settings.autoSubtitles}
         onChange={(checked) => {
-          setSettings("autoSubtitles", checked);
+          setSettings((draft) => {
+            draft.autoSubtitles = checked;
+          });
           finalProps.onAutoSubtitlesChange?.(checked);
         }}
       />
@@ -116,7 +119,9 @@ export function SettingsTranslationSection(
         selectedValues={settings.dontTranslateLanguages}
         minSelected={0}
         onSelectionChange={(values, changedOption) => {
-          setSettings("dontTranslateLanguages", values as LanguageSelectKey[]);
+          setSettings((draft) => {
+            draft.dontTranslateLanguages = values as LanguageSelectKey[];
+          });
           finalProps.onDontTranslateLanguagesChange?.(
             values as LanguageSelectKey[],
             changedOption.value as LanguageSelectKey,
@@ -131,7 +136,9 @@ export function SettingsTranslationSection(
         checked={settings.dontTranslateByYTMusic}
         hidden={!finalProps.isCanDetectMusic}
         onChange={(checked) => {
-          setSettings("dontTranslateByYTMusic", checked);
+          setSettings((draft) => {
+            draft.dontTranslateByYTMusic = checked;
+          });
           finalProps.onDontTranslateByYTMusicChange?.(checked);
         }}
       />
@@ -139,7 +146,9 @@ export function SettingsTranslationSection(
         heading={t("VOTAutoReduceVolume")}
         checked={settings.enabledAutoVolume}
         onChange={(checked) => {
-          setSettings("enabledAutoVolume", checked);
+          setSettings((draft) => {
+            draft.enabledAutoVolume = checked;
+          });
           finalProps.onEnabledAutoVolumeChange?.(checked);
         }}
       />
@@ -161,12 +170,17 @@ export function SettingsTranslationSection(
           disabled={!settings.enabledAutoVolume}
           onInput={(val) => {
             if (settings.enabledSmartDucking) {
-              setSettings("smartDuckingStrength", val);
+              setSettings((draft) => {
+                draft.smartDuckingStrength = val;
+              });
               finalProps.onSmartDuckingStrengthInput?.(val);
               return;
             }
 
-            setSettings("autoVolume", val);
+            setSettings((draft) => {
+              draft.autoVolume = val;
+            });
+
             finalProps.onAutoVolumeInput?.(val);
           }}
         />
@@ -179,7 +193,9 @@ export function SettingsTranslationSection(
         disabled={settings.syncVolume || !settings.enabledAutoVolume}
         checked={settings.enabledSmartDucking}
         onChange={(checked) => {
-          setSettings("enabledSmartDucking", checked);
+          setSettings((draft) => {
+            draft.enabledSmartDucking = checked;
+          });
           finalProps.onEnabledSmartDuckingChange?.(checked);
         }}
       />
@@ -187,7 +203,9 @@ export function SettingsTranslationSection(
         heading={t("showVideoVolumeSlider")}
         checked={settings.showVideoSlider}
         onChange={(checked) => {
-          setSettings("showVideoSlider", checked);
+          setSettings((draft) => {
+            draft.showVideoSlider = checked;
+          });
           finalProps.onShowVideoSliderChange?.(checked);
         }}
       />
@@ -201,7 +219,9 @@ export function SettingsTranslationSection(
         checked={settings.audioBooster}
         disabled={!finalProps.isAudioContextSupported}
         onChange={(checked) => {
-          setSettings("audioBooster", checked);
+          setSettings((draft) => {
+            draft.audioBooster = checked;
+          });
           finalProps.onAudioBoosterChange?.(checked);
         }}
       />
@@ -210,9 +230,13 @@ export function SettingsTranslationSection(
         description={t("VOTIncompatibleWith").replace("{0}", t("smartDucking"))}
         checked={settings.syncVolume}
         onChange={(checked) => {
-          setSettings("syncVolume", checked);
+          setSettings((draft) => {
+            draft.syncVolume = checked;
+          });
           if (checked) {
-            setSettings("enabledSmartDucking", false);
+            setSettings((draft) => {
+              draft.enabledSmartDucking = false;
+            });
             finalProps.onEnabledSmartDuckingChange?.(checked);
           }
 
@@ -225,7 +249,9 @@ export function SettingsTranslationSection(
         disabled={!isSupportGMXhr}
         checked={settings.downloadWithName}
         onChange={(checked) => {
-          setSettings("downloadWithName", checked);
+          setSettings((draft) => {
+            draft.downloadWithName = checked;
+          });
           finalProps.onDownloadWithNameChange?.(checked);
         }}
       />
@@ -233,7 +259,9 @@ export function SettingsTranslationSection(
         heading={t("VOTSendNotifyOnComplete")}
         checked={settings.sendNotifyOnComplete}
         onChange={(checked) => {
-          setSettings("sendNotifyOnComplete", checked);
+          setSettings((draft) => {
+            draft.sendNotifyOnComplete = checked;
+          });
           finalProps.onSendNotifyOnCompleteChange?.(checked);
         }}
       />
@@ -243,7 +271,9 @@ export function SettingsTranslationSection(
         disabled={!isSupportGMXhr}
         checked={settings.useAudioDownload}
         onChange={(checked) => {
-          setSettings("useAudioDownload", checked);
+          setSettings((draft) => {
+            draft.useAudioDownload = checked;
+          });
           finalProps.onUseAudioDownloadChange?.(checked);
         }}
       />
@@ -253,7 +283,9 @@ export function SettingsTranslationSection(
         selectedValue={settings.translationService}
         onSelect={(option) => {
           const value = option.value as TranslateTextService;
-          setSettings("translationService", value);
+          setSettings((draft) => {
+            draft.translationService = value;
+          });
           finalProps.onTranslationServiceSelect?.(value);
         }}
       >
@@ -269,7 +301,9 @@ export function SettingsTranslationSection(
         selectedValue={settings.detectService}
         onSelect={(option) => {
           const value = option.value as DetectService;
-          setSettings("detectService", value);
+          setSettings((draft) => {
+            draft.detectService = value;
+          });
           finalProps.onDetectServiceSelect?.(value);
         }}
       >

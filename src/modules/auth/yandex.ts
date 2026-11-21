@@ -1,4 +1,5 @@
 import { getUUID } from "@vot.js/shared/secure";
+
 import { captureException } from "#modules/telemetry/client.ts";
 import { setAccount, updateAccount } from "#stores/account.ts";
 import type { Account } from "#types/storage.ts";
@@ -145,7 +146,9 @@ export async function updateAccountInfo() {
   let username: string;
   let avatarId: string;
   try {
-    setAccount("isRefreshing", true);
+    setAccount((state) => {
+      state.isRefreshing = true;
+    });
     const userInfo = await getUserInfo(account.token);
     username = userInfo.login;
     avatarId = userInfo.default_avatar_id;
@@ -164,7 +167,9 @@ export async function updateAccountInfo() {
       "Failed to refresh Yandex account info",
     );
   } finally {
-    setAccount("isRefreshing", false);
+    setAccount((state) => {
+      state.isRefreshing = false;
+    });
   }
 }
 

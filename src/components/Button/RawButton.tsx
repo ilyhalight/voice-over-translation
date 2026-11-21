@@ -1,8 +1,10 @@
-import { type JSX, mergeProps } from "solid-js";
+import type { JSX } from "@solidjs/web";
+import { merge } from "solid-js";
+
 import type {
-  DataAttributes,
   OnClickEvent,
-} from "../../types/components/shared";
+  VOTElementAttributes,
+} from "#types/components/shared.ts";
 import { isKeyboardActivation } from "../componentShared";
 
 export type RawButtonProps = {
@@ -12,11 +14,11 @@ export type RawButtonProps = {
   ref?: (element: HTMLElement) => void;
   children: JSX.Element;
   onClick?: (event: OnClickEvent) => void;
-  buttonProps?: JSX.HTMLAttributes<HTMLElement> & DataAttributes;
+  buttonProps?: VOTElementAttributes;
 };
 
 export function RawButton(props: RawButtonProps): JSX.Element {
-  const finalProps = mergeProps({ hidden: false, disabled: false }, props);
+  const finalProps = merge({ hidden: false, disabled: false }, props);
   const tabIndex = () => (finalProps.disabled ? -1 : 0);
 
   return (
@@ -24,7 +26,7 @@ export function RawButton(props: RawButtonProps): JSX.Element {
       ref={finalProps.ref}
       class={finalProps.class}
       role="button"
-      tabIndex={tabIndex()}
+      tabindex={tabIndex()}
       aria-disabled={finalProps.disabled ? "true" : undefined}
       hidden={finalProps.hidden}
       onClick={(event) => {

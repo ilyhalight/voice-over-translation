@@ -1,6 +1,8 @@
-import { type JSX, mergeProps, Show } from "solid-js";
-import type { Direction, Status } from "../../types/components/votButton";
-import type { QuickAction } from "../../ui/quickAction";
+import type { JSX } from "@solidjs/web";
+import { merge, Show } from "solid-js";
+
+import type { Direction, Status } from "#types/components/votButton.ts";
+import type { QuickAction } from "#ui/quickAction.ts";
 import { RawButton } from "../Button/RawButton";
 import { ChevronIcon } from "../Icons/ChevronIcon";
 import { MenuIcon } from "../Icons/MenuIcon";
@@ -41,7 +43,7 @@ function PreviewQuickActionButton(props: {
 export function PreviewSegmentedButton(
   props: PreviewSegmentedButtonProps,
 ): JSX.Element {
-  const finalProps = mergeProps(
+  const finalProps = merge(
     {
       direction: "default",
       status: "none",

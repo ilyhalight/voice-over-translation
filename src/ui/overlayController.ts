@@ -1,17 +1,17 @@
-import { FullscreenHelper } from "#modules/fullscreen/helper.ts";
 import {
   OverlayView as OverlayViewComponent,
   type OverlayViewControls,
-} from "../components/OverlayView/OverlayView";
+} from "#components/OverlayView/OverlayView.tsx";
+import { FullscreenHelper } from "#modules/fullscreen/helper.ts";
+import type { LanguageSelectKey } from "#types/components/select.ts";
+import type { StorageData } from "#types/storage.ts";
+import type { OverlayMount } from "#types/uiManager.ts";
+import { containsCrossShadow, getDeepActiveElement } from "#utils/dom.ts";
+import { EventImpl } from "#utils/eventImpl.ts";
+import { hasTouchScreen, isTouchFirstInput } from "#utils/inputDevice.ts";
+import type { IntervalIdleChecker } from "#utils/intervalIdleChecker.ts";
+import { votStorage } from "#utils/storage.ts";
 import { setSettings } from "../stores/settings";
-import type { LanguageSelectKey } from "../types/components/select";
-import type { StorageData } from "../types/storage";
-import type { OverlayMount } from "../types/uiManager";
-import { containsCrossShadow, getDeepActiveElement } from "../utils/dom";
-import { EventImpl } from "../utils/eventImpl";
-import { hasTouchScreen, isTouchFirstInput } from "../utils/inputDevice";
-import type { IntervalIdleChecker } from "../utils/intervalIdleChecker";
-import { votStorage } from "../utils/storage";
 import type { VideoHandler } from "../VideoHandler";
 import type { QuickAction } from "./quickAction";
 import {
@@ -305,7 +305,6 @@ export class OverlayController {
             // UX: keep the "Don't translate from selected languages" list in sync
             // with the selected response language, but only while the list still
             // looks like the old default.
-            // TODO: recheck it later
             if (
               Array.isArray(this.data.dontTranslateLanguages) &&
               this.data.dontTranslateLanguages.length === 1 &&
@@ -313,7 +312,9 @@ export class OverlayController {
               typeof prevResponseLanguage === "string" &&
               this.data.dontTranslateLanguages[0] === prevResponseLanguage
             ) {
-              setSettings("dontTranslateLanguages", [language]);
+              setSettings((draft) => {
+                draft.dontTranslateLanguages = [language];
+              });
               this.data.dontTranslateLanguages = [language];
               await votStorage.set(
                 "dontTranslateLanguages",

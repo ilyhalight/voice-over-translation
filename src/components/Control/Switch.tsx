@@ -1,11 +1,5 @@
-import {
-  createSignal,
-  createUniqueId,
-  type JSX,
-  mergeProps,
-  Show,
-} from "solid-js";
-import { effect } from "solid-js/web";
+import type { JSX } from "@solidjs/web";
+import { createSignal, createUniqueId, merge, Show } from "solid-js";
 
 export type SwitchProps = {
   checked?: boolean;
@@ -19,23 +13,19 @@ export type SwitchProps = {
 };
 
 export function Switch(props: SwitchProps): JSX.Element {
-  const finalProps = mergeProps(
+  const finalProps = merge(
     { checked: false, disabled: false, isSubSwitch: false },
     props,
   );
   const textId = createUniqueId();
 
-  const [checked, setChecked] = createSignal(finalProps.checked);
-
-  effect(() => {
-    setChecked(finalProps.checked);
-  });
+  const [checked, setChecked] = createSignal(() => finalProps.checked);
 
   return (
     <label
       ref={finalProps.ref}
-      class="vot-switch"
-      classList={{
+      class={{
+        "vot-switch": true,
         "vot-switch_sub": finalProps.isSubSwitch,
       }}
       hidden={finalProps.hidden}

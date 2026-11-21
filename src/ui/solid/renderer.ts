@@ -1,7 +1,8 @@
-import { createRenderer } from "solid-js/universal";
+import { createRenderer } from "@solidjs/universal";
 
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
-// The universal JSX transform only gives the renderer a tag name.
+// The universal JSX transform passes static props to createElement, so
+// namespace detection still relies on the tag name alone.
 const SVG_ELEMENT_NAMES = new Set([
   "altGlyph",
   "altGlyphDef",
@@ -87,6 +88,10 @@ const propertyAliases: Record<string, string> = {
   readonly: "readOnly",
 };
 
+// Solid 1 special-cases only real HTML boolean attributes: `true` means
+// present and empty, `false` means absent. Every other attribute, including
+// ARIA and data-*, stringifies booleans so `aria-hidden` becomes "true"
+// rather than a present-but-empty attribute.
 const booleanAttributes = new Set([
   "allowfullscreen",
   "async",
@@ -103,14 +108,28 @@ const booleanAttributes = new Set([
   "readonly",
   "required",
   "selected",
+  "inert",
 ]);
+
+// Mirrors @solidjs/web: DOM properties are opt-in. Plain names are content
+// attributes; only these stateful form/media props are written as properties.
+const statefulProperties: Record<string, ReadonlySet<string>> = {
+  INPUT: new Set(["value", "defaultValue", "checked", "defaultChecked"]),
+  SELECT: new Set(["value"]),
+  OPTION: new Set(["value", "selected", "defaultSelected"]),
+  TEXTAREA: new Set(["value", "defaultValue"]),
+  VIDEO: new Set(["muted", "defaultMuted"]),
+  AUDIO: new Set(["muted", "defaultMuted"]),
+};
 
 const eventListeners = new WeakMap<
   Element,
   Map<string, EventListenerOrEventListenerObject>
 >();
 
-function setClassList(
+// Applies the enabled keys of an object class value, diffing against the
+// previous object to remove stale classes.
+function applyObjectClass(
   element: Element,
   value: Record<string, boolean> | null | undefined,
   previous: Record<string, boolean> | null | undefined,
@@ -173,6 +192,10 @@ function setEvent(element: Element, property: string, value: unknown): void {
   element.addEventListener(eventName, listener, capture);
 }
 
+// Mirrors Solid 1 attribute handling: null/undefined always remove the
+// attribute, but `true`/`false` only collapse to presence/absence for the
+// boolean attribute whitelist above. Everything else, including ARIA and
+// data-*, is stringified.
 function setAttributeValue(node: Element, name: string, value: unknown): void {
   if (value == null || (value === false && booleanAttributes.has(name))) {
     node.removeAttribute(name);
@@ -181,6 +204,31 @@ function setAttributeValue(node: Element, name: string, value: unknown): void {
   } else {
     node.setAttribute(name, String(value));
   }
+}
+
+// Mirrors @solidjs/web className: accepts a string, a number or an object
+// of enabled classes; object writes diff against the previous value.
+function setClassValue(
+  element: Element,
+  value: string | number | Record<string, boolean> | null | undefined,
+  previous: string | number | Record<string, boolean> | null | undefined,
+): void {
+  if (value == null || typeof value !== "object") {
+    if (value != null && typeof previous === "object" && previous) {
+      // Replacing an object value with a plain string wipes stale classes.
+      element.removeAttribute("class");
+    }
+    setAttributeValue(element, "class", value);
+    return;
+  }
+  if (previous != null && typeof previous !== "object") {
+    element.removeAttribute("class");
+  }
+  applyObjectClass(
+    element,
+    value,
+    typeof previous === "object" ? previous : {},
+  );
 }
 
 function setSpecialProperty<T>(
@@ -194,10 +242,6 @@ function setSpecialProperty<T>(
     (node instanceof HTMLElement || node instanceof SVGElement)
   ) {
     setStyle(node, value as never, previous as never);
-    return true;
-  }
-  if (name === "classList") {
-    setClassList(node, value as never, previous as never);
     return true;
   }
   if (name.startsWith("on")) {
@@ -220,33 +264,29 @@ function setProperty<T>(
     );
   }
   if (setSpecialProperty(node, name, value, previous)) return;
-  if (name.startsWith("attr:")) {
-    setAttributeValue(node, name.slice(5), value);
+  if (name.startsWith("prop:")) {
+    const propertyName = name.slice(5);
+    Reflect.set(node, propertyAliases[propertyName] ?? propertyName, value);
     return;
   }
   if (name === "class" || name === "className") {
-    setAttributeValue(node, "class", value);
+    setClassValue(node, value as never, previous as never);
     return;
   }
   if (name === "textContent") {
     node.textContent = value == null ? "" : String(value);
     return;
   }
-  if (node instanceof SVGElement) {
-    if (value == null) node.removeAttribute(name);
-    else node.setAttribute(name, String(value));
+  // Stateful form/media props (upstream DOMWithState): always write the
+  // property, otherwise form state (checked, current value) never updates.
+  if (statefulProperties[node.tagName]?.has(name)) {
+    // Mirrors @solidjs/web: nullish value/defaultValue is written as "".
+    const isValue = name === "value" || name === "defaultValue";
+    Reflect.set(node, name, isValue && value == null ? "" : value);
     return;
   }
-
-  const propertyName = propertyAliases[name] ?? name;
-  if (
-    propertyName in node &&
-    !name.startsWith("aria-") &&
-    !name.startsWith("data-")
-  ) {
-    Reflect.set(node, propertyName, value);
-    return;
-  }
+  // Default in Solid 2: everything else is a content attribute. SVG element
+  // names keep their case, setAttribute handles both namespaces alike.
   setAttributeValue(node, name, value);
 }
 
@@ -262,12 +302,21 @@ export const {
   spread,
   setProp,
   mergeProps,
-  use,
+  ref,
+  applyRef,
 } = createRenderer<Node>({
-  createElement(tag) {
-    return SVG_ELEMENT_NAMES.has(tag)
+  createElement(tag, staticProps) {
+    const node = SVG_ELEMENT_NAMES.has(tag)
       ? document.createElementNS(SVG_NAMESPACE, tag)
       : document.createElement(tag);
+
+    if (staticProps) {
+      for (const [name, value] of Object.entries(staticProps)) {
+        setProperty(node, name, value);
+      }
+    }
+
+    return node;
   },
   createTextNode(value) {
     return document.createTextNode(value);
@@ -296,4 +345,4 @@ export const {
   },
 });
 
-export { For, Index, Match, Show, Switch } from "solid-js";
+export { For, Match, Show, Switch } from "solid-js";

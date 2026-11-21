@@ -1,5 +1,6 @@
 import { createSignal } from "solid-js";
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
+
 import { Slider } from "./Slider";
 import { SliderLabel } from "./SliderLabel";
 import { SliderWrapper } from "./SliderWrapper";
