@@ -1,14 +1,15 @@
+import type { JSX } from "@solidjs/web";
 import {
   createEffect,
   createMemo,
   createSignal,
-  type JSX,
   Match,
-  mergeProps,
-  on,
+  merge,
+  onFlush,
   Show,
   Switch,
 } from "solid-js";
+
 import { RawButton } from "#components/Button/RawButton.tsx";
 import { AutoPauseIcon } from "#components/Icons/AutoPauseIcon.tsx";
 import { AutoTranslateIcon } from "#components/Icons/AutoTranslateIcon.tsx";
@@ -18,11 +19,11 @@ import { PiPIcon } from "#components/Icons/PiPIcon.tsx";
 import { SubtitlesIcon } from "#components/Icons/SubtitlesIcon.tsx";
 import { TranslateIcon } from "#components/Icons/TranslateIcon.tsx";
 import { Tooltip } from "#components/Utils/Tooltip.tsx";
-import { t } from "../../localization/localizationProvider";
+import { t } from "#localizationProvider";
+import type { Direction, Status } from "#types/components/votButton.ts";
+import { type QuickAction, quickActions } from "#ui/quickAction.ts";
+import { isTouchFirstInput } from "#utils/inputDevice.ts";
 import { setSettings, settings } from "../../stores/settings";
-import type { Direction, Status } from "../../types/components/votButton";
-import { type QuickAction, quickActions } from "../../ui/quickAction";
-import { isTouchFirstInput } from "../../utils/inputDevice";
 import {
   isKeyboardActivation,
   isPrimaryPointerAction,
@@ -147,7 +148,7 @@ export function QuickActionButton(props: QuickActionButtonProps): JSX.Element {
 }
 
 export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
-  const finalProps = mergeProps(
+  const finalProps = merge(
     {
       direction: "default",
       tooltipPos: "bottom",
@@ -198,7 +199,9 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
       return;
     }
 
-    setSettings("useLivelyVoice", voice === "live");
+    setSettings((draft) => {
+      draft.useLivelyVoice = voice === "live";
+    });
     finalProps.onVoiceChange?.(voice);
   };
 
@@ -240,25 +243,43 @@ export function SegmentedButton(props: SegmentedButtonProps): JSX.Element {
   });
 
   createEffect(
-    on(
-      () => finalProps.status,
-      (status, previousStatus) => {
-        if (finalProps.direction !== "column") {
+    () => ({
+      status: finalProps.status,
+      direction: finalProps.direction,
+      buttonEl: translationButton(),
+    }),
+    ({ status, direction, buttonEl }, previous) => {
+      if (
+        direction !== "column" ||
+        (status !== "error" && previous?.status !== "error")
+      ) {
+        return;
+      }
+
+      let cancelled = false;
+
+      onFlush(() => {
+        if (
+          cancelled ||
+          finalProps.status !== status ||
+          finalProps.direction !== direction
+        ) {
           return;
         }
 
         if (status === "error") {
           voicePopoverControls?.hideNow();
           setSuppressVoiceTooltip(false);
-        } else if (
-          previousStatus === "error" &&
-          translationButton()?.matches(":hover")
-        ) {
+        } else if (buttonEl?.matches(":hover")) {
           voicePopoverControls?.showNow();
         }
-      },
-      { defer: true },
-    ),
+      });
+
+      return () => {
+        cancelled = true;
+      };
+    },
+    { defer: true },
   );
 
   return (

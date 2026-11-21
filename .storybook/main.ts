@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
+import solidPlugin from "@solidjs/vite-plugin";
 import { defineMain } from "storybook-solidjs-vite";
 import { mergeConfig, type PluginOption } from "vite";
-import solidPlugin from "vite-plugin-solid";
 
 import { getAvailableLocales } from "../vite/lib/userscript/locales.ts";
 

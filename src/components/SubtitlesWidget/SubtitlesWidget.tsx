@@ -1,28 +1,20 @@
+import type { JSX } from "@solidjs/web";
 import {
-  batch,
+  createEffect,
   createSignal,
-  Index,
-  type JSX,
+  For,
+  flush,
   Match,
   onCleanup,
   Switch,
 } from "solid-js";
-
+import { render } from "#solid/renderer.ts";
 import { buildSubtitleInlineStyleCssText } from "../../subtitles/inlineStyle";
 import type {
   SubtitleRenderPlanPart,
   SubtitleRenderPlanSpanPart,
 } from "../../subtitles/renderPlan";
-import { effect, render } from "../../ui/solid/renderer";
 import { Overlay } from "../Utils/Overlay";
-
-declare module "solid-js" {
-  namespace JSX {
-    interface ExplicitAttributes {
-      lang: string | undefined;
-    }
-  }
-}
 
 export type SubtitlesWidgetProps = {
   parts: SubtitleRenderPlanPart[];
@@ -55,20 +47,28 @@ function SubtitlePart(props: {
   part: SubtitleRenderPlanPart;
   onHighlightRef?: (index: number, element?: HTMLSpanElement) => void;
 }): JSX.Element {
-  let span: HTMLSpanElement | undefined;
+  const [span, setSpan] = createSignal<HTMLSpanElement>();
   const spanPart = (): SubtitleRenderPlanSpanPart | undefined =>
     isSpanPart(props.part) ? props.part : undefined;
-  const syncHighlightRef = () => {
-    const part = props.part;
-    props.onHighlightRef?.(
-      props.index,
-      span && isSpanPart(part) && part.highlightIndex !== undefined
-        ? span
-        : undefined,
-    );
+
+  const getHighlightElement = (part: SubtitleRenderPlanPart) => {
+    const el = span();
+    return el && isSpanPart(part) && part.highlightIndex !== undefined
+      ? el
+      : undefined;
   };
 
-  effect(syncHighlightRef);
+  createEffect(
+    () => ({
+      index: props.index,
+      onHighlightRef: props.onHighlightRef,
+      element: getHighlightElement(props.part),
+    }),
+    ({ index, onHighlightRef, element }) => {
+      onHighlightRef?.(index, element);
+    },
+  );
+
   onCleanup(() => props.onHighlightRef?.(props.index));
 
   return (
@@ -80,8 +80,7 @@ function SubtitlePart(props: {
         {(part) => (
           <span
             ref={(element) => {
-              span = element;
-              syncHighlightRef();
+              setSpan(element);
             }}
             data-vot-token={part().kind === "word" ? "1" : undefined}
             data-vot-highlight-index={part().highlightIndex}
@@ -90,7 +89,7 @@ function SubtitlePart(props: {
             data-vot-style-underline={part().style?.underline ? "1" : "0"}
             data-vot-style-color={part().style?.color ? "1" : "0"}
             role={part().kind === "word" ? "button" : undefined}
-            tabIndex={part().kind === "word" ? 0 : undefined}
+            tabindex={part().kind === "word" ? 0 : undefined}
             style={buildSubtitleInlineStyleCssText(part().style)}
           >
             {part().text}
@@ -106,7 +105,7 @@ export function SolidSubtitlesWidget(props: SubtitlesWidgetProps): JSX.Element {
     <vot-block
       ref={props.ref}
       class="vot-subtitles"
-      attr:lang={props.lang || undefined}
+      lang={props.lang || undefined}
       dir="auto"
       onClick={props.onClick}
       onKeyDown={(event) => {
@@ -121,7 +120,7 @@ export function SolidSubtitlesWidget(props: SubtitlesWidgetProps): JSX.Element {
         props.onClick(event);
       }}
     >
-      <Index each={props.parts}>
+      <For keyed={false} each={props.parts}>
         {(part, index) => (
           <SubtitlePart
             index={index}
@@ -129,7 +128,7 @@ export function SolidSubtitlesWidget(props: SubtitlesWidgetProps): JSX.Element {
             onHighlightRef={props.onHighlightRef}
           />
         )}
-      </Index>
+      </For>
     </vot-block>
   );
 }
@@ -146,7 +145,7 @@ export function mountSolidSubtitlesOverlay(
           ref={(element) => {
             overlay = element;
           }}
-          classList={{ "vot-subtitles-widget": true }}
+          class={{ "vot-subtitles-widget": true }}
           blockProps={{ "oncapture:pointerdown": onPointerDown } as never}
         >
           {""}
@@ -192,10 +191,9 @@ export function mountSolidSubtitlesWidget(
 
   return {
     setParts: (nextParts) => {
-      batch(() => {
-        setLang(options.lang());
-        setParts(nextParts);
-      });
+      setLang(options.lang());
+      setParts(nextParts);
+      flush();
     },
     block: () => {
       if (!block) throw new Error("Subtitles widget failed to mount");

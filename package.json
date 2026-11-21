@@ -22,10 +22,14 @@
     "#config/*": "./src/config/*",
     "#stores/*": "./src/stores/*",
     "#components/*": "./src/components/*",
-    "#extension/*": "./src/extension/*"
+    "#extension/*": "./src/extension/*",
+    "#ui/*": "./src/ui/*",
+    "#solid/*": "./src/ui/solid/*",
+    "#localizationProvider": "./src/localization/localizationProvider.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.8",
+    "@solidjs/vite-plugin": "^3.0.1",
     "@storybook/addon-a11y": "^10.6.7",
     "@storybook/addon-docs": "^10.6.7",
     "@storybook/addon-vitest": "^10.6.7",
@@ -33,7 +37,7 @@
     "@types/bun": "^1.4.4",
     "@vitest/browser-playwright": "^5.1.0",
     "@vitest/coverage-v8": "^5.1.0",
-    "@wxt-dev/module-solid": "^1.1.4",
+    "@wxt-dev/module-solid": "link:@wxt-dev/module-solid",
     "lefthook": "^2.2.2",
     "npm-run-all2": "^9.0.4",
     "playwright": "^1.65.1",
@@ -42,7 +46,6 @@
     "storybook-solidjs-vite": "^10.7.4",
     "typescript": "^6.0.3",
     "vite": "^8.3.8",
-    "vite-plugin-solid": "^2.11.16",
     "vitest": "^5.1.0",
     "web-ext": "^10.8.0",
     "wxt": "^0.21.5",
@@ -81,6 +84,8 @@
     "zip:firefox": "wxt zip -b firefox"
   },
   "dependencies": {
+    "@solidjs/universal": "^2.0.1",
+    "@solidjs/web": "^2.0.1",
     "@toil/gm-types": "^1.0.6",
     "@vot.js/core": "^3.2.3",
     "@vot.js/ext": "^3.2.3",
@@ -90,7 +95,7 @@
     "chaimu": "^1.1.0",
     "googlevideo": "^5.0.1",
     "meriyah": "7.4.0",
-    "solid-js": "^1.9.19"
+    "solid-js": "^2.0.1"
   },
   "engines": {
     "node": ">=22.12.0",

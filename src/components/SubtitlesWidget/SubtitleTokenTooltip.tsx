@@ -1,7 +1,8 @@
-import { createSignal, type JSX } from "solid-js";
+import type { JSX } from "@solidjs/web";
+import { createSignal } from "solid-js";
 
-import { localizationProvider } from "../../localization/localizationProvider";
-import { render } from "../../ui/solid/renderer";
+import { localizationProvider } from "#localizationProvider";
+import { render } from "#solid/renderer.ts";
 import { Tooltip, type TooltipControls } from "../Utils/Tooltip";
 
 export type SubtitleTokenTooltipOptions = {

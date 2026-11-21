@@ -1,18 +1,17 @@
-import { createSignal, type JSX, mergeProps, Show } from "solid-js";
-
+import type { JSX } from "@solidjs/web";
 import { VideoService } from "@vot.js/ext/types/service";
 import { getVideoID } from "@vot.js/ext/utils/videoData";
 import { availableLangs, availableTTS } from "@vot.js/shared/consts";
 import type { RequestLang, ResponseLang } from "@vot.js/shared/types/data";
-import { effect } from "solid-js/web";
+import { createSignal, merge, Show } from "solid-js";
+import { t } from "#localizationProvider";
+import type { Status } from "#types/components/votButton.ts";
+import debug from "#utils/debug.ts";
+import { GM_fetch } from "#utils/gm.ts";
 import { clamp } from "#utils/number.ts";
+import { downloadBlob } from "#utils/utils.ts";
 import { AudioDownloader } from "../../audioDownloader";
-import { t } from "../../localization/localizationProvider";
 import { setSettings, settings } from "../../stores/settings";
-import type { Status } from "../../types/components/votButton";
-import debug from "../../utils/debug";
-import { GM_fetch } from "../../utils/gm";
-import { downloadBlob } from "../../utils/utils";
 import { IconButton } from "../Button/IconButton";
 import { ProgressIconButton } from "../Button/ProgressIconButton";
 import {
@@ -44,7 +43,7 @@ export type MenuHeaderContentProps = {
   onDownloadSubtitlesClick?: () => void | Promise<void>;
 };
 export function MenuHeaderContent(props: MenuHeaderContentProps): JSX.Element {
-  const finalProps = mergeProps(
+  const finalProps = merge(
     {
       showDownloadTranslation: false,
       showDownloadSubtitles: false,
@@ -242,7 +241,7 @@ export type SegmentedButtonMenuProps = {
 export function SegmentedButtonMenu(
   props: SegmentedButtonMenuProps,
 ): JSX.Element {
-  const finalProps = mergeProps(
+  const finalProps = merge(
     {
       detectedLanguage: "en",
       responseLanguage: "ru",
@@ -265,9 +264,11 @@ export function SegmentedButtonMenu(
   let languagePairSelectControls: LanguagePairSelectControls | undefined;
   let subtitlesSelectControls: SelectControls | undefined;
 
-  const [videoVolume, setVideoVolume] = createSignal(finalProps.videoVolume);
+  const [videoVolume, setVideoVolume] = createSignal(
+    () => finalProps.videoVolume,
+  );
   const [translationVolumeState, setTranslationVolume] = createSignal(
-    finalProps.translationVolume,
+    () => finalProps.translationVolume,
   );
 
   const maxTranslationVolume = () =>
@@ -279,13 +280,6 @@ export function SegmentedButtonMenu(
 
   const videoVolumeText = () => `${videoVolume()}%`;
   const translationVolumeText = () => `${translationVolume()}%`;
-
-  effect(() => {
-    setVideoVolume(finalProps.videoVolume);
-  });
-  effect(() => {
-    setTranslationVolume(finalProps.translationVolume);
-  });
 
   finalProps.controlsRef?.({
     closeFloatingUI: () => {
@@ -326,14 +320,18 @@ export function SegmentedButtonMenu(
         selectMount={finalProps.selectMount}
         onResponseLanguageSelect={(lang) => {
           const prevResponseLanguage = settings.responseLanguage;
-          setSettings("responseLanguage", lang);
+          setSettings((draft) => {
+            draft.responseLanguage = lang;
+          });
           if (
             Array.isArray(settings.dontTranslateLanguages) &&
             settings.dontTranslateLanguages.length === 1 &&
             prevResponseLanguage !== lang &&
             settings.dontTranslateLanguages[0] === prevResponseLanguage
           ) {
-            setSettings("dontTranslateLanguages", [lang]);
+            setSettings((draft) => {
+              draft.dontTranslateLanguages = [lang];
+            });
           }
 
           finalProps.onResponseLanguageSelect?.(lang);
@@ -383,7 +381,9 @@ export function SegmentedButtonMenu(
             value={translationVolume()}
             onInput={(value) => {
               setTranslationVolume(value);
-              setSettings("defaultVolume", value);
+              setSettings((draft) => {
+                draft.defaultVolume = value;
+              });
               finalProps.onTranslationVolumeInput?.(value);
             }}
           />

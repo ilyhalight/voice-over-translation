@@ -1,5 +1,6 @@
 import { createSignal, onCleanup } from "solid-js";
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
+
 import { DownloadIcon } from "../Icons/DownloadIcon";
 import { startProgressAnimation } from "../Icons/ProgressIcon.stories";
 import { ProgressIconButton } from "./ProgressIconButton";

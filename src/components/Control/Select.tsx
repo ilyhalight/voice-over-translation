@@ -1,15 +1,14 @@
+import type { JSX } from "@solidjs/web";
 import {
   createEffect,
   createMemo,
   createSignal,
   createUniqueId,
   For,
-  type JSX,
-  mergeProps,
-  onCleanup,
+  merge,
   Show,
+  untrack,
 } from "solid-js";
-import { effect } from "solid-js/web";
 
 import { t } from "../../localization/localizationProvider";
 import type { LanguageSelectKey } from "../../types/components/select";
@@ -90,7 +89,7 @@ export type SelectProps = BaseSelectProps &
   (SingleSelectProps | MultiSelectProps);
 
 export function Select(props: SelectProps): JSX.Element {
-  const finalProps = mergeProps(
+  const finalProps = merge(
     {
       disabled: false,
       multiple: false,
@@ -104,20 +103,23 @@ export function Select(props: SelectProps): JSX.Element {
     props,
   );
 
-  let outerRef!: HTMLElement;
-  let innerRef!: HTMLElement;
+  const [outerRef, setOuterRef] = createSignal<HTMLElement>();
+  const [innerRef, setInnerRef] = createSignal<HTMLElement>();
   let searchRequestId = 0;
 
   const selectId = createUniqueId();
   const [selectedValues, setSelectedValues] = createSignal(
-    new Set<SelectValue>(
-      finalProps.multiple
-        ? finalProps.selectedValues
-        : [finalProps.selectedValue],
+    untrack(
+      () =>
+        new Set<SelectValue>(
+          finalProps.multiple
+            ? finalProps.selectedValues
+            : [finalProps.selectedValue],
+        ),
     ),
   );
   const [searchQuery, setSearchQuery] = createSignal("");
-  const [isOpen, setIsOpen] = createSignal(finalProps.isOpen);
+  const [isOpen, setIsOpen] = createSignal(() => finalProps.isOpen);
   const [isSearching, setIsSearching] = createSignal(false);
 
   const [searchOptions, setSearchOptions] = createSignal<
@@ -172,32 +174,31 @@ export function Select(props: SelectProps): JSX.Element {
     );
   });
 
-  effect(() => {
-    const nextSelectedValues = new Set<SelectValue>(
-      finalProps.multiple
-        ? finalProps.selectedValues
-        : [finalProps.selectedValue],
-    );
-    setSelectedValues(nextSelectedValues);
-    setSelectedOptionCache((previous) => {
-      const next = new Map<SelectValue, SelectOption>();
-      for (const [value, option] of previous) {
-        if (nextSelectedValues.has(value)) {
-          next.set(value, option);
+  createEffect(
+    () =>
+      new Set<SelectValue>(
+        finalProps.multiple
+          ? finalProps.selectedValues
+          : [finalProps.selectedValue],
+      ),
+    (nextSelectedValues) => {
+      setSelectedValues(nextSelectedValues);
+      setSelectedOptionCache((previous) => {
+        const next = new Map<SelectValue, SelectOption>();
+        for (const [value, option] of previous) {
+          if (nextSelectedValues.has(value)) {
+            next.set(value, option);
+          }
         }
-      }
 
-      return next;
-    });
-  });
-
-  effect(() => {
-    setIsOpen(finalProps.isOpen);
-  });
+        return next;
+      });
+    },
+  );
 
   createFloatingPosition({
-    anchor: () => outerRef,
-    popup: () => innerRef,
+    anchor: outerRef,
+    popup: innerRef,
     isOpen,
     mount: finalProps.mount,
     onOutsideScroll: () => closeSelect(),
@@ -206,47 +207,54 @@ export function Select(props: SelectProps): JSX.Element {
     ),
   });
 
-  createEffect(() => {
-    if (!isOpen()) {
-      return;
-    }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const path = event.composedPath();
-      if (!path.includes(innerRef) && !path.includes(outerRef)) {
-        closeSelect();
-      }
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (
-        event.key !== "Escape" ||
-        !event
-          .composedPath()
-          .some((element) => element === innerRef || element === outerRef)
-      ) {
+  createEffect(
+    () => isOpen(),
+    (isOpenResult) => {
+      if (!isOpenResult) {
         return;
       }
 
-      event.preventDefault();
-      event.stopPropagation();
-      closeSelect();
-      outerRef.focus();
-    };
+      const handlePointerDown = (event: PointerEvent) => {
+        const outer = outerRef();
+        const inner = innerRef();
+        const path = event.composedPath();
+        if (outer && inner && !path.includes(inner) && !path.includes(outer)) {
+          closeSelect();
+        }
+      };
 
-    window.addEventListener("pointerdown", handlePointerDown, {
-      capture: true,
-      passive: true,
-    });
-    window.addEventListener("keydown", handleKeyDown, true);
+      const handleKeyDown = (event: KeyboardEvent) => {
+        const outer = outerRef();
+        const inner = innerRef();
+        if (
+          event.key !== "Escape" ||
+          !event
+            .composedPath()
+            .some((element) => element === inner || element === outer)
+        ) {
+          return;
+        }
 
-    onCleanup(() => {
-      window.removeEventListener("pointerdown", handlePointerDown, {
+        event.preventDefault();
+        event.stopPropagation();
+        closeSelect();
+        outer?.focus();
+      };
+
+      window.addEventListener("pointerdown", handlePointerDown, {
         capture: true,
+        passive: true,
       });
-      window.removeEventListener("keydown", handleKeyDown, true);
-    });
-  });
+      window.addEventListener("keydown", handleKeyDown, true);
+
+      return () => {
+        window.removeEventListener("pointerdown", handlePointerDown, {
+          capture: true,
+        });
+        window.removeEventListener("keydown", handleKeyDown, true);
+      };
+    },
+  );
 
   function singleSelectHandle(option: SelectOption) {
     setSelectedValues(new Set([option.value]));
@@ -257,40 +265,21 @@ export function Select(props: SelectProps): JSX.Element {
 
   function multiSelectHandle(option: SelectOption) {
     const value = option.value;
-    const currentSelectedValues = selectedValues();
-    if (!currentSelectedValues.has(value)) {
-      setSelectedOptionCache((previous) => {
-        const next = new Map(previous);
-        next.set(value, option);
-        return next;
-      });
-      setSelectedValues((prev) => {
-        const next = new Set(prev);
-        next.add(value);
-        return next;
-      });
-      return finalProps.onSelectionChange?.(
-        Array.from(selectedValues()),
-        option,
-      );
-    }
-
-    if (currentSelectedValues.size <= finalProps.minSelected) {
+    const current = selectedValues();
+    if (current.has(value) && current.size <= finalProps.minSelected) {
       return;
     }
 
+    const next = new Set(current);
+    const isAdded = !current.has(value);
+    isAdded ? next.add(value) : next.delete(value);
+    setSelectedValues(next);
     setSelectedOptionCache((previous) => {
-      const next = new Map(previous);
-      next.delete(value);
-      return next;
+      const nextCache = new Map(previous);
+      isAdded ? nextCache.set(value, option) : nextCache.delete(value);
+      return nextCache;
     });
-    setSelectedValues((prev) => {
-      const next = new Set(prev);
-      next.delete(value);
-      return next;
-    });
-
-    finalProps.onSelectionChange?.(Array.from(selectedValues()), option);
+    finalProps.onSelectionChange?.(Array.from(next), option);
   }
 
   function handleSelectOption(option: SelectOption) {
@@ -356,7 +345,9 @@ export function Select(props: SelectProps): JSX.Element {
         <vot-block class="vot-select-label">{finalProps.children}</vot-block>
       </Show>
       <RawButton
-        ref={(el) => (outerRef = el)}
+        ref={(el) => {
+          setOuterRef(el);
+        }}
         class="vot-select-outer"
         buttonProps={{
           "aria-haspopup": "listbox",
@@ -379,11 +370,13 @@ export function Select(props: SelectProps): JSX.Element {
         </vot-block>
       </RawButton>
       <vot-block
-        class="vot-select-inner"
-        classList={{
+        class={{
+          "vot-select-inner": true,
           "vot-select-inner__static-width": isSearchActive(),
         }}
-        ref={innerRef}
+        ref={(el) => {
+          setInnerRef(el);
+        }}
         id={selectId}
         hidden={!isOpen()}
       >

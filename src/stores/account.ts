@@ -1,5 +1,5 @@
 import type VOTClient from "@vot.js/ext";
-import { createStore } from "solid-js/store";
+import { createStore } from "solid-js";
 
 import type { Account, StorageData } from "../types/storage";
 import { hasValidAccountToken, isAccountExpired } from "../utils/account";
@@ -35,15 +35,12 @@ export const [account, setAccount] = createStore<AccountStore>(
 );
 
 export function resetAccount() {
-  setAccount(createInitialState());
+  setAccount(() => createInitialState());
 }
 
 export function updateAccount(data: Partial<Account>) {
   if (hasValidAccountToken(data)) {
-    return setAccount({
-      isLoggedIn: true,
-      ...data,
-    });
+    return setAccount((draft) => ({ ...draft, isLoggedIn: true, ...data }));
   }
 
   resetAccount();

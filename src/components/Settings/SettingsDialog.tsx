@@ -1,5 +1,6 @@
-import type { JSX } from "solid-js";
-import { t } from "../../localization/localizationProvider";
+import type { JSX } from "@solidjs/web";
+
+import { t } from "#localizationProvider";
 import { AboutSection } from "../About/AboutSection";
 import { AccountMenu, type AccountMenuProps } from "../Account/AccountMenu";
 import { Dialog, type DialogProps } from "../Dialog/Dialog";

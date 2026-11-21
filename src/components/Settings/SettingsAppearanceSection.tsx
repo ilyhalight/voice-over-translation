@@ -1,11 +1,9 @@
-import type { JSX } from "solid-js";
-import {
-  localizationProvider,
-  t,
-} from "../../localization/localizationProvider";
+import type { JSX } from "@solidjs/web";
+
+import { localizationProvider, t } from "#localizationProvider";
+import { type Position, positions } from "#types/components/votButton.ts";
+import { type QuickActionSlot, quickActions } from "#ui/quickAction.ts";
 import { setSettings, settings } from "../../stores/settings";
-import { type Position, positions } from "../../types/components/votButton";
-import { type QuickActionSlot, quickActions } from "../../ui/quickAction";
 import {
   genSelectOptionsByLangs,
   Select,
@@ -82,7 +80,9 @@ export function SettingsAppearanceSection(
           step={STEP_AUTO_HIDE_BUTTON_DELAY}
           value={settings.autoHideButtonDelay}
           onInput={(val) => {
-            setSettings("autoHideButtonDelay", val);
+            setSettings((draft) => {
+              draft.autoHideButtonDelay = val;
+            });
             props.onAutoHideButtonDelayInput?.(val);
           }}
         />
@@ -92,7 +92,9 @@ export function SettingsAppearanceSection(
         options={buttonPositionOptions}
         selectedValue={settings.buttonPos}
         onSelect={(option) => {
-          setSettings("buttonPos", option.value as Position);
+          setSettings((draft) => {
+            draft.buttonPos = option.value as Position;
+          });
           props.onButtonPositionSelect?.(option);
         }}
       >

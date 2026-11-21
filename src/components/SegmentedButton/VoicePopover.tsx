@@ -1,16 +1,15 @@
+import type { JSX } from "@solidjs/web";
 import {
   createEffect,
   createSignal,
   createUniqueId,
-  type JSX,
-  mergeProps,
-  on,
+  merge,
   onCleanup,
 } from "solid-js";
 
-import { t } from "../../localization/localizationProvider";
-import { render } from "../../ui/solid/renderer";
-import { clamp } from "../../utils/number";
+import { t } from "#localizationProvider";
+import { insert } from "#solid/renderer.ts";
+import { clamp } from "#utils/number.ts";
 import { LiveVoiceIcon } from "../Icons/LiveVoiceIcon";
 import { StandardVoiceIcon } from "../Icons/StandartVoiceIcon";
 import { createFloatingPosition } from "../Utils/createFloatingPosition";
@@ -65,7 +64,7 @@ function getColumnPlacement(
 }
 
 export function VoicePopover(props: VoicePopoverProps): JSX.Element {
-  const finalProps = mergeProps(
+  const finalProps = merge(
     {
       isOpen: false,
       showDelay: DEFAULT_SHOW_DELAY_MS,
@@ -79,8 +78,10 @@ export function VoicePopover(props: VoicePopoverProps): JSX.Element {
   portalHost.style.display = "contents";
 
   const [popover, setPopover] = createSignal<HTMLElement>();
-  const [isOpen, setIsOpen] = createSignal(finalProps.isOpen);
-  const [activeVoice, setActiveVoice] = createSignal(finalProps.activeVoice);
+  const [isOpen, setIsOpen] = createSignal(() => finalProps.isOpen);
+  const [activeVoice, setActiveVoice] = createSignal(
+    () => finalProps.activeVoice,
+  );
 
   let showTimer: ReturnType<typeof setTimeout> | undefined;
   let hideTimer: ReturnType<typeof setTimeout> | undefined;
@@ -294,99 +295,97 @@ export function VoicePopover(props: VoicePopoverProps): JSX.Element {
     hideNow();
   }
 
-  createEffect(() => {
-    setActiveVoice(finalProps.activeVoice);
-  });
+  createEffect(
+    () => anchor(),
+    (currentAnchor) => {
+      const previousControls = currentAnchor.getAttribute("aria-controls");
+      const previousHasPopup = currentAnchor.getAttribute("aria-haspopup");
+      const previousExpanded = currentAnchor.getAttribute("aria-expanded");
+      const handleAnchorKeyDown = (event: KeyboardEvent) => {
+        if (event.key === "Escape" && isOpen()) {
+          event.preventDefault();
+          hideNow();
+        }
+      };
+      currentAnchor.setAttribute("aria-controls", popoverId);
+      currentAnchor.setAttribute("aria-haspopup", "menu");
+      currentAnchor.addEventListener("keydown", handleAnchorKeyDown);
 
-  createEffect(() => {
-    setIsOpen(finalProps.isOpen);
-  });
-
-  createEffect(() => {
-    const currentAnchor = anchor();
-    const previousControls = currentAnchor.getAttribute("aria-controls");
-    const previousHasPopup = currentAnchor.getAttribute("aria-haspopup");
-    const previousExpanded = currentAnchor.getAttribute("aria-expanded");
-    const handleAnchorKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && isOpen()) {
-        event.preventDefault();
-        hideNow();
-      }
-    };
-    currentAnchor.setAttribute("aria-controls", popoverId);
-    currentAnchor.setAttribute("aria-haspopup", "menu");
-    currentAnchor.addEventListener("keydown", handleAnchorKeyDown);
-
-    onCleanup(() => {
-      currentAnchor.removeEventListener("keydown", handleAnchorKeyDown);
-      if (previousControls === null) {
-        currentAnchor.removeAttribute("aria-controls");
-      } else {
-        currentAnchor.setAttribute("aria-controls", previousControls);
-      }
-      if (previousHasPopup === null) {
-        currentAnchor.removeAttribute("aria-haspopup");
-      } else {
-        currentAnchor.setAttribute("aria-haspopup", previousHasPopup);
-      }
-      if (previousExpanded === null) {
-        currentAnchor.removeAttribute("aria-expanded");
-      } else {
-        currentAnchor.setAttribute("aria-expanded", previousExpanded);
-      }
-    });
-  });
-
-  createEffect(() => {
-    anchor().setAttribute("aria-expanded", isOpen().toString());
-  });
-
-  createEffect(() => {
-    const element = popover();
-    if (!isOpen() || !element) {
-      return;
-    }
-    const currentAnchor = anchor();
-
-    const handleOutsidePointerDown = (event: PointerEvent) => {
-      const path = event.composedPath();
-      if (path.includes(element) || path.includes(currentAnchor)) {
-        return;
-      }
-      hideNow();
-    };
-    const updatePosition = () => floatingPosition.update();
-
-    document.addEventListener("pointerdown", handleOutsidePointerDown, {
-      capture: true,
-      passive: true,
-    });
-    window.visualViewport?.addEventListener("scroll", updatePosition);
-    window.visualViewport?.addEventListener("resize", updatePosition);
-
-    onCleanup(() => {
-      document.removeEventListener("pointerdown", handleOutsidePointerDown, {
-        capture: true,
-      });
-      window.visualViewport?.removeEventListener("scroll", updatePosition);
-      window.visualViewport?.removeEventListener("resize", updatePosition);
-    });
-  });
+      return () => {
+        currentAnchor.removeEventListener("keydown", handleAnchorKeyDown);
+        if (previousControls === null) {
+          currentAnchor.removeAttribute("aria-controls");
+        } else {
+          currentAnchor.setAttribute("aria-controls", previousControls);
+        }
+        if (previousHasPopup === null) {
+          currentAnchor.removeAttribute("aria-haspopup");
+        } else {
+          currentAnchor.setAttribute("aria-haspopup", previousHasPopup);
+        }
+        if (previousExpanded === null) {
+          currentAnchor.removeAttribute("aria-expanded");
+        } else {
+          currentAnchor.setAttribute("aria-expanded", previousExpanded);
+        }
+      };
+    },
+  );
 
   createEffect(
-    on(
-      () => [
-        finalProps.activeVoice,
-        finalProps.anchor,
-        finalProps.layoutRoot,
-        isOpen(),
-      ],
-      () => {
-        if (isOpen()) {
-          floatingPosition.update();
+    () => ({ currentAnchor: anchor(), isExpanded: isOpen() }),
+    ({ currentAnchor, isExpanded }) => {
+      currentAnchor.setAttribute("aria-expanded", isExpanded.toString());
+    },
+  );
+
+  createEffect(
+    () => ({
+      element: popover(),
+      isClosed: !isOpen(),
+      currentAnchor: anchor(),
+    }),
+    ({ element, isClosed, currentAnchor }) => {
+      if (isClosed || !element) {
+        return;
+      }
+
+      const handleOutsidePointerDown = (event: PointerEvent) => {
+        const path = event.composedPath();
+        if (path.includes(element) || path.includes(currentAnchor)) {
+          return;
         }
-      },
-    ),
+        hideNow();
+      };
+      const updatePosition = () => floatingPosition.update();
+
+      document.addEventListener("pointerdown", handleOutsidePointerDown, {
+        capture: true,
+        passive: true,
+      });
+      window.visualViewport?.addEventListener("scroll", updatePosition);
+      window.visualViewport?.addEventListener("resize", updatePosition);
+
+      return () => {
+        document.removeEventListener("pointerdown", handleOutsidePointerDown, {
+          capture: true,
+        });
+        window.visualViewport?.removeEventListener("scroll", updatePosition);
+        window.visualViewport?.removeEventListener("resize", updatePosition);
+      };
+    },
+  );
+
+  createEffect(
+    () => ({
+      activeVoice: finalProps.activeVoice,
+      anchor: finalProps.anchor,
+      layoutRoot: finalProps.layoutRoot,
+      isOpen: isOpen(),
+    }),
+    ({ isOpen }) => {
+      if (isOpen) floatingPosition.update();
+    },
   );
 
   onCleanup(() => {
@@ -403,12 +402,12 @@ export function VoicePopover(props: VoicePopoverProps): JSX.Element {
     const isActive = () => activeVoice() === voice;
     return (
       <vot-block
-        classList={{
+        class={{
           "vot-voice-popover__item": true,
           "vot-voice-popover__item--active": isActive(),
         }}
         role="menuitemradio"
-        tabIndex={isActive() ? 0 : -1}
+        tabindex={isActive() ? 0 : -1}
         aria-checked={isActive()}
         data-voice={voice}
         onClick={(event) => {
@@ -491,9 +490,9 @@ export function VoicePopover(props: VoicePopoverProps): JSX.Element {
     </vot-block>
   );
 
-  const disposePopover = render(() => popoverView() as Node, portalHost);
+  insert(portalHost, popoverView);
   onCleanup(() => {
-    disposePopover();
+    portalHost.replaceChildren();
     portalHost.remove();
   });
 

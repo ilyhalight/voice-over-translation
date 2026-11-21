@@ -1,8 +1,9 @@
 import { createSignal, Show } from "solid-js";
 import { expect, fn, userEvent, waitFor } from "storybook/test";
 import type { Meta, StoryObj } from "storybook-solidjs-vite";
-import { t } from "../../localization/localizationProvider";
-import type { Status } from "../../types/components/votButton";
+
+import { t } from "#localizationProvider";
+import type { Status } from "#types/components/votButton.ts";
 import { SegmentedButton } from "./SegmentedButton";
 import { SegmentedButtonOverlay } from "./SegmentedButtonOverlay";
 
@@ -305,13 +306,15 @@ const playColumnTouchVoiceSelection = (canvasElement: HTMLElement) => {
   }
 
   dispatchPrimaryPointerUp(translateButton, "touch");
-  const popover =
+  // Solid 2 defers popover rendering past the synchronous pointerup, so
+  // stories re-query the live element instead of trusting a stale handle.
+  const getPopover = () =>
     canvasElement.ownerDocument.querySelector<HTMLElement>(
       ".vot-voice-popover",
     );
   return {
     translateButton,
-    popover,
+    getPopover,
   };
 };
 
@@ -321,10 +324,17 @@ export const SegmentedButtonColumnTouchVoiceSelection: Story = {
     labelText: t("translateVideo"),
     onTranslateClick: fn(),
   },
-  play: ({ args, canvasElement }) => {
-    const { popover } = playColumnTouchVoiceSelection(canvasElement);
+  play: async ({ args, canvasElement }) => {
+    const selection = playColumnTouchVoiceSelection(canvasElement);
+    if (!selection) {
+      return;
+    }
     expect(args.onTranslateClick).not.toHaveBeenCalled();
-    expect(popover?.hidden).toBe(false);
+    await waitFor(() => {
+      const popover = selection.getPopover();
+      expect(popover).not.toBeNull();
+      expect(popover?.hidden).toBe(false);
+    });
   },
 };
 
@@ -336,8 +346,11 @@ export const SegmentedButtonColumnTouchError: Story = {
     status: "error",
   },
   play: ({ args, canvasElement }) => {
-    const { popover } = playColumnTouchVoiceSelection(canvasElement);
+    const selection = playColumnTouchVoiceSelection(canvasElement);
+    if (!selection) {
+      return;
+    }
     expect(args.onTranslateClick).toHaveBeenCalledTimes(1);
-    expect(popover?.hidden).not.toBe(false);
+    expect(selection.getPopover()?.hidden).not.toBe(false);
   },
 };

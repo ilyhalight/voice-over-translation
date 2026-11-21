@@ -1,15 +1,11 @@
-import {
-  createEffect,
-  createUniqueId,
-  type JSX,
-  onCleanup,
-  Show,
-} from "solid-js";
-import { t } from "../../localization/localizationProvider";
+import type { JSX } from "@solidjs/web";
+import { createEffect, createUniqueId, Show } from "solid-js";
+
+import { t } from "#localizationProvider";
 import { getDeepActiveElement } from "../../utils/dom";
 import { IconButton } from "../Button/IconButton";
-import { Overlay } from "../Utils/Overlay";
 import { CloseIcon } from "../Icons/CloseIcon";
+import { Overlay } from "../Utils/Overlay";
 
 export type DialogProps = {
   title: JSX.Element;
@@ -138,37 +134,42 @@ export function Dialog(props: DialogProps): JSX.Element {
     }
   };
 
-  createEffect(() => {
-    if (!props.isOpen) return;
-    previouslyFocused ??= getDeepActiveElement(document);
-    if (typeof ResizeObserver !== "undefined" && contentWrapper) {
-      adaptiveAlignObserver = new ResizeObserver(scheduleAdaptiveVerticalAlign);
-      adaptiveAlignObserver.observe(contentWrapper);
-    }
-    globalThis.addEventListener("resize", scheduleAdaptiveVerticalAlign, {
-      passive: true,
-    });
-    globalThis.visualViewport?.addEventListener(
-      "resize",
-      scheduleAdaptiveVerticalAlign,
-      { passive: true },
-    );
-    globalThis.visualViewport?.addEventListener(
-      "scroll",
-      scheduleAdaptiveVerticalAlign,
-      { passive: true },
-    );
-    scheduleAdaptiveVerticalAlign();
-    queueMicrotask(() => {
-      if (props.isOpen) {
-        (getFocusableElements()[0] ?? closeButton ?? box)?.focus();
+  createEffect(
+    () => props.isOpen,
+    (isOpen) => {
+      if (!isOpen) return;
+      previouslyFocused ??= getDeepActiveElement(document);
+      if (typeof ResizeObserver !== "undefined" && contentWrapper) {
+        adaptiveAlignObserver = new ResizeObserver(
+          scheduleAdaptiveVerticalAlign,
+        );
+        adaptiveAlignObserver.observe(contentWrapper);
       }
-    });
-    onCleanup(() => {
-      detachAdaptiveVerticalAlign();
-      restoreFocus();
-    });
-  });
+      globalThis.addEventListener("resize", scheduleAdaptiveVerticalAlign, {
+        passive: true,
+      });
+      globalThis.visualViewport?.addEventListener(
+        "resize",
+        scheduleAdaptiveVerticalAlign,
+        { passive: true },
+      );
+      globalThis.visualViewport?.addEventListener(
+        "scroll",
+        scheduleAdaptiveVerticalAlign,
+        { passive: true },
+      );
+      scheduleAdaptiveVerticalAlign();
+      queueMicrotask(() => {
+        if (props.isOpen) {
+          (getFocusableElements()[0] ?? closeButton ?? box)?.focus();
+        }
+      });
+      return () => {
+        detachAdaptiveVerticalAlign();
+        restoreFocus();
+      };
+    },
+  );
 
   return (
     <Overlay
@@ -177,7 +178,7 @@ export function Dialog(props: DialogProps): JSX.Element {
         props.ref?.(element);
       }}
       hidden={!props.isOpen}
-      classList={{ "vot-dialog-container": true }}
+      class={{ "vot-dialog-container": true }}
       blockProps={{
         inert: props.isOpen ? undefined : true,
         onKeyDown: handleKeyDown,
@@ -197,7 +198,7 @@ export function Dialog(props: DialogProps): JSX.Element {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        tabIndex={-1}
+        tabindex="-1"
         onClick={(event) => event.stopPropagation()}
       >
         <vot-block

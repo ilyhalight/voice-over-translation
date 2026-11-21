@@ -1,4 +1,5 @@
-import { type JSX, mergeProps } from "solid-js";
+import type { JSX } from "@solidjs/web";
+import { merge } from "solid-js";
 
 export type SliderLabelProps = {
   children: JSX.Element;
@@ -22,7 +23,7 @@ export function SliderLabelDesc(props: SliderLabelDescProps): JSX.Element {
 }
 
 export function SliderLabel(props: SliderLabelProps): JSX.Element {
-  const finalProps = mergeProps(
+  const finalProps = merge(
     {
       disabled: false,
       value: "0",

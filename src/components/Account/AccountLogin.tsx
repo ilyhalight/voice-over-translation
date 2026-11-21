@@ -1,10 +1,8 @@
-import { type JSX, mergeProps } from "solid-js";
-import { produce } from "solid-js/store";
-
+import type { JSX } from "@solidjs/web";
+import { t } from "#localizationProvider";
 import { YANDEX_TOKEN_DEFAULT_LIFETIME } from "#modules/auth/consts.ts";
-import { t } from "../../localization/localizationProvider";
+import { votStorage } from "#utils/storage.ts";
 import { setAccount } from "../../stores/account";
-import { votStorage } from "../../utils/storage";
 import { Textfield } from "../Textfield/Textfield";
 import { OrBlock } from "../Utils/OrBlock";
 import { AccountRefreshButton } from "./AccountRefreshButton";
@@ -16,18 +14,16 @@ export type AccountLoginProps = {
 };
 
 export function AccountLogin(props: AccountLoginProps): JSX.Element {
-  const finalProps = mergeProps(
-    { disableExternalLogin: votStorage.isSupportOnlyLS },
-    props,
-  );
+  const disableExternalLogin = () =>
+    props.disableExternalLogin ?? votStorage.isSupportOnlyLS;
 
   return (
-    <vot-block ref={finalProps.ref} class="vot-account-login">
+    <vot-block ref={props.ref} class="vot-account-login">
       <vot-block
         class="vot-account-login__btn"
-        aria-disabled={finalProps.disableExternalLogin}
+        aria-disabled={disableExternalLogin()}
         onClick={() => {
-          if (finalProps.disableExternalLogin) {
+          if (disableExternalLogin()) {
             return;
           }
 
@@ -54,13 +50,11 @@ export function AccountLogin(props: AccountLoginProps): JSX.Element {
             const isLoggedIn = Boolean(value);
 
             await votStorage.set("account", { ...data });
-            setAccount(
-              produce((state) => {
-                state.token = data.token;
-                state.expires = data.expires;
-                state.isLoggedIn = isLoggedIn;
-              }),
-            );
+            setAccount((state) => {
+              state.token = data.token;
+              state.expires = data.expires;
+              state.isLoggedIn = isLoggedIn;
+            });
           }}
         />
         <AccountRefreshButton />

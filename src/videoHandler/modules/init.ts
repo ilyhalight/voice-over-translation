@@ -1,10 +1,15 @@
+import { getDefaultSendErrorReports } from "#modules/telemetry/consent.ts";
 import {
   createDefaultUpdaterInfo,
   setUpdaterInfo,
 } from "#modules/updater/store.ts";
+import type { LanguageSelectKey } from "#types/components/select.ts";
+import { normalizeButtonPosition } from "#ui/buttonPlacement.ts";
+import { IS_PROXY_ONLY_EXTENSION } from "#utils/gm.ts";
 import logger from "#utils/logger.ts";
+import { updateConfig, votStorage } from "#utils/storage.ts";
+import { calculatedResLang } from "#utils/utils.ts";
 import { ACTUAL_COMPAT_VERSION, m3u8ProxyHost } from "../../config/config";
-import { getDefaultSendErrorReports } from "../../modules/telemetry/consent";
 import { updateAccount } from "../../stores/account";
 import { setLocale } from "../../stores/locale";
 import {
@@ -12,11 +17,6 @@ import {
   pickSettings,
   setSettings,
 } from "../../stores/settings";
-import type { LanguageSelectKey } from "../../types/components/select";
-import { normalizeButtonPosition } from "../../ui/buttonPlacement";
-import { IS_PROXY_ONLY_EXTENSION } from "../../utils/gm";
-import { updateConfig, votStorage } from "../../utils/storage";
-import { calculatedResLang } from "../../utils/utils";
 import type { VideoHandler } from "../../VideoHandler";
 
 export async function init(this: VideoHandler) {
@@ -45,15 +45,19 @@ export async function init(this: VideoHandler) {
   }
 
   updateAccount(this.data.account);
-  setLocale({
-    updatedAt: this.data.localeUpdatedAt,
-    hash: this.data.localeHash,
+  setLocale((draft) => {
+    draft.updatedAt = this.data.localeUpdatedAt;
+    draft.hash = this.data.localeHash;
   });
-  setSettings({
+  setSettings((draft) => ({
+    ...draft,
     ...pickSettings(this.data),
     buttonPos: normalizeButtonPosition(this.data.buttonPos),
-  });
-  setUpdaterInfo(this.data.updaterInfo);
+  }));
+  setUpdaterInfo((draft) => ({
+    ...draft,
+    ...this.data.updaterInfo,
+  }));
 
   try {
     if (

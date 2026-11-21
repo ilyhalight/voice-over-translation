@@ -686,11 +686,11 @@ export class VOTVideoManager {
   /**
    * Syncs the video volume slider with the actual video volume.
    */
-  syncVideoVolumeSlider() {
+  syncVideoVolumeSlider(): number | null {
     const overlayViewControls =
       this.videoHandler.uiManager.votOverlayView?.overlayViewControls;
     if (!overlayViewControls) {
-      return this;
+      return null;
     }
 
     const volumePercent = this.isMuted()
@@ -701,7 +701,7 @@ export class VOTVideoManager {
 
     // Keep syncVolume delta state aligned with programmatic slider updates.
     this.videoHandler.onVideoVolumeSliderSynced?.(volumePercent);
-    return this;
+    return volumePercent;
   }
 
   setSelectMenuValues(from: RequestLang, to: ResponseLang): this {

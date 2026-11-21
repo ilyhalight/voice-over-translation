@@ -865,7 +865,9 @@ export class VideoHandler {
         PROXY_ONLY_COUNTRIES.includes(getCountryCode() ?? "")
       ) {
         this.data.translateProxyEnabled = 2;
-        setSettings("translateProxyEnabled", 2);
+        setSettings((draft) => {
+          draft.translateProxyEnabled = 2;
+        });
       }
       await this.initVOTClient();
       return this;
@@ -1376,12 +1378,11 @@ export class VideoHandler {
 
   /**
    * Called after translation is updated.
-   * @param {string} audioUrl The URL of the translation audio.
+   * @param audioUrl The URL of the translation audio.
    */
-  afterUpdateTranslation(audioUrl) {
+  afterUpdateTranslation(audioUrl: string, isSuccess: boolean) {
     const overlayView = this.uiManager.votOverlayView;
     const overlayViewControls = overlayView?.overlayViewControls;
-    const isSuccess = overlayViewControls?.getStatus() === "success";
     if (overlayViewControls) {
       overlayViewControls.setShowTranslationVolume(isSuccess);
       this.resetVolumeLinkState(

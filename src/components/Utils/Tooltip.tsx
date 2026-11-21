@@ -1,17 +1,14 @@
+import type { JSX } from "@solidjs/web";
 import {
   createEffect,
   createSignal,
   createUniqueId,
-  type JSX,
-  mergeProps,
-  on,
+  merge,
   onCleanup,
   Show,
   untrack,
 } from "solid-js";
-
-import { getHostElement } from "#utils/dom.ts";
-import { clamp } from "#utils/number.ts";
+import { insert } from "#solid/renderer.ts";
 import {
   type PagePosition,
   type Position,
@@ -21,8 +18,9 @@ import {
   type Trigger,
   tooltipModes,
   triggers,
-} from "../../types/components/tooltip";
-import { render } from "../../ui/solid/renderer";
+} from "#types/components/tooltip.ts";
+import { getHostElement } from "#utils/dom.ts";
+import { clamp } from "#utils/number.ts";
 import { createFloatingPosition } from "./createFloatingPosition";
 
 type AnchorBox = {
@@ -84,7 +82,7 @@ function isEventInside(event: Event, element: Node): boolean {
 }
 
 export function Tooltip(props: TooltipProps): JSX.Element {
-  const finalProps = mergeProps(
+  const finalProps = merge(
     {
       position: DEFAULT_TOOLTIP_POS,
       trigger: DEFAULT_TOOLTIP_TRIGGER,
@@ -104,7 +102,7 @@ export function Tooltip(props: TooltipProps): JSX.Element {
   const [isVisible, setIsVisible] = createSignal(false);
   const [isPositioned, setIsPositioned] = createSignal(false);
   const [resolvedPosition, setResolvedPosition] = createSignal(
-    normalizePosition(finalProps.position),
+    untrack(() => normalizePosition(finalProps.position)),
   );
   const portalHost = document.createElement("vot-block");
   portalHost.style.display = "contents";
@@ -375,7 +373,10 @@ export function Tooltip(props: TooltipProps): JSX.Element {
     resizeTargets: () => [anchor(), edgeAnchor()],
   });
 
-  function syncAriaDescribedBy(showing: boolean): void {
+  function syncAriaDescribedBy(
+    showing: boolean,
+    currentTarget?: HTMLElement,
+  ): void {
     if (!showing) {
       if (!describedTarget) {
         return;
@@ -393,15 +394,15 @@ export function Tooltip(props: TooltipProps): JSX.Element {
       return;
     }
 
-    const currentTarget = target();
-    if (describedTarget === currentTarget) {
+    const resolvedTarget = currentTarget ?? target();
+    if (describedTarget === resolvedTarget) {
       return;
     }
     if (describedTarget) {
-      syncAriaDescribedBy(false);
+      syncAriaDescribedBy(false, resolvedTarget);
     }
 
-    describedTarget = currentTarget;
+    describedTarget = resolvedTarget;
     previousAriaDescribedBy = describedTarget.getAttribute("aria-describedby");
     const tokens = new Set(
       (previousAriaDescribedBy ?? "").split(/\s+/).filter(Boolean),
@@ -420,15 +421,15 @@ export function Tooltip(props: TooltipProps): JSX.Element {
     }
   }
 
-  function finishClose(): void {
+  function finishClose(force = false): void {
     clearDestroyTimer();
-    if (!isVisible()) {
+    if (force || !isVisible()) {
       setIsMounted(false);
     }
   }
 
   function hide(instant = false): void {
-    if (!isMounted()) {
+    if (!untrack(isMounted)) {
       return;
     }
     if (showFrame !== undefined) {
@@ -439,7 +440,7 @@ export function Tooltip(props: TooltipProps): JSX.Element {
     setIsPositioned(false);
     syncAriaDescribedBy(false);
     if (instant) {
-      finishClose();
+      finishClose(true);
       return;
     }
     clearDestroyTimer();
@@ -476,123 +477,138 @@ export function Tooltip(props: TooltipProps): JSX.Element {
     );
   }
 
-  createEffect(() => {
-    const currentTarget = target();
-    const currentTrigger = trigger();
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        hide();
-        return;
-      }
-      if (
-        currentTrigger === "click" &&
-        !event.repeat &&
-        (event.key === "Enter" || event.key === " ")
-      ) {
-        event.preventDefault();
+  createEffect(
+    () => ({ currentTarget: target(), currentTrigger: trigger() }),
+    ({ currentTarget, currentTrigger }) => {
+      const handleKeyDown = (event: KeyboardEvent) => {
+        if (event.key === "Escape") {
+          hide();
+          return;
+        }
+        if (
+          currentTrigger === "click" &&
+          !event.repeat &&
+          (event.key === "Enter" || event.key === " ")
+        ) {
+          event.preventDefault();
+          if (isVisible()) {
+            hide();
+          } else {
+            show();
+          }
+        }
+      };
+      const handleClick = () => {
         if (isVisible()) {
           hide();
         } else {
           show();
         }
-      }
-    };
-    const handleClick = () => {
-      if (isVisible()) {
-        hide();
+      };
+      const handlePointerEnter = () => show();
+      const handleContextLeave = (event: PointerEvent | FocusEvent) => {
+        if (!isInTooltipContext(event.relatedTarget)) {
+          hide();
+        }
+      };
+      const handleTouchPointerDown = (event: PointerEvent) => {
+        if (event.pointerType === "touch") {
+          show();
+        }
+      };
+      const handleTouchPointerUp = (event: PointerEvent) => {
+        if (event.pointerType === "touch") {
+          hide();
+        }
+      };
+
+      currentTarget.addEventListener("keydown", handleKeyDown);
+      if (currentTrigger === "click") {
+        currentTarget.addEventListener("pointerdown", handleClick);
       } else {
-        show();
+        currentTarget.addEventListener("pointerenter", handlePointerEnter);
+        currentTarget.addEventListener("pointerleave", handleContextLeave);
+        currentTarget.addEventListener("pointerdown", handleTouchPointerDown);
+        currentTarget.addEventListener("pointerup", handleTouchPointerUp);
+        currentTarget.addEventListener("focusin", handlePointerEnter);
+        currentTarget.addEventListener("focusout", handleContextLeave);
       }
-    };
-    const handlePointerEnter = () => show();
-    const handleContextLeave = (event: PointerEvent | FocusEvent) => {
-      if (!isInTooltipContext(event.relatedTarget)) {
-        hide();
-      }
-    };
-    const handleTouchPointerDown = (event: PointerEvent) => {
-      if (event.pointerType === "touch") {
-        show();
-      }
-    };
-    const handleTouchPointerUp = (event: PointerEvent) => {
-      if (event.pointerType === "touch") {
-        hide();
-      }
-    };
 
-    currentTarget.addEventListener("keydown", handleKeyDown);
-    if (currentTrigger === "click") {
-      currentTarget.addEventListener("pointerdown", handleClick);
-    } else {
-      currentTarget.addEventListener("pointerenter", handlePointerEnter);
-      currentTarget.addEventListener("pointerleave", handleContextLeave);
-      currentTarget.addEventListener("pointerdown", handleTouchPointerDown);
-      currentTarget.addEventListener("pointerup", handleTouchPointerUp);
-      currentTarget.addEventListener("focusin", handlePointerEnter);
-      currentTarget.addEventListener("focusout", handleContextLeave);
-    }
-
-    onCleanup(() => {
-      currentTarget.removeEventListener("keydown", handleKeyDown);
-      currentTarget.removeEventListener("pointerdown", handleClick);
-      currentTarget.removeEventListener("pointerenter", handlePointerEnter);
-      currentTarget.removeEventListener("pointerleave", handleContextLeave);
-      currentTarget.removeEventListener("pointerdown", handleTouchPointerDown);
-      currentTarget.removeEventListener("pointerup", handleTouchPointerUp);
-      currentTarget.removeEventListener("focusin", handlePointerEnter);
-      currentTarget.removeEventListener("focusout", handleContextLeave);
-    });
-  });
-
-  createEffect(() => {
-    const element = container();
-    if (!isMounted() || !element) {
-      return;
-    }
-
-    const currentTarget = target();
-    const currentAnchor = anchor();
-    const currentTrigger = trigger();
-
-    const intersectionObserver = new IntersectionObserver((entries) => {
-      if (!entries[0]?.isIntersecting) {
-        hide(true);
-      }
-    });
-    intersectionObserver.observe(currentTarget);
-
-    const handleDocumentPointerDown = (event: PointerEvent) => {
-      if (
-        isEventInside(event, currentTarget) ||
-        isEventInside(event, element) ||
-        (mode() === "follow" && isEventInside(event, currentAnchor))
-      ) {
-        return;
-      }
-      hide();
-    };
-
-    if (currentTrigger === "click") {
-      document.addEventListener("pointerdown", handleDocumentPointerDown, {
-        capture: true,
-        passive: true,
-      });
-    }
-    floatingPosition.update();
-
-    onCleanup(() => {
-      intersectionObserver.disconnect();
-      document.removeEventListener("pointerdown", handleDocumentPointerDown, {
-        capture: true,
-      });
-    });
-  });
+      return () => {
+        currentTarget.removeEventListener("keydown", handleKeyDown);
+        currentTarget.removeEventListener("pointerdown", handleClick);
+        currentTarget.removeEventListener("pointerenter", handlePointerEnter);
+        currentTarget.removeEventListener("pointerleave", handleContextLeave);
+        currentTarget.removeEventListener(
+          "pointerdown",
+          handleTouchPointerDown,
+        );
+        currentTarget.removeEventListener("pointerup", handleTouchPointerUp);
+        currentTarget.removeEventListener("focusin", handlePointerEnter);
+        currentTarget.removeEventListener("focusout", handleContextLeave);
+      };
+    },
+  );
 
   createEffect(
-    on(
-      () => [
+    () => ({
+      element: container(),
+      isMounted: isMounted(),
+      currentTarget: target(),
+      currentAnchor: anchor(),
+      currentTrigger: trigger(),
+      currentMode: mode(),
+    }),
+    ({
+      element,
+      isMounted,
+      currentTarget,
+      currentAnchor,
+      currentTrigger,
+      currentMode,
+    }) => {
+      if (!isMounted || !element) {
+        return;
+      }
+
+      const intersectionObserver = new IntersectionObserver((entries) => {
+        if (!entries[0]?.isIntersecting) {
+          hide(true);
+        }
+      });
+      intersectionObserver.observe(currentTarget);
+
+      const handleDocumentPointerDown = (event: PointerEvent) => {
+        if (
+          isEventInside(event, currentTarget) ||
+          isEventInside(event, element) ||
+          (currentMode === "follow" && isEventInside(event, currentAnchor))
+        ) {
+          return;
+        }
+        hide();
+      };
+
+      if (currentTrigger === "click") {
+        document.addEventListener("pointerdown", handleDocumentPointerDown, {
+          capture: true,
+          passive: true,
+        });
+      }
+      floatingPosition.update();
+
+      return () => {
+        intersectionObserver.disconnect();
+        document.removeEventListener("pointerdown", handleDocumentPointerDown, {
+          capture: true,
+        });
+      };
+    },
+  );
+
+  createEffect(
+    () => ({
+      recheck: [
         normalizePosition(finalProps.position),
         finalProps.content,
         finalProps.maxWidth,
@@ -602,43 +618,52 @@ export function Tooltip(props: TooltipProps): JSX.Element {
         finalProps.anchor,
         finalProps.edgeAnchor,
         finalProps.mode,
-        isMounted(),
       ],
-      () => {
-        if (isMounted()) {
-          floatingPosition.update();
-        }
-      },
-    ),
+      isMount: isMounted(),
+    }),
+    ({ isMount }) => {
+      if (isMount) {
+        floatingPosition.update();
+      }
+    },
   );
 
-  createEffect(() => {
-    if (isMounted()) {
-      syncAriaDescribedBy(true);
-    }
-  });
-
-  createEffect(() => {
-    if (finalProps.hidden) {
-      hide(true);
-      return;
-    }
-    if (trigger() !== "hover") {
-      return;
-    }
-
-    const currentTarget = target();
-    try {
-      if (
-        currentTarget.matches(":hover") ||
-        currentTarget.contains(document.activeElement)
-      ) {
-        untrack(show);
+  createEffect(
+    () => ({ isMount: isMounted(), currentTarget: target() }),
+    ({ isMount, currentTarget }) => {
+      if (isMount) {
+        syncAriaDescribedBy(true, currentTarget);
       }
-    } catch {
-      // Some embedded documents do not support the :hover selector.
-    }
-  });
+    },
+  );
+
+  createEffect(
+    () => ({
+      isHidden: finalProps.hidden,
+      currentTrigger: trigger(),
+      currentTarget: target(),
+    }),
+    ({ isHidden, currentTrigger, currentTarget }) => {
+      if (isHidden) {
+        hide(true);
+        return;
+      }
+      if (currentTrigger !== "hover") {
+        return;
+      }
+
+      try {
+        if (
+          currentTarget.matches(":hover") ||
+          currentTarget.contains(document.activeElement)
+        ) {
+          untrack(show);
+        }
+      } catch {
+        // Some embedded documents do not support the :hover selector.
+      }
+    },
+  );
 
   onCleanup(() => {
     if (showFrame !== undefined) {
@@ -662,7 +687,7 @@ export function Tooltip(props: TooltipProps): JSX.Element {
           finalProps.ref?.(element);
         }}
         id={tooltipId}
-        classList={{
+        class={{
           "vot-tooltip": true,
           "vot-tooltip-bordered": finalProps.bordered,
           "vot-tooltip--subtitles-info":
@@ -703,9 +728,9 @@ export function Tooltip(props: TooltipProps): JSX.Element {
     </Show>
   );
 
-  const disposeTooltip = render(() => tooltipView() as Node, portalHost);
+  insert(portalHost, tooltipView);
   onCleanup(() => {
-    disposeTooltip();
+    portalHost.replaceChildren();
     portalHost.remove();
   });
 

@@ -1,12 +1,11 @@
+import type { JSX } from "@solidjs/web";
 import {
   createMemo,
   createSignal,
   createUniqueId,
-  type JSX,
-  mergeProps,
+  merge,
   Show,
 } from "solid-js";
-import { effect } from "solid-js/web";
 
 import { RawButton } from "../Button/RawButton";
 import { ChevronIcon } from "../Icons/ChevronIcon";
@@ -19,19 +18,17 @@ export type SettingsSectionProps = {
 };
 
 export function SettingsSection(props: SettingsSectionProps): JSX.Element {
-  const finalProps = mergeProps({ isOpen: false }, props);
+  const finalProps = merge({ isOpen: false }, props);
 
   const sectionId = createUniqueId();
   const headerId = `${sectionId}-header`;
   const contentId = `${sectionId}-content`;
 
-  const [isOpen, setIsOpen] = createSignal(finalProps.isOpen);
+  const [isOpen, setIsOpen] = createSignal(() => finalProps.isOpen);
 
   // stays mounted after first open so collapsing doesn't re-run its resources
-  const wasOpened = createMemo<boolean>((prev) => prev || isOpen(), false);
-
-  effect(() => {
-    setIsOpen(finalProps.isOpen);
+  const wasOpened = createMemo<boolean>((prev) => prev || isOpen(), {
+    loadingValue: false,
   });
 
   return (

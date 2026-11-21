@@ -1,6 +1,7 @@
-import { type JSX, mergeProps, splitProps } from "solid-js";
+import type { JSX } from "@solidjs/web";
+import { merge, omit } from "solid-js";
 
-import type { Position } from "../../types/components/votButton";
+import type { Position } from "#types/components/votButton.ts";
 import { Overlay } from "../Utils/Overlay";
 import {
   SegmentedButtonMenu,
@@ -16,24 +17,24 @@ export type SegmentedButtonMenuOverlayProps = SegmentedButtonMenuProps & {
 export function SegmentedButtonMenuOverlay(
   props: SegmentedButtonMenuOverlayProps,
 ): JSX.Element {
-  const finalProps = mergeProps(
+  const finalProps = merge(
     {
       position: "default",
       hidden: false,
     } as Partial<SegmentedButtonMenuOverlayProps>,
     props,
   );
-  const [local, rest] = splitProps(finalProps, ["ref", "position", "hidden"]);
+  const rest = omit(finalProps, "ref", "position", "hidden");
 
   return (
     <Overlay
-      ref={local.ref}
-      hidden={local.hidden}
-      classList={{
+      ref={finalProps.ref}
+      hidden={finalProps.hidden}
+      class={{
         "vot-overlay__segmented-button-menu": true,
       }}
       blockProps={{
-        "data-position": local.position,
+        "data-position": finalProps.position,
       }}
     >
       <SegmentedButtonMenu {...rest} />

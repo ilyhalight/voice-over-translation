@@ -1,5 +1,6 @@
-import { createSignal, type JSX, mergeProps } from "solid-js";
-import { effect } from "solid-js/web";
+import type { JSX } from "@solidjs/web";
+import { createSignal, merge } from "solid-js";
+
 import { clamp } from "#utils/number.ts";
 
 export type SliderProps = {
@@ -24,7 +25,7 @@ type PointerStart = {
 const decimalPlaces = (num: number) => String(num).split(".")[1]?.length ?? 0;
 
 export function Slider(props: SliderProps): JSX.Element {
-  const finalProps = mergeProps(
+  const finalProps = merge(
     {
       min: 0,
       max: 100,
@@ -41,7 +42,7 @@ export function Slider(props: SliderProps): JSX.Element {
 
   const clampVal = (val: number) => clamp(val, finalProps.min, finalProps.max);
 
-  const [value, setValue] = createSignal(clampVal(finalProps.value));
+  const [value, setValue] = createSignal(() => clampVal(finalProps.value));
   const [dragging, setDragging] = createSignal(false);
 
   const progress = () => {
@@ -81,10 +82,6 @@ export function Slider(props: SliderProps): JSX.Element {
     setDragging(false);
   };
 
-  effect(() => {
-    setValue(clampVal(finalProps.value));
-  });
-
   return (
     <vot-block
       ref={finalProps.ref}
@@ -92,7 +89,7 @@ export function Slider(props: SliderProps): JSX.Element {
       data-dragging={dragging() ? "" : undefined}
       style={{ "--vot-progress": progress() }}
       aria-disabled={finalProps.disabled}
-      onpointerdown={(event) => {
+      onPointerDown={(event) => {
         if (finalProps.disabled || event.button !== 0 || !handleHitbox) {
           return;
         }
@@ -121,7 +118,7 @@ export function Slider(props: SliderProps): JSX.Element {
           updateValueFromPointer(event.clientX);
         }
       }}
-      onpointermove={(event) => {
+      onPointerMove={(event) => {
         if (!pointerStart || pointerStart.id !== event.pointerId) {
           return;
         }
@@ -137,9 +134,9 @@ export function Slider(props: SliderProps): JSX.Element {
 
         updateValueFromPointer(event.clientX);
       }}
-      onpointerup={stopDragging}
-      onpointercancel={stopDragging}
-      onlostpointercapture={stopDragging}
+      onPointerUp={stopDragging}
+      onPointerCancel={stopDragging}
+      onLostPointerCapture={stopDragging}
     >
       <input
         ref={input}
@@ -150,7 +147,7 @@ export function Slider(props: SliderProps): JSX.Element {
         value={value()}
         step={finalProps.step}
         disabled={finalProps.disabled}
-        oninput={(e) => updateValue(e.currentTarget.valueAsNumber)}
+        onInput={(e) => updateValue(e.currentTarget.valueAsNumber)}
       />
       <vot-block class="vot-slider__track" />
       <vot-block class="vot-slider__track vot-slider__track-progress" />

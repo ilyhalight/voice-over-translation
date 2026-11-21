@@ -1,6 +1,6 @@
-import type { JSX } from "solid-js";
+import type { JSX } from "@solidjs/web";
 
-import { t } from "../../localization/localizationProvider";
+import { t } from "#localizationProvider";
 import { GeneralButton } from "../Button/GeneralButton";
 import { OutlinedButton } from "../Button/OutlinedButton";
 

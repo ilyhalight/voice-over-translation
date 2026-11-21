@@ -1,9 +1,23 @@
-import type { JSX } from "solid-js";
+import type { JSX } from "@solidjs/web";
+
 import {
   type LangOverride,
   localizationProvider,
   t,
-} from "../../localization/localizationProvider";
+} from "#localizationProvider";
+import type { LanguageSelectKey } from "#types/components/select.ts";
+import {
+  AUTO_SUBTITLE_LANGUAGE_VALUE,
+  ORIGINAL_SUBTITLE_LANGUAGE_VALUE,
+  type ResponseLanguageSubtitles,
+} from "#types/storage.ts";
+import {
+  type BuiltInSubtitleFontFamily,
+  type SubtitleFontFamily,
+  type SubtitleFormat,
+  subtitleFontFamilies,
+  subtitleFormats,
+} from "#types/subtitles.ts";
 import { setSettings, settings } from "../../stores/settings";
 import {
   getGoogleSubtitleFontFamilyName,
@@ -11,19 +25,6 @@ import {
   toGoogleSubtitleFontFamily,
 } from "../../subtitles/fonts";
 import { isBuiltInSubtitleFontFamily } from "../../subtitles/types";
-import type { LanguageSelectKey } from "../../types/components/select";
-import {
-  AUTO_SUBTITLE_LANGUAGE_VALUE,
-  ORIGINAL_SUBTITLE_LANGUAGE_VALUE,
-  type ResponseLanguageSubtitles,
-} from "../../types/storage";
-import {
-  type BuiltInSubtitleFontFamily,
-  type SubtitleFontFamily,
-  type SubtitleFormat,
-  subtitleFontFamilies,
-  subtitleFormats,
-} from "../../types/subtitles";
 import {
   genSelectOptionsByLangs,
   Select,
@@ -185,10 +186,10 @@ export function SettingsSubtitlesSection(
         search={true}
         selectedValue={settings.responseLanguageSubtitles}
         onSelect={(option) => {
-          setSettings(
-            "responseLanguageSubtitles",
-            option.value as ResponseLanguageSubtitles,
-          );
+          setSettings((draft) => {
+            draft.responseLanguageSubtitles =
+              option.value as ResponseLanguageSubtitles;
+          });
           props.onResponseLanguageSubtitlesSelect?.(option);
         }}
       >
@@ -201,7 +202,9 @@ export function SettingsSubtitlesSection(
         selectedValue={settings.subtitlesTranslationLanguage}
         onSelect={(option) => {
           const value = option.value as LangOverride;
-          setSettings("subtitlesTranslationLanguage", value);
+          setSettings((draft) => {
+            draft.subtitlesTranslationLanguage = value;
+          });
           props.onSubtitlesTranslationLanguageSelect?.(value);
         }}
       >
@@ -212,10 +215,9 @@ export function SettingsSubtitlesSection(
         options={subtitlesDownloadFormatOptions}
         selectedValue={settings.subtitlesDownloadFormat}
         onSelect={(option) => {
-          setSettings(
-            "subtitlesDownloadFormat",
-            option.value as SubtitleFormat,
-          );
+          setSettings((draft) => {
+            draft.subtitlesDownloadFormat = option.value as SubtitleFormat;
+          });
           props.onSubtitlesDownloadFormatSelect?.(option);
         }}
       >
@@ -231,7 +233,9 @@ export function SettingsSubtitlesSection(
         onSelect={(option) => {
           const value = option.value as SubtitleFontFamily;
 
-          setSettings("subtitlesFontFamily", value);
+          setSettings((draft) => {
+            draft.subtitlesFontFamily = value;
+          });
           props.onSubtitlesFontFamilySelect?.(value);
         }}
       >
@@ -241,7 +245,9 @@ export function SettingsSubtitlesSection(
         heading={t("VOTHighlightWords")}
         checked={settings.highlightWords}
         onChange={(checked) => {
-          setSettings("highlightWords", checked);
+          setSettings((draft) => {
+            draft.highlightWords = checked;
+          });
           props.onHighlightWordsChange?.(checked);
         }}
       />
@@ -249,7 +255,9 @@ export function SettingsSubtitlesSection(
         heading={t("subtitlesSmartLayout")}
         checked={settings.subtitlesSmartLayout}
         onChange={(checked) => {
-          setSettings("subtitlesSmartLayout", checked);
+          setSettings((draft) => {
+            draft.subtitlesSmartLayout = checked;
+          });
           props.onSubtitlesSmartLayoutChange?.(checked);
         }}
       />
@@ -263,11 +271,15 @@ export function SettingsSubtitlesSection(
           value={settings.subtitlesMaxLength}
           onInput={(value) => {
             if (settings.subtitlesSmartLayout) {
-              setSettings("subtitlesSmartLayout", false);
+              setSettings((draft) => {
+                draft.subtitlesSmartLayout = false;
+              });
               props.onSubtitlesSmartLayoutChange?.(false);
             }
 
-            setSettings("subtitlesMaxLength", value);
+            setSettings((draft) => {
+              draft.subtitlesMaxLength = value;
+            });
             props.onSubtitlesMaxLengthInput?.(value);
           }}
         />
@@ -282,11 +294,15 @@ export function SettingsSubtitlesSection(
           value={settings.subtitlesFontSize}
           onInput={(value) => {
             if (settings.subtitlesSmartLayout) {
-              setSettings("subtitlesSmartLayout", false);
+              setSettings((draft) => {
+                draft.subtitlesSmartLayout = false;
+              });
               props.onSubtitlesSmartLayoutChange?.(false);
             }
 
-            setSettings("subtitlesFontSize", value);
+            setSettings((draft) => {
+              draft.subtitlesFontSize = value;
+            });
             props.onSubtitlesFontSizeInput?.(value);
           }}
         />
@@ -298,7 +314,9 @@ export function SettingsSubtitlesSection(
         <Slider
           value={settings.subtitlesOpacity}
           onInput={(value) => {
-            setSettings("subtitlesOpacity", value);
+            setSettings((draft) => {
+              draft.subtitlesOpacity = value;
+            });
             props.onSubtitlesOpacityInput?.(value);
           }}
         />

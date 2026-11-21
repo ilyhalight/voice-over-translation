@@ -1,4 +1,4 @@
-import type { JSX } from "solid-js";
+import type { JSX } from "@solidjs/web";
 
 import { MEDIA_PROXY_HOST, PROXY_WORKER_HOST } from "../../config/config";
 import { t } from "../../localization/localizationProvider";

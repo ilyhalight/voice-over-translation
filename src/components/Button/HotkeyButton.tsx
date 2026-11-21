@@ -1,13 +1,6 @@
-import {
-  createSignal,
-  type JSX,
-  mergeProps,
-  onCleanup,
-  Show,
-  splitProps,
-} from "solid-js";
+import type { JSX } from "@solidjs/web";
+import { createSignal, merge, omit, onCleanup, Show } from "solid-js";
 
-import { effect } from "solid-js/web";
 import {
   formatKeysCombo,
   formatKeysComboDisplay,
@@ -24,15 +17,16 @@ export type HotkeyButtonProps = Omit<
   onChange?: (newKey: string | null) => void;
 };
 export function HotkeyButton(props: HotkeyButtonProps): JSX.Element {
-  const finalProps = mergeProps({ key: null }, props);
-  const [local, buttonProps] = splitProps(finalProps, [
+  const finalProps = merge({ key: null }, props);
+  const buttonProps = omit(
+    finalProps,
     "children",
     "key",
     "buttonProps",
     "onChange",
-  ]);
+  );
 
-  const [key, setKey] = createSignal(local.key);
+  const [key, setKey] = createSignal(() => finalProps.key);
   const [recording, setRecording] = createSignal(false);
   const [pressedKeys, setPressedKeys] = createSignal(new Set<string>());
   const [comboKeys, setComboKeys] = createSignal(new Set<string>());
@@ -42,7 +36,7 @@ export function HotkeyButton(props: HotkeyButtonProps): JSX.Element {
 
   const setKeyWithDispatch = (newKey: string | null) => {
     setKey(newKey);
-    local.onChange?.(newKey);
+    finalProps.onChange?.(newKey);
   };
 
   const keyText = () => {
@@ -58,10 +52,6 @@ export function HotkeyButton(props: HotkeyButtonProps): JSX.Element {
     const currentKey = key();
     return currentKey ? formatKeysComboDisplay(currentKey) : t("None");
   };
-
-  effect(() => {
-    setKey(local.key);
-  });
 
   function stopRecordingKeys() {
     setRecording(false);
@@ -82,12 +72,14 @@ export function HotkeyButton(props: HotkeyButtonProps): JSX.Element {
     if (event) {
       event.preventDefault();
       event.stopImmediatePropagation();
+      let remaining = 0;
       setPressedKeys((prev) => {
         const next = new Set(prev);
         next.delete(event.code);
+        remaining = next.size;
         return next;
       });
-      if (pressedKeys().size) {
+      if (remaining) {
         return;
       }
     }
@@ -139,13 +131,13 @@ export function HotkeyButton(props: HotkeyButtonProps): JSX.Element {
 
   return (
     <vot-block class="vot-hotkey">
-      <Show when={local.children}>
-        <vot-block class="vot-hotkey-label">{local.children}</vot-block>
+      <Show when={finalProps.children}>
+        <vot-block class="vot-hotkey-label">{finalProps.children}</vot-block>
       </Show>
       <RawButton
         {...buttonProps}
         buttonProps={{
-          ...local.buttonProps,
+          ...finalProps.buttonProps,
           "data-status": recording() ? "active" : undefined,
         }}
         class="vot-hotkey-button"

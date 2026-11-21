@@ -7,7 +7,7 @@ const AVAILABLE_HEIGHT_PROPERTY = "--vot-floating-available-height";
 const FIXED_PROBE_PX = 10;
 
 export type FloatingPositionOptions = {
-  anchor: () => HTMLElement;
+  anchor: () => HTMLElement | undefined;
   popup: () => HTMLElement | undefined;
   isOpen: Accessor<boolean>;
   gap?: number;
@@ -104,12 +104,15 @@ export function createFloatingPosition(
   let stableOpensBelow: boolean | undefined;
   let mountedElement: HTMLElement | undefined;
 
-  const mountPopup = (popup: HTMLElement, anchor: HTMLElement) => {
-    const popupMount = options.mount?.() ?? getPopupMount(anchor);
-    const element = options.mountElement?.() ?? popup;
-    mountedElement = element;
-    if (popupMount && element.parentNode !== popupMount) {
-      popupMount.append(element);
+  const mountPopup = (
+    popup: HTMLElement,
+    anchor: HTMLElement,
+    popupMount = options.mount?.() ?? getPopupMount(anchor),
+    mountElement = options.mountElement?.() ?? popup,
+  ) => {
+    mountedElement = mountElement;
+    if (popupMount && mountElement.parentNode !== popupMount) {
+      popupMount.append(mountElement);
     }
   };
 
@@ -124,10 +127,10 @@ export function createFloatingPosition(
 
   const updatePosition = () => {
     const popup = options.popup();
-    if (!popup) {
+    const anchor = options.anchor();
+    if (!popup || !anchor) {
       return;
     }
-    const anchor = options.anchor();
     mountPopup(popup, anchor);
 
     if (options.updatePosition) {
@@ -187,55 +190,69 @@ export function createFloatingPosition(
     });
   };
 
-  createEffect(() => {
-    if (!options.isOpen()) {
-      return;
-    }
-
-    const popup = options.popup();
-    if (!popup) {
-      return;
-    }
-    const anchor = options.anchor();
-    const scrollTargets = getScrollTargets(anchor);
-    const handleScroll = (event: Event) => {
-      if (event.composedPath().includes(popup)) {
-        return;
-      }
-      if (options.onOutsideScroll) {
-        options.onOutsideScroll();
-        return;
+  createEffect(
+    () => {
+      if (!options.isOpen()) {
+        return null;
       }
 
+      const popup = options.popup();
+      const anchor = options.anchor();
+      if (!popup || !anchor) {
+        return null;
+      }
+
+      return {
+        popup,
+        anchor,
+        popupMount: options.mount?.() ?? getPopupMount(anchor),
+        mountElement: options.mountElement?.() ?? popup,
+        resizeTargets: options.resizeTargets?.() ?? [],
+      };
+    },
+    (state) => {
+      if (!state) {
+        return;
+      }
+
+      const { popup, anchor, popupMount, mountElement } = state;
+      const scrollTargets = getScrollTargets(anchor);
+      const handleScroll = (event: Event) => {
+        if (event.composedPath().includes(popup)) {
+          return;
+        }
+        if (options.onOutsideScroll) {
+          options.onOutsideScroll();
+          return;
+        }
+
+        schedulePositionUpdate();
+      };
+
+      mountPopup(popup, anchor, popupMount, mountElement);
+      const resizeObserver = new ResizeObserver(schedulePositionUpdate);
+      const resizeTargets = new Set([popup, ...state.resizeTargets]);
+      for (const target of resizeTargets) {
+        resizeObserver.observe(target);
+      }
       schedulePositionUpdate();
-    };
-
-    mountPopup(popup, anchor);
-    const resizeObserver = new ResizeObserver(schedulePositionUpdate);
-    const resizeTargets = new Set([
-      popup,
-      ...(options.resizeTargets?.() ?? []),
-    ]);
-    for (const target of resizeTargets) {
-      resizeObserver.observe(target);
-    }
-    schedulePositionUpdate();
-    window.addEventListener("resize", schedulePositionUpdate);
-    for (const target of scrollTargets) {
-      target.addEventListener("scroll", handleScroll, true);
-    }
-
-    onCleanup(() => {
-      cancelPositionUpdate();
-      resizeObserver.disconnect();
-      stableOpensBelow = undefined;
-      popup.style.removeProperty(AVAILABLE_HEIGHT_PROPERTY);
-      window.removeEventListener("resize", schedulePositionUpdate);
+      window.addEventListener("resize", schedulePositionUpdate);
       for (const target of scrollTargets) {
-        target.removeEventListener("scroll", handleScroll, true);
+        target.addEventListener("scroll", handleScroll, true);
       }
-    });
-  });
+
+      return () => {
+        cancelPositionUpdate();
+        resizeObserver.disconnect();
+        stableOpensBelow = undefined;
+        popup.style.removeProperty(AVAILABLE_HEIGHT_PROPERTY);
+        window.removeEventListener("resize", schedulePositionUpdate);
+        for (const target of scrollTargets) {
+          target.removeEventListener("scroll", handleScroll, true);
+        }
+      };
+    },
+  );
 
   onCleanup(() => {
     cancelPositionUpdate();

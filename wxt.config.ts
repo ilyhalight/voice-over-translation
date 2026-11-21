@@ -61,7 +61,7 @@ export default defineConfig({
   manifestVersion: 3,
   browser: "chrome",
   imports: false,
-  // Official WXT module: vite-plugin-solid + solid-refresh HMR in `wxt` dev.
+  // Official WXT module: @solidjs/vite-plugin + solid-refresh HMR in `wxt` dev.
   modules: ["@wxt-dev/module-solid"],
   solid: { vite: solidPluginOptions },
   // `wxt` dev: Vite dev server + WXT live reload. Changed content scripts are
@@ -123,7 +123,7 @@ export default defineConfig({
       ],
       resolve: {
         alias: sharedResolveAlias,
-        dedupe: ["solid-js", "solid-js/web", "solid-js/store"],
+        dedupe: ["solid-js", "@solidjs/web"],
       },
       css: sharedCssOptions,
       define: buildDefine({
