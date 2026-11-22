@@ -1,11 +1,19 @@
 import { clamp } from "../utils/number";
 
+type MediaElementLike = {
+  volume: number;
+  muted?: boolean;
+  addEventListener?: (type: string, listener: () => void) => void;
+};
+
 type GainBackedPlayer = {
   volume: number;
   gainNode?: GainNode;
-  audio?: { volume: number; muted?: boolean };
-  audioElement?: { volume: number; muted?: boolean };
+  audio?: MediaElementLike;
+  audioElement?: MediaElementLike;
 };
+
+const guardedMediaElements = new WeakSet<object>();
 
 // Infinity must not reach AudioParam (TypeError) or saturate to max volume.
 function normalizeMediaElementVolume(volume: number): number {
@@ -25,8 +33,6 @@ function setAudioParamInstant(
   const hasNow = typeof now === "number" && Number.isFinite(now);
 
   try {
-    // Cancel from 0 instead of `now` so coarsened/quantized `currentTime`
-    // (e.g. Firefox resistFingerprinting) cannot leave older events active.
     if (typeof param.cancelScheduledValues === "function") {
       param.cancelScheduledValues(0);
     } else if (hasNow && typeof param.cancelAndHoldAtTime === "function") {
@@ -47,6 +53,55 @@ function setAudioParamInstant(
   }
 }
 
+/**
+ * Keeps the underlying media element at unity gain while a GainNode drives
+ * translation volume. Third-party volume-control extensions often hook
+ * `HTMLMediaElement.prototype.volume` and mirror the video's volume onto the
+ * hidden translation `<audio>`, causing double attenuation (`video * gain`).
+ */
+function ensureUnityMediaVolumeGuard(
+  player: GainBackedPlayer,
+  media: MediaElementLike,
+): void {
+  if (
+    guardedMediaElements.has(media) ||
+    typeof media.addEventListener !== "function"
+  ) {
+    return;
+  }
+
+  guardedMediaElements.add(media);
+
+  let restoring = false;
+  let burstStartMs = 0;
+  let burstCount = 0;
+  const BURST_WINDOW_MS = 100;
+  const MAX_RESTORES_PER_WINDOW = 60;
+
+  media.addEventListener("volumechange", () => {
+    if (restoring || !player.gainNode?.gain || media.volume === 1) {
+      return;
+    }
+
+    const now = Date.now();
+    if (now - burstStartMs > BURST_WINDOW_MS) {
+      burstStartMs = now;
+      burstCount = 0;
+    }
+    if (burstCount >= MAX_RESTORES_PER_WINDOW) {
+      return;
+    }
+
+    burstCount += 1;
+    restoring = true;
+    try {
+      media.volume = 1;
+    } finally {
+      restoring = false;
+    }
+  });
+}
+
 // #1650
 export function safeSetPlayerVolume(
   player: GainBackedPlayer,
@@ -60,10 +115,9 @@ export function safeSetPlayerVolume(
       (player as GainBackedPlayer & { storedVolume?: number }).storedVolume =
         normalizedGain;
     }
-    // Keep the underlying media element at unity gain so HTMLMediaElement.volume
-    // and GainNode.gain do not double-attenuate, and hard-mute at 0%.
     const media = player.audio ?? player.audioElement;
     if (media) {
+      ensureUnityMediaVolumeGuard(player, media);
       if ("muted" in media) {
         media.muted = normalizedGain === 0;
       }
