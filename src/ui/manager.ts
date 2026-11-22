@@ -257,7 +257,9 @@ export class UIManager {
         }
 
         if (volume === 0) {
+          this.videoHandler.setVideoVolume(0);
           this.videoHandler.setVideoMuted(true);
+          this.videoHandler.applyManualVideoVolumeOverride(0);
         } else {
           if (this.videoHandler.isMuted()) {
             this.videoHandler.setVideoMuted(false);
@@ -400,9 +402,9 @@ export class UIManager {
         }
 
         const nextTranslation = overlayViewControls.getTranslationVolume();
-        this.videoHandler.syncVolumeWrapper("translation", nextTranslation);
         this.videoHandler.syncTranslationPlaybackVolume();
         if (!checked) {
+          this.videoHandler.onTranslationVolumeSliderSynced(nextTranslation);
           return;
         }
 

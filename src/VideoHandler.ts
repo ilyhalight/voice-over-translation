@@ -1162,12 +1162,25 @@ export class VideoHandler {
 
     if (typeof nextTranslation === "number") {
       overlayViewControls.setTranslationVolume(nextTranslation);
+      if (this.data) {
+        this.data.defaultVolume = nextTranslation;
+      }
+      setSettings("defaultVolume", nextTranslation);
+      this.syncTranslationPlaybackVolume();
       return result;
     }
 
     if (typeof nextVideo === "number") {
       overlayViewControls.setVideoVolume(nextVideo);
-      this.setVideoVolume(nextVideo / 100);
+      if (nextVideo === 0) {
+        this.setVideoVolume(0);
+        this.setVideoMuted(true);
+      } else {
+        if (this.isMuted()) {
+          this.setVideoMuted(false);
+        }
+        this.setVideoVolume(nextVideo / 100);
+      }
     }
 
     return result;
