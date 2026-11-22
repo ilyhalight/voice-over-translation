@@ -7,7 +7,7 @@
 // @name:ru        [VOT] - Закадровый перевод видео
 // @name:zh        [VOT] - 配音翻译
 // @namespace      vot
-// @version        1.12.9
+// @version        1.12.10
 // @author         Toil, SashaXser, MrSoczekXD, mynovelhost, sodapng
 // @description    Watch videos in other languages with voice-over translation and subtitles in any browser
 // @description:de Sieh dir Videos in anderen Sprachen mit Voice-over-Übersetzung und Untertiteln in jedem Browser an
@@ -278,7 +278,7 @@
 // @grant          GM.xmlHttpRequest
 // @grant          window.focus
 // ==/UserScript==
-(function(){try{var g=globalThis,k=Symbol.for("vot.debugIds"),s=(new Error().stack||"").replace(/(extension:\/\/)[^\/\s]+/g,"$1extension");if(s){g[k]||Object.defineProperty(g,k,{value:{}});g[k][s]={d:"fda76055-c3e1-49c9-8510-fc3e0acbdcf2",l:281}}}catch(e){}})();
+(function(){try{var g=globalThis,k=Symbol.for("vot.debugIds"),s=(new Error().stack||"").replace(/(extension:\/\/)[^\/\s]+/g,"$1extension");if(s){g[k]||Object.defineProperty(g,k,{value:{}});g[k][s]={d:"1aa41cd4-947d-4430-b0e3-d1f36e38be8b",l:281}}}catch(e){}})();
 
 var vot = (function(exports) {
 	Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
@@ -917,6 +917,7 @@ var vot = (function(exports) {
 			url: "https://yadi.sk/",
 			match: /^disk.yandex.(ru|kz|com(\.(am|ge|tr))?|by|az|co\.il|ee|lt|lv|md|net|tj|tm|uz)$/,
 			selector: "yaplayertag > div:nth-child(1)",
+			eventSelector: "div[data-player-skin=\"true\"]",
 			needBypassCSP: true,
 			needExtraData: true
 		},
@@ -1446,13 +1447,13 @@ var vot = (function(exports) {
 		hostWorker: "vot-worker.toil.cc",
 		mediaProxy: "media-proxy.toil.cc",
 		userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 YaBrowser/26.11.0.0 Safari/537.36",
-		componentVersion: "26.11.0.2027",
-		chromiumRevision: "2027",
+		componentVersion: "26.11.1.1124",
+		chromiumRevision: "1124",
 		hmac: "bt8xH3VOlb4mqf0nqAibnDOoiPlXsisf",
 		defaultDuration: 310,
 		minChunkSize: 5295308,
 		loggerLevel: 1,
-		version: "3.2.4"
+		version: "3.2.5"
 	};
 	// ../vot.js/packages/shared/dist/types/logger.js
 	var LoggerLevel;
@@ -11237,7 +11238,7 @@ var vot = (function(exports) {
 	}
 	function getRuntimeInfo() {
 		return {
-			version: "1.12.9",
+			version: "1.12.10",
 			environment: "master",
 			env: getEnvironmentInfo$1(),
 			debugIds: readDebugIdRegistry()
@@ -11248,7 +11249,7 @@ var vot = (function(exports) {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/x-sentry-envelope",
-				"X-Sentry-Auth": buildAuthHeader("1.12.9")
+				"X-Sentry-Auth": buildAuthHeader("1.12.10")
 			},
 			body: buildEnvelope(event),
 			forceGmXhr: true,
@@ -11758,7 +11759,7 @@ var vot = (function(exports) {
 		return buildVersion || scriptVersion || "unknown";
 	}
 	function getRuntimeLocaleVersion() {
-		return resolveRuntimeLocaleVersion(String("1.12.9"), String(getGMInfo()?.script?.version || ""));
+		return resolveRuntimeLocaleVersion(String("1.12.10"), String(getGMInfo()?.script?.version || ""));
 	}
 	var LocalizationProvider = class {
 		lang;
@@ -43761,7 +43762,7 @@ var vot = (function(exports) {
 	function createDefaultUpdaterInfo() {
 		return {
 			checkedAt: 0,
-			remoteVersion: "1.12.9"
+			remoteVersion: "1.12.10"
 		};
 	}
 	var [updaterInfo, setUpdaterInfo] = createStore(createDefaultUpdaterInfo());
@@ -43777,7 +43778,7 @@ var vot = (function(exports) {
 	function canCheckUpdate() {
 		return Date.now() - updaterInfo.checkedAt >= UPDATE_CHECK_INTERVAL;
 	}
-	var getAvailableUpdate = (version) => compareVersions(version, "1.12.9") > 0 ? version : false;
+	var getAvailableUpdate = (version) => compareVersions(version, "1.12.10") > 0 ? version : false;
 	async function checkUpdate() {
 		if (!canCheckUpdate()) return getAvailableUpdate(updaterInfo.remoteVersion);
 		let remoteVersion;
@@ -49826,4 +49827,4 @@ var vot = (function(exports) {
 	exports.bootstrapContentScript = bootstrapContentScript;
 	return exports;
 })({});
-//# debugId=fda76055-c3e1-49c9-8510-fc3e0acbdcf2
+//# debugId=1aa41cd4-947d-4430-b0e3-d1f36e38be8b
