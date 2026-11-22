@@ -6,9 +6,9 @@
       "name": "voice-over-translation",
       "dependencies": {
         "@toil/gm-types": "^1.0.6",
-        "@vot.js/core": "^3.2.3",
-        "@vot.js/ext": "^3.2.3",
-        "@vot.js/shared": "^3.2.3",
+        "@vot.js/core": "^3.2.4",
+        "@vot.js/ext": "^3.2.4",
+        "@vot.js/shared": "^3.2.4",
         "astring": "1.9.0",
         "bowser": "^2.15.0",
         "chaimu": "^1.1.0",
@@ -507,11 +507,11 @@
 
     "@volar/typescript": ["@volar/typescript@2.4.31", "", { "dependencies": { "@volar/language-core": "2.4.31", "@volar/language-service": "2.4.31", "path-browserify": "^1.0.1", "vscode-uri": "^3.0.8" }, "peerDependencies": { "typescript": "<7" }, "optionalPeers": ["typescript"] }, "sha512-OBHLLAi03AmaRWqzytdFhgtW2B3HM+2/vXFkvnZAlEKltalUTyu+No7g9aZx7e9efrDLOtHsd/3PgCHSfgVJ/Q=="],
 
-    "@vot.js/core": ["@vot.js/core@3.2.3", "", { "dependencies": { "@vot.js/shared": "^3.2.3" }, "peerDependencies": { "typescript": "^6.0.0" } }, "sha512-EqUXOg9SX6U3ZdGB7MJ+eV1FWB0+VVCHvjeo4nlHCd+RcQFHZfKVB9DEa6ZZtuFHDn4qevErzI3uKukZee8ytw=="],
+    "@vot.js/core": ["@vot.js/core@3.2.4", "", { "dependencies": { "@vot.js/shared": "^3.2.4" }, "peerDependencies": { "typescript": "^6.0.0" } }, "sha512-is6OntiNWXJu1ikwNUwdNmdfyVHr8GfnxosK0/e1aZ4O0vPawQGwswUuZ7SxyuQjjRnGJA08dvSxCgM0daZ4lg=="],
 
-    "@vot.js/ext": ["@vot.js/ext@3.2.3", "", { "dependencies": { "@vot.js/core": "^3.2.3", "@vot.js/shared": "^3.2.3" }, "peerDependencies": { "typescript": "^6.0.0" } }, "sha512-BSN7R6pAGVvCkvazMVZFu208214nU41QbbPJUgBvxDzX4jhMT9IzxosbCS2rV6SosgGWEY97Oss5t8KdKUt9/A=="],
+    "@vot.js/ext": ["@vot.js/ext@3.2.4", "", { "dependencies": { "@vot.js/core": "^3.2.4", "@vot.js/shared": "^3.2.4" }, "peerDependencies": { "typescript": "^6.0.0" } }, "sha512-RHQGeliOlHJ2S+Ed16SSCmn5YZjdlO6q/URBdw3wx6y09OS2cViNDOL/JPwOLmDpFwRkuzylNBySsgzQSvvkbw=="],
 
-    "@vot.js/shared": ["@vot.js/shared@3.2.3", "", { "dependencies": { "@bufbuild/protobuf": "^2.0.0" }, "peerDependencies": { "typescript": "^6.0.0" } }, "sha512-QkTM4+eSkMuCk9bhlZkLbKqk29SMY2X3szn1b6poFmyFTsDZE2jFDEKGdkmxDZBJinzn/TmIQPtMp1yrqb2LEg=="],
+    "@vot.js/shared": ["@vot.js/shared@3.2.4", "", { "dependencies": { "@bufbuild/protobuf": "^2.0.0" }, "peerDependencies": { "typescript": "^6.0.0" } }, "sha512-8ElwD4ew0MNySwdoBA520Vw/TlolNzp+frVPRFG9sfnTLiNDptB9TWC2b+3emAZ5kda1zQt0yFhn9CiYZFOG7w=="],
 
     "@webcontainer/env": ["@webcontainer/env@1.1.1", "", {}, "sha512-6aN99yL695Hi9SuIk1oC88l9o0gmxL1nGWWQ/kNy81HigJ0FoaoTXpytCj6ItzgyCEwA9kF1wixsTuv5cjsgng=="],
 
