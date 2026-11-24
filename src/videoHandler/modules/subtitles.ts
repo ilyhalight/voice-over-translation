@@ -1,5 +1,10 @@
 import YoutubeHelper from "@vot.js/ext/helpers/youtube";
 import logger from "#utils/logger.ts";
+import {
+  getLocalFileRequestUrl,
+  isLocalFileUrl,
+  LOCAL_FILE_URL_PREFIX,
+} from "../../core/localFile";
 import { localizationProvider } from "../../localization/localizationProvider";
 import { captureException } from "../../modules/telemetry/client";
 import { getTranslationTags } from "../../modules/telemetry/context";
@@ -113,6 +118,19 @@ function enrichYoutubeSubtitlesForPreference(
       ...preferredYoutubeSubtitles,
       ...(Array.isArray(videoData.subtitles) ? videoData.subtitles : []),
     ]),
+  };
+}
+
+/** Yandex knows a local file only by the url its translation was requested under. */
+function withLocalFileRequestUrl(
+  videoData: VideoDataForSubtitles,
+): VideoDataForSubtitles {
+  const requestUrl = getLocalFileRequestUrl(videoData.url);
+  if (!requestUrl) return videoData;
+  return {
+    ...videoData,
+    url: requestUrl,
+    videoId: requestUrl.slice(LOCAL_FILE_URL_PREFIX.length),
   };
 }
 
@@ -363,21 +381,28 @@ export async function loadSubtitles(this: VideoHandler) {
       // the subtitles hotkey before the first request resolves).
       let inflight = this.subtitlesLoadPromises.get(cacheKey);
       if (inflight === undefined) {
-        const videoDataForSubtitles = enrichYoutubeSubtitlesForPreference(
-          this,
-          subtitleLanguage,
+        const videoDataForSubtitles = withLocalFileRequestUrl(
+          enrichYoutubeSubtitlesForPreference(this, subtitleLanguage),
         );
-        inflight = SubtitlesProcessor.getSubtitles(
-          this.votClient,
-          videoDataForSubtitles,
-        );
+        // Before the first translation there is no generated url yet, and the
+        // file path must not leave the browser.
+        inflight = isLocalFileUrl(videoDataForSubtitles.url)
+          ? Promise.resolve([])
+          : SubtitlesProcessor.getSubtitles(
+              this.votClient,
+              videoDataForSubtitles,
+            );
         this.subtitlesLoadPromises.set(cacheKey, inflight);
       }
 
       try {
         cachedSubs = await inflight;
         cachedSubs = Array.isArray(cachedSubs) ? cachedSubs : [];
-        this.cacheManager.setSubtitles(cacheKey, cachedSubs);
+        // Yandex has no subtitles for a local file until its translation is
+        // done; an empty list must not stick in the cache.
+        if (cachedSubs.length || !isLocalFileUrl(this.videoData.url)) {
+          this.cacheManager.setSubtitles(cacheKey, cachedSubs);
+        }
       } finally {
         // Only clear if we're still pointing at the same promise.
         if (this.subtitlesLoadPromises.get(cacheKey) === inflight) {

@@ -30,8 +30,21 @@ import {
 import { hasAccountToken } from "../utils/account";
 import debug from "../utils/debug";
 import { getErrorMessage, isAbortError, makeAbortError } from "../utils/errors";
+import { votStorage } from "../utils/storage";
 import type { VideoHandler } from "../VideoHandler";
 import VOTLocalizedError from "../VOTLocalizedError";
+import {
+  allowLocalFileUpload,
+  consumeLocalFileFailure,
+  getLocalFileKey,
+  getLocalFileRequestId,
+  isLocalFileRequest,
+  isLocalFileUrl,
+  markLocalFileRequestFailed,
+  registerLocalFileSource,
+  resetLocalFileUploads,
+  toLocalFileRequestUrl,
+} from "./localFile";
 import {
   getTranslationServerErrorMessage,
   isTranslationAuthError,
@@ -400,6 +413,7 @@ export class VOTTranslationHandler {
     stage: string,
     videoId: string,
   ): void {
+    if (isLocalFileRequest(videoId)) return;
     captureException(error, {
       source: "audio",
       operation,
@@ -529,6 +543,53 @@ export class VOTTranslationHandler {
     }
   }
 
+  /**
+   * A local file is requested under a youtu.be id derived from it, so Yandex
+   * asks for its audio (AUDIO_REQUESTED) instead of downloading the video.
+   */
+  private async resolveLocalFileRequest(
+    videoData: VideoData,
+    requestLang: RequestLang,
+    responseLang: ResponseLang,
+  ): Promise<VideoData | null> {
+    if (isLocalFileRequest(videoData.videoId)) return videoData;
+    if (!isLocalFileUrl(videoData.url)) return null;
+
+    const video = this.videoHandler.video;
+    const duration =
+      video && Number.isFinite(video.duration) && video.duration > 0
+        ? video.duration
+        : (videoData.duration ?? 0);
+    // The duration is part of the id: without it the same file would get
+    // another id once its metadata loads.
+    if (!(duration > 0)) {
+      throw new Error("Local file duration is unknown yet");
+    }
+    const key = getLocalFileKey(
+      videoData.url,
+      duration,
+      requestLang,
+      responseLang,
+    );
+    const renew = consumeLocalFileFailure(key);
+    const requestId = await getLocalFileRequestId(key, {
+      renew,
+      store: votStorage,
+    });
+    registerLocalFileSource(requestId, videoData.url, key);
+    debug.log("[LocalFile] translation requested under a generated id", {
+      requestUrl: toLocalFileRequestUrl(requestId),
+      duration,
+      renewed: renew,
+    });
+    return {
+      ...videoData,
+      url: toLocalFileRequestUrl(requestId),
+      videoId: requestId,
+      duration,
+    };
+  }
+
   async translateVideoImpl(
     videoData: VideoData,
     requestLang: RequestLang,
@@ -537,6 +598,35 @@ export class VOTTranslationHandler {
     shouldSendFailedAudio = false,
     signal = NEVER_ABORTED_SIGNAL,
     options: TranslateVideoImplOptions = {},
+  ): Promise<
+    (TranslatedVideoTranslationResponse & { usedLivelyVoice: boolean }) | null
+  > {
+    const localVideoData = await this.resolveLocalFileRequest(
+      videoData,
+      requestLang,
+      responseLang,
+    );
+    // With the flag on, vot.js would answer AUDIO_REQUESTED for a youtu.be url
+    // with an empty upload instead of leaving it to the local file strategy.
+    return this.requestVideoTranslation(
+      localVideoData ?? videoData,
+      requestLang,
+      responseLang,
+      translationHelp,
+      localVideoData ? false : shouldSendFailedAudio,
+      signal,
+      options,
+    );
+  }
+
+  private async requestVideoTranslation(
+    videoData: VideoData,
+    requestLang: RequestLang,
+    responseLang: ResponseLang,
+    translationHelp: VideoTranslationHelp[] | null,
+    shouldSendFailedAudio: boolean,
+    signal: AbortSignal,
+    options: TranslateVideoImplOptions,
   ): Promise<
     (TranslatedVideoTranslationResponse & { usedLivelyVoice: boolean }) | null
   > {
@@ -615,6 +705,7 @@ export class VOTTranslationHandler {
           res.remainingTime < 1)
       ) {
         this.etaCountdown.stop();
+        resetLocalFileUploads(videoData.videoId);
         logger.log("[Translation] translation finished", {
           videoId: videoData.videoId,
           useLivelyVoice,
@@ -645,9 +736,17 @@ export class VOTTranslationHandler {
 
       if (
         res.status === VideoTranslationStatus.AUDIO_REQUESTED &&
-        this.videoHandler.isYouTubeHosts()
+        (this.videoHandler.isYouTubeHosts() ||
+          isLocalFileRequest(videoData.videoId))
       ) {
         this.videoHandler.hadAsyncWait = true;
+        if (
+          isLocalFileRequest(videoData.videoId) &&
+          !allowLocalFileUpload(videoData.videoId)
+        ) {
+          resetLocalFileUploads(videoData.videoId);
+          throw new VOTLocalizedError("VOTFailedDownloadAudio");
+        }
 
         debug.log("[Translation] audio download started", {
           videoId: videoData.videoId,
@@ -727,7 +826,10 @@ export class VOTTranslationHandler {
       });
       // Report the original error: the UI mapping hides server and transport
       // failures behind a generic localized message. Auth states are expected.
+      const isLocalFile = isLocalFileRequest(videoData.videoId);
+      if (isLocalFile) markLocalFileRequestFailed(videoData.videoId);
       if (
+        !isLocalFile &&
         !isTranslationAuthError(err, {
           hasAccountToken: hasAccountToken(this.videoHandler.data?.account),
         })

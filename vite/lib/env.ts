@@ -11,6 +11,7 @@ export interface BuildEnvMeta {
   authors: string;
   browser?: "chrome" | "firefox";
   minified?: boolean;
+  localFile?: boolean;
 }
 
 function getBuildVariant(env: BuildEnvMeta): string {
@@ -53,6 +54,19 @@ export function resolveDebugMode(mode: string, fallback: boolean): boolean {
   return fallback;
 }
 
+/**
+ * Experimental local file (file://) translation. Opt-in per build with
+ * `VOT_LOCAL_FILE=true`; off everywhere else.
+ */
+export function resolveLocalFileExperiment(mode: string): boolean {
+  const raw = (
+    process.env.VOT_LOCAL_FILE ?? loadEnv(mode, ROOT_DIR, "").VOT_LOCAL_FILE
+  )
+    ?.trim()
+    .toLowerCase();
+  return raw === "true" || raw === "1";
+}
+
 export function buildDefine(env: BuildEnvMeta): ViteDefine {
   return {
     ...defineConstants({
@@ -63,6 +77,7 @@ export function buildDefine(env: BuildEnvMeta): ViteDefine {
       VOT_BUILD_VARIANT: getBuildVariant(env),
       VOT_VERSION: env.version,
       VOT_AUTHORS: env.authors,
+      VOT_LOCAL_FILE: env.localFile ?? false,
     }),
   };
 }

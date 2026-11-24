@@ -29,6 +29,12 @@ export function toBridgeMessage(payload: AnyObject): BridgeMarkedMessage {
   return { ...payload, [MARK]: true };
 }
 
+// A file:// document reports location.origin "file://", but its messages
+// carry the opaque origin "null" and "file://" is not a deliverable target.
+function isOpaqueOrigin(origin: string | undefined): boolean {
+  return !origin || origin === "null" || origin === "file://";
+}
+
 export function getSameWindowPostMessageTargetOrigin(): string {
   const origin = globalThis.location?.origin;
 
@@ -37,14 +43,14 @@ export function getSameWindowPostMessageTargetOrigin(): string {
   // target origin, so the only valid target is "*". The bridge still
   // verifies event.source and origin. The public marker only routes messages;
   // scripts in the same page are not authenticated by these checks.
-  return !origin || origin === "null" ? "*" : origin;
+  return isOpaqueOrigin(origin) ? "*" : origin;
 }
 
 export function isSameWindowBridgeEvent(event: MessageEvent): boolean {
   if (event.source !== globalThis.window) return false;
 
   const origin = globalThis.location?.origin;
-  if (!origin || origin === "null") {
+  if (isOpaqueOrigin(origin)) {
     return event.origin === "null" || event.origin === origin;
   }
 

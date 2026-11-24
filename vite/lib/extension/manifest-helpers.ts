@@ -191,6 +191,17 @@ export const DEV_DIRECT_VIDEO_EXTENSIONS = [
   "mpd",
 ] as const;
 
+/** Match pattern of the experimental local file build (`VOT_LOCAL_FILE`). */
+export const LOCAL_FILE_MATCH = "file:///*";
+/** Content scripts run only on local video files, not on every local page. */
+export const LOCAL_FILE_VIDEO_MATCHES = [
+  "mp4",
+  "m4v",
+  "mov",
+  "webm",
+  "mkv",
+].map((extension) => `file:///*.${extension}`);
+
 /** Extra platforms forced in dev (whole-site, not only path-specific). */
 export const DEV_EXTRA_SITE_MATCHES = ["*://*.udemy.com/*"] as const;
 
